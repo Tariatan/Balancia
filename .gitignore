@@ -1,0 +1,27 @@
+# Private user input, local storage, snapshots, and backups
+/transactions.csv
+/private/
+/data/
+/snapshots/
+/backups/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.balancia-snapshot
+*.balancia-backup
+.env
+.env.*
+!.env.example
+
+# .NET / IDE / generated output
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+*.suo
+TestResults/
+artifacts/
