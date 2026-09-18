@@ -4,8 +4,9 @@ A personal finance ledger for Windows, with a read-only Android companion.
 Record income, expenses, and transfers; browse history; see account balances and
 upcoming recurring payments. C#/.NET, Avalonia, and SQLite are the agreed stack.
 
-**Status:** specification and project harness only. There is no application,
-database, importer, Android package, or build pipeline yet.
+**Status:** M1 Windows shell and test foundation. Navigation and empty states work;
+account management, ledger operations, CSV import, reminders, and Android are not
+implemented. The shell does not read the private export or create a live database.
 
 ## Project map
 
@@ -46,10 +47,34 @@ Ignore rules do not encrypt data or remove files already tracked elsewhere.
 
 ## Development setup
 
-SDKs observed on 2026-09-17: 8.0.302, 9.0.301, and 10.0.201. No SDK or Avalonia
-package version is pinned yet. The first milestone will verify the framework
-combination, pin it, and add executable build/test/run instructions. Android
-workloads, device access, and packaging have not been checked.
+Install .NET SDK **10.0.201**, pinned by global.json. All projects target net10.0.
+Direct packages are pinned in project files; packages.lock.json files lock the
+transitive graph. Use locked restore for ordinary builds; intentionally regenerate
+and review locks when changing dependencies. Initial restore needs NuGet access.
+
+```powershell
+dotnet restore Balancia.slnx --locked-mode
+dotnet build Balancia.slnx -c Release --no-restore
+dotnet test Balancia.slnx -c Release --no-build --no-restore
+dotnet run --project src/Balancia.Desktop -c Release --no-build --no-restore
+```
+
+Close the app before rebuilding on Windows to release its executable files.
+
+| Dependency | Version |
+| --- | --- |
+| Avalonia.Desktop / Avalonia.Themes.Fluent | 12.1.2 |
+| Microsoft.Data.Sqlite | 10.0.12 |
+| Microsoft.NET.Test.Sdk | 18.10.1 |
+| xUnit | 2.9.3 |
+| xunit.runner.visualstudio | 4.0.0 |
+
+Core has no package dependencies. Storage uses Microsoft.Data.Sqlite directly.
+The initial shell uses small navigation event handlers; introduce view models when
+editable state arrives in M2 rather than adding a framework to empty screens.
+Tests use synthetic data and temporary SQLite files, removed after each test.
+The SQLite connection factory is infrastructure only; it does not create a ledger
+schema. Android workloads, device access, and packaging remain unchecked.
 
 The harness explicitly instructs agents to read MEMORY.md; it does not assume
 that filename is loaded automatically. The instruction entry point follows the

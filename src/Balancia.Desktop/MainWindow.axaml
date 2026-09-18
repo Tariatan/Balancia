@@ -1,0 +1,93 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Balancia.Desktop.MainWindow"
+        Title="Balancia" Width="1120" Height="760" MinWidth="800" MinHeight="620"
+        Background="#F3F5F4" WindowStartupLocation="CenterScreen">
+  <Window.Styles>
+    <Style Selector="Button">
+      <Setter Property="Background" Value="#E4ECE7" />
+      <Setter Property="Foreground" Value="#193D35" />
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#C8DDD1" />
+      <Setter Property="Foreground" Value="#193D35" />
+    </Style>
+    <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#AFCDBC" />
+      <Setter Property="Foreground" Value="#193D35" />
+    </Style>
+    <Style Selector="TextBlock.section">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#193D35" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="22" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="#52645E" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </Window.Styles>
+  <Grid ColumnDefinitions="210,*">
+    <Border Background="#163D34" Padding="20,30">
+      <DockPanel LastChildFill="True">
+        <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,36">
+          <TextBlock Text="Balancia" FontSize="27" FontWeight="Bold" Foreground="White" />
+          <TextBlock Text="Your money, in view." Foreground="#C4D7CF" />
+        </StackPanel>
+        <TextBlock DockPanel.Dock="Bottom" Text="Windows · CHF&#10;Local application" Foreground="#C4D7CF" />
+        <StackPanel Spacing="10">
+          <Button Content="Overview" HorizontalAlignment="Stretch" Click="ShowOverview" />
+          <Button Content="Accounts" HorizontalAlignment="Stretch" Click="ShowAccounts" />
+          <Button Content="Transactions" HorizontalAlignment="Stretch" Click="ShowTransactions" />
+          <Button Content="Recurring payments" HorizontalAlignment="Stretch" Click="ShowRecurring" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+    <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="32" Spacing="22">
+        <StackPanel Spacing="6">
+          <TextBlock x:Name="PageTitle" Text="Overview" FontSize="30" FontWeight="SemiBold" Foreground="#193D35" />
+          <TextBlock x:Name="PageDescription" Text="A clear view of your accounts and monthly activity." Classes="muted" />
+        </StackPanel>
+        <Border Background="#E4ECE7" CornerRadius="8" Padding="16">
+          <TextBlock Text="Development preview · Account setup and transaction entry are coming next. No financial data has been loaded." TextWrapping="Wrap" Foreground="#254D40" />
+        </Border>
+        <StackPanel x:Name="OverviewPanel" Spacing="22">
+          <Grid ColumnDefinitions="*,*,*">
+            <Border Classes="card" Margin="0,0,10,0"><StackPanel Spacing="10">
+              <TextBlock Text="Net worth" Classes="muted" /><TextBlock Text="—" FontSize="30" />
+              <TextBlock Text="All accounts" Classes="muted" />
+            </StackPanel></Border>
+            <Border Classes="card" Grid.Column="1" Margin="0,0,10,0"><StackPanel Spacing="10">
+              <TextBlock Text="Monthly income" Classes="muted" /><TextBlock Text="—" FontSize="30" />
+              <TextBlock Text="Current calendar month" Classes="muted" />
+            </StackPanel></Border>
+            <Border Classes="card" Grid.Column="2"><StackPanel Spacing="10">
+              <TextBlock Text="Monthly expenses" Classes="muted" /><TextBlock Text="—" FontSize="30" />
+              <TextBlock Text="Current calendar month" Classes="muted" />
+            </StackPanel></Border>
+          </Grid>
+          <Border Classes="card"><StackPanel Spacing="10">
+            <TextBlock Text="Largest expense categories" Classes="section" />
+            <TextBlock Text="Your category breakdown will appear after transactions are added." Classes="muted" />
+          </StackPanel></Border>
+          <Border Classes="card"><StackPanel Spacing="10">
+            <TextBlock Text="Upcoming payments" Classes="section" />
+            <TextBlock Text="Recurring payment reminders will appear here." Classes="muted" />
+          </StackPanel></Border>
+          <Border Classes="card"><StackPanel Spacing="10">
+            <TextBlock Text="Transaction history" Classes="section" />
+            <TextBlock Text="Your transactions will appear here once account setup and import are available." Classes="muted" />
+          </StackPanel></Border>
+        </StackPanel>
+        <Border x:Name="SectionPanel" Classes="card" IsVisible="False">
+          <TextBlock x:Name="SectionMessage" Classes="muted" />
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</Window>

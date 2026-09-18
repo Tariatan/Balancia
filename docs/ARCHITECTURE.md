@@ -36,10 +36,18 @@ table. Android reuses read models/queries, not a writable desktop service surfac
 Introduce shared UI only where reuse is demonstrated. A small solution is enough;
 no microservices, HTTP API, event broker, or event-sourcing system is planned.
 
-Start by verifying/pinning a .NET SDK and compatible Avalonia version. SDK 10.0.201
-is present, but compatibility and Android workloads are unverified. Data-access
-library and test framework selection remain implementation choices. Record exact
-versions in project files and build commands in README once verified.
+M1 pins SDK 10.0.201 / net10.0 with Avalonia 12.1.2, Microsoft.Data.Sqlite 10.0.12,
+xUnit 2.9.3, VS runner 4.0.0, and Test SDK 18.10.1. Direct versions live in project
+files; transitive versions are locked. Release build and tests validate this local
+Windows combination. Android compatibility has not been exercised. No MVVM helper
+package is needed for shell navigation; editable view models come with M2.
+
+Sources checked during M1: [Avalonia Windows guidance](https://docs.avaloniaui.net/docs/platform-specific-guides/windows)
+and [Avalonia NuGet package](https://www.nuget.org/packages/Avalonia.Desktop/12.1.2).
+Package availability was also checked against the NuGet flat-container API.
+
+Current code includes the Core money value, SQLite connection factory, and Desktop
+shell plus Core/Storage test projects. The storage model below remains planned.
 
 ## Proposed storage model
 
@@ -99,7 +107,7 @@ No project-specific agent skill or MCP service is needed for the initial harness
 
 ## Choices to resolve in their implementation milestones
 
-- Exact SDK, Avalonia, SQLite provider, MVVM utilities, and test framework versions.
+- Whether editable screens benefit from MVVM helper utilities in M2.
 - Windows distribution/update method and Android sideload packaging.
 - Snapshot encryption, backup retention, and full restore UX.
 - Android document-provider compatibility and whether automatic export adds value.

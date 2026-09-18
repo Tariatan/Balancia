@@ -47,9 +47,10 @@ need a manual interaction check when an executable UI exists. Do not claim tests
 passed when the required platform/tooling was unavailable.
 
 Run `powershell -NoProfile -File scripts/Check-Harness.ps1` for harness changes.
-There is no application solution yet. When scaffolding it, record exact verified
-restore/build/test/run commands in README.md; do not present planned commands as
-working ones. Pin SDK/packages at that point after checking compatibility.
+Use README.md for the verified restore/build/test/run commands for Balancia.slnx.
+Restore in locked mode. Keep global.json, package versions, and lock files aligned;
+review lock changes when intentionally updating dependencies. Close the running
+Windows app before rebuilding. Never present planned commands as verified ones.
 
 ## Maintain context
 
