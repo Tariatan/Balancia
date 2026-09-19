@@ -109,11 +109,17 @@ Android polish. Keep the source CSV untouched during implementation.
   are rejected case-insensitively. Sequential Release verification passes 8 Core
   and 35 Storage tests; the earlier parallel test/build collision was an output
   file race, not a code failure.
+- M5 editor was committed and pushed as `ce2c14e`.
+- M6 started locally with a consistent snapshot exporter. It uses SQLite backup
+  into a temporary database, packages `ledger.db` plus a manifest containing
+  dataset, schema, revision, and export time, then atomically replaces the target
+  artifact. Synthetic extraction/manifest validation passes; snapshot import,
+  recovery promotion, and desktop export UI remain next.
 
 ## Next concrete action
 
-Continue M5: add focused UI checks for overdue/paid states and commit this editor
-slice after the Windows interaction check.
+Continue M6: add snapshot validation/import and recovery tests, then expose export
+from the Windows shell without ever syncing the live database file.
 
 ## Handoff format for subsequent work
 
