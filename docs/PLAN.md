@@ -11,9 +11,10 @@ Last updated: 2026-09-19.
 | M2 | Accounts, categories, openings, ledger operations | L01–L07, SQLite atomicity tests, immediate UI refresh | Complete |
 | M3 | Buxfer import preview and application | I01–I07, current local source reconciliation, repeated import no-op | Complete |
 | M4 | Home, transaction form, history/search/filtering | H01–H05 history/dashboard checks, keyboard/scroll checks, P01 measurement | Complete |
-| M5 | Recurring templates and reminders | R01–R10, editable schedule and overdue behavior in UI | Not started |
-| M6 | Backups and snapshot export | S01, S06; recovery tested before relying on migration | Not started |
-| M7 | Android viewer and snapshot import | S02–S05 on device/emulator, packaging and refresh instructions | Not started |
+| M5 | Recurring templates and reminders | R01–R10, editable schedule and overdue behavior in UI | Complete |
+| M6 | Backups and snapshot export | S01, S06; recovery tested before relying on migration | Complete |
+| M7 | Android viewer and snapshot import | S02–S05 on device/emulator, packaging and refresh instructions | Complete |
+| M8 | Release polish and distribution | Release APK, backup UX, documentation, regression checks | Next |
 
 Deliver working slices; do not build all infrastructure before displaying useful
 data. M2 can start with a minimal editor, refined in M4. Windows usefulness precedes
@@ -141,9 +142,8 @@ Android polish. Keep the source CSV untouched during implementation.
 
 ## Next concrete action
 
-Continue M7 when the Android workload and emulator/device are available: create
-the read-only snapshot viewer and test staging, validation, promotion, search,
-and stale/offline startup behavior.
+Begin M8: package and document the Android release workflow, improve snapshot
+refresh/error presentation, and run a final Windows/Android regression pass.
 
 ## Handoff format for subsequent work
 

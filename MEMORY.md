@@ -64,8 +64,9 @@ Last updated: 2026-09-19. Scope: this repository only.
 
 ## Resume here
 
-See docs/PLAN.md for the M4 checkpoint and README.md for verified commands. Next
-slice is the remaining M5 recurring template editor and manual rescheduling.
+M5, M6, and M7 are now verified complete. M7 was tested on the Samsung S20 FE:
+snapshot selection, validation, refresh, offline retained snapshot, and Android
+description search all work. See docs/PLAN.md for the M8 release-polish checkpoint.
 
 ## Context maintenance
 
