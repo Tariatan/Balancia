@@ -39,5 +39,16 @@ public sealed class SnapshotTests : IDisposable
         Assert.Throws<InvalidDataException>(() => _store.ValidateSnapshot(path));
     }
 
+    [Fact]
+    public void OlderSnapshotCannotReplaceCurrentLedger()
+    {
+        var path = Path.Combine(_dir, "older.balancia");
+        _store.ExportSnapshot(path);
+        var account = _store.ReadSnapshot().Accounts.Single().Id;
+        _store.SaveTransaction(null, new(TransactionKind.Expense, new(2026, 1, 2), "Coffee", new(1), account));
+        Assert.Throws<InvalidDataException>(() => _store.RestoreSnapshot(path));
+        Assert.Single(_store.ReadSnapshot().Entries);
+    }
+
     public void Dispose() { try { Directory.Delete(_dir, true); } catch { } }
 }

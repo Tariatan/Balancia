@@ -8,6 +8,34 @@ public sealed record SnapshotManifest(string Format, int SchemaVersion, string D
 
 public sealed partial class LedgerStore
 {
+    public string RestoreSnapshot(string source)
+    {
+        var manifest = ValidateSnapshot(source);
+        var current = ReadSnapshot();
+        if (manifest.DatasetId != ReadDatasetId()) throw new InvalidDataException("Snapshot belongs to a different ledger dataset.");
+        if (manifest.Revision < current.Revision) throw new InvalidDataException("An older snapshot cannot replace the current ledger.");
+        var staged = _path + ".restore-" + Guid.NewGuid().ToString("N");
+        var backup = _path + ".pre-restore-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N") + ".bak";
+        try
+        {
+            using (var archive = ZipFile.OpenRead(Path.GetFullPath(source)))
+            using (var input = archive.GetEntry("ledger.db")!.Open())
+            using (var output = File.Create(staged)) input.CopyTo(output);
+            SqliteConnection.ClearAllPools();
+            File.Copy(_path, backup, true);
+            File.Move(staged, _path, true);
+            return backup;
+        }
+        finally { if (File.Exists(staged)) File.Delete(staged); }
+    }
+
+    private string ReadDatasetId()
+    {
+        using var c = _connections.Open(); using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT dataset_id FROM metadata WHERE id=1";
+        return Convert.ToString(cmd.ExecuteScalar())!;
+    }
+
     public SnapshotManifest ValidateSnapshot(string source)
     {
         using var archive = ZipFile.OpenRead(Path.GetFullPath(source));

@@ -119,11 +119,15 @@ Android polish. Keep the source CSV untouched during implementation.
   identity, schema, revision, and SQLite integrity are checked from a temporary
   extracted copy. Invalid archives are rejected without touching the ledger. The
   synthetic suite now has 37 passing tests; import promotion and UI export remain.
+- Recovery promotion is now implemented locally. A validated snapshot must match
+  the current dataset and cannot have an older revision; promotion creates a
+  timestamped `.pre-restore-*.bak` first, then replaces the database from a staged
+  copy. The older-snapshot recovery test passes. Windows export/restore UI remains.
 
 ## Next concrete action
 
-Continue M6: add recovery promotion and revision policy, then expose export and
-validation from the Windows shell without ever syncing the live database file.
+Continue M6: expose export and restore validation from the Windows shell without
+ever syncing the live database file, then run the manual recovery interaction.
 
 ## Handoff format for subsequent work
 
