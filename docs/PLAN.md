@@ -95,11 +95,19 @@ Android polish. Keep the source CSV untouched during implementation.
 - Final M4 verification on 2026-09-19: locked restore; Release build with zero
   warnings/errors; 39 tests passed (8 Core, 31 Storage); harness passed; private
   CSV remains Git-ignored. M4 changes are local and uncommitted.
+- M5 started locally: schema version 3 adds recurring templates with description,
+  expected date, indicative amount, interval months, and archive state. Reminder
+  calculation matches exact description and occurrence month/year, ignores amount
+  and day, keeps overdue occurrences visible, advances only through satisfied
+  scheduled months, and preserves the original desired day across month-end clamps.
+  Storage tests cover monthly satisfaction, earlier-payment rejection, and the
+  January-31/February/ March cadence. Overview and the Recurring payments page
+  now display reminders; template editing and manual rescheduling remain next.
 
 ## Next concrete action
 
-Begin M5: recurring template editing, schedule advancement, overdue reminders,
-and exact-description/month-year matching.
+Continue M5: add the full recurring-template editor, duplicate-description
+handling, manual rescheduling boundary, and UI checks for overdue/paid states.
 
 ## Handoff format for subsequent work
 

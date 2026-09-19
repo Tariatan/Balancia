@@ -56,11 +56,16 @@ Last updated: 2026-09-19. Scope: this repository only.
   UI search/paging/filter/edit/navigation checks passed. Release storage p95 on
   50,000 synthetic rows was at most 104.2 ms across measured paths; UI rendering
   latency was not measured. Recurring reminder display remains M5.
+- M4 was committed and pushed as `48a4b7e`. M5 is local and uncommitted: schema
+  version 3 recurring templates and reminder calculation are implemented, with
+  34 storage/core tests passing and the desktop overview showing reminder rows.
+  Full template editing, duplicate-description UX, and manual rescheduling are
+  still outstanding.
 
 ## Resume here
 
 See docs/PLAN.md for the M4 checkpoint and README.md for verified commands. Next
-slice is M5 recurring templates/reminders. The synthetic test app is closed.
+slice is the remaining M5 recurring template editor and manual rescheduling.
 
 ## Context maintenance
 

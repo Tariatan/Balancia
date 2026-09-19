@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     private LedgerSnapshot? _snapshot;
     private HistoryPage? _historyPage;
     private HistoryPage? _recentPage;
+    private IReadOnlyList<RecurringReminder> _reminders = [];
     private HistoryFilter _historyFilter = new();
     private int _historyOffset;
     private readonly List<(DateOnly Date, string Id)> _historyCursors = [];
@@ -56,6 +57,7 @@ public partial class MainWindow : Window
     private async Task Refresh()
     {
         _snapshot = await Task.Run(_store.ReadDesktopSnapshot);
+        _reminders = await Task.Run(() => _store.ReadRecurringReminders());
         if (_page == "Transactions")
             _historyPage = await Task.Run(() => _historyCursors.Count == 0 ? _store.ReadHistory(_historyFilter) :
                 _store.ReadHistoryAfter(_historyFilter, _historyCursors[^1].Date, _historyCursors[^1].Id));
@@ -104,7 +106,7 @@ public partial class MainWindow : Window
                 PageBody.Children.Add(Card("Net worth", Chf(s.NetWorth)));
                 PageBody.Children.Add(Card("This month's income / expenses", $"{Chf(s.MonthlyIncome)}  /  {Chf(s.MonthlyExpenses)}"));
                 PageBody.Children.Add(Card("Largest expense categories", s.LargestCategories.Count == 0 ? "No expenses this month." : string.Join("\n", s.LargestCategories.Select(c => $"{c.Name}    {Chf(c.Amount)}"))));
-                PageBody.Children.Add(Card("Upcoming payments", "Recurring payment reminders are not available yet."));
+                PageBody.Children.Add(Card("Upcoming payments", _reminders.Count == 0 ? "No recurring payment templates." : string.Join("\n", _reminders.Take(5).Select(ReminderText))));
                 PageBody.Children.Add(Card("Transaction history", _recentPage!.Hits.Count == 0 ? "No transactions yet. Start by adding an account." : string.Join("\n", _recentPage.Hits.Select(h => EntryText(h.Entry)))));
                 PageBody.Children.Add(ActionButton("Add account", () => EditAccount(null)));
                 break;
@@ -174,11 +176,17 @@ public partial class MainWindow : Window
                     ActionButton("Remove selected transaction", () => entries.SelectedItem is Choice<HistoryHit> e ? RemoveTransaction(e.Value.Entry) : SelectFirst()),
                     ActionButton("Import Buxfer CSV", ImportBuxfer)));
                 break;
-            default: PageBody.Children.Add(Card("Recurring payments", "Reminder editing is not available yet. Transactions are never created automatically.")); break;
+            default:
+                PageBody.Children.Add(Text("Templates are reminders only; Balancia never creates transactions automatically."));
+                PageBody.Children.Add(Card("Recurring payments", _reminders.Count == 0 ? "No templates yet." : string.Join("\n", _reminders.Select(ReminderText))));
+                PageBody.Children.Add(ActionButton("Add recurring template", async () => { Status.Text = "Template editing will be added in the next M5 slice."; await Task.CompletedTask; }));
+                break;
         }
     }
 
     private Task SelectFirst() { Status.Text = "Select a row first."; return Task.CompletedTask; }
+    private static string ReminderText(RecurringReminder reminder) =>
+        $"{(reminder.Overdue ? "OVERDUE · " : "")}{reminder.Occurrence:yyyy-MM-dd} · {reminder.Template.Description} · indicative {Chf(reminder.Template.IndicativeAmount)} · every {reminder.Template.IntervalMonths} month(s)";
     private async Task ImportBuxfer()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions

@@ -28,7 +28,13 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         }
         using var tx = c.BeginTransaction();
         var version = Convert.ToInt64(Scalar(c, tx, "PRAGMA user_version"));
-        if (version == 2) { tx.Commit(); return; }
+        if (version == 3) { tx.Commit(); return; }
+        if (version == 2)
+        {
+            CreateRecurringTable(c, tx);
+            Execute(c, tx, "PRAGMA user_version=3");
+            tx.Commit(); return;
+        }
         if (version == 1)
         {
             CreateImportTable(c, tx);
@@ -62,6 +68,8 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
             PRAGMA user_version=2;
             """, ("$dataset", Guid.NewGuid().ToString("N")));
         CreateImportTable(c, tx);
+        CreateRecurringTable(c, tx);
+        Execute(c, tx, "PRAGMA user_version=3");
         tx.Commit();
     }
 
@@ -74,6 +82,52 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
             PRIMARY KEY(source,external_id));
         CREATE UNIQUE INDEX import_transaction ON import_sources(transaction_id);
         """);
+
+    private static void CreateRecurringTable(SqliteConnection c, SqliteTransaction tx) => Execute(c, tx, """
+        CREATE TABLE IF NOT EXISTS recurring_templates (
+            id TEXT PRIMARY KEY, description TEXT NOT NULL CHECK(length(trim(description))>0),
+            expected_date TEXT NOT NULL, indicative_amount INTEGER NOT NULL CHECK(indicative_amount>0),
+            interval_months INTEGER NOT NULL CHECK(interval_months>0), archived INTEGER NOT NULL CHECK(archived IN (0,1)));
+        """);
+
+    public IReadOnlyList<RecurringReminder> ReadRecurringReminders(DateOnly? asOf = null)
+    {
+        var today = asOf ?? Today;
+        using var c = _connections.Open(); using var tx = c.BeginTransaction(deferred: true);
+        var result = new List<RecurringReminder>();
+        using var cmd = Command(c, tx, "SELECT id,description,expected_date,indicative_amount,interval_months,archived FROM recurring_templates WHERE archived=0 ORDER BY expected_date,description COLLATE NOCASE");
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            var template = new RecurringTemplate(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new(r.GetInt64(3)), r.GetInt32(4), r.GetBoolean(5));
+            var occurrence = template.ExpectedDate;
+            while (occurrence < today && IsSatisfied(c, tx, template.Description, occurrence)) occurrence = AddMonthsClamped(occurrence, template.IntervalMonths, template.ExpectedDate.Day);
+            result.Add(new(template, occurrence, occurrence < today, IsSatisfied(c, tx, template.Description, occurrence)));
+        }
+        tx.Commit(); return result.OrderBy(x => x.Satisfied ? 1 : 0).ThenBy(x => x.Occurrence).ToArray();
+    }
+
+    public string SaveRecurringTemplate(string? id, string description, DateOnly expectedDate, Money indicativeAmount, int intervalMonths, bool archived = false)
+    {
+        description = description.Trim();
+        if (description.Length == 0) throw new ArgumentException("Enter a description.");
+        if (indicativeAmount.Centimes <= 0) throw new ArgumentException("Enter an indicative amount greater than zero.");
+        if (intervalMonths <= 0) throw new ArgumentException("Repeat interval must be positive.");
+        var key = id ?? Guid.NewGuid().ToString("N");
+        Write((c, tx) => Execute(c, tx, "INSERT INTO recurring_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id",key),("$description",description),("$date",DateText(expectedDate)),("$amount",indicativeAmount.Centimes),("$interval",intervalMonths),("$archived",archived?1:0)));
+        return key;
+    }
+
+    public void DeleteRecurringTemplate(string id) => Write((c, tx) => Execute(c, tx, "DELETE FROM recurring_templates WHERE id=$id", ("$id", id)));
+
+    private static bool IsSatisfied(SqliteConnection c, SqliteTransaction tx, string description, DateOnly occurrence) =>
+        Scalar(c, tx, "SELECT 1 FROM ledger WHERE kind<>'OpeningBalance' AND description=$description AND substr(date,1,7)=$month LIMIT 1", ("$description",description),("$month",occurrence.ToString("yyyy-MM",CultureInfo.InvariantCulture))) is not null;
+
+    private static DateOnly AddMonthsClamped(DateOnly date, int months, int desiredDay)
+    {
+        var first = new DateOnly(date.Year,date.Month,1).AddMonths(months);
+        return new DateOnly(first.Year, first.Month, Math.Min(desiredDay, DateTime.DaysInMonth(first.Year, first.Month)));
+    }
 
     public string SaveAccount(string? id, string name, DateOnly openingDate, Money opening, bool archived = false)
     {
