@@ -130,10 +130,14 @@ Android polish. Keep the source CSV untouched during implementation.
 - Snapshot error reporting was committed and pushed as `6b91899`; approved manual
   behavior confirms restore is same-dataset recovery, not cross-dataset import.
 - M7 started on 2026-09-19 after the Android workload became available. A native
-  `Balancia.Android` shell targets `net10.0-android` / API 36, references Core and
-  Storage, and builds successfully in Release. It is still a shell: snapshot
-  document selection, app-local staging, read-only dashboard, and device testing
-  remain.
+  `Balancia.Android` app targets `net10.0-android` / API 36, references Core and
+  Storage, and now provides document selection, app-private staging, shared
+  validation, embedded database promotion, and a read-only net-worth/monthly
+  summary. Debug build passes and Release APK artifacts are produced. Samsung
+  S20 FE installation and transaction search remain.
+- The custom-extension picker fix was committed and pushed as `0dbbf6a`. Android
+  description search is now implemented over the staged snapshot and the Debug
+  build passes. Device installation and on-device search verification remain.
 
 ## Next concrete action
 
