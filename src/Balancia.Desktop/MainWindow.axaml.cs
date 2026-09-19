@@ -178,8 +178,9 @@ public partial class MainWindow : Window
                 break;
             default:
                 PageBody.Children.Add(Text("Templates are reminders only; Balancia never creates transactions automatically."));
-                PageBody.Children.Add(Card("Recurring payments", _reminders.Count == 0 ? "No templates yet." : string.Join("\n", _reminders.Select(ReminderText))));
-                PageBody.Children.Add(ActionButton("Add recurring template", async () => { Status.Text = "Template editing will be added in the next M5 slice."; await Task.CompletedTask; }));
+                var recurring = new ListBox { ItemsSource = _reminders.Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray(), MinHeight = 100, MaxHeight = 320 };
+                PageBody.Children.Add(recurring);
+                PageBody.Children.Add(Row(ActionButton("Add recurring template", () => EditRecurring(null)), ActionButton("Edit selected", () => recurring.SelectedItem is Choice<RecurringReminder> r ? EditRecurring(r.Value) : SelectFirst())));
                 break;
         }
     }
@@ -187,6 +188,24 @@ public partial class MainWindow : Window
     private Task SelectFirst() { Status.Text = "Select a row first."; return Task.CompletedTask; }
     private static string ReminderText(RecurringReminder reminder) =>
         $"{(reminder.Overdue ? "OVERDUE · " : "")}{reminder.Occurrence:yyyy-MM-dd} · {reminder.Template.Description} · indicative {Chf(reminder.Template.IndicativeAmount)} · every {reminder.Template.IntervalMonths} month(s)";
+
+    private async Task EditRecurring(RecurringReminder? reminder)
+    {
+        var template = reminder?.Template;
+        var description = Input(template?.Description ?? "");
+        var date = Input((template?.ExpectedDate ?? _displayDate).ToString("yyyy-MM-dd"));
+        var amount = Input((template?.IndicativeAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
+        var interval = Input((template?.IntervalMonths ?? 1).ToString(CultureInfo.InvariantCulture));
+        var archived = new CheckBox { Content = "Archived", IsChecked = template?.Archived ?? false };
+        await EditDialog(template is null ? "Add recurring template" : "Edit recurring template",
+            [Field("Description (exact match)", description), Field("Expected date (YYYY-MM-DD)", date), Field("Indicative amount (CHF)", amount), Field("Repeat every N months", interval), archived],
+            () =>
+            {
+                var values = (description.Text ?? "", ParseDate(date), ParseMoney(amount),
+                    int.Parse(interval.Text ?? "", CultureInfo.InvariantCulture), archived.IsChecked == true);
+                return () => _store.SaveRecurringTemplate(template?.Id, values.Item1, values.Item2, values.Item3, values.Item4, values.Item5);
+            });
+    }
     private async Task ImportBuxfer()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions

@@ -114,7 +114,13 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         if (indicativeAmount.Centimes <= 0) throw new ArgumentException("Enter an indicative amount greater than zero.");
         if (intervalMonths <= 0) throw new ArgumentException("Repeat interval must be positive.");
         var key = id ?? Guid.NewGuid().ToString("N");
-        Write((c, tx) => Execute(c, tx, "INSERT INTO recurring_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id",key),("$description",description),("$date",DateText(expectedDate)),("$amount",indicativeAmount.Centimes),("$interval",intervalMonths),("$archived",archived?1:0)));
+        Write((c, tx) =>
+        {
+            if (!archived && Scalar(c, tx, "SELECT 1 FROM recurring_templates WHERE archived=0 AND lower(description)=lower($description) AND id<>$id LIMIT 1", ("$description",description),("$id",key)) is null)
+                Execute(c, tx, "INSERT INTO recurring_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id",key),("$description",description),("$date",DateText(expectedDate)),("$amount",indicativeAmount.Centimes),("$interval",intervalMonths),("$archived",archived?1:0));
+            else if (!archived) throw new ArgumentException("An active recurring template already uses this description.");
+            else Execute(c, tx, "INSERT INTO recurring_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id",key),("$description",description),("$date",DateText(expectedDate)),("$amount",indicativeAmount.Centimes),("$interval",intervalMonths),("$archived",archived?1:0));
+        });
         return key;
     }
 

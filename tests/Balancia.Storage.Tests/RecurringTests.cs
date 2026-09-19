@@ -43,6 +43,13 @@ public sealed class RecurringTests : IDisposable
         Assert.Equal(new DateOnly(2026, 3, 31), reminders.Single().Occurrence);
     }
 
+    [Fact]
+    public void DuplicateActiveDescriptionsAreRejected()
+    {
+        _store.SaveRecurringTemplate(null, "Rent", new(2026, 1, 1), new(10), 1);
+        Assert.Throws<ArgumentException>(() => _store.SaveRecurringTemplate(null, " rent ", new(2026, 2, 1), new(10), 1));
+    }
+
     public void Dispose() => File.Delete(_path);
     private sealed class FixedClock : TimeProvider
     { public override DateTimeOffset GetUtcNow() => new(2026, 12, 31, 0, 0, 0, TimeSpan.Zero); public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc; }

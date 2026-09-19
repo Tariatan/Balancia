@@ -103,11 +103,17 @@ Android polish. Keep the source CSV untouched during implementation.
   Storage tests cover monthly satisfaction, earlier-payment rejection, and the
   January-31/February/ March cadence. Overview and the Recurring payments page
   now display reminders; template editing and manual rescheduling remain next.
+- M5 editor slice is now implemented locally: the Recurring payments page can add
+  and edit templates, including expected-date changes used for manual rescheduling,
+  indicative amount, interval, and archive state. Active duplicate descriptions
+  are rejected case-insensitively. Sequential Release verification passes 8 Core
+  and 35 Storage tests; the earlier parallel test/build collision was an output
+  file race, not a code failure.
 
 ## Next concrete action
 
-Continue M5: add the full recurring-template editor, duplicate-description
-handling, manual rescheduling boundary, and UI checks for overdue/paid states.
+Continue M5: add focused UI checks for overdue/paid states and commit this editor
+slice after the Windows interaction check.
 
 ## Handoff format for subsequent work
 
