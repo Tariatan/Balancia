@@ -8,6 +8,35 @@ public sealed record SnapshotManifest(string Format, int SchemaVersion, string D
 
 public sealed partial class LedgerStore
 {
+    public SnapshotManifest ValidateSnapshot(string source)
+    {
+        using var archive = ZipFile.OpenRead(Path.GetFullPath(source));
+        var manifestEntry = archive.GetEntry("manifest.json") ?? throw new InvalidDataException("Snapshot manifest is missing.");
+        SnapshotManifest? manifest;
+        using (var reader = new StreamReader(manifestEntry.Open()))
+            manifest = JsonSerializer.Deserialize<SnapshotManifest>(reader.ReadToEnd());
+        if (manifest is null || manifest.Format != "balancia-snapshot-1" || manifest.SchemaVersion != 3)
+            throw new InvalidDataException("Snapshot format or schema version is unsupported.");
+        var database = archive.GetEntry("ledger.db") ?? throw new InvalidDataException("Snapshot database is missing.");
+        var temporary = _path + ".snapshot-check-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            using (var input = database.Open()) using (var output = File.Create(temporary)) input.CopyTo(output);
+            using var connection = new SqliteConnectionFactory(temporary).Open();
+            using var command = connection.CreateCommand(); command.CommandText = "PRAGMA integrity_check";
+            if (!string.Equals(Convert.ToString(command.ExecuteScalar()), "ok", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Snapshot database integrity check failed.");
+            command.CommandText = "PRAGMA user_version";
+            var version = Convert.ToInt64(command.ExecuteScalar());
+            command.CommandText = "SELECT dataset_id,revision FROM metadata WHERE id=1";
+            using var row = command.ExecuteReader();
+            if (!row.Read() || version != manifest.SchemaVersion || row.GetString(0) != manifest.DatasetId || row.GetInt64(1) != manifest.Revision)
+                throw new InvalidDataException("Snapshot manifest does not match its database.");
+            return manifest;
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+    }
+
     public SnapshotManifest ExportSnapshot(string destination)
     {
         var full = Path.GetFullPath(destination);

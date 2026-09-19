@@ -28,6 +28,15 @@ public sealed class SnapshotTests : IDisposable
         using var check = new SqliteConnectionFactory(Path.Combine(_dir, "extracted.db")).Open();
         using var command = check.CreateCommand(); command.CommandText = "SELECT COUNT(*) FROM accounts";
         Assert.Equal(1L, command.ExecuteScalar());
+        Assert.Equal(manifest, _store.ValidateSnapshot(path));
+    }
+
+    [Fact]
+    public void CorruptSnapshotIsRejected()
+    {
+        var path = Path.Combine(_dir, "bad.balancia");
+        File.WriteAllText(path, "not a zip");
+        Assert.Throws<InvalidDataException>(() => _store.ValidateSnapshot(path));
     }
 
     public void Dispose() { try { Directory.Delete(_dir, true); } catch { } }

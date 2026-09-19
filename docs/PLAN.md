@@ -115,11 +115,15 @@ Android polish. Keep the source CSV untouched during implementation.
   dataset, schema, revision, and export time, then atomically replaces the target
   artifact. Synthetic extraction/manifest validation passes; snapshot import,
   recovery promotion, and desktop export UI remain next.
+- Snapshot validation is now implemented locally: archive format, manifest/database
+  identity, schema, revision, and SQLite integrity are checked from a temporary
+  extracted copy. Invalid archives are rejected without touching the ledger. The
+  synthetic suite now has 37 passing tests; import promotion and UI export remain.
 
 ## Next concrete action
 
-Continue M6: add snapshot validation/import and recovery tests, then expose export
-from the Windows shell without ever syncing the live database file.
+Continue M6: add recovery promotion and revision policy, then expose export and
+validation from the Windows shell without ever syncing the live database file.
 
 ## Handoff format for subsequent work
 
