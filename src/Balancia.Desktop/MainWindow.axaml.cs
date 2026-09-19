@@ -72,7 +72,7 @@ public partial class MainWindow : Window
         _busy = true; PageBody.IsEnabled = false; Navigation.IsEnabled = false;
         Status.Text = "Working…";
         try { await action(); Status.Text = "Saved locally · CHF"; }
-        catch (Exception ex) { Status.Text = FriendlyError(ex); }
+        catch (Exception ex) { Status.Text = FriendlyError(ex); await ShowErrorDialog("Balancia", FriendlyError(ex)); }
         finally { _busy = false; PageBody.IsEnabled = true; Navigation.IsEnabled = true; }
     }
 
@@ -83,9 +83,21 @@ public partial class MainWindow : Window
         OverflowException => "This amount or resulting total is outside the supported range.",
         FormatException => "Check the date (YYYY-MM-DD) and amount (for example 12.50).",
         IOException or UnauthorizedAccessException => "The local data folder is unavailable or not writable.",
+        InvalidDataException => ex.Message,
         ArgumentException or InvalidOperationException => ex.Message,
         _ => "The operation failed. Your entered values have been kept; try again."
     };
+
+    private async Task ShowErrorDialog(string title, string message)
+    {
+        var dialog = new Window { Title = title, Width = 520, Height = 260, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        var close = new Button { Content = "Close", IsDefault = true, IsCancel = true };
+        close.Click += (_, _) => dialog.Close();
+        dialog.Content = new StackPanel { Spacing = 16, Margin = new Thickness(24), Children =
+        { new TextBlock { Text = "The operation could not be completed.", FontSize = 20, FontWeight = FontWeight.SemiBold },
+          new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap }, close } };
+        await dialog.ShowDialog(this);
+    }
 
     private async void ShowOverview(object? sender, RoutedEventArgs e) => await Navigate("Overview");
     private async void ShowAccounts(object? sender, RoutedEventArgs e) => await Navigate("Accounts");
@@ -108,7 +120,7 @@ public partial class MainWindow : Window
                 PageBody.Children.Add(Card("Largest expense categories", s.LargestCategories.Count == 0 ? "No expenses this month." : string.Join("\n", s.LargestCategories.Select(c => $"{c.Name}    {Chf(c.Amount)}"))));
                 PageBody.Children.Add(Card("Upcoming payments", _reminders.Count == 0 ? "No recurring payment templates." : string.Join("\n", _reminders.Take(5).Select(ReminderText))));
                 PageBody.Children.Add(Card("Transaction history", _recentPage!.Hits.Count == 0 ? "No transactions yet. Start by adding an account." : string.Join("\n", _recentPage.Hits.Select(h => EntryText(h.Entry)))));
-                PageBody.Children.Add(ActionButton("Add account", () => EditAccount(null)));
+                PageBody.Children.Add(Row(ActionButton("Add account", () => EditAccount(null)), ActionButton("Export snapshot", ExportSnapshot), ActionButton("Restore snapshot", RestoreSnapshot)));
                 break;
             case "Accounts":
                 PageBody.Children.Add(Text("Set a dated opening balance. Archive accounts to stop new entries without losing history."));
@@ -253,6 +265,34 @@ public partial class MainWindow : Window
                 catch (Exception ex) { error.Text = FriendlyError(ex); apply.IsEnabled = true; }
             };
             await dialog.ShowDialog(this);
+        });
+    }
+
+    private async Task ExportSnapshot()
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Export Balancia snapshot", SuggestedFileName = $"balancia-{DateTime.Today:yyyyMMdd}.balancia",
+            FileTypeChoices = [new FilePickerFileType("Balancia snapshot") { Patterns = ["*.balancia"] }]
+        });
+        var path = file?.TryGetLocalPath(); if (path is null) return;
+        await Run(async () => { var manifest = await Task.Run(() => _store.ExportSnapshot(path)); Status.Text = $"Snapshot exported · revision {manifest.Revision}"; });
+    }
+
+    private async Task RestoreSnapshot()
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose Balancia snapshot", AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("Balancia snapshot") { Patterns = ["*.balancia"] }]
+        });
+        var path = files.FirstOrDefault()?.TryGetLocalPath(); if (path is null) return;
+        await Run(async () =>
+        {
+            var manifest = await Task.Run(() => _store.ValidateSnapshot(path));
+            var backup = await Task.Run(() => _store.RestoreSnapshot(path));
+            Status.Text = $"Snapshot restored · revision {manifest.Revision} · backup {Path.GetFileName(backup)}";
+            await Refresh();
         });
     }
     private async Task EditAccount(Account? account)
