@@ -160,9 +160,9 @@ public sealed class LedgerStoreTests : IDisposable
     [Fact]
     public void NewerSchemaIsRejectedWithoutModification()
     {
-        Sql("PRAGMA user_version=2;");
+        Sql("PRAGMA user_version=3;");
         Assert.Throws<InvalidOperationException>(() => _store.Initialize());
-        Assert.Equal(2L, Scalar("PRAGMA user_version"));
+        Assert.Equal(3L, Scalar("PRAGMA user_version"));
     }
 
     private object? Scalar(string sql) { using var c = new SqliteConnectionFactory(_path).Open(); using var cmd = c.CreateCommand(); cmd.CommandText = sql; return cmd.ExecuteScalar(); }

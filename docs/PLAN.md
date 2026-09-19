@@ -9,7 +9,7 @@ Last updated: 2026-09-19.
 | M0 | Specification and context harness | Files, working local links, harness check, source unchanged | Complete |
 | M1 | Pinned SDK/packages, solution, Windows shell, test projects | Restore/build/test and manual shell launch; exact commands in README | Complete |
 | M2 | Accounts, categories, openings, ledger operations | L01–L07, SQLite atomicity tests, immediate UI refresh | Complete |
-| M3 | Buxfer import preview and application | I01–I07, current local source reconciliation, repeated import no-op | Not started |
+| M3 | Buxfer import preview and application | I01–I07, current local source reconciliation, repeated import no-op | Complete |
 | M4 | Home, transaction form, history/search/filtering | H01–H05, keyboard/scroll checks, P01 measurement | Not started |
 | M5 | Recurring templates and reminders | R01–R10, editable schedule and overdue behavior in UI | Not started |
 | M6 | Backups and snapshot export | S01, S06; recovery tested before relying on migration | Not started |
@@ -57,14 +57,29 @@ Android polish. Keep the source CSV untouched during implementation.
   CHF 980 net worth from CHF 1,000 opening minus CHF 20 expense. Editing that
   expense to CHF 25 updated the transaction row. Empty amount validation kept the
   form open. The default user database and private CSV were not used.
-- M2 changes are ready to commit and push. CSV import, reminder matching, snapshots,
-  Android, and high-volume history tuning remain in later milestones.
+- M2 committed and pushed as `576db1f` on main.
+- M3 adds schema v2 import provenance, backup before v1 migration, strict Buxfer
+  CSV preview, Windows file selection and apply dialog, atomic import, reimport
+  conflict detection, and account reconciliation. The source CSV remains ignored.
+- Verified 2026-09-19: locked restore and Release build passed with zero warnings;
+  33 tests passed (8 Core, 25 Storage), including an opt-in isolated import of
+  the current private export and per-account reconciliation. Synthetic tests cover
+  I01–I05/I07 and backup migration. Unchanged reimport adds no entries and does
+  not increment revision. No real export was applied to the normal app database.
+- Windows interaction checked in a separate synthetic dataset: Transactions
+  exposes Import Buxfer CSV and opens the CSV picker. The preview/apply modal was
+  not exercised through UI automation; its application path is covered by SQLite
+  integration tests. M4 can refine long history and preview presentation.
+- Owner verified the M3 import in the Windows app on 2026-09-19: account balances
+  calculated precisely, and accounts, transactions, and categories imported and
+  appeared in the expected order. This confirms the real preview/apply flow beyond
+  the isolated integration test. No private financial values are recorded here.
 
 ## Next concrete action
 
-Begin M3: implement Buxfer CSV preview and idempotent, atomic application. Re-read
-the private source only for local reconciliation; preserve its original bytes.
-Close the running separate-data preview before rebuilding on Windows.
+Begin M4: build fast, searchable, filtered history and refine transaction entry.
+Measure 50,000 synthetic transactions in Release. Close the synthetic-data
+preview before rebuilding on Windows.
 
 ## Handoff format for subsequent work
 

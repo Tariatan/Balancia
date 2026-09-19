@@ -54,6 +54,15 @@ All current queries rebuild the small snapshot; paging/query tuning belongs to
 M4. No MVVM utility package was needed for this initial editor; revisit that
 choice when form complexity grows.
 
+M3 upgrades to schema version 2. A consistent SQLite backup is written beside
+the database before a version 1 migration. `import_sources` links each Buxfer ID
+to one logical ledger entry, stores both raw transfer rows and a canonical source
+fingerprint, and records local edits/deletions as conflicts for reimport. CSV
+preview validates all rows and groups before the existing atomic write boundary.
+Apply rechecks the file hash and ledger revision, then reconciles account movement
+totals. An unchanged full reimport leaves the revision unchanged. The import UI
+uses the Windows file picker and an explicit preview/apply dialog.
+
 ## Storage model
 
 - Account: stable ID, name, CHF currency, archive state.
@@ -65,8 +74,8 @@ choice when form complexity grows.
   one signed movement. Opening entries have an effective date.
 - RecurringTemplate (planned): description, indicative centimes, intervalMonths, desired
   day, active schedule anchor and manual-reschedule boundary, archive state.
-- ImportSource (planned): external system/ID, normalized source fingerprint and batch ID,
-  linked logical transaction; retain both source rows for transfer provenance.
+- ImportSource (implemented): external system/ID, normalized source fingerprint,
+  linked logical transaction and raw source rows; retain both transfer rows.
 - Metadata: schema version, dataset UUID, monotonic revision.
 
 Use foreign keys, uniqueness/check constraints where appropriate, and a database

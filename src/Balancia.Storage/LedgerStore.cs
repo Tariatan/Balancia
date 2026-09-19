@@ -5,8 +5,9 @@ using Microsoft.Data.Sqlite;
 namespace Balancia.Storage;
 
 /// <summary>Owns the single-writer ledger boundary; all logical changes commit together.</summary>
-public sealed class LedgerStore(string path, TimeProvider? clock = null)
+public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
 {
+    private readonly string _path = path;
     private readonly SqliteConnectionFactory _connections = new(path);
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private DateOnly Today => DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
@@ -14,9 +15,26 @@ public sealed class LedgerStore(string path, TimeProvider? clock = null)
     public void Initialize()
     {
         using var c = _connections.Open();
+        using (var check = c.CreateCommand())
+        {
+            check.CommandText = "PRAGMA user_version";
+            var existing = Convert.ToInt64(check.ExecuteScalar());
+            if (existing == 1)
+            {
+                var backupPath = _path + ".pre-v2-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N") + ".bak";
+                using var backup = new SqliteConnectionFactory(backupPath).Open();
+                c.BackupDatabase(backup);
+            }
+        }
         using var tx = c.BeginTransaction();
         var version = Convert.ToInt64(Scalar(c, tx, "PRAGMA user_version"));
-        if (version == 1) { tx.Commit(); return; }
+        if (version == 2) { tx.Commit(); return; }
+        if (version == 1)
+        {
+            CreateImportTable(c, tx);
+            Execute(c, tx, "PRAGMA user_version=2");
+            tx.Commit(); return;
+        }
         if (version != 0) throw new InvalidOperationException("This database version is not supported. Use a compatible Balancia version.");
         if (Convert.ToInt64(Scalar(c, tx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")) != 0)
             throw new InvalidOperationException("The selected file is not an empty Balancia database.");
@@ -41,10 +59,21 @@ public sealed class LedgerStore(string path, TimeProvider? clock = null)
             CREATE TABLE metadata (id INTEGER PRIMARY KEY CHECK(id=1), dataset_id TEXT NOT NULL,
                 revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>=0));
             INSERT INTO metadata VALUES(1, $dataset, 0);
-            PRAGMA user_version=1;
+            PRAGMA user_version=2;
             """, ("$dataset", Guid.NewGuid().ToString("N")));
+        CreateImportTable(c, tx);
         tx.Commit();
     }
+
+    private static void CreateImportTable(SqliteConnection c, SqliteTransaction tx) => Execute(c, tx, """
+        CREATE TABLE import_sources (
+            source TEXT NOT NULL, external_id TEXT NOT NULL,
+            transaction_id TEXT REFERENCES ledger(id) ON DELETE SET NULL,
+            fingerprint TEXT NOT NULL, raw_rows_json TEXT NOT NULL,
+            locally_modified INTEGER NOT NULL DEFAULT 0 CHECK(locally_modified IN (0,1)),
+            PRIMARY KEY(source,external_id));
+        CREATE UNIQUE INDEX import_transaction ON import_sources(transaction_id);
+        """);
 
     public string SaveAccount(string? id, string name, DateOnly openingDate, Money opening, bool archived = false)
     {
@@ -67,6 +96,7 @@ public sealed class LedgerStore(string path, TimeProvider? clock = null)
                 ON CONFLICT(transaction_id,account_id) DO UPDATE SET amount=excluded.amount;
                 """, ("$id", key), ("$name", name), ("$date", DateText(openingDate)),
                 ("$archived", archived ? 1 : 0), ("$opening", "opening:" + key), ("$amount", opening.Centimes));
+            if (id is not null) Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE transaction_id=$id", ("$id", "opening:" + key));
         });
         return key;
     }
@@ -124,6 +154,7 @@ public sealed class LedgerStore(string path, TimeProvider? clock = null)
                 ("$description", draft.Description), ("$category", draft.CategoryId), ("$memo", draft.Memo));
             AddMovement(c, tx, key, draft.AccountId, draft.Kind == TransactionKind.Income ? draft.Amount.Centimes : -draft.Amount.Centimes);
             if (draft.DestinationId is not null) AddMovement(c, tx, key, draft.DestinationId, draft.Amount.Centimes);
+            if (id is not null) Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE transaction_id=$id", ("$id", id));
         });
         return key;
     }
@@ -131,6 +162,7 @@ public sealed class LedgerStore(string path, TimeProvider? clock = null)
     public void DeleteTransaction(string id) => Write((c, tx) =>
     {
         Require(c, tx, "SELECT 1 FROM ledger WHERE id=$id AND kind<>'OpeningBalance'", id, "Transaction no longer exists.");
+        Execute(c, tx, "UPDATE import_sources SET locally_modified=1,transaction_id=NULL WHERE transaction_id=$id", ("$id", id));
         Execute(c, tx, "DELETE FROM ledger WHERE id=$id", ("$id", id));
     });
 

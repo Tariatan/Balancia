@@ -4,11 +4,12 @@ A personal finance ledger for Windows, with a read-only Android companion.
 Record income, expenses, and transfers; browse history; see account balances and
 upcoming recurring payments. C#/.NET, Avalonia, and SQLite are the agreed stack.
 
-**Status:** M2 local ledger and Windows editor. Accounts, two-level categories,
+**Status:** M3 Buxfer import and Windows ledger. Accounts, two-level categories,
 opening balances, income, expenses, and transfers can be created and edited;
 transactions can also be removed. Dashboard balances and monthly totals come
-from the local SQLite ledger. CSV import, history search/filtering, recurring
-reminders, backups/snapshots, and Android are still planned.
+from the local SQLite ledger. CSV preview and import are available from
+Transactions. History search/filtering, recurring reminders, routine
+backups/snapshots, and Android are still planned.
 
 ## Project map
 
@@ -37,14 +38,14 @@ check the current CSV structure without printing financial values:
 powershell -NoProfile -File scripts/Check-Harness.ps1 -CheckPrivateImport
 ```
 
-The optional check does not replace the future importer or reconciliation tests.
+The optional check does not replace importer or reconciliation tests.
 No additional packages are required for these PowerShell checks.
 
 ## Private data
 
 `transactions.csv` is the user's local Buxfer export. It is intentionally ignored
 by Git. Keep live databases, exported snapshots, and backups outside source
-control. Synthetic fixtures will live under tests once implementation starts.
+control. Committed tests use only synthetic fixtures.
 Ignore rules do not encrypt data or remove files already tracked elsewhere.
 
 ## Development setup
@@ -72,16 +73,22 @@ Close the app before rebuilding on Windows to release its executable files.
 | xunit.runner.visualstudio | 4.0.0 |
 
 Core has no package dependencies. Storage uses Microsoft.Data.Sqlite directly.
-The initial shell uses small navigation event handlers; introduce view models when
-editable state arrives in M2 rather than adding a framework to empty screens.
+The Windows editor uses small navigation and dialog event handlers.
 Tests use synthetic data and temporary SQLite files, removed after each test.
 The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db`.
 For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--`
-in the `dotnet run` command. The app creates that directory and its version 1
-schema on first run. Opening an unsupported schema version fails without upgrading
-it; a safe backup-and-migration workflow has not been implemented yet. Close the
+in the `dotnet run` command. The app creates that directory and its version 2
+schema on first run. Upgrading a version 1 database writes a consistent `.bak`
+file beside it before migration. Opening an unsupported newer schema fails. Close the
 running app before rebuilding on Windows. Android workloads, device access, and
 packaging remain unchecked.
+
+To import, open Transactions, choose **Import Buxfer CSV**, inspect the preview,
+and apply it. Invalid rows block import. Repeated identical imports add nothing;
+changed Buxfer IDs or locally edited imported entries cause a conflict. The
+source file is never modified. For a private-export reconciliation test in an
+isolated temporary database, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute
+path before running the test command, then remove the environment variable.
 
 The harness explicitly instructs agents to read MEMORY.md; it does not assume
 that filename is loaded automatically. The instruction entry point follows the

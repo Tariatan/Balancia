@@ -41,12 +41,21 @@ Last updated: 2026-09-19. Scope: this repository only.
   balances and monthly totals. All 23 tests pass; Release build zero warnings.
   Synthetic UI data persisted across restart and an edit refreshed immediately.
   Actual Buxfer CSV remains outside the app.
+- M2 committed and pushed as `576db1f` on main. M3 is implemented locally on
+  2026-09-19: schema v2 provenance plus pre-migration backup, Buxfer preview/apply,
+  atomic imports, no-op repeat, and explicit changed-ID/local-edit conflicts.
+  Locked restore/Release build pass; 33 tests pass. Current private CSV was
+  reconciled account by account only in an isolated test database. Windows UI
+  picker opened in a synthetic dataset; preview/apply UI remains unexercised.
+- Owner verified the live M3 import on 2026-09-19: precise account balances and
+  correctly imported/ordered accounts, transactions, and categories. No private
+  values are retained in repository memory.
 
 ## Resume here
 
-See docs/PLAN.md for the M2 checkpoint and README.md for verified commands. Next
-slice is M3 Buxfer import preview/application. The synthetic-data preview may be
-open; close it before rebuilding. M2 is ready to commit/push.
+See docs/PLAN.md for the M3 checkpoint and README.md for verified commands. Next
+slice is M4 transaction history/search/filtering. The synthetic-data preview may
+be open; close it before rebuilding. M3 is local and uncommitted.
 
 ## Context maintenance
 
