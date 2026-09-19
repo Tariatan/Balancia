@@ -231,9 +231,32 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         using var c = _connections.Open();
         using var tx = c.BeginTransaction();
         action(c, tx);
-        _ = ReadSnapshot(c, tx); // Detect overflowing balances/totals before accepting the operation.
+        ValidateLedgerTotals(c, tx);
         Execute(c, tx, "UPDATE metadata SET revision=revision+1 WHERE id=1");
         tx.Commit();
+    }
+
+    private static void ValidateLedgerTotals(SqliteConnection c, SqliteTransaction tx)
+    {
+        var accountTotals = new Dictionary<string, decimal>();
+        using (var cmd = Command(c, tx, "SELECT account_id,amount FROM movements"))
+        using (var reader = cmd.ExecuteReader())
+            while (reader.Read())
+            {
+                var id = reader.GetString(0);
+                accountTotals[id] = accountTotals.GetValueOrDefault(id) + reader.GetInt64(1);
+            }
+        foreach (var total in accountTotals.Values) _ = checked((long)total);
+        _ = checked((long)accountTotals.Values.Sum());
+        var monthly = new Dictionary<(string, string), decimal>();
+        using (var cmd = Command(c, tx, "SELECT substr(l.date,1,7),l.kind,m.amount FROM ledger l JOIN movements m ON m.transaction_id=l.id WHERE l.kind IN ('Expense','Income')"))
+        using (var reader = cmd.ExecuteReader())
+            while (reader.Read())
+            {
+                var key = (reader.GetString(0), reader.GetString(1));
+                monthly[key] = monthly.GetValueOrDefault(key) + Math.Abs((decimal)reader.GetInt64(2));
+            }
+        foreach (var total in monthly.Values) _ = checked((long)total);
     }
 
     private static void ValidateAccount(SqliteConnection c, SqliteTransaction tx, string id, DateOnly date, string? transactionId)

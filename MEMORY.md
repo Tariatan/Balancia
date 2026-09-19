@@ -41,8 +41,8 @@ Last updated: 2026-09-19. Scope: this repository only.
   balances and monthly totals. All 23 tests pass; Release build zero warnings.
   Synthetic UI data persisted across restart and an edit refreshed immediately.
   Actual Buxfer CSV remains outside the app.
-- M2 committed and pushed as `576db1f` on main. M3 is implemented locally on
-  2026-09-19: schema v2 provenance plus pre-migration backup, Buxfer preview/apply,
+- M2 committed and pushed as `576db1f` on main. M3 was committed and pushed as
+  `ea77985` on 2026-09-19: schema v2 provenance plus pre-migration backup, Buxfer preview/apply,
   atomic imports, no-op repeat, and explicit changed-ID/local-edit conflicts.
   Locked restore/Release build pass; 33 tests pass. Current private CSV was
   reconciled account by account only in an isolated test database. Windows UI
@@ -50,12 +50,17 @@ Last updated: 2026-09-19. Scope: this repository only.
 - Owner verified the live M3 import on 2026-09-19: precise account balances and
   correctly imported/ordered accounts, transactions, and categories. No private
   values are retained in repository memory.
+- M4 is complete locally on 2026-09-19, not yet committed: split dashboard/history
+  reads, 100-row cursor pages, combined filters, Unicode case-insensitive search,
+  category chooser search, and immediate dashboard refresh after edits. Synthetic
+  UI search/paging/filter/edit/navigation checks passed. Release storage p95 on
+  50,000 synthetic rows was at most 104.2 ms across measured paths; UI rendering
+  latency was not measured. Recurring reminder display remains M5.
 
 ## Resume here
 
-See docs/PLAN.md for the M3 checkpoint and README.md for verified commands. Next
-slice is M4 transaction history/search/filtering. The synthetic-data preview may
-be open; close it before rebuilding. M3 is local and uncommitted.
+See docs/PLAN.md for the M4 checkpoint and README.md for verified commands. Next
+slice is M5 recurring templates/reminders. The synthetic test app is closed.
 
 ## Context maintenance
 

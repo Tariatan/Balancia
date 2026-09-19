@@ -1,6 +1,6 @@
 # Architecture and decision record
 
-2026-09-17. This is a design, not an inventory of implemented components.
+Updated 2026-09-19. This records accepted design and implemented slices.
 
 ## Accepted direction
 
@@ -63,6 +63,17 @@ Apply rechecks the file hash and ledger revision, then reconciles account moveme
 totals. An unchanged full reimport leaves the revision unchanged. The import UI
 uses the Windows file picker and an explicit preview/apply dialog.
 
+M4 adds separate desktop aggregate and history queries. The overview reads
+account/month totals and five recent entries; history uses stable date/ID cursor
+pages of 100 instead of loading every row. Parameterized SQL combines filters;
+an SQLite connection function delegates substring comparison to .NET ordinal
+case-insensitive matching so accented case pairs work consistently. A count query
+supports result totals. The write path checks movement and month totals without
+materializing every history entry. On 50,000 synthetic rows, Release storage/query
+p95 ranged from 33.9 to 104.2 ms for measured reads and edit-plus-refresh;
+Avalonia rendering time was not included. These measurements do not justify a
+balance cache or full-text index yet.
+
 ## Storage model
 
 - Account: stable ID, name, CHF currency, archive state.
@@ -121,8 +132,7 @@ No project-specific agent skill or MCP service is needed for the initial harness
 
 ## Choices to resolve in their implementation milestones
 
-- Whether editable screens benefit from MVVM helper utilities in M2.
 - Windows distribution/update method and Android sideload packaging.
 - Snapshot encryption, backup retention, and full restore UX.
 - Android document-provider compatibility and whether automatic export adds value.
-- Measured performance against the proposed 50,000-row acceptance dataset.
+- End-to-end UI latency at 50,000 rows, beyond measured storage timings.

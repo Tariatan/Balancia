@@ -28,6 +28,8 @@ public sealed class SqliteConnectionFactory
         try
         {
             connection.Open();
+            connection.CreateFunction<string?, string?, bool>("contains_ci", (value, term) =>
+                value?.Contains(term ?? "", StringComparison.OrdinalIgnoreCase) ?? false);
             return connection;
         }
         catch

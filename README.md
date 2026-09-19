@@ -4,12 +4,12 @@ A personal finance ledger for Windows, with a read-only Android companion.
 Record income, expenses, and transfers; browse history; see account balances and
 upcoming recurring payments. C#/.NET, Avalonia, and SQLite are the agreed stack.
 
-**Status:** M3 Buxfer import and Windows ledger. Accounts, two-level categories,
+**Status:** M4 searchable Windows ledger. Accounts, two-level categories,
 opening balances, income, expenses, and transfers can be created and edited;
 transactions can also be removed. Dashboard balances and monthly totals come
-from the local SQLite ledger. CSV preview and import are available from
-Transactions. History search/filtering, recurring reminders, routine
-backups/snapshots, and Android are still planned.
+from the local SQLite ledger. CSV preview/import and paged transaction history
+with combined search/filters are available from Transactions. Recurring reminders,
+routine backups/snapshots, and Android are still planned.
 
 ## Project map
 
@@ -89,6 +89,13 @@ changed Buxfer IDs or locally edited imported entries cause a conflict. The
 source file is never modified. For a private-export reconciliation test in an
 isolated temporary database, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute
 path before running the test command, then remove the environment variable.
+
+The Transactions page shows 100 newest entries at a time. Description search is
+case-insensitive; account, type, category/subcategory, inclusive date, and
+inclusive absolute CHF amount filters combine. A parent category includes its
+subcategories. Use Previous/Next to browse results. The overview loads five
+recent transactions and calculates balances and current-month totals directly
+from the ledger. Recurring payments on the overview are still an M5 placeholder.
 
 The harness explicitly instructs agents to read MEMORY.md; it does not assume
 that filename is loaded automatically. The instruction entry point follows the

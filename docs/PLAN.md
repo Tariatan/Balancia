@@ -10,7 +10,7 @@ Last updated: 2026-09-19.
 | M1 | Pinned SDK/packages, solution, Windows shell, test projects | Restore/build/test and manual shell launch; exact commands in README | Complete |
 | M2 | Accounts, categories, openings, ledger operations | L01–L07, SQLite atomicity tests, immediate UI refresh | Complete |
 | M3 | Buxfer import preview and application | I01–I07, current local source reconciliation, repeated import no-op | Complete |
-| M4 | Home, transaction form, history/search/filtering | H01–H05, keyboard/scroll checks, P01 measurement | Not started |
+| M4 | Home, transaction form, history/search/filtering | H01–H05 history/dashboard checks, keyboard/scroll checks, P01 measurement | Complete |
 | M5 | Recurring templates and reminders | R01–R10, editable schedule and overdue behavior in UI | Not started |
 | M6 | Backups and snapshot export | S01, S06; recovery tested before relying on migration | Not started |
 | M7 | Android viewer and snapshot import | S02–S05 on device/emulator, packaging and refresh instructions | Not started |
@@ -74,12 +74,32 @@ Android polish. Keep the source CSV untouched during implementation.
   calculated precisely, and accounts, transactions, and categories imported and
   appeared in the expected order. This confirms the real preview/apply flow beyond
   the isolated integration test. No private financial values are recorded here.
+- M3 was committed and pushed as `ea77985` on main.
+- M4 separates dashboard aggregates from history rows. The overview loads five
+  recent entries; Transactions loads 100 per page with stable cursor paging,
+  description search, account/type/category/date/amount filters, and a category
+  chooser narrowed by typed text. Parent-category filtering includes children.
+- Synthetic H01–H05 storage checks passed for combined and inclusive filters,
+  Unicode case-insensitive search, category hierarchy, stable paging, transfer
+  effects, immediate edit totals, and a simulated month change. Recurring reminder
+  display remains M5; H05's dashboard month behavior is covered here.
+- Windows interaction on synthetic data: searched `LuNcH` (110 matches), paged to
+  entries 101–110, combined a minimum amount filter (88 matches), narrowed the
+  category chooser, edited an expense and saw the row and overview totals update.
+  A final relaunch navigated Overview → Transactions → Overview successfully.
+- P01 Release measurement on 50,000 synthetic transactions, 30 warm samples each
+  on an Intel Core i9-14900K Windows PC: p95 first page 68.8 ms, deep cursor page
+  50.9 ms, search 49.6 ms, combined filter 86.3 ms, dashboard 33.9 ms, and
+  committed edit plus dashboard read 104.2 ms. These are storage/query timings,
+  not end-to-end Avalonia render timings.
+- Final M4 verification on 2026-09-19: locked restore; Release build with zero
+  warnings/errors; 39 tests passed (8 Core, 31 Storage); harness passed; private
+  CSV remains Git-ignored. M4 changes are local and uncommitted.
 
 ## Next concrete action
 
-Begin M4: build fast, searchable, filtered history and refine transaction entry.
-Measure 50,000 synthetic transactions in Release. Close the synthetic-data
-preview before rebuilding on Windows.
+Begin M5: recurring template editing, schedule advancement, overdue reminders,
+and exact-description/month-year matching.
 
 ## Handoff format for subsequent work
 

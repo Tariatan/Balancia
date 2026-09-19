@@ -18,6 +18,11 @@ public partial class MainWindow : Window
 {
     private readonly LedgerStore _store;
     private LedgerSnapshot? _snapshot;
+    private HistoryPage? _historyPage;
+    private HistoryPage? _recentPage;
+    private HistoryFilter _historyFilter = new();
+    private int _historyOffset;
+    private readonly List<(DateOnly Date, string Id)> _historyCursors = [];
     private string _page = "Overview";
     private bool _busy;
     private DateOnly _displayDate = DateOnly.FromDateTime(DateTime.Today);
@@ -50,7 +55,11 @@ public partial class MainWindow : Window
 
     private async Task Refresh()
     {
-        _snapshot = await Task.Run(_store.ReadSnapshot);
+        _snapshot = await Task.Run(_store.ReadDesktopSnapshot);
+        if (_page == "Transactions")
+            _historyPage = await Task.Run(() => _historyCursors.Count == 0 ? _store.ReadHistory(_historyFilter) :
+                _store.ReadHistoryAfter(_historyFilter, _historyCursors[^1].Date, _historyCursors[^1].Id));
+        if (_page == "Overview") _recentPage = await Task.Run(() => _store.ReadHistory(new HistoryFilter(), 0, 5));
         _displayDate = DateOnly.FromDateTime(DateTime.Today);
         Render();
     }
@@ -76,12 +85,12 @@ public partial class MainWindow : Window
         _ => "The operation failed. Your entered values have been kept; try again."
     };
 
-    private void ShowOverview(object? sender, RoutedEventArgs e) => Navigate("Overview");
-    private void ShowAccounts(object? sender, RoutedEventArgs e) => Navigate("Accounts");
-    private void ShowCategories(object? sender, RoutedEventArgs e) => Navigate("Categories");
-    private void ShowTransactions(object? sender, RoutedEventArgs e) => Navigate("Transactions");
-    private void ShowRecurring(object? sender, RoutedEventArgs e) => Navigate("Recurring payments");
-    private void Navigate(string page) { _page = page; Render(); }
+    private async void ShowOverview(object? sender, RoutedEventArgs e) => await Navigate("Overview");
+    private async void ShowAccounts(object? sender, RoutedEventArgs e) => await Navigate("Accounts");
+    private async void ShowCategories(object? sender, RoutedEventArgs e) => await Navigate("Categories");
+    private async void ShowTransactions(object? sender, RoutedEventArgs e) => await Navigate("Transactions");
+    private async void ShowRecurring(object? sender, RoutedEventArgs e) => await Navigate("Recurring payments");
+    private async Task Navigate(string page) { _page = page; await Run(Refresh); }
 
     private void Render()
     {
@@ -96,7 +105,7 @@ public partial class MainWindow : Window
                 PageBody.Children.Add(Card("This month's income / expenses", $"{Chf(s.MonthlyIncome)}  /  {Chf(s.MonthlyExpenses)}"));
                 PageBody.Children.Add(Card("Largest expense categories", s.LargestCategories.Count == 0 ? "No expenses this month." : string.Join("\n", s.LargestCategories.Select(c => $"{c.Name}    {Chf(c.Amount)}"))));
                 PageBody.Children.Add(Card("Upcoming payments", "Recurring payment reminders are not available yet."));
-                PageBody.Children.Add(Card("Transaction history", s.Entries.Count == 0 ? "No transactions yet. Start by adding an account." : string.Join("\n", s.Entries.Take(5).Select(EntryText))));
+                PageBody.Children.Add(Card("Transaction history", _recentPage!.Hits.Count == 0 ? "No transactions yet. Start by adding an account." : string.Join("\n", _recentPage.Hits.Select(h => EntryText(h.Entry)))));
                 PageBody.Children.Add(ActionButton("Add account", () => EditAccount(null)));
                 break;
             case "Accounts":
@@ -112,12 +121,57 @@ public partial class MainWindow : Window
                 PageBody.Children.Add(Row(ActionButton("Add category", () => EditCategory(null)), ActionButton("Edit selected category", () => categories.SelectedItem is Category c ? EditCategory(c) : SelectFirst())));
                 break;
             case "Transactions":
-                PageBody.Children.Add(Text("Newest first · Select a row to edit or remove it. Search and filters are not available yet."));
-                var entries = new ListBox { ItemsSource = s.Entries.Select(e => new Choice<LedgerEntry>(e, EntryText(e))).ToArray(), MinHeight = 180, MaxHeight = 380 };
+                PageBody.Children.Add(Text("Newest first · Search and filters combine. Date and amount endpoints are inclusive."));
+                var search = Input(_historyFilter.Description ?? "");
+                var accountChoices = new List<Choice<string?>> { new(null, "All accounts") };
+                accountChoices.AddRange(s.Accounts.Select(a => new Choice<string?>(a.Id, a.Name)));
+                var accountFilter = new ComboBox { ItemsSource = accountChoices, SelectedItem = accountChoices.FirstOrDefault(c => c.Value == _historyFilter.AccountId) ?? accountChoices[0], Width = 180 };
+                var typeChoices = new List<Choice<TransactionKind?>> { new(null, "All types") };
+                typeChoices.AddRange(Enum.GetValues<TransactionKind>().Select(k => new Choice<TransactionKind?>(k, k.ToString())));
+                var typeFilter = new ComboBox { ItemsSource = typeChoices, SelectedItem = typeChoices.FirstOrDefault(c => c.Value == _historyFilter.Kind) ?? typeChoices[0], Width = 150 };
+                var categoryChoices = new List<Choice<string?>> { new(null, "All categories") };
+                categoryChoices.AddRange(s.Categories.Select(c => new Choice<string?>(c.Id, c.Path)));
+                var categoryFilter = new ComboBox { ItemsSource = categoryChoices, SelectedItem = categoryChoices.FirstOrDefault(c => c.Value == _historyFilter.CategoryId) ?? categoryChoices[0], Width = 220 };
+                var from = Input(_historyFilter.From?.ToString("yyyy-MM-dd") ?? ""); from.Width = 130;
+                var to = Input(_historyFilter.To?.ToString("yyyy-MM-dd") ?? ""); to.Width = 130;
+                var minimum = Input(_historyFilter.Minimum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? ""); minimum.Width = 110;
+                var maximum = Input(_historyFilter.Maximum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? ""); maximum.Width = 110;
+                PageBody.Children.Add(Field("Description contains", search));
+                PageBody.Children.Add(Row(Field("Account", accountFilter), Field("Type", typeFilter), Field("Category / subcategory", categoryFilter)));
+                PageBody.Children.Add(Row(Field("From (YYYY-MM-DD)", from), Field("To (YYYY-MM-DD)", to),
+                    Field("Min CHF", minimum), Field("Max CHF", maximum)));
+                async Task ApplyFilters()
+                {
+                    await Run(async () =>
+                    {
+                        var proposed = new HistoryFilter(search.Text, ((Choice<string?>)accountFilter.SelectedItem!).Value,
+                            ((Choice<TransactionKind?>)typeFilter.SelectedItem!).Value, ((Choice<string?>)categoryFilter.SelectedItem!).Value,
+                            OptionalDate(from), OptionalDate(to), OptionalMoney(minimum), OptionalMoney(maximum));
+                        if (proposed.From > proposed.To || proposed.Minimum?.Centimes < 0 || proposed.Maximum?.Centimes < 0 ||
+                            proposed.Minimum is { } min && proposed.Maximum is { } max && min.Centimes > max.Centimes)
+                            throw new ArgumentException("Check the date and amount range endpoints.");
+                        _historyFilter = proposed;
+                        _historyOffset = 0;
+                        _historyCursors.Clear();
+                        await Refresh();
+                    });
+                }
+                search.KeyDown += async (_, e) => { if (e.Key == Key.Enter) await ApplyFilters(); };
+                PageBody.Children.Add(Row(ActionButton("Apply filters", ApplyFilters),
+                    ActionButton("Clear filters", async () => { _historyFilter = new(); _historyOffset = 0; _historyCursors.Clear(); await Run(Refresh); })));
+                var page = _historyPage!;
+                PageBody.Children.Add(Text($"{page.TotalCount:N0} matching transactions · Showing {(_historyOffset == 0 && page.Hits.Count == 0 ? 0 : _historyOffset + 1):N0}–{(_historyOffset + page.Hits.Count):N0}"));
+                var entries = new ListBox { ItemsSource = page.Hits.Select(h => new Choice<HistoryHit>(h,
+                    EntryText(h.Entry) + (h.AccountEffect is { } effect ? $"  ·  This account: {Chf(effect)}" : ""))).ToArray(), MinHeight = 180, MaxHeight = 380 };
                 PageBody.Children.Add(entries);
+                PageBody.Children.Add(Row(ActionButton("Previous page", async () =>
+                    { if (_historyCursors.Count > 0) { _historyCursors.RemoveAt(_historyCursors.Count - 1); _historyOffset -= 100; await Run(Refresh); } }),
+                    ActionButton("Next page", async () =>
+                    { if (_historyOffset + page.Hits.Count < page.TotalCount && page.Hits.Count > 0)
+                        { var last = page.Hits[^1].Entry; _historyCursors.Add((last.Draft.Date, last.Id)); _historyOffset += page.Hits.Count; await Run(Refresh); } })));
                 PageBody.Children.Add(Row(ActionButton("Add transaction", () => EditTransaction(null)),
-                    ActionButton("Edit selected transaction", () => entries.SelectedItem is Choice<LedgerEntry> e ? EditTransaction(e.Value) : SelectFirst()),
-                    ActionButton("Remove selected transaction", () => entries.SelectedItem is Choice<LedgerEntry> e ? RemoveTransaction(e.Value) : SelectFirst()),
+                    ActionButton("Edit selected transaction", () => entries.SelectedItem is Choice<HistoryHit> e ? EditTransaction(e.Value.Entry) : SelectFirst()),
+                    ActionButton("Remove selected transaction", () => entries.SelectedItem is Choice<HistoryHit> e ? RemoveTransaction(e.Value.Entry) : SelectFirst()),
                     ActionButton("Import Buxfer CSV", ImportBuxfer)));
                 break;
             default: PageBody.Children.Add(Card("Recurring payments", "Reminder editing is not available yet. Transactions are never created automatically.")); break;
@@ -165,6 +219,7 @@ public partial class MainWindow : Window
                 {
                     var result = await Task.Run(() => _store.ApplyBuxfer(preview));
                     dialog.Close();
+                    _historyCursors.Clear(); _historyOffset = 0;
                     await Refresh();
                     Status.Text = $"Imported {result.Added} entries; {result.Unchanged} unchanged.";
                 }
@@ -210,9 +265,18 @@ public partial class MainWindow : Window
         var choices = new List<Choice<string?>> { new(null, "Uncategorized") };
         choices.AddRange(_snapshot.Categories.Where(c => !c.Archived || c.Id == existing?.CategoryId).Select(c => new Choice<string?>(c.Id, c.ToString())));
         var category = new ComboBox { ItemsSource = choices, SelectedItem = choices.FirstOrDefault(c => c.Value == existing?.CategoryId) ?? choices[0], HorizontalAlignment = HorizontalAlignment.Stretch };
+        var categorySearch = Input("");
+        categorySearch.PlaceholderText = "Type to narrow categories";
+        categorySearch.TextChanged += (_, _) =>
+        {
+            var selected = category.SelectedItem as Choice<string?>;
+            var visible = choices.Where(c => c.Value is null || c.Label.Contains(categorySearch.Text ?? "", StringComparison.OrdinalIgnoreCase)).ToArray();
+            category.ItemsSource = visible;
+            category.SelectedItem = visible.FirstOrDefault(c => c.Value == selected?.Value) ?? visible[0];
+        };
         var memo = Input(existing?.Memo ?? "");
         var toField = Field("Destination account", destination);
-        var categoryField = Field("Category / subcategory", category);
+        var categoryField = Field("Category / subcategory", new StackPanel { Spacing = 5, Children = { categorySearch, category } });
         void UpdateFields() { var transfer = kind.SelectedItem is TransactionKind.Transfer; toField.IsVisible = transfer; categoryField.IsVisible = !transfer; }
         kind.SelectionChanged += (_, _) => UpdateFields(); UpdateFields();
         await EditDialog(entry is null ? "Add transaction" : "Edit transaction",
@@ -259,6 +323,7 @@ public partial class MainWindow : Window
                 saving = true; body.IsEnabled = false; error.Text = "Saving…";
                 await Task.Run(action);
                 saving = false;
+                _historyCursors.Clear(); _historyOffset = 0;
                 dialog.Close();
             }
             catch (Exception ex) { error.Text = FriendlyError(ex); }
@@ -270,6 +335,8 @@ public partial class MainWindow : Window
     }
 
     private static Money ParseMoney(TextBox input) => Money.FromFrancs(decimal.Parse(input.Text ?? "", NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture));
+    private static Money? OptionalMoney(TextBox input) => string.IsNullOrWhiteSpace(input.Text) ? null : ParseMoney(input);
+    private static DateOnly? OptionalDate(TextBox input) => string.IsNullOrWhiteSpace(input.Text) ? null : ParseDate(input);
     private static DateOnly ParseDate(TextBox input) => DateOnly.ParseExact(input.Text ?? "", "yyyy-MM-dd", CultureInfo.InvariantCulture);
     private static TextBox Input(string text) => new() { Text = text, HorizontalAlignment = HorizontalAlignment.Stretch };
     private static TextBlock Text(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#344D44") };
