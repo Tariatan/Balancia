@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Balancia.Android/Balancia.Android.csproj" />
     <Project Path="src/Balancia.Core/Balancia.Core.csproj" />
     <Project Path="src/Balancia.Desktop/Balancia.Desktop.csproj" />
     <Project Path="src/Balancia.Storage/Balancia.Storage.csproj" />
