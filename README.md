@@ -4,9 +4,11 @@ A personal finance ledger for Windows, with a read-only Android companion.
 Record income, expenses, and transfers; browse history; see account balances and
 upcoming recurring payments. C#/.NET, Avalonia, and SQLite are the agreed stack.
 
-**Status:** M1 Windows shell and test foundation. Navigation and empty states work;
-account management, ledger operations, CSV import, reminders, and Android are not
-implemented. The shell does not read the private export or create a live database.
+**Status:** M2 local ledger and Windows editor. Accounts, two-level categories,
+opening balances, income, expenses, and transfers can be created and edited;
+transactions can also be removed. Dashboard balances and monthly totals come
+from the local SQLite ledger. CSV import, history search/filtering, recurring
+reminders, backups/snapshots, and Android are still planned.
 
 ## Project map
 
@@ -73,8 +75,13 @@ Core has no package dependencies. Storage uses Microsoft.Data.Sqlite directly.
 The initial shell uses small navigation event handlers; introduce view models when
 editable state arrives in M2 rather than adding a framework to empty screens.
 Tests use synthetic data and temporary SQLite files, removed after each test.
-The SQLite connection factory is infrastructure only; it does not create a ledger
-schema. Android workloads, device access, and packaging remain unchecked.
+The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db`.
+For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--`
+in the `dotnet run` command. The app creates that directory and its version 1
+schema on first run. Opening an unsupported schema version fails without upgrading
+it; a safe backup-and-migration workflow has not been implemented yet. Close the
+running app before rebuilding on Windows. Android workloads, device access, and
+packaging remain unchecked.
 
 The harness explicitly instructs agents to read MEMORY.md; it does not assume
 that filename is loaded automatically. The instruction entry point follows the

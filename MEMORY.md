@@ -1,6 +1,6 @@
 # Balancia project memory
 
-Last updated: 2026-09-17. Scope: this repository only.
+Last updated: 2026-09-19. Scope: this repository only.
 
 ## Durable context
 
@@ -31,18 +31,22 @@ Last updated: 2026-09-17. Scope: this repository only.
 - Earlier inspection found 28 two-row transfer pairs sharing Buxfer IDs and three
   opening-balance rows. Treat that structural result as prior evidence until the
   importer revalidates it against the current file; do not blindly trust counts.
-- M1 completed: SDK 10.0.201/net10.0, Avalonia 12.1.2, Microsoft.Data.Sqlite 10.0.12,
+- M1 completed and pushed at `310d671`: SDK 10.0.201/net10.0, Avalonia 12.1.2, Microsoft.Data.Sqlite 10.0.12,
   xUnit 2.9.3, VS runner 4.0.0 and Test SDK 18.10.1 pinned, with package lock files.
 - Locked restore and Release build passed (zero warnings/errors); 11 tests passed.
   Windows shell launched and navigation/visual contrast checked. No CSV was loaded
   into the app and no live database was created. Source CSV hash is unchanged.
+- M2 completed on 2026-09-19: SQLite schema v1, account/category/opening
+  management, atomic income/expense/transfer operations, real Windows forms, live
+  balances and monthly totals. All 23 tests pass; Release build zero warnings.
+  Synthetic UI data persisted across restart and an edit refreshed immediately.
+  Actual Buxfer CSV remains outside the app.
 
 ## Resume here
 
-See docs/PLAN.md for the M1 checkpoint and README.md for verified commands. Next
-slice is M2: accounts/categories, schema, opening balances, and atomic ledger
-operations with a minimal editor. Consult docs/ACCEPTANCE.md first. The preview is
-open; close it before rebuilding. M1 changes remain local and uncommitted.
+See docs/PLAN.md for the M2 checkpoint and README.md for verified commands. Next
+slice is M3 Buxfer import preview/application. The synthetic-data preview may be
+open; close it before rebuilding. M2 is ready to commit/push.
 
 ## Context maintenance
 

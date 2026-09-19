@@ -46,10 +46,15 @@ Sources checked during M1: [Avalonia Windows guidance](https://docs.avaloniaui.n
 and [Avalonia NuGet package](https://www.nuget.org/packages/Avalonia.Desktop/12.1.2).
 Package availability was also checked against the NuGet flat-container API.
 
-Current code includes the Core money value, SQLite connection factory, and Desktop
-shell plus Core/Storage test projects. The storage model below remains planned.
+M2 adds typed ledger drafts/read models, a version 1 SQLite schema, a storage
+boundary with atomic writes, and editable Windows forms. Account balances are
+recomputed from signed movements; writes validate balances and monthly totals
+before commit. The schema rejects unsupported versions without changing them.
+All current queries rebuild the small snapshot; paging/query tuning belongs to
+M4. No MVVM utility package was needed for this initial editor; revisit that
+choice when form complexity grows.
 
-## Proposed storage model
+## Storage model
 
 - Account: stable ID, name, CHF currency, archive state.
 - Category: stable ID, name, optional parent; at most two levels.
@@ -58,9 +63,9 @@ shell plus Core/Storage test projects. The storage model below remains planned.
 - Movement: transaction ID, account ID, signed Int64 centimes. Expense has one
   negative movement; Income one positive; Transfer two summing to zero; Opening
   one signed movement. Opening entries have an effective date.
-- RecurringTemplate: description, indicative centimes, intervalMonths, desired
+- RecurringTemplate (planned): description, indicative centimes, intervalMonths, desired
   day, active schedule anchor and manual-reschedule boundary, archive state.
-- ImportSource: external system/ID, normalized source fingerprint and batch ID,
+- ImportSource (planned): external system/ID, normalized source fingerprint and batch ID,
   linked logical transaction; retain both source rows for transfer provenance.
 - Metadata: schema version, dataset UUID, monotonic revision.
 

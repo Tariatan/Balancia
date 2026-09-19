@@ -1,6 +1,6 @@
 # Implementation plan and checkpoint
 
-Last updated: 2026-09-17.
+Last updated: 2026-09-19.
 
 ## Milestones
 
@@ -8,7 +8,7 @@ Last updated: 2026-09-17.
 | --- | --- | --- | --- |
 | M0 | Specification and context harness | Files, working local links, harness check, source unchanged | Complete |
 | M1 | Pinned SDK/packages, solution, Windows shell, test projects | Restore/build/test and manual shell launch; exact commands in README | Complete |
-| M2 | Accounts, categories, openings, ledger operations | L01–L07, SQLite atomicity tests, immediate UI refresh | Not started |
+| M2 | Accounts, categories, openings, ledger operations | L01–L07, SQLite atomicity tests, immediate UI refresh | Complete |
 | M3 | Buxfer import preview and application | I01–I07, current local source reconciliation, repeated import no-op | Not started |
 | M4 | Home, transaction form, history/search/filtering | H01–H05, keyboard/scroll checks, P01 measurement | Not started |
 | M5 | Recurring templates and reminders | R01–R10, editable schedule and overdue behavior in UI | Not started |
@@ -44,15 +44,27 @@ Android polish. Keep the source CSV untouched during implementation.
   Overview, Accounts, Transactions, Recurring payments and return to Overview.
   Inspected screenshots and accessibility text; fixed sidebar normal/hover contrast
   and rebuilt/relaunched successfully. The preview remains open for review.
-- No real financial data is loaded; no live database/schema, importer, editable
-  ledger, Android build, or CI exists. M1 changes are local, not yet committed/pushed.
+- M1 scaffold was committed and pushed as `310d671` on main.
+- M2 adds SQLite schema v1; account/category create, edit, archive; editable opening
+  balances; atomic income, expense, and transfer create/edit/delete; dashboard
+  balances, current-month flows, and largest categories from committed data.
+- M2 verification on 2026-09-19: locked restore, Release build with zero warnings,
+  all 23 tests passed (8 Core, 15 Storage). Integration tests cover L01–L07,
+  rollback on injected transfer create/edit/delete failure, archive rules, and
+  an unsupported schema version. `scripts/Check-Harness.ps1` passed.
+- Windows interaction: in a separate temporary dataset, added a synthetic account
+  and expense, confirmed immediate values, closed/reopened the app and observed
+  CHF 980 net worth from CHF 1,000 opening minus CHF 20 expense. Editing that
+  expense to CHF 25 updated the transaction row. Empty amount validation kept the
+  form open. The default user database and private CSV were not used.
+- M2 changes are ready to commit and push. CSV import, reminder matching, snapshots,
+  Android, and high-volume history tuning remain in later milestones.
 
 ## Next concrete action
 
-Begin M2: schema/migrations, account/category management, opening balances, atomic
-income/expense/transfer operations, and a minimal editor. Implement L01–L07 with
-real SQLite integration tests; update the UI from committed reads. Close the
-running preview before rebuilding on Windows.
+Begin M3: implement Buxfer CSV preview and idempotent, atomic application. Re-read
+the private source only for local reconciliation; preserve its original bytes.
+Close the running separate-data preview before rebuilding on Windows.
 
 ## Handoff format for subsequent work
 

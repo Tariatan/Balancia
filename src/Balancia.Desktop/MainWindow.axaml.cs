@@ -1,33 +1,244 @@
+using System.Globalization;
+using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Threading;
+using Balancia.Core;
+using Balancia.Storage;
+using Microsoft.Data.Sqlite;
 
 namespace Balancia.Desktop;
 
 public partial class MainWindow : Window
 {
-    public MainWindow() => InitializeComponent();
+    private readonly LedgerStore _store;
+    private LedgerSnapshot? _snapshot;
+    private string _page = "Overview";
+    private bool _busy;
+    private DateOnly _displayDate = DateOnly.FromDateTime(DateTime.Today);
+    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(30) };
+    private string? _lastAccountId;
 
-    private void ShowOverview(object? sender, RoutedEventArgs e) => Navigate(
-        "Overview", "A clear view of your accounts and monthly activity.", null);
-
-    private void ShowAccounts(object? sender, RoutedEventArgs e) => Navigate(
-        "Accounts", "Balances across your accounts.",
-        "Account setup is not available yet. You will be able to add UBS, Cash, and Revolut with their opening balances.");
-
-    private void ShowTransactions(object? sender, RoutedEventArgs e) => Navigate(
-        "Transactions", "Income, expenses, and transfers in one place.",
-        "Transaction entry, search, and CSV import are not available yet. Your existing export has not been imported.");
-
-    private void ShowRecurring(object? sender, RoutedEventArgs e) => Navigate(
-        "Recurring payments", "Keep expected payments in view.",
-        "Reminder setup is not available yet. You will be able to set an expected date and repeat interval for each payment.");
-
-    private void Navigate(string title, string description, string? message)
+    public MainWindow()
     {
-        PageTitle.Text = title;
-        PageDescription.Text = description;
-        OverviewPanel.IsVisible = message is null;
-        SectionPanel.IsVisible = message is not null;
-        SectionMessage.Text = message;
+        InitializeComponent();
+        var args = Environment.GetCommandLineArgs();
+        var directoryArg = Array.IndexOf(args, "--data-dir");
+        var directory = directoryArg >= 0 && directoryArg + 1 < args.Length
+            ? Path.GetFullPath(args[directoryArg + 1])
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia");
+        _store = new LedgerStore(Path.Combine(directory, "balancia.db"));
+        if (directoryArg >= 0) Title = "Balancia — Separate data folder";
+        Opened += async (_, _) => await Run(async () =>
+        {
+            await Task.Run(() => { Directory.CreateDirectory(directory); _store.Initialize(); });
+            await Refresh();
+        });
+        _timer.Tick += async (_, _) =>
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            if (!_busy && today != _displayDate) await Run(Refresh);
+        };
+        Opened += (_, _) => _timer.Start();
+        Closed += (_, _) => _timer.Stop();
     }
+
+    private async Task Refresh()
+    {
+        _snapshot = await Task.Run(_store.ReadSnapshot);
+        _displayDate = DateOnly.FromDateTime(DateTime.Today);
+        Render();
+    }
+
+    private async Task Run(Func<Task> action)
+    {
+        if (_busy) return;
+        _busy = true; PageBody.IsEnabled = false; Navigation.IsEnabled = false;
+        Status.Text = "Working…";
+        try { await action(); Status.Text = "Saved locally · CHF"; }
+        catch (Exception ex) { Status.Text = FriendlyError(ex); }
+        finally { _busy = false; PageBody.IsEnabled = true; Navigation.IsEnabled = true; }
+    }
+
+    private static string FriendlyError(Exception ex) => ex switch
+    {
+        SqliteException { SqliteErrorCode: 19 } => "This change conflicts with existing data. Check names and referenced accounts/categories.",
+        SqliteException => "The database could not be read or saved. Close other Balancia windows and try again.",
+        OverflowException => "This amount or resulting total is outside the supported range.",
+        FormatException => "Check the date (YYYY-MM-DD) and amount (for example 12.50).",
+        IOException or UnauthorizedAccessException => "The local data folder is unavailable or not writable.",
+        ArgumentException or InvalidOperationException => ex.Message,
+        _ => "The operation failed. Your entered values have been kept; try again."
+    };
+
+    private void ShowOverview(object? sender, RoutedEventArgs e) => Navigate("Overview");
+    private void ShowAccounts(object? sender, RoutedEventArgs e) => Navigate("Accounts");
+    private void ShowCategories(object? sender, RoutedEventArgs e) => Navigate("Categories");
+    private void ShowTransactions(object? sender, RoutedEventArgs e) => Navigate("Transactions");
+    private void ShowRecurring(object? sender, RoutedEventArgs e) => Navigate("Recurring payments");
+    private void Navigate(string page) { _page = page; Render(); }
+
+    private void Render()
+    {
+        PageTitle.Text = _page;
+        PageBody.Children.Clear();
+        if (_snapshot is not { } s) { PageBody.Children.Add(Text("The ledger could not be loaded. Check the message below and restart after resolving it.")); return; }
+        switch (_page)
+        {
+            case "Overview":
+                PageBody.Children.Add(Text($"{_displayDate:MMMM yyyy} · All accounts, including archived accounts"));
+                PageBody.Children.Add(Card("Net worth", Chf(s.NetWorth)));
+                PageBody.Children.Add(Card("This month's income / expenses", $"{Chf(s.MonthlyIncome)}  /  {Chf(s.MonthlyExpenses)}"));
+                PageBody.Children.Add(Card("Largest expense categories", s.LargestCategories.Count == 0 ? "No expenses this month." : string.Join("\n", s.LargestCategories.Select(c => $"{c.Name}    {Chf(c.Amount)}"))));
+                PageBody.Children.Add(Card("Upcoming payments", "Recurring payment reminders are not available yet."));
+                PageBody.Children.Add(Card("Transaction history", s.Entries.Count == 0 ? "No transactions yet. Start by adding an account." : string.Join("\n", s.Entries.Take(5).Select(EntryText))));
+                PageBody.Children.Add(ActionButton("Add account", () => EditAccount(null)));
+                break;
+            case "Accounts":
+                PageBody.Children.Add(Text("Set a dated opening balance. Archive accounts to stop new entries without losing history."));
+                var accounts = new ListBox { ItemsSource = s.Accounts.Select(a => new Choice<Account>(a, $"{a}    {Chf(a.Balance)}")).ToArray(), MinHeight = 100, MaxHeight = 300 };
+                PageBody.Children.Add(accounts);
+                PageBody.Children.Add(Row(ActionButton("Add account", () => EditAccount(null)), ActionButton("Edit selected account", () => accounts.SelectedItem is Choice<Account> a ? EditAccount(a.Value) : SelectFirst())));
+                break;
+            case "Categories":
+                PageBody.Children.Add(Text("Choose an optional parent for a subcategory. Archiving a parent also archives its children."));
+                var categories = new ListBox { ItemsSource = s.Categories, MinHeight = 100, MaxHeight = 300 };
+                PageBody.Children.Add(categories);
+                PageBody.Children.Add(Row(ActionButton("Add category", () => EditCategory(null)), ActionButton("Edit selected category", () => categories.SelectedItem is Category c ? EditCategory(c) : SelectFirst())));
+                break;
+            case "Transactions":
+                PageBody.Children.Add(Text("Newest first · Select a row to edit or remove it. Search and filters are not available yet."));
+                var entries = new ListBox { ItemsSource = s.Entries.Select(e => new Choice<LedgerEntry>(e, EntryText(e))).ToArray(), MinHeight = 180, MaxHeight = 380 };
+                PageBody.Children.Add(entries);
+                PageBody.Children.Add(Row(ActionButton("Add transaction", () => EditTransaction(null)),
+                    ActionButton("Edit selected transaction", () => entries.SelectedItem is Choice<LedgerEntry> e ? EditTransaction(e.Value) : SelectFirst()),
+                    ActionButton("Remove selected transaction", () => entries.SelectedItem is Choice<LedgerEntry> e ? RemoveTransaction(e.Value) : SelectFirst())));
+                break;
+            default: PageBody.Children.Add(Card("Recurring payments", "Reminder editing is not available yet. Transactions are never created automatically.")); break;
+        }
+    }
+
+    private Task SelectFirst() { Status.Text = "Select a row first."; return Task.CompletedTask; }
+    private async Task EditAccount(Account? account)
+    {
+        var name = Input(account?.Name ?? "");
+        var date = Input((account?.OpeningDate ?? _displayDate).ToString("yyyy-MM-dd"));
+        var amount = Input((account?.OpeningAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
+        var archived = new CheckBox { Content = "Archived", IsChecked = account?.Archived ?? false };
+        await EditDialog(account is null ? "Add account" : "Edit account", [Field("Name", name), Field("Opening date (YYYY-MM-DD)", date), Field("Opening amount (CHF)", amount), archived],
+            () => { var values = (name.Text ?? "", ParseDate(date), ParseMoney(amount), archived.IsChecked == true); return () => _store.SaveAccount(account?.Id, values.Item1, values.Item2, values.Item3, values.Item4); });
+    }
+
+    private async Task EditCategory(Category? category)
+    {
+        var name = Input(category?.Name ?? "");
+        var options = new List<Choice<string?>> { new(null, "No parent (top-level)") };
+        options.AddRange(_snapshot!.Categories.Where(c => c.ParentId is null && !c.Archived && c.Id != category?.Id).Select(c => new Choice<string?>(c.Id, c.Path)));
+        if (category?.ParentId is { } current && options.All(c => c.Value != current))
+            options.Add(new(current, _snapshot.Categories.Single(c => c.Id == current).ToString()));
+        var parent = new ComboBox { ItemsSource = options, SelectedItem = options.FirstOrDefault(c => c.Value == category?.ParentId) ?? options[0], HorizontalAlignment = HorizontalAlignment.Stretch };
+        var archived = new CheckBox { Content = "Archived", IsChecked = category?.Archived ?? false };
+        await EditDialog(category is null ? "Add category" : "Edit category", [Field("Name", name), Field("Parent category", parent), archived],
+            () => { var values = (name.Text ?? "", ((Choice<string?>)parent.SelectedItem!).Value, archived.IsChecked == true); return () => _store.SaveCategory(category?.Id, values.Item1, values.Item2, values.Item3); });
+    }
+
+    private async Task EditTransaction(LedgerEntry? entry)
+    {
+        var existing = entry?.Draft;
+        var accounts = _snapshot!.Accounts.Where(a => !a.Archived || a.Id == existing?.AccountId || a.Id == existing?.DestinationId).ToArray();
+        if (accounts.Length == 0) { Status.Text = "Add an active account before entering transactions."; return; }
+        var kind = new ComboBox { ItemsSource = Enum.GetValues<TransactionKind>(), SelectedItem = existing?.Kind ?? TransactionKind.Expense, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var date = Input((existing?.Date ?? _displayDate).ToString("yyyy-MM-dd"));
+        var description = Input(existing?.Description ?? "");
+        var amount = Input(existing?.Amount.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
+        var account = new ComboBox { ItemsSource = accounts, SelectedItem = accounts.FirstOrDefault(a => a.Id == (existing?.AccountId ?? _lastAccountId)) ?? accounts[0], HorizontalAlignment = HorizontalAlignment.Stretch };
+        var destination = new ComboBox { ItemsSource = accounts, SelectedItem = accounts.FirstOrDefault(a => a.Id == existing?.DestinationId), HorizontalAlignment = HorizontalAlignment.Stretch };
+        var choices = new List<Choice<string?>> { new(null, "Uncategorized") };
+        choices.AddRange(_snapshot.Categories.Where(c => !c.Archived || c.Id == existing?.CategoryId).Select(c => new Choice<string?>(c.Id, c.ToString())));
+        var category = new ComboBox { ItemsSource = choices, SelectedItem = choices.FirstOrDefault(c => c.Value == existing?.CategoryId) ?? choices[0], HorizontalAlignment = HorizontalAlignment.Stretch };
+        var memo = Input(existing?.Memo ?? "");
+        var toField = Field("Destination account", destination);
+        var categoryField = Field("Category / subcategory", category);
+        void UpdateFields() { var transfer = kind.SelectedItem is TransactionKind.Transfer; toField.IsVisible = transfer; categoryField.IsVisible = !transfer; }
+        kind.SelectionChanged += (_, _) => UpdateFields(); UpdateFields();
+        await EditDialog(entry is null ? "Add transaction" : "Edit transaction",
+            [Field("Type", kind), Field("Date (YYYY-MM-DD)", date), Field("Description", description), Field("Amount (CHF, positive)", amount), Field("Account", account), toField, categoryField, Field("Notes", memo)],
+            () =>
+            {
+                var type = (TransactionKind)kind.SelectedItem!;
+                var draft = new TransactionDraft(type, ParseDate(date), description.Text ?? "", ParseMoney(amount), ((Account)account.SelectedItem!).Id,
+                    type == TransactionKind.Transfer ? (destination.SelectedItem as Account)?.Id : null,
+                    type == TransactionKind.Transfer ? null : ((Choice<string?>)category.SelectedItem!).Value, memo.Text ?? "");
+                _lastAccountId = draft.AccountId;
+                return () => _store.SaveTransaction(entry?.Id, draft);
+            });
+    }
+
+    private async Task RemoveTransaction(LedgerEntry entry) => await EditDialog("Remove transaction",
+        [Text(EntryText(entry)), Text("Remove this transaction? For a transfer, both account movements will be removed together.")],
+        () => () => _store.DeleteTransaction(entry.Id), "Remove");
+
+    // Snapshot inputs on the UI thread, then perform the complete write off-thread.
+    private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, string saveLabel = "Save")
+    {
+        var dialog = new Window { Title = title, Width = 530, Height = title.Contains("transaction", StringComparison.OrdinalIgnoreCase) ? 730 : 480,
+            MinWidth = 430, MinHeight = 360, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Brushes.White };
+        var body = new StackPanel { Spacing = 12, Margin = new Thickness(24) };
+        body.Children.Add(new TextBlock { Text = title, FontSize = 24, FontWeight = FontWeight.SemiBold });
+        foreach (var field in fields) body.Children.Add(field);
+        var error = Text(""); error.Foreground = Brushes.DarkRed;
+        body.Children.Add(error);
+        var save = new Button { Content = saveLabel, IsDefault = saveLabel == "Save" };
+        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        body.Children.Add(Row(save, cancel));
+        dialog.Content = new ScrollViewer { Content = body };
+        var saving = false;
+        cancel.Click += (_, _) => dialog.Close();
+        dialog.Closing += (_, e) => { if (saving) e.Cancel = true; };
+        dialog.KeyDown += (_, e) => { if (e.Key == Key.Escape && !saving) dialog.Close(); };
+        save.Click += async (_, _) =>
+        {
+            if (saving) return;
+            try
+            {
+                var action = prepareSave();
+                saving = true; body.IsEnabled = false; error.Text = "Saving…";
+                await Task.Run(action);
+                saving = false;
+                dialog.Close();
+            }
+            catch (Exception ex) { error.Text = FriendlyError(ex); }
+            finally { saving = false; body.IsEnabled = true; }
+        };
+        dialog.Opened += (_, _) => { if (fields.FirstOrDefault() is StackPanel panel && panel.Children.LastOrDefault() is InputElement input) input.Focus(); };
+        await dialog.ShowDialog(this);
+        await Run(Refresh);
+    }
+
+    private static Money ParseMoney(TextBox input) => Money.FromFrancs(decimal.Parse(input.Text ?? "", NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture));
+    private static DateOnly ParseDate(TextBox input) => DateOnly.ParseExact(input.Text ?? "", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+    private static TextBox Input(string text) => new() { Text = text, HorizontalAlignment = HorizontalAlignment.Stretch };
+    private static TextBlock Text(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#344D44") };
+    private static string Chf(Money value) => "CHF " + value.Francs.ToString("N2", CultureInfo.GetCultureInfo("de-CH"));
+    private static string EntryText(LedgerEntry entry) => $"{entry.Draft.Date:yyyy-MM-dd}  ·  {entry.Draft.Kind}  ·  {Chf(entry.Draft.Amount)}  ·  {entry.AccountName}{(entry.DestinationName is null ? "" : " → " + entry.DestinationName)}  ·  {entry.Draft.Description}  ·  {entry.CategoryPath ?? ""}";
+    private static StackPanel Field(string label, Control input)
+    {
+        AutomationProperties.SetName(input, label);
+        return new() { Spacing = 5, Children = { Text(label), input } };
+    }
+    private static WrapPanel Row(params Control[] controls)
+    {
+        var row = new WrapPanel(); foreach (var control in controls) { control.Margin = new Thickness(0, 0, 10, 10); row.Children.Add(control); } return row;
+    }
+    private static Border Card(string heading, string message) => new() { Background = Brushes.White, CornerRadius = new CornerRadius(10), Padding = new Thickness(20),
+        Child = new StackPanel { Spacing = 10, Children = { new TextBlock { Text = heading, FontSize = 18, FontWeight = FontWeight.SemiBold }, Text(message) } } };
+    private static Button ActionButton(string title, Func<Task> action)
+    {
+        var button = new Button { Content = title }; button.Click += async (_, _) => await action(); return button;
+    }
+    private sealed record Choice<T>(T Value, string Label) { public override string ToString() => Label; }
 }
