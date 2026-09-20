@@ -274,10 +274,15 @@ public partial class MainWindow : Window
     private static Border Metric(string title, Money value, string scope, string valueColor) => Panel(new StackPanel
     {
         Spacing = 18,
-        Children = { Heading(title, 11), new TextBlock {
-Text = AmountText(value), FontSize = 23, FontWeight = FontWeight.SemiBold,
-            Foreground = Brush.Parse(valueColor)
-}, QuietText(scope, 11) }
+        Children =
+        {
+            Heading(title, 11), new TextBlock
+            {
+                Text = AmountText(value), FontSize = 23, FontWeight = FontWeight.SemiBold,
+                Foreground = Brush.Parse(valueColor)
+            },
+            QuietText(scope, 11)
+        }
 
     });
 
@@ -290,6 +295,7 @@ Text = AmountText(value), FontSize = 23, FontWeight = FontWeight.SemiBold,
         };
         AddRow(body, SectionHeader($"Transaction history · {_overviewHistory?.TotalCount:N0}", "See all →", () => Navigate("Transactions")), 0);
         AddRow(body, HistoryRow("Date", "Description", "Category", "Account", "Amount", true, true), 1);
+
         if (_overviewHistory is not { Hits.Count: > 0 })
         {
             AddRow(body, QuietText("No transactions in this period.", 13), 2);
@@ -306,6 +312,7 @@ Text = AmountText(value), FontSize = 23, FontWeight = FontWeight.SemiBold,
             };
             AddRow(body, entries, 2);
         }
+
         return Panel(body);
     }
 
@@ -330,6 +337,7 @@ Text = AmountText(value), FontSize = 23, FontWeight = FontWeight.SemiBold,
                 TransactionKind.Income => "+ ",
                 _ => "↔ "
             };
+
         return HistoryRow(entry.Draft.Date.ToString("dd MMM yyyy", CultureInfo.CurrentCulture),
             string.IsNullOrWhiteSpace(entry.Draft.Description) ? "(No description)" : entry.Draft.Description,
             entry.CategoryPath ?? "—",
@@ -346,6 +354,7 @@ Text = AmountText(value), FontSize = 23, FontWeight = FontWeight.SemiBold,
             MinHeight = header ? 31 : 39
         };
         var values = new[] { date, description, category, account, amount };
+
         for (var i = 0; i < values.Length; i++)
         {
             var amountColor = kind switch
@@ -668,12 +677,17 @@ Text = AmountText(value), FontSize = 23, FontWeight = FontWeight.SemiBold,
             Spacing = 16,
             Margin = new Thickness(24),
             Children =
-        { new TextBlock {
-Text = "The operation could not be completed.", FontSize = 20, FontWeight = FontWeight.SemiBold
-},
-          new TextBlock {
-Text = message, TextWrapping = TextWrapping.Wrap
-}, close }
+            {
+                new TextBlock
+                {
+                    Text = "The operation could not be completed.", FontSize = 20, FontWeight = FontWeight.SemiBold
+                },
+                new TextBlock
+                {
+                    Text = message, TextWrapping = TextWrapping.Wrap
+                },
+                close
+            }
         };
         await dialog.ShowDialog(this);
     }
@@ -710,11 +724,13 @@ Text = message, TextWrapping = TextWrapping.Wrap
     private void Render()
     {
         PageTitle.Text = _page;
+
         foreach (var child in Navigation.Children.OfType<Button>())
         {
             child.Classes.Set("selected", Equals(child.Content, _page));
         }
         HeaderActions.Children.Clear();
+
         if (_page == "Overview")
         {
             HeaderActions.Children.Add(ActionButton("Search", () => Navigate("Transactions")));
@@ -734,12 +750,14 @@ Text = message, TextWrapping = TextWrapping.Wrap
             add.Foreground = Brushes.White;
             HeaderActions.Children.Add(add);
         }
+
         var responsive = _page is "Overview" or "Transactions" or "Categories";
         PageScrollViewer.IsVisible = !responsive;
         ResponsiveBody.IsVisible = responsive;
         ResponsiveBody.Content = null;
         PageBody.Spacing = 18;
         PageBody.Children.Clear();
+
         if (_snapshot is not { } s)
         {
             var message = Text("The ledger could not be loaded. Check the message below and restart after resolving it.");
@@ -754,6 +772,7 @@ Text = message, TextWrapping = TextWrapping.Wrap
 
             return;
         }
+
         switch (_page)
         {
             case "Overview":
@@ -768,7 +787,12 @@ Text = message, TextWrapping = TextWrapping.Wrap
                     MaxHeight = 300
                 };
                 PageBody.Children.Add(accounts);
-                PageBody.Children.Add(Row(ActionButton("Add account", () => EditAccount(null)), ActionButton("Edit selected account", () => accounts.SelectedItem is Choice<Account> a ? EditAccount(a.Value) : SelectFirst())));
+                PageBody.Children.Add(
+                    Row(
+                        ActionButton("Add account", () => EditAccount(null)),
+                        ActionButton("Edit selected account", () => accounts.SelectedItem is Choice<Account> a ? EditAccount(a.Value) : SelectFirst())
+                        )
+                    );
                 break;
             case "Categories":
                 RenderCategories(s);
@@ -795,8 +819,11 @@ Text = message, TextWrapping = TextWrapping.Wrap
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0)
         };
-        AddRow(layout, Row(ActionButton("Add category", () => EditCategory(null)),
-            ActionButton("Edit selected category", () => categories.SelectedItem is Category c ? EditCategory(c) : SelectFirst())), 1);
+        AddRow(layout, Row
+            (
+                ActionButton("Add category", () => EditCategory(null)),
+                ActionButton("Edit selected category", () => categories.SelectedItem is Category c ? EditCategory(c) : SelectFirst())),
+            1);
         AddRow(layout, Panel(categories), 2);
         ResponsiveBody.Content = layout;
     }
@@ -900,11 +927,15 @@ Text = message, TextWrapping = TextWrapping.Wrap
         };
         var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
         toolbar.Children.Add(Heading($"Transaction history · {page.TotalCount:N0}", 13));
-        AddColumn(toolbar, Row(ActionButton("Edit selected", () => entries.SelectedItem is HistoryItem item ? EditTransaction(item.Hit.Entry) : SelectFirst()),
-            ActionButton("Remove selected", () => entries.SelectedItem is HistoryItem item ? RemoveTransaction(item.Hit.Entry) : SelectFirst())), 1);
+        AddColumn(toolbar, Row
+            (
+                ActionButton("Edit selected", () => entries.SelectedItem is HistoryItem item ? EditTransaction(item.Hit.Entry) : SelectFirst()),
+                ActionButton("Remove selected", () => entries.SelectedItem is HistoryItem item ? RemoveTransaction(item.Hit.Entry) : SelectFirst())),
+            1);
         AddRow(body, toolbar, 0);
         AddRow(body, QuietText($"Showing {(_historyOffset == 0 && page.Hits.Count == 0 ? 0 : _historyOffset + 1):N0}–{(_historyOffset + page.Hits.Count):N0} of {page.TotalCount:N0}", 11), 1);
         AddRow(body, HistoryRow("Date", "Description", "Category", "Account", "Amount", true, false), 2);
+
         if (page.Hits.Count == 0)
         {
             AddRow(body, QuietText("No matching transactions.", 13), 3);
@@ -1348,7 +1379,6 @@ Text = message, TextWrapping = TextWrapping.Wrap
         SelectedDate = date?.ToDateTime(TimeOnly.MinValue),
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
-    private static DateOnly? OptionalDate(TextBox input) => string.IsNullOrWhiteSpace(input.Text) ? null : ParseDate(input);
     private static DateOnly ParseDate(TextBox input) => DateOnly.ParseExact(input.Text ?? "", "yyyy-MM-dd", CultureInfo.InvariantCulture);
     private static TextBox Input(string text) => new()
     {
@@ -1382,19 +1412,7 @@ Text = message, TextWrapping = TextWrapping.Wrap
         }
         return row;
     }
-    private static Border Card(string heading, string message) => new()
-    {
-        Background = Brushes.White,
-        CornerRadius = new CornerRadius(10),
-        Padding = new Thickness(20),
-        Child = new StackPanel
-        {
-            Spacing = 10,
-            Children = { new TextBlock {
-Text = heading, FontSize = 18, FontWeight = FontWeight.SemiBold
-}, Text(message) }
-        }
-    };
+
     private static Button ActionButton(string title, Func<Task> action)
     {
         var button = new Button { Content = title };
