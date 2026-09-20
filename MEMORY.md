@@ -1,6 +1,6 @@
 # Balancia project memory
 
-Last updated: 2026-09-19. Scope: this repository only.
+Last updated: 2026-09-20. Scope: this repository only.
 
 ## Durable context
 
@@ -147,9 +147,17 @@ contradictory entries. Do not copy the user's transaction details into this file
   the selected data folder. Valid settings restore on startup and malformed files
   are ignored; Release build, 50 tests, and a synthetic close/relaunch check passed
   on 2026-09-20.
-- The transaction editor now reuses the filter DatePicker, defaults new dates to
-  Today, and evaluates +, -, *, / amount expressions on focus leave and save,
-  rounding results to centimes. Direct form interaction remains to be checked.
+- Desktop date inputs now use the shared `CalendarDatePicker` month-grid popup
+  in transaction, account, recurring, and Overview filter forms. A synthetic UI
+  check confirmed popup display and filter date selection on 2026-09-20.
+- The shared calendar popup now styles its internal `CalendarItem`, day buttons,
+  and month grid directly, so popup sizing responds to the compact 13px calendar
+  typography rather than the outer date field's `FontSize`. Desktop build and
+  the 52 Core/Storage tests passed after this change on 2026-09-20.
+- Shared text and list selection styles now use a blue highlight with readable
+  white text across desktop controls.
+- New transactions default to Today and evaluate +, -, *, / amount expressions
+  on focus leave and save, rounding results to centimes.
 - The transaction form now uses one AutoCompleteBox for free-text category paths;
   Storage creates or reuses Category / Subcategory atomically with the transaction.
   Synthetic tests cover reuse, archived paths, and rollback; locked restore,

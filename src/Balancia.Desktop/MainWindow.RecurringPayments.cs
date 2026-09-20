@@ -176,11 +176,11 @@ public partial class MainWindow
     {
         var template = reminder?.Template;
         var description = Input(template?.Description ?? "");
-        var date = Input((template?.ExpectedDate ?? _displayDate).ToString("yyyy-MM-dd"));
+        var date = DateInput(template?.ExpectedDate ?? _displayDate);
         var amount = Input((template?.IndicativeAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
         var interval = Input((template?.IntervalMonths ?? 1).ToString(CultureInfo.InvariantCulture));
         await EditDialog(template is null ? "Add recurring template" : "Edit recurring template",
-            [Field("Description (exact match)", description), Field("Expected date (YYYY-MM-DD)", date), Field("Indicative amount", amount), Field("Repeat every N months", interval)],
+            [Field("Description (exact match)", description), Field("Expected date", date), Field("Indicative amount", amount), Field("Repeat every N months", interval)],
             () =>
             {
                 var values = (description.Text ?? "", ParseDate(date), ParseMoney(amount),

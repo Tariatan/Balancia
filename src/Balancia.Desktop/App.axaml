@@ -3,6 +3,45 @@
              x:Class="Balancia.Desktop.App" RequestedThemeVariant="Light">
   <Application.Styles>
     <FluentTheme />
+    <Style Selector="TextBox">
+      <Setter Property="SelectionBrush" Value="#3989A7" />
+      <Setter Property="SelectionForegroundBrush" Value="White" />
+    </Style>
+    <Style Selector="AutoCompleteBox TextBox">
+      <Setter Property="SelectionBrush" Value="#3989A7" />
+      <Setter Property="SelectionForegroundBrush" Value="White" />
+    </Style>
+    <Style Selector="CalendarDatePicker /template/ Calendar#PART_Calendar">
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="CalendarDatePicker /template/ CalendarItem#PART_CalendarItem">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="MinWidth" Value="238" />
+      <Setter Property="MinHeight" Value="190" />
+    </Style>
+    <Style Selector="CalendarDatePicker /template/ CalendarItem#PART_CalendarItem /template/ Grid#PART_MonthView">
+      <Setter Property="MinHeight" Value="190" />
+    </Style>
+    <Style Selector="CalendarDatePicker /template/ CalendarItem#PART_CalendarItem /template/ Grid">
+      <Setter Property="MinWidth" Value="238" />
+      <Setter Property="MinHeight" Value="190" />
+    </Style>
+    <Style Selector="CalendarDatePicker /template/ CalendarItem#PART_CalendarItem CalendarDayButton">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="MinWidth" Value="30" />
+      <Setter Property="MinHeight" Value="24" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="CalendarDatePicker /template/ CalendarItem#PART_CalendarItem CalendarButton">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="MinWidth" Value="30" />
+      <Setter Property="MinHeight" Value="24" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#3989A7" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
     <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#263989A7" />
       <Setter Property="Foreground" Value="#263C48" />

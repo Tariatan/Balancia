@@ -141,7 +141,7 @@ public partial class MainWindow
     }
 
     // Snapshot inputs on the UI thread, then perform the complete write off-thread.
-    private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, string saveLabel = "Save")
+    private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, string saveLabel = "Save", InputElement? initialFocus = null)
     {
         var isRemoval = saveLabel == "Remove";
         var dialog = new Window
@@ -230,6 +230,11 @@ public partial class MainWindow
         };
         dialog.Opened += (_, _) =>
         {
+            if (initialFocus is not null)
+            {
+                initialFocus.Focus();
+                return;
+            }
             if (fields.FirstOrDefault() is StackPanel panel && panel.Children.LastOrDefault() is InputElement input)
             {
                 input.Focus();
@@ -276,14 +281,17 @@ public partial class MainWindow
         }
     }
 
-    private static DatePicker DateInput(DateOnly? date) => new()
+    private static CalendarDatePicker DateInput(DateOnly? date) => new()
     {
         SelectedDate = date?.ToDateTime(TimeOnly.MinValue),
+        SelectedDateFormat = CalendarDatePickerFormat.Custom,
+        CustomDateFormatString = "yyyy-MM-dd",
+        PlaceholderText = "Select a date",
+        FontSize = 13,
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
-    private static DateOnly ParseDate(TextBox input) => DateOnly.ParseExact(input.Text ?? "", "yyyy-MM-dd", CultureInfo.InvariantCulture);
-    private static DateOnly ParseDate(DatePicker input) => input.SelectedDate is { } date
-        ? DateOnly.FromDateTime(date.DateTime)
+    private static DateOnly ParseDate(CalendarDatePicker input) => input.SelectedDate is { } date
+        ? DateOnly.FromDateTime(date)
         : throw new FormatException("Select a date.");
     private static TextBox Input(string text) => new()
     {

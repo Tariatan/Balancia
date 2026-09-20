@@ -42,7 +42,8 @@ History amounts are bold; income is green, expense is red, and transfer is dark
 blue. The overview history follows the bottom edge as the window changes height.
 Overview history fills its available height without an outer page scrollbar.
 Selected list rows use a light background so their text and colored values remain
-readable. The Windows window minimum size is 1280 × 1280.
+readable. Text selections use a contrasting blue highlight with white text across
+the desktop controls. The Windows window minimum size is 1280 × 1280.
 The Windows desktop stores its last usable width, height, and screen position in
 `window.json` beside the selected local data folder and restores them on the next
 start. An unavailable or malformed settings file does not prevent startup.
@@ -91,8 +92,10 @@ Account, Category and optional Subcategory. Transfers use source and destination
 accounts instead of one account. Each ordinary transaction has at most one
 category/subcategory path. Description may be blank for ordinary transactions;
 recurring templates require a nonempty description.
-The transaction editor uses the same date picker as the overview filters. A new
-transaction starts on Today; editing retains its stored date. The amount field
+All desktop date inputs use a calendar dropdown with a month grid and optional
+typed entry: transaction date, account opening date, recurring expected date,
+and overview period and history filters. A new transaction starts on Today;
+editing retains its stored date. The amount field
 accepts `+`, `-`, `*`, and `/` expressions, evaluates them when focus leaves the
 field and before saving, and rounds the result to CHF centimes.
 Category / subcategory is one free-text field with matching existing paths shown

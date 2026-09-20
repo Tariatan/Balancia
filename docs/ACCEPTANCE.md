@@ -27,6 +27,8 @@ Scenario IDs connect implementation milestones to observable behavior.
 | H12 | View the Overview history with a long category and a transfer account label | Category gets more width; Account starts farther right and fits the representative "Revolut → Revolut" label without clipping |
 | H13 | Select, add, edit, and delete an upcoming payment from Overview | Compact rows match the card layout; + opens Add, double-click opens Edit, delete confirms; no Archive field or Calendar action is shown |
 | H14 | Type a category path in Add/Edit transaction | Matching paths appear as suggestions; free text creates a top-level category or Category / Subcategory on save; a failed transaction leaves no new categories |
+| H15 | Open each desktop date input in transaction, account, recurring, and Overview filter forms | A month-grid calendar opens; selecting a day updates the date field, and an optional date remains clearable |
+| H16 | Select text in a desktop text or autocomplete field and select an item in a list or combo box | The selection highlight and text remain clearly readable |
 | R01 | Rent expected Sep 25; exact-description payment Sep 1 for another amount | September satisfied; next date Oct 25 for interval 1 |
 | R02 | September rent paid Aug 31, or Sep in another year | September occurrence remains unresolved |
 | R03 | Case/whitespace differs from template description | No exact recurrence match; ordinary search may still find it |

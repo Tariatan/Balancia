@@ -86,10 +86,10 @@ public partial class MainWindow
     private async Task EditAccount(Account? account)
     {
         var name = Input(account?.Name ?? "");
-        var date = Input((account?.OpeningDate ?? _displayDate).ToString("yyyy-MM-dd"));
+        var date = DateInput(account?.OpeningDate ?? _displayDate);
         var amount = Input((account?.OpeningAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
         await EditDialog(account is null ? "Add account" : "Edit account",
-            [Field("Name", name), Field("Opening date (YYYY-MM-DD)", date), Field("Opening amount", amount)],
+            [Field("Name", name), Field("Opening date", date), Field("Opening amount", amount)],
             () =>
             {
                 var values = (name.Text ?? "", ParseDate(date), ParseMoney(amount), account?.Archived ?? false);

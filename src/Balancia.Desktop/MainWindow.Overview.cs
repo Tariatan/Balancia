@@ -105,8 +105,8 @@ public partial class MainWindow
             AddColumn(customDates, Field("To", to), 1);
             var apply = ActionButton("Apply", async () =>
             {
-                var first = from.SelectedDate is { } f ? DateOnly.FromDateTime(f.DateTime) : (DateOnly?)null;
-                var last = to.SelectedDate is { } t ? DateOnly.FromDateTime(t.DateTime) : (DateOnly?)null;
+                var first = from.SelectedDate is { } ? ParseDate(from) : (DateOnly?)null;
+                var last = to.SelectedDate is { } ? ParseDate(to) : (DateOnly?)null;
                 if (first is null || last is null || first > last)
                 {
                     Status.Text = "Choose a valid From and To date.";
@@ -283,8 +283,8 @@ public partial class MainWindow
         {
             _overviewFilter = new HistoryFilter(search.Text, ((Choice<string?>)account.SelectedItem!).Value,
                 ((Choice<TransactionKind?>)type.SelectedItem!).Value, ((Choice<string?>)category.SelectedItem!).Value,
-                from.SelectedDate is { } f ? DateOnly.FromDateTime(f.DateTime) : null,
-                to.SelectedDate is { } t ? DateOnly.FromDateTime(t.DateTime) : null,
+                from.SelectedDate is { } ? ParseDate(from) : null,
+                to.SelectedDate is { } ? ParseDate(to) : null,
                 OptionalMoney(minimum), OptionalMoney(maximum));
             _overviewOffset = 0;
             _overviewFiltersVisible = false;

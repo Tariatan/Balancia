@@ -236,10 +236,16 @@ was unavailable for a direct resize gesture, so the geometry check used the real
 desktop executable and its close/restart lifecycle.
 
 The next Windows form refinement replaces the transaction date text box with the
-shared filter `DatePicker`, defaulting new transactions to Today, and evaluates
+shared filter date input, defaulting new transactions to Today, and evaluates
 basic amount expressions on focus leave and save. Release Desktop build and the
 existing test suite passed; direct form interaction remains to be checked in the
 Windows UI.
+
+The 2026-09-20 calendar follow-up replaces the spinner-style date input and
+remaining account and recurring date text fields with `CalendarDatePicker`.
+The shared control also serves Overview date filters. A synthetic Windows UI
+check confirmed the month-grid popup and date selection in filters, and the
+popup in the account form; recurring uses the same shared control.
 
 The 2026-09-20 category-entry follow-up replaces the transaction form's separate
 search field and drop-down with one `AutoCompleteBox`. Typed paths create or reuse

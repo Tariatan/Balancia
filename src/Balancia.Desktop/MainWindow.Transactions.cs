@@ -136,7 +136,7 @@ public partial class MainWindow
         kind.SelectionChanged += (_, _) => UpdateFields();
         UpdateFields();
         await EditDialog(entry is null ? "Add transaction" : "Edit transaction",
-            [Field("Type", kind), Field("Date", date), categoryField, Field("Amount (positive)", amount), Field("Account", account), Field("Description", description), Field("Notes", memo)],
+            [Field("Type", kind), Field("Date", date), categoryField, Field("Amount (positive)", amount), Field("Account", account), toField, Field("Description", description), Field("Notes", memo)],
             () =>
             {
                 NormalizeAmount(amount);
