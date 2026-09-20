@@ -143,3 +143,10 @@ contradictory entries. Do not copy the user's transaction details into this file
   actions and double-click editing; deletion is guarded when transactions exist.
 - Settings category rows open editing on double-click; + adds and trash archives
   the selected category.
+- The desktop now persists width, height, and position in `window.json` beside
+  the selected data folder. Valid settings restore on startup and malformed files
+  are ignored; Release build, 50 tests, and a synthetic close/relaunch check passed
+  on 2026-09-20.
+- The transaction editor now reuses the filter DatePicker, defaults new dates to
+  Today, and evaluates +, -, *, / amount expressions on focus leave and save,
+  rounding results to centimes. Direct form interaction remains to be checked.

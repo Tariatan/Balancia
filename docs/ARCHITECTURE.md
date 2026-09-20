@@ -93,6 +93,14 @@ light, readable color across pages. Categories joins the height-filling content
 host; its list owns its scrolling. Snapshot actions move to the Transactions
 header, and the overview's history occupies the space to the page bottom.
 
+The desktop persists window geometry separately from ledger data. `window.json`
+is written beside the active `balancia.db` with an atomic replace on close and
+contains width, height, and screen position. Invalid settings are ignored so a
+damaged optional UI preference cannot block ledger startup.
+The transaction editor reuses the filter `DatePicker`; its amount input uses a
+small decimal recursive-descent evaluator for the four basic operators and
+normalizes valid results to centime precision before the existing `Money` parser.
+
 On 2026-09-20, the desktop window code was split into partial `MainWindow`
 files by responsibility. `MainWindow.axaml.cs` owns state, initialization,
 refresh, navigation, and page selection. `MainWindow.Overview.cs`,

@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     }
     private const int HistoryPageSize = 100;
     private readonly LedgerStore _store;
+    private readonly string _windowSettingsPath;
     private LedgerSnapshot? _snapshot;
     private HistoryPage? _overviewHistory;
     private int _overviewOffset;
@@ -47,11 +48,15 @@ public partial class MainWindow : Window
             ? Path.GetFullPath(args[directoryArg + 1])
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia");
         _store = new LedgerStore(Path.Combine(directory, "balancia.db"));
+        _windowSettingsPath = Path.Combine(directory, "window.json");
+        LoadWindowSettings();
+        PositionChanged += (_, _) => _windowPositionForPersistence = Position;
         if (directoryArg >= 0)
         {
             Title = "Balancia — Separate data folder";
         }
 
+        Opened += (_, _) => ApplyLoadedWindowPosition();
         Opened += async (_, _) => await Run(async () =>
         {
             await Task.Run(() =>
@@ -71,6 +76,7 @@ public partial class MainWindow : Window
         };
         Opened += (_, _) => _timer.Start();
         Closed += (_, _) => _timer.Stop();
+        Closed += (_, _) => SaveWindowSettings();
     }
 
     private async Task Refresh()

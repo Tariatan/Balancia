@@ -226,6 +226,20 @@ inspection found only the header, +, and dustbin actions in the card.
 Record date, milestone, behavior implemented, files affected, exact checks and
 results, limitations, and next action. Update existing checkpoint facts rather than
 appending a full transcript. Keep unfinished milestones visibly unfinished.
+
+The 2026-09-20 Windows usability follow-up persists the desktop width, height, and
+position to an atomic `window.json` file beside the selected data folder. It loads
+valid settings before startup and reapplies the saved position after the window is
+opened; malformed settings are ignored. Release Desktop build, all 50 tests, and a
+synthetic launch/close/relaunch check with seeded geometry passed. The CUA surface
+was unavailable for a direct resize gesture, so the geometry check used the real
+desktop executable and its close/restart lifecycle.
+
+The next Windows form refinement replaces the transaction date text box with the
+shared filter `DatePicker`, defaulting new transactions to Today, and evaluates
+basic amount expressions on focus leave and save. Release Desktop build and the
+existing test suite passed; direct form interaction remains to be checked in the
+Windows UI.
 ## 2026-09-20 UI checkpoint
 
 The Transactions tab was removed. CSV and snapshot actions now appear at the

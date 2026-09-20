@@ -241,12 +241,50 @@ public partial class MainWindow
 
     private static Money ParseMoney(TextBox input) => Money.FromFrancs(decimal.Parse(input.Text ?? "", NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture));
     private static Money? OptionalMoney(TextBox input) => string.IsNullOrWhiteSpace(input.Text) ? null : ParseMoney(input);
+    private static void NormalizeAmount(TextBox input)
+    {
+        if (TryEvaluateAmount(input.Text, out var value))
+        {
+            input.Text = value.ToString("0.##", CultureInfo.InvariantCulture);
+        }
+    }
+
+    private static bool TryEvaluateAmount(string? text, out decimal value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        try
+        {
+            value = decimal.Round(new AmountExpressionParser(text).Parse(), 2, MidpointRounding.AwayFromZero);
+            return true;
+        }
+        catch (DivideByZeroException)
+        {
+            return false;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+    }
+
     private static DatePicker DateInput(DateOnly? date) => new()
     {
         SelectedDate = date?.ToDateTime(TimeOnly.MinValue),
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
     private static DateOnly ParseDate(TextBox input) => DateOnly.ParseExact(input.Text ?? "", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+    private static DateOnly ParseDate(DatePicker input) => input.SelectedDate is { } date
+        ? DateOnly.FromDateTime(date.DateTime)
+        : throw new FormatException("Select a date.");
     private static TextBox Input(string text) => new()
     {
         Text = text,
@@ -289,5 +327,157 @@ public partial class MainWindow
     private sealed record Choice<T>(T Value, string Label)
     {
         public override string ToString() => Label;
+    }
+
+    private sealed class AmountExpressionParser
+    {
+        private readonly string _text;
+        private int _index;
+
+        public AmountExpressionParser(string text)
+        {
+            _text = text;
+        }
+
+        public decimal Parse()
+        {
+            var value = ParseExpression();
+            SkipWhitespace();
+            if (_index != _text.Length)
+            {
+                throw new FormatException();
+            }
+
+            return value;
+        }
+
+        private decimal ParseExpression()
+        {
+            var value = ParseTerm();
+            while (true)
+            {
+                SkipWhitespace();
+                if (Match('+'))
+                {
+                    value += ParseTerm();
+                }
+                else if (Match('-'))
+                {
+                    value -= ParseTerm();
+                }
+                else
+                {
+                    return value;
+                }
+            }
+        }
+
+        private decimal ParseTerm()
+        {
+            var value = ParseUnary();
+            while (true)
+            {
+                SkipWhitespace();
+                if (Match('*'))
+                {
+                    value *= ParseUnary();
+                }
+                else if (Match('/'))
+                {
+                    value /= ParseUnary();
+                }
+                else
+                {
+                    return value;
+                }
+            }
+        }
+
+        private decimal ParseUnary()
+        {
+            SkipWhitespace();
+            if (Match('+'))
+            {
+                return ParseUnary();
+            }
+
+            if (Match('-'))
+            {
+                return -ParseUnary();
+            }
+
+            return ParsePrimary();
+        }
+
+        private decimal ParsePrimary()
+        {
+            SkipWhitespace();
+            if (Match('('))
+            {
+                var value = ParseExpression();
+                SkipWhitespace();
+                if (!Match(')'))
+                {
+                    throw new FormatException();
+                }
+
+                return value;
+            }
+
+            return ParseNumber();
+        }
+
+        private decimal ParseNumber()
+        {
+            SkipWhitespace();
+            var start = _index;
+            var hasDigits = false;
+            var hasDecimalPoint = false;
+            while (_index < _text.Length)
+            {
+                var character = _text[_index];
+                if (char.IsDigit(character))
+                {
+                    hasDigits = true;
+                    _index++;
+                    continue;
+                }
+
+                if (character == '.' && !hasDecimalPoint)
+                {
+                    hasDecimalPoint = true;
+                    _index++;
+                    continue;
+                }
+
+                break;
+            }
+
+            if (!hasDigits)
+            {
+                throw new FormatException();
+            }
+
+            return decimal.Parse(_text[start.._index], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+        }
+
+        private bool Match(char character)
+        {
+            if (_index >= _text.Length || _text[_index] != character)
+            {
+                return false;
+            }
+
+            _index++;
+            return true;
+        }
+
+        private void SkipWhitespace()
+        {
+            while (_index < _text.Length && char.IsWhiteSpace(_text[_index]))
+            {
+                _index++;
+            }
+        }
     }
 }

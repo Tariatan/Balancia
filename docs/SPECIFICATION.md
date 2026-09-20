@@ -43,6 +43,9 @@ blue. The overview history follows the bottom edge as the window changes height.
 Overview history fills its available height without an outer page scrollbar.
 Selected list rows use a light background so their text and colored values remain
 readable. The Windows window minimum size is 1280 × 1280.
+The Windows desktop stores its last usable width, height, and screen position in
+`window.json` beside the selected local data folder and restores them on the next
+start. An unavailable or malformed settings file does not prevent startup.
 
 The Overview period controls are All, This Week, This Month, This Year, and
 Filter. Filter opens the history search and filter fields in the overview.
@@ -88,6 +91,10 @@ Account, Category and optional Subcategory. Transfers use source and destination
 accounts instead of one account. Each ordinary transaction has at most one
 category/subcategory path. Description may be blank for ordinary transactions;
 recurring templates require a nonempty description.
+The transaction editor uses the same date picker as the overview filters. A new
+transaction starts on Today; editing retains its stored date. The amount field
+accepts `+`, `-`, `*`, and `/` expressions, evaluates them when focus leaves the
+field and before saving, and rounds the result to CHF centimes.
 
 Defaults: enter a positive amount and let the type determine the sign. Reject
 zero amounts, fractional centimes, overflow, and same-account transfers. Accept

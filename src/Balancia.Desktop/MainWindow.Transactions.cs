@@ -96,9 +96,10 @@ public partial class MainWindow
             SelectedItem = existing?.Kind ?? TransactionKind.Expense,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        var date = Input((existing?.Date ?? _displayDate).ToString("yyyy-MM-dd"));
+        var date = DateInput(existing?.Date ?? DateOnly.FromDateTime(DateTime.Today));
         var description = Input(existing?.Description ?? "");
         var amount = Input(existing?.Amount.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
+        amount.LostFocus += (_, _) => NormalizeAmount(amount);
         var account = new ComboBox
         {
             ItemsSource = accounts,
@@ -144,9 +145,10 @@ public partial class MainWindow
         kind.SelectionChanged += (_, _) => UpdateFields();
         UpdateFields();
         await EditDialog(entry is null ? "Add transaction" : "Edit transaction",
-            [Field("Type", kind), Field("Date (YYYY-MM-DD)", date), Field("Description", description), Field("Amount (positive)", amount), Field("Account", account), toField, categoryField, Field("Notes", memo)],
+            [Field("Type", kind), Field("Date", date), Field("Description", description), Field("Amount (positive)", amount), Field("Account", account), toField, categoryField, Field("Notes", memo)],
             () =>
             {
+                NormalizeAmount(amount);
                 var type = (TransactionKind)kind.SelectedItem!;
                 var draft = new TransactionDraft(type, ParseDate(date), description.Text ?? "", ParseMoney(amount), ((Account)account.SelectedItem!).Id,
                     type == TransactionKind.Transfer ? (destination.SelectedItem as Account)?.Id : null,
