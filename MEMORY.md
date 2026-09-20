@@ -123,5 +123,7 @@ inspection passed.
 
 Product truth belongs in docs/SPECIFICATION.md; technical reasoning belongs in
 docs/ARCHITECTURE.md; progress belongs in docs/PLAN.md. Keep this handoff compact.
+The owner's 2026-09-20 C# formatting preferences from CategoriesPanel and
+RemindersPanel are recorded in docs/Coding Guidelines.md.
 Label assumptions, timestamp evidence, and replace stale facts rather than append
 contradictory entries. Do not copy the user's transaction details into this file.

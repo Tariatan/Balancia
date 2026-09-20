@@ -5,7 +5,9 @@
 Read [MEMORY.md](MEMORY.md), then [docs/SPECIFICATION.md](docs/SPECIFICATION.md).
 For implementation, also read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), the
 relevant scenarios in [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md), and the current
-checkpoint in [docs/PLAN.md](docs/PLAN.md). Load other context only as needed.
+checkpoint in [docs/PLAN.md](docs/PLAN.md). Follow
+[docs/Coding Guidelines.md](docs/Coding Guidelines.md) for C# formatting. Load
+other context only as needed.
 
 The user's current instructions take precedence. The specification owns product
 behavior; architecture owns technical decisions; memory is a compact handoff, not

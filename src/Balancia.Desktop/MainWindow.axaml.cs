@@ -297,20 +297,57 @@ public partial class MainWindow : Window
 
     private Border CategoriesPanel(LedgerSnapshot snapshot)
     {
-        var body = new StackPanel { Spacing = 1 };
+        var body = new StackPanel
+        {
+            Spacing = 1
+        };
+
         body.Children.Add(SectionHeader("Largest expense categories", "View all →", () => Navigate("Categories")));
-        if (snapshot.LargestCategories.Count == 0) body.Children.Add(QuietText("No expenses in this period.", 12));
+
+        if (snapshot.LargestCategories.Count == 0)
+        {
+            body.Children.Add(QuietText("No expenses in this period.", 12));
+        }
+
         var maximum = snapshot.LargestCategories.FirstOrDefault()?.Amount.Centimes ?? 1;
+
         foreach (var category in snapshot.LargestCategories)
         {
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("75,*,80"), MinHeight = 27 };
-            row.Children.Add(new TextBlock { Text = category.Name, FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis,
-                VerticalAlignment = VerticalAlignment.Center });
-            var bar = new ProgressBar { Minimum = 0, Maximum = maximum, Value = category.Amount.Centimes,
-                Height = 7, Foreground = Brush.Parse("#3989A7"), Background = Brush.Parse("#E7F2F6"), VerticalAlignment = VerticalAlignment.Center };
+            var row = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("75,*,80"),
+                MinHeight = 27
+            };
+
+            row.Children.Add(new TextBlock
+            {
+                Text = category.Name,
+                FontSize = 11,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var bar = new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = maximum,
+                Value = category.Amount.Centimes,
+                Height = 7,
+                Foreground = Brush.Parse("#3989A7"),
+                Background = Brush.Parse("#E7F2F6"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
             AddColumn(row, bar, 1);
-            var value = new TextBlock { Text = AmountText(category.Amount), FontSize = 11, TextAlignment = TextAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeight.SemiBold };
+            var value = new TextBlock
+            {
+                Text = AmountText(category.Amount),
+                FontSize = 11,
+                TextAlignment = TextAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                FontWeight = FontWeight.SemiBold
+            };
+
             AddColumn(row, value, 2);
             body.Children.Add(row);
         }
@@ -341,8 +378,10 @@ public partial class MainWindow : Window
         var recurring = new ListBox
         {
             ItemsSource = _reminders.Take(5).Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray(),
-            MinHeight = _reminders.Count == 0 ? 0 : 45, MaxHeight = 175,
-            Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+            MinHeight = _reminders.Count == 0 ? 0 : 45,
+            MaxHeight = 175,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
             ItemTemplate = new FuncDataTemplate<Choice<RecurringReminder>>((choice, _) =>
             {
                 var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), MinHeight = 29 };
@@ -350,8 +389,10 @@ public partial class MainWindow : Window
 
                 row.Children.Add(new TextBlock
                 {
-                    Text = $"{reminder.Occurrence:dd MMM} · {reminder.Template.Description}", FontSize = 12,
-                    VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis
+                    Text = $"{reminder.Occurrence:dd MMM} · {reminder.Template.Description}",
+                    FontSize = 12,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis
                 });
 
                 var amount = new TextBlock
