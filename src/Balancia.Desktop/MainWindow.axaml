@@ -38,7 +38,6 @@
         <StackPanel x:Name="Navigation" Orientation="Horizontal" Spacing="5">
           <Button Classes="nav" Content="Overview" Click="ShowOverview" />
           <Button Classes="nav" Content="Transactions" Click="ShowTransactions" />
-          <Button Classes="nav" Content="Accounts" Click="ShowAccounts" />
           <Button Classes="nav" Content="Categories" Click="ShowCategories" />
         </StackPanel>
       </DockPanel>

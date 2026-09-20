@@ -44,9 +44,12 @@ The Transactions history fills its available height without an outer page scroll
 Selected list rows use a light background so their text and colored values remain
 readable. The Windows window minimum size is 1280 × 1280.
 
-The top navigation order is Overview, Transactions, Accounts, Categories. The
+The top navigation order is Overview, Transactions, Categories. Account
+management is available from the Accounts card on Overview. The
 Transactions header contains Import CSV, Export CSV, Export
-snapshot, and Restore snapshot actions. Account creation stays on Accounts.
+snapshot, and Restore snapshot actions. Accounts can be added, edited, and
+deleted from the Accounts card; accounts with transaction history are archived
+instead of deleted.
 Recurring template Add/Edit actions live in the Upcoming payments card on
 Overview; there is no separate recurring payments tab. Categories places Add and
 Edit above a list that fills the remaining page height.

@@ -218,6 +218,14 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         return key;
     }
 
+    public void DeleteAccount(string id) => Write((c, tx) =>
+    {
+        Require(c, tx, "SELECT 1 FROM accounts WHERE id=$id", id, "Account no longer exists.");
+        if (Scalar(c, tx, "SELECT 1 FROM movements WHERE account_id=$id AND transaction_id<>'opening:' || $id LIMIT 1", ("$id", id)) is not null)
+            throw new InvalidOperationException("An account with transactions cannot be deleted. Archive it instead.");
+        Execute(c, tx, "DELETE FROM movements WHERE account_id=$id AND transaction_id='opening:' || $id; DELETE FROM ledger WHERE id='opening:' || $id; DELETE FROM accounts WHERE id=$id", ("$id", id));
+    });
+
     public string SaveCategory(string? id, string name, string? parentId, bool archived = false)
     {
         name = name.Trim();

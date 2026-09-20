@@ -22,7 +22,7 @@ Scenario IDs connect implementation milestones to observable behavior.
 | H07 | Select an overview period with over 1,000 transactions, then open Transactions | Every overview match can be reached by scrolling; Transactions uses the same table design and retains search, paging, and edit/remove actions |
 | H08 | Double-click an overview transaction beyond the first history page | Transactions opens the page containing that record and selects it |
 | H09 | Resize Windows app from its 1280 × 1280 minimum | Overview history tracks height; Transactions history fills the page without an outer scrollbar; bold history amounts show green income, red expense, dark blue transfer |
-| H10 | Select a row in Overview, Transactions, Accounts, Categories, or Upcoming payments | Light selection keeps labels and colored values legible, including while focused or hovered |
+| H10 | Select a row in Overview, Transactions, Categories, Accounts card, or Upcoming payments | Light selection keeps labels and colored values legible, including while focused or hovered |
 | H11 | Open Custom period, Categories, and Transactions at minimum and larger heights | Apply aligns with date inputs; Categories actions precede a height-filling list; CSV and snapshot actions appear together in Transactions |
 | H12 | View the Overview history with a long category and a transfer account label | Category gets more width; Account starts farther right and fits the representative "Revolut → Revolut" label without clipping |
 | H13 | Select, add, edit, and delete an upcoming payment from Overview | Compact rows match the card layout; + opens Add, double-click opens Edit, delete confirms; no Archive field or Calendar action is shown |

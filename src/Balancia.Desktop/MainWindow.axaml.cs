@@ -116,7 +116,6 @@ public partial class MainWindow : Window
     }
 
     private async void ShowOverview(object? sender, RoutedEventArgs e) => await Navigate("Overview");
-    private async void ShowAccounts(object? sender, RoutedEventArgs e) => await Navigate("Accounts");
     private async void ShowCategories(object? sender, RoutedEventArgs e) => await Navigate("Categories");
     private async void ShowTransactions(object? sender, RoutedEventArgs e) => await Navigate("Transactions");
     private async Task Navigate(string page)
@@ -185,22 +184,6 @@ public partial class MainWindow : Window
         {
             case "Overview":
                 RenderOverview(s);
-                break;
-            case "Accounts":
-                PageBody.Children.Add(Text("Set a dated opening balance. Archive accounts to stop new entries without losing history."));
-                var accounts = new ListBox
-                {
-                    ItemsSource = s.Accounts.Select(a => new Choice<Account>(a, $"{a}    {AmountText(a.Balance)}")).ToArray(),
-                    MinHeight = 100,
-                    MaxHeight = 300
-                };
-                PageBody.Children.Add(accounts);
-                PageBody.Children.Add(
-                    Row(
-                        ActionButton("Add account", () => EditAccount(null)),
-                        ActionButton("Edit selected account", () => accounts.SelectedItem is Choice<Account> a ? EditAccount(a.Value) : SelectFirst())
-                        )
-                    );
                 break;
             case "Categories":
                 RenderCategories(s);

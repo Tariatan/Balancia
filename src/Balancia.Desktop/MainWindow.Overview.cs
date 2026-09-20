@@ -115,16 +115,40 @@ public partial class MainWindow
             ColumnSpacing = 10
         };
         var accountRows = new StackPanel { Spacing = 0 };
-        accountRows.Children.Add(Heading("NET WORTH · ALL ACCOUNTS", 11));
-        foreach (var account in snapshot.Accounts)
+        var accountHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 0, 0, 7) };
+        accountHeader.Children.Add(Heading("ACCOUNTS", 11));
+        var accountActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
+        var accounts = new ListBox { ItemsSource = snapshot.Accounts.Select(a => new Choice<Account>(a, a.Name)).ToArray(),
+            MinHeight = snapshot.Accounts.Count == 0 ? 0 : 45, MaxHeight = 170,
+            Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+            ItemTemplate = new FuncDataTemplate<Choice<Account>>((choice, _) =>
+            {
+                var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), MinHeight = 29 };
+                row.Children.Add(new TextBlock { Text = choice.Value.Name, FontSize = 12, VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis });
+                AddColumn(row, new TextBlock { Text = AmountText(choice.Value.Balance), FontSize = 12,
+                    FontWeight = FontWeight.SemiBold, Foreground = BalanceColor(choice.Value.Balance), VerticalAlignment = VerticalAlignment.Center }, 1);
+                return row;
+            }, true) };
+        accounts.DoubleTapped += async (_, _) =>
         {
-            accountRows.Children.Add(TwoColumn(account.ToString(), AmountText(account.Balance), 12,
-                BalanceColor(account.Balance)));
-        }
-
+            if (accounts.SelectedItem is Choice<Account> selected)
+            {
+                await EditAccount(selected.Value);
+            }
+        };
+        var addAccount = ActionButton("+", () => EditAccount(null)); addAccount.Width = 30; addAccount.Padding = new Thickness(0); addAccount.FontSize = 18;
+        var removeAccount = ActionButton("🗑", () => DeleteSelectedAccount(accounts)); removeAccount.Width = 30; removeAccount.Padding = new Thickness(0); removeAccount.FontSize = 14;
+        ToolTip.SetTip(addAccount, "Add account"); ToolTip.SetTip(removeAccount, "Delete selected account");
+        accountActions.Children.Add(addAccount); accountActions.Children.Add(removeAccount); AddColumn(accountHeader, accountActions, 1);
+        accountRows.Children.Add(accountHeader);
         if (snapshot.Accounts.Count == 0)
         {
             accountRows.Children.Add(QuietText("No accounts yet", 12));
+        }
+        else
+        {
+            accountRows.Children.Add(accounts);
         }
 
         var total = TwoColumn("Total net worth", AmountText(snapshot.NetWorth), 16,

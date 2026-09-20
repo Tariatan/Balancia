@@ -1,6 +1,6 @@
 # Implementation plan and checkpoint
 
-Last updated: 2026-09-19.
+Last updated: 2026-09-20.
 
 ## Milestones
 
@@ -226,3 +226,10 @@ inspection found only the header, +, and dustbin actions in the card.
 Record date, milestone, behavior implemented, files affected, exact checks and
 results, limitations, and next action. Update existing checkpoint facts rather than
 appending a full transcript. Keep unfinished milestones visibly unfinished.
+## 2026-09-20 UI checkpoint
+
+The standalone Accounts tab was removed. Overview now provides an Accounts
+card with selectable rows, add and guarded delete actions, and double-click
+editing. Accounts containing transaction history cannot be deleted and remain
+archivable through the edit form. The desktop navigation is Overview,
+Transactions, and Categories.

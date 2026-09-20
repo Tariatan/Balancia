@@ -81,11 +81,13 @@ public partial class MainWindow
         add.Width = 30;
         add.Padding = new Thickness(0);
         add.FontSize = 18;
+        add.HorizontalContentAlignment = HorizontalAlignment.Center;
 
         var remove = ActionButton("🗑", () => DeleteSelectedRecurring(recurring));
         remove.Width = 30;
         remove.Padding = new Thickness(0);
         remove.FontSize = 14;
+        remove.HorizontalContentAlignment = HorizontalAlignment.Center;
 
         ToolTip.SetTip(add, "Add recurring payment");
         ToolTip.SetTip(remove, "Delete selected recurring payment");

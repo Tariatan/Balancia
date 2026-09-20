@@ -133,3 +133,7 @@ The owner's 2026-09-20 C# formatting preferences from CategoriesPanel and
 RemindersPanel are recorded in docs/Coding Guidelines.md.
 Label assumptions, timestamp evidence, and replace stale facts rather than append
 contradictory entries. Do not copy the user's transaction details into this file.
+## 2026-09-20
+
+- Accounts card replaces Accounts tab: selectable account rows with add/delete
+  actions and double-click editing; deletion is guarded when transactions exist.

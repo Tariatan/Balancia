@@ -97,7 +97,8 @@ inclusive absolute CHF amount filters combine. A parent category includes its
 subcategories. Use Previous/Next to browse results. The overview shows all
 transactions in the selected period; double-clicking a row selects it in the
 Transactions page. The window minimum is 1280 × 1280.
-The top tabs are Overview, Transactions, Accounts, and Categories. Recurring
+The top tabs are Overview, Transactions, and Categories. Account management is
+available from the Accounts card on Overview. Recurring
 template Add/Edit actions are in the Upcoming payments card on Overview.
 Transactions also holds Export snapshot and Restore snapshot; Categories places
 Add/Edit above a list that grows with the window.
