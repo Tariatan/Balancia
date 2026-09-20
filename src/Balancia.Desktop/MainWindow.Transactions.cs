@@ -112,30 +112,21 @@ public partial class MainWindow
             SelectedItem = accounts.FirstOrDefault(a => a.Id == existing?.DestinationId),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        var choices = new List<Choice<string?>> { new(null, "Uncategorized") };
-        choices.AddRange(_snapshot.Categories.Where(c => !c.Archived || c.Id == existing?.CategoryId).Select(c => new Choice<string?>(c.Id, c.ToString())));
-        var category = new ComboBox
+        var category = new AutoCompleteBox
         {
-            ItemsSource = choices,
-            SelectedItem = choices.FirstOrDefault(c => c.Value == existing?.CategoryId) ?? choices[0],
+            ItemsSource = _snapshot.Categories
+                .Where(c => !c.Archived || c.Id == existing?.CategoryId)
+                .Select(c => c.Path)
+                .ToArray(),
+            Text = _snapshot.Categories.FirstOrDefault(c => c.Id == existing?.CategoryId)?.Path ?? "",
+            FilterMode = AutoCompleteFilterMode.ContainsOrdinal,
+            MinimumPrefixLength = 1,
+            PlaceholderText = "Type or select a category",
             HorizontalAlignment = HorizontalAlignment.Stretch
-        };
-        var categorySearch = Input("");
-        categorySearch.PlaceholderText = "Type to narrow categories";
-        categorySearch.TextChanged += (_, _) =>
-        {
-            var selected = category.SelectedItem as Choice<string?>;
-            var visible = choices.Where(c => c.Value is null || c.Label.Contains(categorySearch.Text ?? "", StringComparison.OrdinalIgnoreCase)).ToArray();
-            category.ItemsSource = visible;
-            category.SelectedItem = visible.FirstOrDefault(c => c.Value == selected?.Value) ?? visible[0];
         };
         var memo = Input(existing?.Memo ?? "");
         var toField = Field("Destination account", destination);
-        var categoryField = Field("Category / subcategory", new StackPanel
-        {
-            Spacing = 5,
-            Children = { categorySearch, category }
-        });
+        var categoryField = Field("Category / subcategory", category);
         void UpdateFields()
         {
             var transfer = kind.SelectedItem is TransactionKind.Transfer;
@@ -145,17 +136,18 @@ public partial class MainWindow
         kind.SelectionChanged += (_, _) => UpdateFields();
         UpdateFields();
         await EditDialog(entry is null ? "Add transaction" : "Edit transaction",
-            [Field("Type", kind), Field("Date", date), Field("Description", description), Field("Amount (positive)", amount), Field("Account", account), toField, categoryField, Field("Notes", memo)],
+            [Field("Type", kind), Field("Date", date), categoryField, Field("Amount (positive)", amount), Field("Account", account), Field("Description", description), Field("Notes", memo)],
             () =>
             {
                 NormalizeAmount(amount);
                 var type = (TransactionKind)kind.SelectedItem!;
                 var draft = new TransactionDraft(type, ParseDate(date), description.Text ?? "", ParseMoney(amount), ((Account)account.SelectedItem!).Id,
                     type == TransactionKind.Transfer ? (destination.SelectedItem as Account)?.Id : null,
-                    type == TransactionKind.Transfer ? null : ((Choice<string?>)category.SelectedItem!).Value, memo.Text ?? "");
+                    Memo: memo.Text ?? "");
+                var categoryPath = type == TransactionKind.Transfer ? null : category.Text;
                 _lastAccountId = draft.AccountId;
-                return () => _store.SaveTransaction(entry?.Id, draft);
-            });
+                return () => _store.SaveTransactionWithCategoryPath(entry?.Id, draft, categoryPath);
+            }, initialFocus: category);
     }
 
     private async Task RemoveTransaction(LedgerEntry entry) => await EditDialog("Remove transaction",

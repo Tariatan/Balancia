@@ -95,6 +95,11 @@ The transaction editor uses the same date picker as the overview filters. A new
 transaction starts on Today; editing retains its stored date. The amount field
 accepts `+`, `-`, `*`, and `/` expressions, evaluates them when focus leaves the
 field and before saving, and rounds the result to CHF centimes.
+Category / subcategory is one free-text field with matching existing paths shown
+as suggestions while typing. A previously unused name creates a top-level
+category when the transaction saves; `Category / Subcategory` creates or reuses
+both levels. Empty text means Uncategorized. More than one slash or an empty
+side is invalid. Category creation and the transaction save commit together.
 
 Defaults: enter a positive amount and let the type determine the sign. Reject
 zero amounts, fractional centimes, overflow, and same-account transfers. Accept

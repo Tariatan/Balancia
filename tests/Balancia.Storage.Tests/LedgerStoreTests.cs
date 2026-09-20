@@ -148,6 +148,65 @@ public sealed class LedgerStoreTests : IDisposable
     }
 
     [Fact]
+    public void TypedCategoryPathCreatesOrReusesCategoriesWithTransactionAtomically()
+    {
+        var account = Account("Synthetic account", 100);
+        var draft = Draft(account, TransactionKind.Expense, 10);
+        var first = _store.SaveTransactionWithCategoryPath(null, draft, "Travel / Rail");
+        var initial = _store.ReadSnapshot();
+        Assert.Equal("Travel / Rail", initial.Entries.Single().CategoryPath);
+        Assert.Equal(2, initial.Categories.Count);
+
+        _store.SaveTransactionWithCategoryPath(null, draft, "travel / rail");
+        var reused = _store.ReadSnapshot();
+        Assert.Equal(2, reused.Categories.Count);
+        Assert.Equal(2, reused.Entries.Count);
+
+        _store.SaveTransactionWithCategoryPath(first, draft, "Travel / Taxi");
+        var edited = _store.ReadSnapshot();
+        Assert.Equal("Travel / Taxi", edited.Entries.Single(entry => entry.Id == first).CategoryPath);
+        Assert.Equal(3, edited.Categories.Count);
+
+        _store.SaveTransactionWithCategoryPath(null, draft, "Parking");
+        _store.SaveTransactionWithCategoryPath(null, draft, " ");
+        var withTopLevelAndUncategorized = _store.ReadSnapshot();
+        Assert.Contains(withTopLevelAndUncategorized.Categories, category => category.Path == "Parking");
+        Assert.Contains(withTopLevelAndUncategorized.Entries, entry => entry.CategoryPath is null);
+
+        var beforeFailure = withTopLevelAndUncategorized.Revision;
+        Assert.Throws<ArgumentException>(() => _store.SaveTransactionWithCategoryPath(null,
+            draft with { AccountId = "missing-account" }, "New / Subcategory"));
+        var afterFailure = _store.ReadSnapshot();
+        Assert.Equal(beforeFailure, afterFailure.Revision);
+        Assert.DoesNotContain(afterFailure.Categories, category => category.Name == "New");
+        Assert.DoesNotContain(afterFailure.Entries, entry => entry.CategoryPath == "New / Subcategory");
+
+        Sql("CREATE TRIGGER fail_typed_path BEFORE INSERT ON movements WHEN NEW.transaction_id NOT LIKE 'opening:%' BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
+        Assert.Throws<SqliteException>(() => _store.SaveTransactionWithCategoryPath(null, draft, "Failed / Child"));
+        var afterInjectedFailure = _store.ReadSnapshot();
+        Assert.Equal(beforeFailure, afterInjectedFailure.Revision);
+        Assert.DoesNotContain(afterInjectedFailure.Categories, category => category.Name == "Failed");
+
+        Assert.Throws<ArgumentException>(() => _store.SaveTransactionWithCategoryPath(null, draft, "Bad / / Path"));
+        Assert.Equal(beforeFailure, _store.ReadSnapshot().Revision);
+    }
+
+    [Fact]
+    public void TypedCategoryPathPreservesExistingArchivedAssignmentButRejectsNewUse()
+    {
+        var account = Account("Synthetic account");
+        var draft = Draft(account, TransactionKind.Expense, 10);
+        var entryId = _store.SaveTransactionWithCategoryPath(null, draft, "Home / Utilities");
+        var parent = _store.ReadSnapshot().Categories.Single(category => category.Name == "Home");
+        _store.SaveCategory(parent.Id, parent.Name, null, true);
+
+        _store.SaveTransactionWithCategoryPath(entryId, draft with { Amount = Money.FromFrancs(11) }, "Home / Utilities");
+        Assert.Throws<ArgumentException>(() => _store.SaveTransactionWithCategoryPath(null, draft, "Home / Utilities"));
+        Assert.Throws<ArgumentException>(() => _store.SaveTransactionWithCategoryPath(null, draft, "Home / Other"));
+        Assert.DoesNotContain(_store.ReadSnapshot().Categories, category => category.Name == "Other");
+    }
+
+    [Fact]
     public void ArchivedAccountsKeepBalancesButRejectNewMovements()
     {
         var a = Account("A", 100);

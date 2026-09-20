@@ -150,3 +150,8 @@ contradictory entries. Do not copy the user's transaction details into this file
 - The transaction editor now reuses the filter DatePicker, defaults new dates to
   Today, and evaluates +, -, *, / amount expressions on focus leave and save,
   rounding results to centimes. Direct form interaction remains to be checked.
+- The transaction form now uses one AutoCompleteBox for free-text category paths;
+  Storage creates or reuses Category / Subcategory atomically with the transaction.
+  Synthetic tests cover reuse, archived paths, and rollback; locked restore,
+  Release solution build, and 52 tests passed. Direct Windows form interaction
+  is pending because the CUA surface exposed no native apps.

@@ -187,13 +187,13 @@ public partial class MainWindow
         var removeAccount = ActionButton("🗑", () => DeleteSelectedAccount(accounts));
         removeAccount.Width = 30;
         removeAccount.Padding = new Thickness(0);
-        removeAccount.FontSize = 14;
+        removeAccount.FontSize = 18;
         removeAccount.HorizontalContentAlignment = HorizontalAlignment.Center;
 
         var archiveAccount = ActionButton("▣", () => ArchiveSelectedAccount(accounts));
         archiveAccount.Width = 30;
         archiveAccount.Padding = new Thickness(0);
-        archiveAccount.FontSize = 14;
+        archiveAccount.FontSize = 18;
         archiveAccount.HorizontalContentAlignment = HorizontalAlignment.Center;
 
         ToolTip.SetTip(addAccount, "Add account");
@@ -354,7 +354,7 @@ public partial class MainWindow
         });
         remove.Width = 30;
         remove.Padding = new Thickness(0);
-        remove.FontSize = 14;
+        remove.FontSize = 18;
         remove.HorizontalContentAlignment = HorizontalAlignment.Center;
 
         ToolTip.SetTip(add, "Add transaction");

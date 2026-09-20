@@ -98,14 +98,20 @@ public partial class MainWindow
         add.Width = 30;
         add.Padding = new Thickness(0);
         add.FontSize = 18;
+        add.HorizontalContentAlignment = HorizontalAlignment.Center;
+
         var archive = ActionButton("▣", () => ArchiveSelectedCategory(categories));
         archive.Width = 30;
         archive.Padding = new Thickness(0);
-        archive.FontSize = 14;
+        archive.FontSize = 18;
+        archive.HorizontalContentAlignment = HorizontalAlignment.Center;
+
         var remove = ActionButton("🗑", () => DeleteSelectedCategory(categories));
         remove.Width = 30;
         remove.Padding = new Thickness(0);
-        remove.FontSize = 14;
+        remove.FontSize = 18;
+        remove.HorizontalContentAlignment = HorizontalAlignment.Center;
+
         ToolTip.SetTip(add, "Add category");
         ToolTip.SetTip(archive, "Archive selected category");
         ToolTip.SetTip(remove, "Delete selected category");

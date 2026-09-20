@@ -100,6 +100,10 @@ damaged optional UI preference cannot block ledger startup.
 The transaction editor reuses the filter `DatePicker`; its amount input uses a
 small decimal recursive-descent evaluator for the four basic operators and
 normalizes valid results to centime precision before the existing `Money` parser.
+Its category `AutoCompleteBox` suggests active category paths while preserving
+typed text. Storage resolves case-insensitive path components inside the same
+SQLite write transaction as the ledger entry; a failed save rolls back newly
+created parent and child categories with the entry.
 
 On 2026-09-20, the desktop window code was split into partial `MainWindow`
 files by responsibility. `MainWindow.axaml.cs` owns state, initialization,

@@ -240,6 +240,14 @@ shared filter `DatePicker`, defaulting new transactions to Today, and evaluates
 basic amount expressions on focus leave and save. Release Desktop build and the
 existing test suite passed; direct form interaction remains to be checked in the
 Windows UI.
+
+The 2026-09-20 category-entry follow-up replaces the transaction form's separate
+search field and drop-down with one `AutoCompleteBox`. Typed paths create or reuse
+up to two category levels in the same write as the transaction. Synthetic storage
+tests cover case-insensitive reuse, editing, archived paths, and rollback on failed
+saves. Locked restore, Release solution build, and all 52 tests passed. The
+Windows CUA surface exposed no native apps, so direct form interaction remains
+to be checked.
 ## 2026-09-20 UI checkpoint
 
 The Transactions tab was removed. CSV and snapshot actions now appear at the

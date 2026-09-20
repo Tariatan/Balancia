@@ -290,7 +290,25 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         Execute(c, tx, "DELETE FROM categories WHERE id=$id", ("$id", id));
     });
 
-    public string SaveTransaction(string? id, TransactionDraft draft)
+    public string SaveTransaction(string? id, TransactionDraft draft) => SaveTransactionCore(id, draft, null);
+
+    public string SaveTransactionWithCategoryPath(string? id, TransactionDraft draft, string? categoryPath)
+    {
+        if (draft.CategoryId is not null)
+        {
+            throw new ArgumentException("Provide either a category path or a category ID, not both.");
+        }
+
+        if (draft.Kind == TransactionKind.Transfer && !string.IsNullOrWhiteSpace(categoryPath))
+        {
+            throw new ArgumentException("Transfers do not have expense categories.");
+        }
+
+        var parts = ParseCategoryPath(categoryPath);
+        return SaveTransactionCore(id, draft, parts);
+    }
+
+    private string SaveTransactionCore(string? id, TransactionDraft draft, string[]? categoryParts)
     {
         draft.Validate(Today);
         var key = id ?? Guid.NewGuid().ToString("N");
@@ -305,6 +323,14 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
             if (draft.DestinationId is not null)
             {
                 ValidateAccount(c, tx, draft.DestinationId, draft.Date, id);
+            }
+
+            if (categoryParts is not null)
+            {
+                draft = draft with
+                {
+                    CategoryId = ResolveCategoryPath(c, tx, id, categoryParts)
+                };
             }
 
             if (draft.CategoryId is not null)
@@ -336,6 +362,69 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
             }
         });
         return key;
+    }
+
+    private static string[] ParseCategoryPath(string? categoryPath)
+    {
+        if (string.IsNullOrWhiteSpace(categoryPath))
+        {
+            return [];
+        }
+
+        var parts = categoryPath.Split('/').Select(part => part.Trim()).ToArray();
+        if (parts.Length > 2 || parts.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new ArgumentException("Enter a category or Category / Subcategory with one name on each side of '/'.");
+        }
+
+        return parts;
+    }
+
+    private static string? ResolveCategoryPath(SqliteConnection c, SqliteTransaction tx, string? transactionId, string[] parts)
+    {
+        if (parts.Length == 0)
+        {
+            return null;
+        }
+
+        var previousCategory = transactionId is null
+            ? null
+            : Scalar(c, tx, "SELECT category_id FROM ledger WHERE id=$id", ("$id", transactionId)) as string;
+        string? parentId = null;
+        var archivedParent = false;
+        for (var index = 0; index < parts.Length; index++)
+        {
+            var id = Scalar(c, tx,
+                "SELECT id FROM categories WHERE parent_id IS $parent AND name=$name COLLATE NOCASE",
+                ("$parent", parentId), ("$name", parts[index])) as string;
+            if (id is null)
+            {
+                id = Guid.NewGuid().ToString("N");
+                Execute(c, tx, "INSERT INTO categories VALUES($id,$name,$parent,0)",
+                    ("$id", id), ("$name", parts[index]), ("$parent", parentId));
+            }
+            else
+            {
+                var archived = Convert.ToInt64(Scalar(c, tx, "SELECT archived FROM categories WHERE id=$id", ("$id", id))) != 0;
+                if (archived && index == 0 && parts.Length == 2)
+                {
+                    archivedParent = true;
+                }
+                else if (archived && id != previousCategory)
+                {
+                    throw new ArgumentException("Restore the archived category before using it for another transaction.");
+                }
+            }
+
+            parentId = id;
+        }
+
+        if (archivedParent && parentId != previousCategory)
+        {
+            throw new ArgumentException("Restore the archived category before using it for another transaction.");
+        }
+
+        return parentId;
     }
 
     public void DeleteTransaction(string id) => Write((c, tx) =>
