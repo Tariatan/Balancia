@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     private IReadOnlyList<RecurringReminder> _reminders = [];
     private HistoryFilter _overviewFilter = new();
     private bool _overviewFiltersVisible;
+    private bool _pendingOverviewFilterRefresh;
     private string _page = "Overview";
     private bool _busy;
     private DateOnly _displayDate = DateOnly.FromDateTime(DateTime.Today);
@@ -79,26 +80,48 @@ public partial class MainWindow : Window
         Closed += (_, _) => SaveWindowSettings();
     }
 
-    private async Task Refresh()
+    private Task Refresh() => RefreshCore(false);
+
+    private Task RefreshFilteredOverview() => RefreshCore(true);
+
+    private async Task RequestOverviewFilterRefresh()
+    {
+        if (_busy)
+        {
+            _pendingOverviewFilterRefresh = true;
+            return;
+        }
+
+        await Run(RefreshFilteredOverview, false);
+    }
+
+    private async Task RefreshCore(bool updateOverviewInPlace)
     {
         _displayDate = DateOnly.FromDateTime(DateTime.Today);
         var (from, to) = OverviewRange();
-        _snapshot = await Task.Run(() => _page == "Overview" ? _store.ReadDesktopSnapshotForPeriod(from, to) : _store.ReadDesktopSnapshot());
+        var filter = _overviewFilter with
+        {
+            From = _overviewFilter.From ?? from,
+            To = _overviewFilter.To ?? to
+        };
+        _snapshot = await Task.Run(() => _page == "Overview" ? _store.ReadDesktopSnapshotForFilter(filter) : _store.ReadDesktopSnapshot());
         _reminders = await Task.Run(() => _store.ReadRecurringReminders());
         if (_page == "Overview")
         {
-            var filter = _overviewFilter with
-            {
-                From = _overviewFilter.From ?? from,
-                To = _overviewFilter.To ?? to
-            };
             _overviewHistory = await Task.Run(() => _store.ReadHistory(filter, _overviewOffset, HistoryPageSize));
         }
 
-        Render();
+        if (updateOverviewInPlace && _page == "Overview" && _overviewLayout is not null)
+        {
+            UpdateOverviewInPlace();
+        }
+        else
+        {
+            Render();
+        }
     }
 
-    private async Task Run(Func<Task> action)
+    private async Task Run(Func<Task> action, bool disableControls = true)
     {
         if (_busy)
         {
@@ -106,15 +129,21 @@ public partial class MainWindow : Window
         }
 
         _busy = true;
-        PageBody.IsEnabled = false;
-        ResponsiveBody.IsEnabled = false;
-        Navigation.IsEnabled = false;
-        HeaderActions.IsEnabled = false;
-        Status.Text = "Working…";
+        if (disableControls)
+        {
+            PageBody.IsEnabled = false;
+            ResponsiveBody.IsEnabled = false;
+            Navigation.IsEnabled = false;
+            HeaderActions.IsEnabled = false;
+            Status.Text = "Working…";
+        }
         try
         {
             await action();
-            Status.Text = "Saved locally";
+            if (disableControls)
+            {
+                Status.Text = "Saved locally";
+            }
         }
         catch (Exception ex)
         {
@@ -124,10 +153,22 @@ public partial class MainWindow : Window
         finally
         {
             _busy = false;
-            PageBody.IsEnabled = true;
-            ResponsiveBody.IsEnabled = true;
-            Navigation.IsEnabled = true;
-            HeaderActions.IsEnabled = true;
+            if (disableControls)
+            {
+                PageBody.IsEnabled = true;
+                ResponsiveBody.IsEnabled = true;
+                Navigation.IsEnabled = true;
+                HeaderActions.IsEnabled = true;
+            }
+
+            if (_pendingOverviewFilterRefresh)
+            {
+                _pendingOverviewFilterRefresh = false;
+                if (_page == "Overview")
+                {
+                    Dispatcher.UIThread.Post(() => _ = RequestOverviewFilterRefresh());
+                }
+            }
         }
     }
 
@@ -166,7 +207,10 @@ public partial class MainWindow : Window
         var responsive = _page is "Overview" or "Categories";
         PageScrollViewer.IsVisible = !responsive;
         ResponsiveBody.IsVisible = responsive;
+        _overviewFilterFrom = null;
+        _overviewFilterTo = null;
         ResponsiveBody.Content = null;
+        _overviewLayout = null;
         PageBody.Spacing = 18;
         PageBody.Children.Clear();
 

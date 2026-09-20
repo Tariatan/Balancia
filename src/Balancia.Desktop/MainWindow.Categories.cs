@@ -23,12 +23,32 @@ public partial class MainWindow
         {
             Spacing = 1
         };
+        var header = SectionHeader("Largest expense categories", "View all →", () => Navigate("Categories"));
+        _overviewCategoryHeading = (TextBlock)header.Children[0];
+        body.Children.Add(header);
+        var rows = new StackPanel { Spacing = 1 };
+        body.Children.Add(rows);
+        _overviewCategoryBody = rows;
+        FillCategoriesPanel(rows, snapshot);
+        return Panel(body);
+    }
 
-        body.Children.Add(SectionHeader("Largest expense categories", "View all →", () => Navigate("Categories")));
+    private void FillCategoriesPanel(StackPanel body, LedgerSnapshot snapshot)
+    {
+        body.Children.Clear();
+        _renderedOverviewCategories = snapshot.LargestCategories.ToArray();
+        _renderedOverviewCategoryId = _overviewFilter.CategoryId;
+        var selectedCategory = snapshot.Categories.FirstOrDefault(c => c.Id == _overviewFilter.CategoryId);
+        var hasSubcategories = selectedCategory is not null &&
+            snapshot.Categories.Any(c => c.ParentId == selectedCategory.Id);
+        var title = hasSubcategories
+            ? $"Largest expense subcategories · {selectedCategory!.Name}"
+            : "Largest expense categories";
+        _overviewCategoryHeading!.Text = title;
 
         if (snapshot.LargestCategories.Count == 0)
         {
-            body.Children.Add(QuietText("No expenses in this period.", 12));
+            body.Children.Add(QuietText("No matching expenses.", 12));
         }
 
         var maximum = snapshot.LargestCategories.FirstOrDefault()?.Amount.Centimes ?? 1;
@@ -73,7 +93,6 @@ public partial class MainWindow
             AddColumn(row, value, 2);
             body.Children.Add(row);
         }
-        return Panel(body);
     }
 
     private void RenderCategories(LedgerSnapshot snapshot)

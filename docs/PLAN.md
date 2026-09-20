@@ -256,6 +256,18 @@ Windows CUA surface exposed no native apps, so direct form interaction remains
 to be checked.
 ## 2026-09-20 UI checkpoint
 
+Overview flow and category aggregates now share the advanced history filter
+predicate. Selecting a parent expense category displays its own expenses and
+matching subcategories separately; net worth remains current across all accounts.
+A synthetic storage scenario covers combined description/account/category/date/
+amount filters and checks that filtered income, expenses, and history agree.
+Release Desktop build passed with zero warnings; 53 Core/Storage tests passed.
+Manual desktop interaction confirmed the filter panel and Overview controls
+remain mounted while Type and period choices update a synthetic ledger.
+The filter refresh path now updates values and affected rows in place and queues
+one follow-up refresh when another filter changes during a read. The separate
+synthetic Release window was closed after the check.
+
 The Transactions tab was removed. CSV and snapshot actions now appear at the
 top of Settings; Overview remains the transaction editing surface.
 

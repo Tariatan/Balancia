@@ -87,6 +87,11 @@ directly. CSV export reads one snapshot, writes a temporary file with standard
 quoting, then replaces the selected target after the write completes. Import
 provenance queries match external IDs across existing source labels so records
 imported before the UI rename remain idempotent.
+Overview filter and period changes now keep the existing Avalonia layout mounted.
+The desktop updates metric text, category rows, history items, and paging state
+in place, skipping list replacement when visible hits are unchanged. Opening or
+closing the filter changes only that panel. Filter reads do not disable the
+page, and changes made during a read queue one refresh for the latest filter.
 The next Windows layout refinement uses a shared application-level ListBoxItem
 template-presenter style so focused and unfocused selections retain the same
 light, readable color across pages. Categories joins the height-filling content

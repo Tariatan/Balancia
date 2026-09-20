@@ -88,12 +88,7 @@ public sealed partial class LedgerStore
 
         using var c = _connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
-        (string, object?)[] values = [
-            ("$description", string.IsNullOrEmpty(filter.Description) ? null : filter.Description),
-            ("$account", filter.AccountId), ("$kind", filter.Kind?.ToString()),
-            ("$category", filter.CategoryId), ("$from", filter.From is null ? null : DateText(filter.From.Value)),
-            ("$to", filter.To is null ? null : DateText(filter.To.Value)),
-            ("$minimum", filter.Minimum?.Centimes), ("$maximum", filter.Maximum?.Centimes)];
+        var values = FilterParameters(filter);
         var count = Convert.ToInt64(Scalar(c, tx, HistoryCount, values));
         var hits = new List<HistoryHit>();
         using (var cmd = Command(c, tx, """
@@ -136,10 +131,19 @@ public sealed partial class LedgerStore
     }
 
     public LedgerSnapshot ReadDesktopSnapshotForPeriod(DateOnly? from, DateOnly? to)
+        => ReadDesktopSnapshotForFilter(new HistoryFilter(From: from, To: to));
+
+    public LedgerSnapshot ReadDesktopSnapshotForFilter(HistoryFilter filter)
     {
-        if (from > to)
+        if (filter.From > filter.To)
         {
             throw new ArgumentException("Start date must be on or before end date.");
+        }
+
+        if (filter.Minimum?.Centimes < 0 || filter.Maximum?.Centimes < 0 ||
+            filter.Minimum is { } minimum && filter.Maximum is { } maximum && minimum.Centimes > maximum.Centimes)
+        {
+            throw new ArgumentException("Amount range must be positive and ordered.");
         }
 
         using var c = _connections.Open();
@@ -175,17 +179,21 @@ public sealed partial class LedgerStore
             }
         }
 
-        long PeriodTotal(string kind) => Convert.ToInt64(Scalar(c, tx, "SELECT COALESCE(SUM(abs(m.amount)),0) FROM ledger l JOIN movements m ON m.transaction_id=l.id WHERE l.kind=$kind AND ($from IS NULL OR l.date>=$from) AND ($to IS NULL OR l.date<=$to)",
-            ("$kind", kind), ("$from", from is null ? null : DateText(from.Value)), ("$to", to is null ? null : DateText(to.Value))));
+        var values = FilterParameters(filter);
+        long PeriodTotal(string kind) => Convert.ToInt64(Scalar(c, tx,
+            "SELECT COALESCE(SUM(abs(m.amount)),0) " + HistoryFrom + " AND l.kind=$flowKind",
+            [.. values, ("$flowKind", kind)]));
         var top = new List<CategoryTotal>();
         using (var cmd = Command(c, tx, """
-            SELECT COALESCE(parent.name,category.name,'Uncategorized'),SUM(-m.amount)
-            FROM ledger l JOIN movements m ON m.transaction_id=l.id
-            LEFT JOIN categories category ON category.id=l.category_id
-            LEFT JOIN categories parent ON parent.id=category.parent_id
-            WHERE l.kind='Expense' AND ($from IS NULL OR l.date>=$from) AND ($to IS NULL OR l.date<=$to)
-            GROUP BY COALESCE(parent.id,category.id,'') ORDER BY 2 DESC LIMIT 5
-            """, ("$from", from is null ? null : DateText(from.Value)), ("$to", to is null ? null : DateText(to.Value))))
+            SELECT CASE WHEN parent.id=$category THEN category.name
+                   ELSE COALESCE(parent.name,category.name,'Uncategorized') END,
+                   SUM(-m.amount)
+            """ + " " + HistoryFrom + """
+             AND l.kind='Expense'
+            GROUP BY CASE WHEN parent.id=$category THEN category.id
+                          ELSE COALESCE(parent.id,category.id,'') END
+            ORDER BY 2 DESC LIMIT 5
+            """, values))
         using (var r = cmd.ExecuteReader())
         {
             while (r.Read())
@@ -200,4 +208,16 @@ public sealed partial class LedgerStore
         tx.Commit();
         return result;
     }
+
+    private static (string, object?)[] FilterParameters(HistoryFilter filter) =>
+    [
+        ("$description", string.IsNullOrEmpty(filter.Description) ? null : filter.Description),
+        ("$account", filter.AccountId),
+        ("$kind", filter.Kind?.ToString()),
+        ("$category", filter.CategoryId),
+        ("$from", filter.From is null ? null : DateText(filter.From.Value)),
+        ("$to", filter.To is null ? null : DateText(filter.To.Value)),
+        ("$minimum", filter.Minimum?.Centimes),
+        ("$maximum", filter.Maximum?.Centimes)
+    ];
 }

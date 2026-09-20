@@ -37,7 +37,12 @@ period, with Previous page and Next page controls. Double-clicking
 an overview row opens the transaction edit form for that record. The history
 card header provides add and delete actions for the selected row.
 The overview history filter panel provides search, advanced filters, and paging
-alongside the same visual table used by the history card.
+alongside the same visual table used by the history card. Filter fields apply
+as their values change (text fields apply when they lose focus); the panel has
+no Apply action, and its header trash action clears all filters. Income, expenses,
+and the largest expense categories use the same description, account, type,
+category, date, and amount filters as history. Selecting a parent category shows
+its own expenses and each matching subcategory separately in the category card.
 History amounts are bold; income is green, expense is red, and transfer is dark
 blue. The overview history follows the bottom edge as the window changes height.
 Overview history fills its available height without an outer page scrollbar.
@@ -49,7 +54,8 @@ The Windows desktop stores its last usable width, height, and screen position in
 start. An unavailable or malformed settings file does not prevent startup.
 
 The Overview period controls are All, This Week, This Month, This Year, and
-Filter. Filter opens the history search and filter fields in the overview.
+Filter. Filter opens the compact history search and filter fields in the
+overview.
 The top navigation order is Overview, Settings. Account
 management is available from the Accounts card on Overview. The
 Settings header contains Import CSV, Export CSV, Export snapshot, and Restore
@@ -72,14 +78,14 @@ while sizing the Account column to the representative "Revolut → Revolut" text
 Account balance = opening balance + all signed movements after the opening point.
 Net worth = sum of account balances. Opening balances are counted exactly once;
 transfers cancel across accounts and are excluded from income/expense totals.
-History filters do not change overview account balances or period totals.
+History filters do not change overview account balances or net worth.
 
 Every successful add/edit/delete refreshes affected balances, category totals,
 reminders, and visible history without restarting or manually reloading the app.
 Month changes refresh the dashboard without requiring a transaction edit.
 
-Defaults: show the five largest parent expense categories for the selected period,
-with their subcategory expenses included. Use the device's local calendar date;
+Defaults: show the five largest parent expense categories for the selected filters,
+with their subcategory expenses included when no parent is selected. Use the device's local calendar date;
 transaction dates have no time zone. Future expectations belong in reminders;
 future-dated posted transactions are excluded from the initial form. Thus net
 worth is all posted history, not a forecast. Historical pre-opening transactions

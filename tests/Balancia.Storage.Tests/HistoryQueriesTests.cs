@@ -149,6 +149,44 @@ public sealed class HistoryQueriesTests : IDisposable
     }
 
     [Fact]
+    public void OverviewAggregatesMatchHistoryFiltersAndBreakDownSelectedParent()
+    {
+        var account = Account("Everyday");
+        var other = Account("Other");
+        var food = _store.SaveCategory(null, "Food", null);
+        var lunch = _store.SaveCategory(null, "Lunch", food);
+        var dinner = _store.SaveCategory(null, "Dinner", food);
+        var car = _store.SaveCategory(null, "Car", null);
+        Entry(account, "match", 3, food);
+        Entry(account, "match", 4, lunch);
+        Entry(account, "match", 5, dinner);
+        Entry(account, "match", 7, lunch, kind: TransactionKind.Income);
+        Entry(account, "different", 9, lunch);
+        Entry(account, "match", 8, car);
+        Entry(other, "match", 6, lunch);
+
+        var filter = new HistoryFilter(Description: "MATCH", AccountId: account,
+            CategoryId: food, From: Start.AddDays(1), To: Start.AddDays(1),
+            Minimum: Money.FromFrancs(3), Maximum: Money.FromFrancs(7));
+        var history = _store.ReadHistory(filter);
+        var overview = _store.ReadDesktopSnapshotForFilter(filter);
+
+        Assert.Equal(4, history.TotalCount);
+        Assert.Equal(1200, overview.MonthlyExpenses.Centimes);
+        Assert.Equal(700, overview.MonthlyIncome.Centimes);
+        Assert.Equal(new[] { "Dinner", "Lunch", "Food" }, overview.LargestCategories.Select(x => x.Name));
+        Assert.Equal(new long[] { 500, 400, 300 }, overview.LargestCategories.Select(x => x.Amount.Centimes));
+        Assert.Equal(_store.ReadDesktopSnapshotForPeriod(null, null).NetWorth, overview.NetWorth);
+
+        var expensesOnly = _store.ReadDesktopSnapshotForFilter(filter with { Kind = TransactionKind.Expense });
+        Assert.Equal(0, expensesOnly.MonthlyIncome.Centimes);
+        Assert.Equal(1200, expensesOnly.MonthlyExpenses.Centimes);
+        var lunchOnly = _store.ReadDesktopSnapshotForFilter(filter with { CategoryId = lunch });
+        Assert.Equal(400, lunchOnly.MonthlyExpenses.Centimes);
+        Assert.Equal(700, lunchOnly.MonthlyIncome.Centimes);
+    }
+
+    [Fact]
     public void PrepareSyntheticManualUiDatasetWhenRequested()
     {
         var directory = Environment.GetEnvironmentVariable("BALANCIA_UI_TEST_DIR");

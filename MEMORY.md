@@ -156,6 +156,18 @@ contradictory entries. Do not copy the user's transaction details into this file
   the 52 Core/Storage tests passed after this change on 2026-09-20.
 - Shared text and list selection styles now use a blue highlight with readable
   white text across desktop controls.
+- Overview history filters now use a compact two-row layout, apply selection and
+  date changes immediately (text and amounts on focus leave), and clear through
+  a header trash action; the separate Apply filters action was removed.
+- Calendar filter dates apply after popup closure or typed-field focus leave,
+  avoiding refresh while navigating the calendar.
+- Overview income, expenses, and category totals now use the same combined
+  filters as history. A selected parent category breaks expenses into its own
+  row and child categories; balances and net worth remain unfiltered.
+- Overview filter changes now update mounted controls in place instead of
+  clearing and rebuilding the page. Synthetic Release UI checks confirmed a
+  Type change and All period selection keep Accounts and Upcoming payments
+  controls stable; the filter read queues one more pass for a newer choice.
 - New transactions default to Today and evaluate +, -, *, / amount expressions
   on focus leave and save, rounding results to centimes.
 - The transaction form now uses one AutoCompleteBox for free-text category paths;
