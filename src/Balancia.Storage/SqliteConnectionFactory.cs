@@ -11,7 +11,9 @@ public sealed class SqliteConnectionFactory
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
         if (!Path.IsPathFullyQualified(databasePath))
+        {
             throw new ArgumentException("Use an absolute application-local database path.", nameof(databasePath));
+        }
 
         _connectionString = new SqliteConnectionStringBuilder
         {
@@ -19,6 +21,7 @@ public sealed class SqliteConnectionFactory
             Mode = SqliteOpenMode.ReadWriteCreate,
             ForeignKeys = true,
             Pooling = false
+
         }.ToString();
     }
 

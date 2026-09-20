@@ -11,7 +11,11 @@ public sealed class LedgerStoreTests : IDisposable
     private readonly FixedClock _clock = new();
     private static readonly DateOnly Start = new(2026, 9, 1);
 
-    public LedgerStoreTests() { _store = new(_path, _clock); _store.Initialize(); }
+    public LedgerStoreTests()
+    {
+        _store = new(_path, _clock);
+        _store.Initialize();
+    }
     private string Account(string name, decimal opening = 0) => _store.SaveAccount(null, name, Start, Money.FromFrancs(opening));
     private static TransactionDraft Draft(string account, TransactionKind kind, decimal amount, string? to = null) =>
         new(kind, Start.AddDays(1), "Synthetic payment", Money.FromFrancs(amount), account, to);
@@ -22,7 +26,8 @@ public sealed class LedgerStoreTests : IDisposable
         var a = Account("A", 1000);
         _store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 20));
         _store.SaveTransaction(null, Draft(a, TransactionKind.Income, 50));
-        var reopened = new LedgerStore(_path, _clock); reopened.Initialize();
+        var reopened = new LedgerStore(_path, _clock);
+        reopened.Initialize();
         var s = reopened.ReadSnapshot();
         Assert.Equal(103000, s.NetWorth.Centimes);
         Assert.Equal(5000, s.MonthlyIncome.Centimes);
@@ -34,22 +39,30 @@ public sealed class LedgerStoreTests : IDisposable
     [Fact]
     public void L02_L03_TransferCreateEditAndDeleteRemainBalanced()
     {
-        var a = Account("A", 1000); var b = Account("B"); var c = Account("C");
+        var a = Account("A", 1000);
+        var b = Account("B");
+        var c = Account("C");
         var id = _store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 100, b));
         var s = _store.ReadSnapshot();
         Assert.Equal(90000, s.Accounts.Single(x => x.Id == a).Balance.Centimes);
         Assert.Equal(10000, s.Accounts.Single(x => x.Id == b).Balance.Centimes);
         Assert.Equal(100000, s.NetWorth.Centimes);
-        Assert.Equal(0, s.MonthlyIncome.Centimes); Assert.Equal(0, s.MonthlyExpenses.Centimes);
+        Assert.Equal(0, s.MonthlyIncome.Centimes);
+        Assert.Equal(0, s.MonthlyExpenses.Centimes);
         Assert.Single(s.Entries);
-        _store.SaveTransaction(id, Draft(b, TransactionKind.Transfer, 75, c) with { Date = Start.AddDays(3) });
+        _store.SaveTransaction(id, Draft(b, TransactionKind.Transfer, 75, c) with
+        {
+            Date = Start.AddDays(3)
+        });
         s = _store.ReadSnapshot();
         Assert.Equal(100000, s.Accounts.Single(x => x.Id == a).Balance.Centimes);
         Assert.Equal(-7500, s.Accounts.Single(x => x.Id == b).Balance.Centimes);
         Assert.Equal(7500, s.Accounts.Single(x => x.Id == c).Balance.Centimes);
         Assert.Equal(Start.AddDays(3), s.Entries.Single().Draft.Date);
         _store.DeleteTransaction(id);
-        s = _store.ReadSnapshot(); Assert.Empty(s.Entries); Assert.Equal(100000, s.NetWorth.Centimes);
+        s = _store.ReadSnapshot();
+        Assert.Empty(s.Entries);
+        Assert.Equal(100000, s.NetWorth.Centimes);
         Assert.Equal(3L, Scalar("SELECT COUNT(*) FROM movements")); // Only openings remain.
     }
 
@@ -58,7 +71,8 @@ public sealed class LedgerStoreTests : IDisposable
     [InlineData(true)]
     public void L04_MidTransferFailureRollsBackCreationOrEdit(bool edit)
     {
-        var a = Account("A", 1000); var b = Account("B");
+        var a = Account("A", 1000);
+        var b = Account("B");
         string? id = edit ? _store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 10, b)) : null;
         var before = _store.ReadSnapshot();
         Sql("CREATE TRIGGER fail_second BEFORE INSERT ON movements WHEN NEW.amount>0 AND NEW.transaction_id NOT LIKE 'opening:%' BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
@@ -72,7 +86,8 @@ public sealed class LedgerStoreTests : IDisposable
     [Fact]
     public void FailedDeleteRollsBackBothSides()
     {
-        var a = Account("A", 1000); var b = Account("B");
+        var a = Account("A", 1000);
+        var b = Account("B");
         var id = _store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 10, b));
         var before = _store.ReadSnapshot();
         Sql("CREATE TRIGGER fail_delete BEFORE DELETE ON movements WHEN OLD.amount>0 BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
@@ -113,7 +128,10 @@ public sealed class LedgerStoreTests : IDisposable
         var a = Account("A");
         var parent = _store.SaveCategory(null, "Food", null);
         var child = _store.SaveCategory(null, "Lunch", parent);
-        var id = _store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 20) with { CategoryId = child });
+        var id = _store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 20) with
+        {
+            CategoryId = child
+        });
         _store.SaveCategory(parent, "Meals", null);
         Assert.Equal("Meals / Lunch", _store.ReadSnapshot().Entries.Single().CategoryPath);
         Assert.Equal("Meals", _store.ReadSnapshot().LargestCategories.Single().Name);
@@ -122,7 +140,10 @@ public sealed class LedgerStoreTests : IDisposable
         _store.SaveCategory(parent, "Meals", null, true);
         Assert.All(_store.ReadSnapshot().Categories, c => Assert.True(c.Archived));
         Assert.Throws<ArgumentException>(() => _store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 1) with { CategoryId = child }));
-        _store.SaveTransaction(id, Draft(a, TransactionKind.Expense, 25) with { CategoryId = child });
+        _store.SaveTransaction(id, Draft(a, TransactionKind.Expense, 25) with
+        {
+            CategoryId = child
+        });
         Assert.Equal(2500, _store.ReadSnapshot().MonthlyExpenses.Centimes);
     }
 
@@ -151,7 +172,8 @@ public sealed class LedgerStoreTests : IDisposable
     [Fact]
     public void ClockControlsCurrentMonthTotals()
     {
-        var a = Account("A"); _store.SaveTransaction(null, Draft(a, TransactionKind.Income, 50));
+        var a = Account("A");
+        _store.SaveTransaction(null, Draft(a, TransactionKind.Income, 50));
         _clock.Now = new(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
         Assert.Equal(0, _store.ReadSnapshot().MonthlyIncome.Centimes);
         Assert.Equal(5000, _store.ReadSnapshot().NetWorth.Centimes);
@@ -165,8 +187,20 @@ public sealed class LedgerStoreTests : IDisposable
         Assert.Equal(4L, Scalar("PRAGMA user_version"));
     }
 
-    private object? Scalar(string sql) { using var c = new SqliteConnectionFactory(_path).Open(); using var cmd = c.CreateCommand(); cmd.CommandText = sql; return cmd.ExecuteScalar(); }
-    private void Sql(string sql) { using var c = new SqliteConnectionFactory(_path).Open(); using var cmd = c.CreateCommand(); cmd.CommandText = sql; cmd.ExecuteNonQuery(); }
+    private object? Scalar(string sql)
+    {
+        using var c = new SqliteConnectionFactory(_path).Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = sql;
+        return cmd.ExecuteScalar();
+    }
+    private void Sql(string sql)
+    {
+        using var c = new SqliteConnectionFactory(_path).Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.ExecuteNonQuery();
+    }
     public void Dispose() => File.Delete(_path);
     private sealed class FixedClock : TimeProvider
     {

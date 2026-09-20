@@ -8,7 +8,12 @@ public sealed class RecurringTests : IDisposable
 {
     private readonly string _path = Path.Combine(Path.GetTempPath(), "balancia-recurring-" + Guid.NewGuid() + ".db");
     private readonly LedgerStore _store;
-    public RecurringTests() { _store = new(_path, new FixedClock()); _store.Initialize(); _store.SaveAccount(null, "Cash", new(2026, 1, 1), new(10000)); }
+    public RecurringTests()
+    {
+        _store = new(_path, new FixedClock());
+        _store.Initialize();
+        _store.SaveAccount(null, "Cash", new(2026, 1, 1), new(10000));
+    }
 
     [Fact]
     public void ExactDescriptionAndMonthSatisfyOccurrence()
@@ -52,5 +57,7 @@ public sealed class RecurringTests : IDisposable
 
     public void Dispose() => File.Delete(_path);
     private sealed class FixedClock : TimeProvider
-    { public override DateTimeOffset GetUtcNow() => new(2026, 12, 31, 0, 0, 0, TimeSpan.Zero); public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc; }
+    {
+        public override DateTimeOffset GetUtcNow() => new(2026, 12, 31, 0, 0, 0, TimeSpan.Zero); public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
+    }
 }

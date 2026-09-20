@@ -31,7 +31,11 @@ public sealed class CsvExportTests
             using var parser = new TextFieldParser(path) { HasFieldsEnclosedInQuotes = true };
             parser.SetDelimiters(",");
             var rows = new List<string[]>();
-            while (!parser.EndOfData) rows.Add(parser.ReadFields()!);
+            while (!parser.EndOfData)
+            {
+                rows.Add(parser.ReadFields()!);
+            }
+
             Assert.Equal(6, rows.Count);
             Assert.Equal(["ID", "Date", "Type", "Description", "Amount", "Account", "DestinationAccount", "Category", "Memo"], rows[0]);
             Assert.Equal(2, rows.Count(row => row[2] == "OpeningBalance"));

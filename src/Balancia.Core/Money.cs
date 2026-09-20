@@ -9,7 +9,9 @@ public readonly record struct Money(long Centimes)
     {
         var centimes = checked(francs * 100m);
         if (decimal.Truncate(centimes) != centimes)
+        {
             throw new ArgumentException("Amounts must use whole centimes.", nameof(francs));
+        }
 
         return new Money(checked((long)centimes));
     }

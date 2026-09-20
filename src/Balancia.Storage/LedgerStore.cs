@@ -28,22 +28,35 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         }
         using var tx = c.BeginTransaction();
         var version = Convert.ToInt64(Scalar(c, tx, "PRAGMA user_version"));
-        if (version == 3) { tx.Commit(); return; }
+        if (version == 3)
+        {
+            tx.Commit();
+            return;
+        }
         if (version == 2)
         {
             CreateRecurringTable(c, tx);
             Execute(c, tx, "PRAGMA user_version=3");
-            tx.Commit(); return;
+            tx.Commit();
+            return;
         }
         if (version == 1)
         {
             CreateImportTable(c, tx);
             Execute(c, tx, "PRAGMA user_version=2");
-            tx.Commit(); return;
+            tx.Commit();
+            return;
         }
-        if (version != 0) throw new InvalidOperationException("This database version is not supported. Use a compatible Balancia version.");
+        if (version != 0)
+        {
+            throw new InvalidOperationException("This database version is not supported. Use a compatible Balancia version.");
+        }
+
         if (Convert.ToInt64(Scalar(c, tx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")) != 0)
+        {
             throw new InvalidOperationException("The selected file is not an empty Balancia database.");
+        }
+
         Execute(c, tx, """
             CREATE TABLE accounts (
                 id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE CHECK(length(trim(name))>0),
@@ -93,7 +106,8 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
     public IReadOnlyList<RecurringReminder> ReadRecurringReminders(DateOnly? asOf = null)
     {
         var today = asOf ?? Today;
-        using var c = _connections.Open(); using var tx = c.BeginTransaction(deferred: true);
+        using var c = _connections.Open();
+        using var tx = c.BeginTransaction(deferred: true);
         var result = new List<RecurringReminder>();
         using var cmd = Command(c, tx, "SELECT id,description,expected_date,indicative_amount,interval_months,archived FROM recurring_templates WHERE archived=0 ORDER BY expected_date,description COLLATE NOCASE");
         using var r = cmd.ExecuteReader();
@@ -101,25 +115,50 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         {
             var template = new RecurringTemplate(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new(r.GetInt64(3)), r.GetInt32(4), r.GetBoolean(5));
             var occurrence = template.ExpectedDate;
-            while (occurrence < today && IsSatisfied(c, tx, template.Description, occurrence)) occurrence = AddMonthsClamped(occurrence, template.IntervalMonths, template.ExpectedDate.Day);
+            while (occurrence < today && IsSatisfied(c, tx, template.Description, occurrence))
+            {
+                occurrence = AddMonthsClamped(occurrence, template.IntervalMonths, template.ExpectedDate.Day);
+            }
+
             result.Add(new(template, occurrence, occurrence < today, IsSatisfied(c, tx, template.Description, occurrence)));
         }
-        tx.Commit(); return result.OrderBy(x => x.Satisfied ? 1 : 0).ThenBy(x => x.Occurrence).ToArray();
+        tx.Commit();
+        return result.OrderBy(x => x.Satisfied ? 1 : 0).ThenBy(x => x.Occurrence).ToArray();
     }
 
     public string SaveRecurringTemplate(string? id, string description, DateOnly expectedDate, Money indicativeAmount, int intervalMonths, bool archived = false)
     {
         description = description.Trim();
-        if (description.Length == 0) throw new ArgumentException("Enter a description.");
-        if (indicativeAmount.Centimes <= 0) throw new ArgumentException("Enter an indicative amount greater than zero.");
-        if (intervalMonths <= 0) throw new ArgumentException("Repeat interval must be positive.");
+        if (description.Length == 0)
+        {
+            throw new ArgumentException("Enter a description.");
+        }
+
+        if (indicativeAmount.Centimes <= 0)
+        {
+            throw new ArgumentException("Enter an indicative amount greater than zero.");
+        }
+
+        if (intervalMonths <= 0)
+        {
+            throw new ArgumentException("Repeat interval must be positive.");
+        }
+
         var key = id ?? Guid.NewGuid().ToString("N");
         Write((c, tx) =>
         {
-            if (!archived && Scalar(c, tx, "SELECT 1 FROM recurring_templates WHERE archived=0 AND lower(description)=lower($description) AND id<>$id LIMIT 1", ("$description",description),("$id",key)) is null)
-                Execute(c, tx, "INSERT INTO recurring_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id",key),("$description",description),("$date",DateText(expectedDate)),("$amount",indicativeAmount.Centimes),("$interval",intervalMonths),("$archived",archived?1:0));
-            else if (!archived) throw new ArgumentException("An active recurring template already uses this description.");
-            else Execute(c, tx, "INSERT INTO recurring_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id",key),("$description",description),("$date",DateText(expectedDate)),("$amount",indicativeAmount.Centimes),("$interval",intervalMonths),("$archived",archived?1:0));
+            if (!archived && Scalar(c, tx, "SELECT 1 FROM recurring_templates WHERE archived=0 AND lower(description)=lower($description) AND id<>$id LIMIT 1", ("$description", description), ("$id", key)) is null)
+            {
+                Execute(c, tx, "INSERT INTO recurring_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id", key), ("$description", description), ("$date", DateText(expectedDate)), ("$amount", indicativeAmount.Centimes), ("$interval", intervalMonths), ("$archived", archived ? 1 : 0));
+            }
+            else if (!archived)
+            {
+                throw new ArgumentException("An active recurring template already uses this description.");
+            }
+            else
+            {
+                Execute(c, tx, "INSERT INTO recurring_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id", key), ("$description", description), ("$date", DateText(expectedDate)), ("$amount", indicativeAmount.Centimes), ("$interval", intervalMonths), ("$archived", archived ? 1 : 0));
+            }
         });
         return key;
     }
@@ -127,26 +166,41 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
     public void DeleteRecurringTemplate(string id) => Write((c, tx) => Execute(c, tx, "DELETE FROM recurring_templates WHERE id=$id", ("$id", id)));
 
     private static bool IsSatisfied(SqliteConnection c, SqliteTransaction tx, string description, DateOnly occurrence) =>
-        Scalar(c, tx, "SELECT 1 FROM ledger WHERE kind<>'OpeningBalance' AND description=$description AND substr(date,1,7)=$month LIMIT 1", ("$description",description),("$month",occurrence.ToString("yyyy-MM",CultureInfo.InvariantCulture))) is not null;
+        Scalar(c, tx, "SELECT 1 FROM ledger WHERE kind<>'OpeningBalance' AND description=$description AND substr(date,1,7)=$month LIMIT 1", ("$description", description), ("$month", occurrence.ToString("yyyy-MM", CultureInfo.InvariantCulture))) is not null;
 
     private static DateOnly AddMonthsClamped(DateOnly date, int months, int desiredDay)
     {
-        var first = new DateOnly(date.Year,date.Month,1).AddMonths(months);
+        var first = new DateOnly(date.Year, date.Month, 1).AddMonths(months);
         return new DateOnly(first.Year, first.Month, Math.Min(desiredDay, DateTime.DaysInMonth(first.Year, first.Month)));
     }
 
     public string SaveAccount(string? id, string name, DateOnly openingDate, Money opening, bool archived = false)
     {
         name = name.Trim();
-        if (name.Length == 0) throw new ArgumentException("Enter an account name.");
-        if (openingDate > Today) throw new ArgumentException("Opening date cannot be in the future.");
+        if (name.Length == 0)
+        {
+            throw new ArgumentException("Enter an account name.");
+        }
+
+        if (openingDate > Today)
+        {
+            throw new ArgumentException("Opening date cannot be in the future.");
+        }
+
         var key = id ?? Guid.NewGuid().ToString("N");
         Write((c, tx) =>
         {
-            if (id is not null) Require(c, tx, "SELECT 1 FROM accounts WHERE id=$id", id, "Account no longer exists.");
+            if (id is not null)
+            {
+                Require(c, tx, "SELECT 1 FROM accounts WHERE id=$id", id, "Account no longer exists.");
+            }
+
             var earliest = Scalar(c, tx, "SELECT MIN(l.date) FROM ledger l JOIN movements m ON m.transaction_id=l.id WHERE m.account_id=$id AND l.kind<>'OpeningBalance'", ("$id", key));
             if (earliest is string date && openingDate > ParseDate(date))
+            {
                 throw new ArgumentException("Opening date must be on or before the first transaction in this account.");
+            }
+
             Execute(c, tx, """
                 INSERT INTO accounts VALUES($id,$name,$date,$archived)
                 ON CONFLICT(id) DO UPDATE SET name=excluded.name, opening_date=excluded.opening_date, archived=excluded.archived;
@@ -156,7 +210,10 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
                 ON CONFLICT(transaction_id,account_id) DO UPDATE SET amount=excluded.amount;
                 """, ("$id", key), ("$name", name), ("$date", DateText(openingDate)),
                 ("$archived", archived ? 1 : 0), ("$opening", "opening:" + key), ("$amount", opening.Centimes));
-            if (id is not null) Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE transaction_id=$id", ("$id", "opening:" + key));
+            if (id is not null)
+            {
+                Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE transaction_id=$id", ("$id", "opening:" + key));
+            }
         });
         return key;
     }
@@ -164,27 +221,47 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
     public string SaveCategory(string? id, string name, string? parentId, bool archived = false)
     {
         name = name.Trim();
-        if (name.Length == 0 || name.Contains('/')) throw new ArgumentException("Enter a category name without '/'; choose its parent separately.");
+        if (name.Length == 0 || name.Contains('/'))
+        {
+            throw new ArgumentException("Enter a category name without '/'; choose its parent separately.");
+        }
+
         var key = id ?? Guid.NewGuid().ToString("N");
         Write((c, tx) =>
         {
-            if (id is not null) Require(c, tx, "SELECT 1 FROM categories WHERE id=$id", id, "Category no longer exists.");
+            if (id is not null)
+            {
+                Require(c, tx, "SELECT 1 FROM categories WHERE id=$id", id, "Category no longer exists.");
+            }
+
             if (parentId is not null)
             {
-                if (parentId == key) throw new ArgumentException("A category cannot be its own parent.");
+                if (parentId == key)
+                {
+                    throw new ArgumentException("A category cannot be its own parent.");
+                }
+
                 Require(c, tx, "SELECT 1 FROM categories WHERE id=$id AND parent_id IS NULL", parentId, "Choose a top-level parent category.");
                 var parentArchived = Convert.ToInt64(Scalar(c, tx, "SELECT archived FROM categories WHERE id=$id", ("$id", parentId))) != 0;
                 var previousParent = id is null ? null : Scalar(c, tx, "SELECT parent_id FROM categories WHERE id=$id", ("$id", id)) as string;
                 if (parentArchived && (!archived || previousParent != parentId))
+                {
                     throw new ArgumentException("Restore the parent category before adding or restoring a child.");
+                }
+
                 if (Scalar(c, tx, "SELECT 1 FROM categories WHERE parent_id=$id LIMIT 1", ("$id", key)) is not null)
+                {
                     throw new ArgumentException("A category with subcategories must remain top-level.");
+                }
             }
             Execute(c, tx, """
                 INSERT INTO categories VALUES($id,$name,$parent,$archived)
                 ON CONFLICT(id) DO UPDATE SET name=excluded.name,parent_id=excluded.parent_id,archived=excluded.archived;
                 """, ("$id", key), ("$name", name), ("$parent", parentId), ("$archived", archived ? 1 : 0));
-            if (archived) Execute(c, tx, "UPDATE categories SET archived=1 WHERE parent_id=$id", ("$id", key));
+            if (archived)
+            {
+                Execute(c, tx, "UPDATE categories SET archived=1 WHERE parent_id=$id", ("$id", key));
+            }
         });
         return key;
     }
@@ -195,15 +272,26 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         var key = id ?? Guid.NewGuid().ToString("N");
         Write((c, tx) =>
         {
-            if (id is not null) Require(c, tx, "SELECT 1 FROM ledger WHERE id=$id AND kind<>'OpeningBalance'", id, "Transaction no longer exists.");
+            if (id is not null)
+            {
+                Require(c, tx, "SELECT 1 FROM ledger WHERE id=$id AND kind<>'OpeningBalance'", id, "Transaction no longer exists.");
+            }
+
             ValidateAccount(c, tx, draft.AccountId, draft.Date, id);
-            if (draft.DestinationId is not null) ValidateAccount(c, tx, draft.DestinationId, draft.Date, id);
+            if (draft.DestinationId is not null)
+            {
+                ValidateAccount(c, tx, draft.DestinationId, draft.Date, id);
+            }
+
             if (draft.CategoryId is not null)
             {
                 Require(c, tx, "SELECT 1 FROM categories WHERE id=$id", draft.CategoryId, "Category no longer exists.");
                 var archived = Convert.ToInt64(Scalar(c, tx, "SELECT archived FROM categories WHERE id=$id", ("$id", draft.CategoryId))) != 0;
                 var previousCategory = id is null ? null : Scalar(c, tx, "SELECT category_id FROM ledger WHERE id=$id", ("$id", id)) as string;
-                if (archived && previousCategory != draft.CategoryId) throw new ArgumentException("Choose an active category.");
+                if (archived && previousCategory != draft.CategoryId)
+                {
+                    throw new ArgumentException("Choose an active category.");
+                }
             }
             Execute(c, tx, """
                 INSERT INTO ledger VALUES($id,$kind,$date,$description,$category,$memo)
@@ -213,8 +301,15 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
                 """, ("$id", key), ("$kind", draft.Kind.ToString()), ("$date", DateText(draft.Date)),
                 ("$description", draft.Description), ("$category", draft.CategoryId), ("$memo", draft.Memo));
             AddMovement(c, tx, key, draft.AccountId, draft.Kind == TransactionKind.Income ? draft.Amount.Centimes : -draft.Amount.Centimes);
-            if (draft.DestinationId is not null) AddMovement(c, tx, key, draft.DestinationId, draft.Amount.Centimes);
-            if (id is not null) Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE transaction_id=$id", ("$id", id));
+            if (draft.DestinationId is not null)
+            {
+                AddMovement(c, tx, key, draft.DestinationId, draft.Amount.Centimes);
+            }
+
+            if (id is not null)
+            {
+                Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE transaction_id=$id", ("$id", id));
+            }
         });
         return key;
     }
@@ -240,15 +335,33 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         var categories = new List<Category>();
         using (var cmd = Command(c, tx, "SELECT c.id,c.name,c.parent_id,CASE WHEN p.id IS NULL THEN c.name ELSE p.name || ' / ' || c.name END,c.archived FROM categories c LEFT JOIN categories p ON p.id=c.parent_id ORDER BY 4 COLLATE NOCASE"))
         using (var r = cmd.ExecuteReader())
-            while (r.Read()) categories.Add(new(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4)));
+        {
+            while (r.Read())
+            {
+                categories.Add(new(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4)));
+            }
+        }
+
         var balances = new Dictionary<string, decimal>();
         using (var cmd = Command(c, tx, "SELECT account_id,amount FROM movements"))
         using (var r = cmd.ExecuteReader())
-            while (r.Read()) balances[r.GetString(0)] = balances.GetValueOrDefault(r.GetString(0)) + r.GetInt64(1);
+        {
+            while (r.Read())
+            {
+                balances[r.GetString(0)] = balances.GetValueOrDefault(r.GetString(0)) + r.GetInt64(1);
+            }
+        }
+
         var accounts = new List<Account>();
         using (var cmd = Command(c, tx, "SELECT a.id,a.name,a.opening_date,a.archived,m.amount FROM accounts a JOIN movements m ON m.transaction_id='opening:' || a.id AND m.account_id=a.id ORDER BY a.name COLLATE NOCASE"))
         using (var r = cmd.ExecuteReader())
-            while (r.Read()) accounts.Add(new(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new(r.GetInt64(4)), r.GetBoolean(3), new(checked((long)balances.GetValueOrDefault(r.GetString(0))))));
+        {
+            while (r.Read())
+            {
+                accounts.Add(new(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new(r.GetInt64(4)), r.GetBoolean(3), new(checked((long)balances.GetValueOrDefault(r.GetString(0))))));
+            }
+        }
+
         var accountMap = accounts.ToDictionary(a => a.Id);
         var categoryMap = categories.ToDictionary(a => a.Id);
         var entries = new List<LedgerEntry>();
@@ -260,6 +373,7 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
             ORDER BY l.date DESC,l.id DESC
             """))
         using (var r = cmd.ExecuteReader())
+        {
             while (r.Read())
             {
                 var category = r.IsDBNull(4) ? null : r.GetString(4);
@@ -270,12 +384,17 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
                 entries.Add(new(r.GetString(0), draft, accountMap[account].Name, destination is null ? null : accountMap[destination].Name,
                     category is null ? null : categoryMap[category].Path));
             }
+        }
+
         var today = Today;
         var monthEntries = entries.Where(e => e.Draft.Date.Year == today.Year && e.Draft.Date.Month == today.Month).ToArray();
         Money Total(IEnumerable<long> amounts) => new(checked((long)amounts.Sum(v => (decimal)v)));
         // Validate all months, not only the displayed month, before committing a write.
         foreach (var period in entries.Where(e => e.Draft.Kind != TransactionKind.Transfer).GroupBy(e => (e.Draft.Date.Year, e.Draft.Date.Month, e.Draft.Kind)))
+        {
             _ = Total(period.Select(e => e.Draft.Amount.Centimes));
+        }
+
         var top = monthEntries.Where(e => e.Draft.Kind == TransactionKind.Expense)
             .GroupBy(e => e.Draft.CategoryId is null ? "Uncategorized" : categoryMap[e.Draft.CategoryId].ParentId is { } parent ? categoryMap[parent].Name : categoryMap[e.Draft.CategoryId].Name)
             .Select(g => new CategoryTotal(g.Key, Total(g.Select(e => e.Draft.Amount.Centimes))))
@@ -301,54 +420,84 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         var accountTotals = new Dictionary<string, decimal>();
         using (var cmd = Command(c, tx, "SELECT account_id,amount FROM movements"))
         using (var reader = cmd.ExecuteReader())
+        {
             while (reader.Read())
             {
                 var id = reader.GetString(0);
                 accountTotals[id] = accountTotals.GetValueOrDefault(id) + reader.GetInt64(1);
             }
-        foreach (var total in accountTotals.Values) _ = checked((long)total);
+        }
+
+        foreach (var total in accountTotals.Values)
+        {
+            _ = checked((long)total);
+        }
+
         _ = checked((long)accountTotals.Values.Sum());
         var monthly = new Dictionary<(string, string), decimal>();
         using (var cmd = Command(c, tx, "SELECT substr(l.date,1,7),l.kind,m.amount FROM ledger l JOIN movements m ON m.transaction_id=l.id WHERE l.kind IN ('Expense','Income')"))
         using (var reader = cmd.ExecuteReader())
+        {
             while (reader.Read())
             {
                 var key = (reader.GetString(0), reader.GetString(1));
                 monthly[key] = monthly.GetValueOrDefault(key) + Math.Abs((decimal)reader.GetInt64(2));
             }
-        foreach (var total in monthly.Values) _ = checked((long)total);
+        }
+
+        foreach (var total in monthly.Values)
+        {
+            _ = checked((long)total);
+        }
     }
 
     private static void ValidateAccount(SqliteConnection c, SqliteTransaction tx, string id, DateOnly date, string? transactionId)
     {
         Require(c, tx, "SELECT 1 FROM accounts WHERE id=$id", id, "Account no longer exists.");
         var opening = (string)Scalar(c, tx, "SELECT opening_date FROM accounts WHERE id=$id", ("$id", id))!;
-        if (date < ParseDate(opening)) throw new ArgumentException("Transaction date precedes the account's opening date.");
+        if (date < ParseDate(opening))
+        {
+            throw new ArgumentException("Transaction date precedes the account's opening date.");
+        }
+
         var archived = Convert.ToInt64(Scalar(c, tx, "SELECT archived FROM accounts WHERE id=$id", ("$id", id))) != 0;
         if (archived && (transactionId is null || Scalar(c, tx, "SELECT 1 FROM movements WHERE transaction_id=$transaction AND account_id=$account", ("$transaction", transactionId), ("$account", id)) is null))
+        {
             throw new ArgumentException("Choose an active account for new movements.");
+        }
     }
 
     private static void AddMovement(SqliteConnection c, SqliteTransaction tx, string id, string account, long amount) =>
         Execute(c, tx, "INSERT INTO movements VALUES($id,$account,$amount)", ("$id", id), ("$account", account), ("$amount", amount));
     private static void Require(SqliteConnection c, SqliteTransaction tx, string sql, string id, string error)
     {
-        if (Scalar(c, tx, sql, ("$id", id)) is null) throw new ArgumentException(error);
+        if (Scalar(c, tx, sql, ("$id", id)) is null)
+        {
+            throw new ArgumentException(error);
+        }
     }
     private static SqliteCommand Command(SqliteConnection c, SqliteTransaction tx, string sql, params (string, object?)[] parameters)
     {
-        var cmd = c.CreateCommand(); cmd.Transaction = tx; cmd.CommandText = sql;
-        foreach (var (name, value) in parameters) cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        var cmd = c.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = sql;
+        foreach (var (name, value) in parameters)
+        {
+            cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        }
+
         return cmd;
     }
     private static object? Scalar(SqliteConnection c, SqliteTransaction tx, string sql, params (string, object?)[] parameters)
     {
         using var cmd = Command(c, tx, sql, parameters);
-        var result = cmd.ExecuteScalar(); return result is DBNull ? null : result;
+        var result = cmd.ExecuteScalar();
+        return result is DBNull ? null : result;
     }
     private static void Execute(SqliteConnection c, SqliteTransaction tx, string sql, params (string, object?)[] parameters)
     {
-        using var cmd = Command(c, tx, sql, parameters); cmd.ExecuteNonQuery();
+        using var cmd = Command(c, tx, sql, parameters);
+        cmd.ExecuteNonQuery();
     }
     private static string DateText(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     private static DateOnly ParseDate(string date) => DateOnly.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture);

@@ -40,20 +40,32 @@ public class MainActivity : Activity
     protected override async void OnActivityResult(int requestCode, Result resultCode, Intent? data)
     {
         base.OnActivityResult(requestCode, resultCode, data);
-        if (requestCode != PickSnapshot || resultCode != Result.Ok || data?.Data is null) return;
+        if (requestCode != PickSnapshot || resultCode != Result.Ok || data?.Data is null)
+        {
+            return;
+        }
+
         try
         {
             _status!.Text = "Validating snapshot…";
             var archivePath = Path.Combine(FilesDir!.AbsolutePath, "incoming.balancia");
             await using (var input = ContentResolver!.OpenInputStream(data.Data))
-            await using (var output = File.Create(archivePath)) await input!.CopyToAsync(output);
+            await using (var output = File.Create(archivePath))
+            {
+                await input!.CopyToAsync(output);
+            }
+
             var dbPath = Path.Combine(FilesDir.AbsolutePath, "viewer.db");
             var validator = new LedgerStore(dbPath);
             var manifest = validator.ValidateSnapshot(archivePath);
             var staged = dbPath + ".staged";
             using (var archive = ZipFile.OpenRead(archivePath))
             using (var input = archive.GetEntry("ledger.db")!.Open())
-            using (var output = File.Create(staged)) await input.CopyToAsync(output);
+            using (var output = File.Create(staged))
+            {
+                await input.CopyToAsync(output);
+            }
+
             File.Move(staged, dbPath, true);
             var snapshot = new LedgerStore(dbPath).ReadSnapshot();
             _viewerStore = new LedgerStore(dbPath);
@@ -66,7 +78,11 @@ public class MainActivity : Activity
 
     private void SearchTransactions()
     {
-        if (_viewerStore is null) { _results!.Text = "Load a snapshot first."; return; }
+        if (_viewerStore is null)
+        {
+            _results!.Text = "Load a snapshot first.";
+            return;
+        }
         try
         {
             var page = _viewerStore.ReadHistory(new HistoryFilter(_search?.Text), 0, 50);

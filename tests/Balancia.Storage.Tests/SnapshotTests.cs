@@ -9,7 +9,13 @@ public sealed class SnapshotTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "balancia-snapshot-" + Guid.NewGuid());
     private readonly LedgerStore _store;
-    public SnapshotTests() { Directory.CreateDirectory(_dir); _store = new(Path.Combine(_dir, "ledger.db")); _store.Initialize(); _store.SaveAccount(null, "Cash", new(2026, 1, 1), new(100)); }
+    public SnapshotTests()
+    {
+        Directory.CreateDirectory(_dir);
+        _store = new(Path.Combine(_dir, "ledger.db"));
+        _store.Initialize();
+        _store.SaveAccount(null, "Cash", new(2026, 1, 1), new(100));
+    }
 
     [Fact]
     public void ExportContainsConsistentDatabaseAndManifest()
@@ -24,9 +30,14 @@ public sealed class SnapshotTests : IDisposable
         Assert.Equal(manifest.DatasetId, read.DatasetId);
         Assert.Equal(3, read.SchemaVersion);
         using (var entry = archive.GetEntry("ledger.db")!.Open())
-        using (var file = File.Create(Path.Combine(_dir, "extracted.db"))) entry.CopyTo(file);
+        using (var file = File.Create(Path.Combine(_dir, "extracted.db")))
+        {
+            entry.CopyTo(file);
+        }
+
         using var check = new SqliteConnectionFactory(Path.Combine(_dir, "extracted.db")).Open();
-        using var command = check.CreateCommand(); command.CommandText = "SELECT COUNT(*) FROM accounts";
+        using var command = check.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM accounts";
         Assert.Equal(1L, command.ExecuteScalar());
         Assert.Equal(manifest, _store.ValidateSnapshot(path));
     }
@@ -50,5 +61,12 @@ public sealed class SnapshotTests : IDisposable
         Assert.Single(_store.ReadSnapshot().Entries);
     }
 
-    public void Dispose() { try { Directory.Delete(_dir, true); } catch { } }
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_dir, true);
+        }
+        catch { }
+    }
 }

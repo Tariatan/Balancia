@@ -23,7 +23,8 @@ public sealed class CsvImportTests : IDisposable
     {
         Directory.CreateDirectory(_dir);
         _csv = Path.Combine(_dir, "source.csv");
-        _store = new LedgerStore(Path.Combine(_dir, "test.db")); _store.Initialize();
+        _store = new LedgerStore(Path.Combine(_dir, "test.db"));
+        _store.Initialize();
     }
     private void Csv(string rows) => File.WriteAllText(_csv, Header + rows, new UTF8Encoding(true));
 
@@ -34,7 +35,8 @@ public sealed class CsvImportTests : IDisposable
         var preview = _store.PreviewCsvImport(_csv);
         Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Select(x => x.Message)));
         Assert.Equal(6, preview.Summary.Rows);
-        Assert.Equal(2, preview.Summary.Openings); Assert.Equal(1, preview.Summary.Transfers);
+        Assert.Equal(2, preview.Summary.Openings);
+        Assert.Equal(1, preview.Summary.Transfers);
         Assert.Equal(5, _store.ApplyCsvImport(preview).Added);
         var s = _store.ReadSnapshot();
         Assert.Equal(11110, s.NetWorth.Centimes);
@@ -70,14 +72,19 @@ public sealed class CsvImportTests : IDisposable
     [Fact]
     public void I05_ChangedFileAndFailedBatchLeaveLedgerUntouched()
     {
-        Csv(Rows); var preview = _store.PreviewCsvImport(_csv);
+        Csv(Rows);
+        var preview = _store.PreviewCsvImport(_csv);
         File.AppendAllText(_csv, "\n");
         Assert.Throws<InvalidOperationException>(() => _store.ApplyCsvImport(preview));
         Assert.Empty(_store.ReadSnapshot().Accounts);
-        Csv(Rows); preview = _store.PreviewCsvImport(_csv);
+        Csv(Rows);
+        preview = _store.PreviewCsvImport(_csv);
         using (var c = new SqliteConnectionFactory(Path.Combine(_dir, "test.db")).Open())
         using (var cmd = c.CreateCommand())
-        { cmd.CommandText = "CREATE TRIGGER reject_import BEFORE INSERT ON import_sources WHEN NEW.external_id='t1' BEGIN SELECT RAISE(ABORT,'test rollback'); END;"; cmd.ExecuteNonQuery(); }
+        {
+            cmd.CommandText = "CREATE TRIGGER reject_import BEFORE INSERT ON import_sources WHEN NEW.external_id='t1' BEGIN SELECT RAISE(ABORT,'test rollback'); END;";
+            cmd.ExecuteNonQuery();
+        }
         Assert.Throws<SqliteException>(() => _store.ApplyCsvImport(preview));
         Assert.Empty(_store.ReadSnapshot().Accounts);
     }
@@ -85,9 +92,13 @@ public sealed class CsvImportTests : IDisposable
     [Fact]
     public void LocalEditBecomesExplicitReimportConflict()
     {
-        Csv(Rows); _store.ApplyCsvImport(_store.PreviewCsvImport(_csv));
+        Csv(Rows);
+        _store.ApplyCsvImport(_store.PreviewCsvImport(_csv));
         var entry = _store.ReadSnapshot().Entries.Single(e => e.Draft.Kind == TransactionKind.Income);
-        _store.SaveTransaction(entry.Id, entry.Draft with { Description = "edited" });
+        _store.SaveTransaction(entry.Id, entry.Draft with
+        {
+            Description = "edited"
+        });
         Assert.Throws<InvalidOperationException>(() => _store.ApplyCsvImport(_store.PreviewCsvImport(_csv)));
     }
 
@@ -98,7 +109,10 @@ public sealed class CsvImportTests : IDisposable
         _store.ApplyCsvImport(_store.PreviewCsvImport(_csv));
         using (var c = new SqliteConnectionFactory(Path.Combine(_dir, "test.db")).Open())
         using (var cmd = c.CreateCommand())
-        { cmd.CommandText = "UPDATE import_sources SET source='LegacySource'"; cmd.ExecuteNonQuery(); }
+        {
+            cmd.CommandText = "UPDATE import_sources SET source='LegacySource'";
+            cmd.ExecuteNonQuery();
+        }
 
         var result = _store.ApplyCsvImport(_store.PreviewCsvImport(_csv));
 
@@ -110,14 +124,21 @@ public sealed class CsvImportTests : IDisposable
     public void I06_PrivateExportReconcilesWhenExplicitlyProvided()
     {
         var source = Environment.GetEnvironmentVariable("BALANCIA_PRIVATE_IMPORT_PATH");
-        if (source is null) return;
+        if (source is null)
+        {
+            return;
+        }
+
         var preview = _store.PreviewCsvImport(source);
         Assert.True(preview.CanApply, $"Private export has {preview.Issues.Count} import issues; first line: {preview.Issues.FirstOrDefault()?.Line}.");
         var applied = _store.ApplyCsvImport(preview);
         Assert.Equal(preview.Summary.Expenses + preview.Summary.Incomes + preview.Summary.Transfers + preview.Summary.Openings, applied.Added);
         var accounts = _store.ReadSnapshot().Accounts;
         foreach (var expected in preview.Summary.AccountTotals)
+        {
             Assert.Equal(expected.Centimes, accounts.Single(a => a.Name == expected.Account).Balance.Centimes);
+        }
+
         Assert.Equal(0, _store.ApplyCsvImport(_store.PreviewCsvImport(source)).Added);
     }
 
@@ -128,14 +149,22 @@ public sealed class CsvImportTests : IDisposable
         var db = Path.Combine(_dir, "test.db");
         using (var c = new SqliteConnectionFactory(db).Open())
         using (var cmd = c.CreateCommand())
-        { cmd.CommandText = "DROP TABLE import_sources; PRAGMA user_version=1"; cmd.ExecuteNonQuery(); }
+        {
+            cmd.CommandText = "DROP TABLE import_sources; PRAGMA user_version=1";
+            cmd.ExecuteNonQuery();
+        }
         _store.Initialize();
         Assert.Equal(1200, _store.ReadSnapshot().Accounts.Single(a => a.Id == id).Balance.Centimes);
         var backup = Assert.Single(Directory.GetFiles(_dir, "test.db.pre-v2-*.bak"));
         using var restored = new SqliteConnectionFactory(backup).Open();
-        using var check = restored.CreateCommand(); check.CommandText = "PRAGMA user_version";
+        using var check = restored.CreateCommand();
+        check.CommandText = "PRAGMA user_version";
         Assert.Equal(1L, Convert.ToInt64(check.ExecuteScalar()));
     }
 
-    public void Dispose() { SqliteConnection.ClearAllPools(); Directory.Delete(_dir, true); }
+    public void Dispose()
+    {
+        SqliteConnection.ClearAllPools();
+        Directory.Delete(_dir, true);
+    }
 }

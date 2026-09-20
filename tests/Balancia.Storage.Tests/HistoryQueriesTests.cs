@@ -10,7 +10,11 @@ public sealed class HistoryQueriesTests : IDisposable
     private readonly LedgerStore _store;
     private static readonly DateOnly Start = new(2026, 9, 1);
 
-    public HistoryQueriesTests() { _store = new(_path, _clock); _store.Initialize(); }
+    public HistoryQueriesTests()
+    {
+        _store = new(_path, _clock);
+        _store.Initialize();
+    }
     private string Account(string name) => _store.SaveAccount(null, name, Start, new Money(0));
     private string Entry(string account, string text, decimal francs, string? category = null, DateOnly? date = null,
         TransactionKind kind = TransactionKind.Expense) => _store.SaveTransaction(null,
@@ -19,7 +23,8 @@ public sealed class HistoryQueriesTests : IDisposable
     [Fact]
     public void H01_CombinedSearchDateAmountAccountAndTypeUseInclusiveEndpoints()
     {
-        var a = Account("A"); var b = Account("B");
+        var a = Account("A");
+        var b = Account("B");
         var match = Entry(a, "Lunch At WORK", 12.50m);
         Entry(a, "Lunch at home", 12.50m, date: Start.AddDays(2));
         Entry(b, "Lunch at work", 12.50m);
@@ -41,7 +46,9 @@ public sealed class HistoryQueriesTests : IDisposable
         var food = _store.SaveCategory(null, "Food", null);
         var lunch = _store.SaveCategory(null, "Lunch", food);
         var car = _store.SaveCategory(null, "Car", null);
-        Entry(a, "one", 1, food); Entry(a, "two", 2, lunch); Entry(a, "three", 3, car);
+        Entry(a, "one", 1, food);
+        Entry(a, "two", 2, lunch);
+        Entry(a, "three", 3, car);
         Assert.Equal(2, _store.ReadHistory(new(CategoryId: food)).TotalCount);
         Assert.Equal(1, _store.ReadHistory(new(CategoryId: lunch)).TotalCount);
     }
@@ -49,8 +56,13 @@ public sealed class HistoryQueriesTests : IDisposable
     [Fact]
     public void H03_PagesHaveStableOrderingAndTransferEffects()
     {
-        var a = Account("A"); var b = Account("B");
-        for (var i = 0; i < 29; i++) Entry(a, "same day " + i, 1);
+        var a = Account("A");
+        var b = Account("B");
+        for (var i = 0; i < 29; i++)
+        {
+            Entry(a, "same day " + i, 1);
+        }
+
         _store.SaveTransaction(null, new(TransactionKind.Transfer, Start.AddDays(1), "Move", Money.FromFrancs(5), a, b));
         var first = _store.ReadHistory(new(), 0, 7);
         var all = new List<string>();
@@ -74,7 +86,10 @@ public sealed class HistoryQueriesTests : IDisposable
     {
         var account = Account("Everyday");
         Entry(account, "outside", 1, date: Start.AddDays(1));
-        for (var i = 0; i < 1005; i++) Entry(account, "inside " + i, 1, date: Start.AddDays(2));
+        for (var i = 0; i < 1005; i++)
+        {
+            Entry(account, "inside " + i, 1, date: Start.AddDays(2));
+        }
 
         var page = _store.ReadAllHistory(new(From: Start.AddDays(2), To: Start.AddDays(2)));
 
@@ -91,7 +106,10 @@ public sealed class HistoryQueriesTests : IDisposable
         var id = Entry(a, "Expense", 10);
         Assert.Equal(1000, _store.ReadDesktopSnapshot().MonthlyExpenses.Centimes);
         var original = _store.ReadHistory(new()).Hits.Single().Entry.Draft;
-        _store.SaveTransaction(id, original with { Amount = Money.FromFrancs(15) });
+        _store.SaveTransaction(id, original with
+        {
+            Amount = Money.FromFrancs(15)
+        });
         Assert.Equal(1500, _store.ReadDesktopSnapshot().MonthlyExpenses.Centimes);
         Assert.Equal(1500, _store.ReadHistory(new()).Hits.Single().Entry.Draft.Amount.Centimes);
         _clock.Now = new(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
@@ -134,17 +152,25 @@ public sealed class HistoryQueriesTests : IDisposable
     public void PrepareSyntheticManualUiDatasetWhenRequested()
     {
         var directory = Environment.GetEnvironmentVariable("BALANCIA_UI_TEST_DIR");
-        if (directory is null) return;
+        if (directory is null)
+        {
+            return;
+        }
+
         Directory.CreateDirectory(directory);
-        var store = new LedgerStore(Path.Combine(directory, "balancia.db")); store.Initialize();
+        var store = new LedgerStore(Path.Combine(directory, "balancia.db"));
+        store.Initialize();
         var a = store.SaveAccount(null, "Test wallet", Start, Money.FromFrancs(1000));
         var b = store.SaveAccount(null, "Test savings", Start, new Money(0));
         var food = store.SaveCategory(null, "Food", null);
         var lunch = store.SaveCategory(null, "Lunch", food);
         for (var i = 0; i < 220; i++)
+        {
             store.SaveTransaction(null, new(TransactionKind.Expense, Start.AddDays(i % 10),
                 i % 2 == 0 ? "Synthetic lunch" : "Synthetic groceries", Money.FromFrancs(1 + i % 5),
                 a, CategoryId: i % 2 == 0 ? lunch : food));
+        }
+
         store.SaveTransaction(null, new(TransactionKind.Transfer, Start.AddDays(3), "Synthetic transfer",
             Money.FromFrancs(25), a, b));
     }

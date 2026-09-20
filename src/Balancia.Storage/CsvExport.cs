@@ -20,8 +20,11 @@ public sealed partial class LedgerStore
             {
                 WriteCsvRow(writer, "ID", "Date", "Type", "Description", "Amount", "Account", "DestinationAccount", "Category", "Memo");
                 foreach (var account in snapshot.Accounts)
+                {
                     WriteCsvRow(writer, "opening:" + account.Id, account.OpeningDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                         "OpeningBalance", "Opening balance", AmountCsv(account.OpeningAmount), account.Name, "", "", "");
+                }
+
                 foreach (var entry in snapshot.Entries)
                 {
                     var draft = entry.Draft;
@@ -38,7 +41,11 @@ public sealed partial class LedgerStore
         }
         catch
         {
-            if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+
             throw;
         }
     }

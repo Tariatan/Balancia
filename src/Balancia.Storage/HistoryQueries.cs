@@ -70,11 +70,22 @@ public sealed partial class LedgerStore
 
     private HistoryPage ReadHistoryCore(HistoryFilter filter, int offset, int? pageSize, DateOnly? afterDate, string? afterId)
     {
-        if (offset < 0 || pageSize is < 1 or > 1000) throw new ArgumentOutOfRangeException(nameof(pageSize));
-        if (filter.From > filter.To) throw new ArgumentException("Start date must be on or before end date.");
+        if (offset < 0 || pageSize is < 1 or > 1000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pageSize));
+        }
+
+        if (filter.From > filter.To)
+        {
+            throw new ArgumentException("Start date must be on or before end date.");
+        }
+
         if (filter.Minimum?.Centimes < 0 || filter.Maximum?.Centimes < 0 ||
             filter.Minimum is { } minimum && filter.Maximum is { } maximum && minimum.Centimes > maximum.Centimes)
+        {
             throw new ArgumentException("Amount range must be positive and ordered.");
+        }
+
         using var c = _connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         (string, object?)[] values = [
@@ -96,6 +107,7 @@ public sealed partial class LedgerStore
             [.. values, ("$cursorDate", afterDate is null ? null : DateText(afterDate.Value)),
                 ("$cursorId", afterId), ("$limit", pageSize ?? -1), ("$offset", offset)]))
         using (var reader = cmd.ExecuteReader())
+        {
             while (reader.Read())
             {
                 var source = reader.GetString(6);
@@ -109,6 +121,8 @@ public sealed partial class LedgerStore
                 Money? effect = filter.AccountId is null ? null : new Money(filter.AccountId == source ? amount : reader.GetInt64(12));
                 hits.Add(new(entry, effect));
             }
+        }
+
         var revision = Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1"));
         tx.Commit();
         return new(hits, count, offset, pageSize ?? hits.Count, revision);
@@ -123,24 +137,46 @@ public sealed partial class LedgerStore
 
     public LedgerSnapshot ReadDesktopSnapshotForPeriod(DateOnly? from, DateOnly? to)
     {
-        if (from > to) throw new ArgumentException("Start date must be on or before end date.");
+        if (from > to)
+        {
+            throw new ArgumentException("Start date must be on or before end date.");
+        }
+
         using var c = _connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         var categories = new List<Category>();
         using (var cmd = Command(c, tx, "SELECT c.id,c.name,c.parent_id,CASE WHEN p.id IS NULL THEN c.name ELSE p.name || ' / ' || c.name END,c.archived FROM categories c LEFT JOIN categories p ON p.id=c.parent_id ORDER BY 4 COLLATE NOCASE"))
-        using (var r = cmd.ExecuteReader()) while (r.Read())
-            categories.Add(new(r.GetString(0),r.GetString(1),r.IsDBNull(2)?null:r.GetString(2),r.GetString(3),r.GetBoolean(4)));
+        using (var r = cmd.ExecuteReader())
+        {
+            while (r.Read())
+            {
+                categories.Add(new(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4)));
+            }
+        }
+
         var balances = new Dictionary<string, decimal>();
         using (var cmd = Command(c, tx, "SELECT account_id,amount FROM movements"))
-        using (var r = cmd.ExecuteReader()) while (r.Read())
-            balances[r.GetString(0)] = balances.GetValueOrDefault(r.GetString(0)) + r.GetInt64(1);
+        using (var r = cmd.ExecuteReader())
+        {
+            while (r.Read())
+            {
+                balances[r.GetString(0)] = balances.GetValueOrDefault(r.GetString(0)) + r.GetInt64(1);
+            }
+        }
+
         var accounts = new List<Account>();
         using (var cmd = Command(c, tx, "SELECT a.id,a.name,a.opening_date,a.archived,m.amount FROM accounts a JOIN movements m ON m.transaction_id='opening:' || a.id AND m.account_id=a.id ORDER BY a.name COLLATE NOCASE"))
-        using (var r = cmd.ExecuteReader()) while (r.Read())
-            accounts.Add(new(r.GetString(0),r.GetString(1),ParseDate(r.GetString(2)),new(r.GetInt64(4)),r.GetBoolean(3),
+        using (var r = cmd.ExecuteReader())
+        {
+            while (r.Read())
+            {
+                accounts.Add(new(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new(r.GetInt64(4)), r.GetBoolean(3),
                 new(checked((long)balances.GetValueOrDefault(r.GetString(0))))));
+            }
+        }
+
         long PeriodTotal(string kind) => Convert.ToInt64(Scalar(c, tx, "SELECT COALESCE(SUM(abs(m.amount)),0) FROM ledger l JOIN movements m ON m.transaction_id=l.id WHERE l.kind=$kind AND ($from IS NULL OR l.date>=$from) AND ($to IS NULL OR l.date<=$to)",
-            ("$kind",kind),("$from",from is null ? null : DateText(from.Value)),("$to",to is null ? null : DateText(to.Value))));
+            ("$kind", kind), ("$from", from is null ? null : DateText(from.Value)), ("$to", to is null ? null : DateText(to.Value))));
         var top = new List<CategoryTotal>();
         using (var cmd = Command(c, tx, """
             SELECT COALESCE(parent.name,category.name,'Uncategorized'),SUM(-m.amount)
@@ -149,10 +185,17 @@ public sealed partial class LedgerStore
             LEFT JOIN categories parent ON parent.id=category.parent_id
             WHERE l.kind='Expense' AND ($from IS NULL OR l.date>=$from) AND ($to IS NULL OR l.date<=$to)
             GROUP BY COALESCE(parent.id,category.id,'') ORDER BY 2 DESC LIMIT 5
-            """, ("$from",from is null ? null : DateText(from.Value)),("$to",to is null ? null : DateText(to.Value))))
-        using (var r = cmd.ExecuteReader()) while (r.Read()) top.Add(new(r.GetString(0),new(r.GetInt64(1))));
-        var result = new LedgerSnapshot(accounts,categories,[],new(checked((long)accounts.Sum(a => (decimal)a.Balance.Centimes))),
-            new(PeriodTotal("Income")),new(PeriodTotal("Expense")),top,
+            """, ("$from", from is null ? null : DateText(from.Value)), ("$to", to is null ? null : DateText(to.Value))))
+        using (var r = cmd.ExecuteReader())
+        {
+            while (r.Read())
+            {
+                top.Add(new(r.GetString(0), new(r.GetInt64(1))));
+            }
+        }
+
+        var result = new LedgerSnapshot(accounts, categories, [], new(checked((long)accounts.Sum(a => (decimal)a.Balance.Centimes))),
+            new(PeriodTotal("Income")), new(PeriodTotal("Expense")), top,
             Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")));
         tx.Commit();
         return result;
