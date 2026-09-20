@@ -206,6 +206,13 @@ column 25 layout units wider than the prior version.
 
 ## Handoff format for subsequent work
 
+On 2026-09-20, `MainWindow.axaml.cs` was split into focused partial-class files
+for overview, transactions, categories, recurring payments, accounts, data
+transfer, and shared UI helpers. This refactor changes source organization only.
+Locked restore and Release solution build passed with zero warnings and errors;
+all 50 tests passed (8 Core, 42 Storage). Manual UI interaction was not run for
+this source-only refactor.
+
 The 2026-09-20 follow-up removes the dedicated Recurring payments navigation and
 page. Upcoming payments on Overview now owns a selectable reminder list with Add
 recurring template and Edit selected actions; the Calendar link and tab are gone.

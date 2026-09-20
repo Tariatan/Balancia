@@ -96,6 +96,15 @@ light, readable color across pages. Categories joins the height-filling content
 host; its list owns its scrolling. Snapshot actions move to the Transactions
 header, and the overview's history occupies the space to the page bottom.
 
+On 2026-09-20, the desktop window code was split into partial `MainWindow`
+files by responsibility. `MainWindow.axaml.cs` owns state, initialization,
+refresh, navigation, and page selection. `MainWindow.Overview.cs`,
+`MainWindow.Transactions.cs`, `MainWindow.Categories.cs`,
+`MainWindow.RecurringPayments.cs`, and `MainWindow.Accounts.cs` own feature UI;
+`MainWindow.DataTransfer.cs` owns CSV and snapshot actions; and
+`MainWindow.UiHelpers.cs` owns shared controls and dialogs. This is a source
+organization change; the same window and storage boundary remain in use.
+
 ## Storage model
 
 - Account: stable ID, name, CHF currency, archive state.

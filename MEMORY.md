@@ -121,6 +121,12 @@ header action, added a confirmed dustbin delete action, made row double-click op
 the editor, and removed Archive from that editor. Build/tests and synthetic UI
 inspection passed.
 
+On 2026-09-20, the desktop `MainWindow` was split into partial files by feature,
+with CSV/snapshot actions and shared UI helpers in separate files. The same
+window, state, and storage calls remain; see docs/ARCHITECTURE.md for the layout.
+Locked restore, Release solution build, and all 50 tests passed. Manual UI
+interaction was not run for this source-only refactor.
+
 Product truth belongs in docs/SPECIFICATION.md; technical reasoning belongs in
 docs/ARCHITECTURE.md; progress belongs in docs/PLAN.md. Keep this handoff compact.
 The owner's 2026-09-20 C# formatting preferences from CategoriesPanel and
