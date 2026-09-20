@@ -44,15 +44,33 @@ public sealed partial class LedgerStore
     public HistoryPage ReadHistory(HistoryFilter filter, int offset = 0, int pageSize = 100)
         => ReadHistoryCore(filter, offset, pageSize, null, null);
 
+    public HistoryPage ReadAllHistory(HistoryFilter filter)
+        => ReadHistoryCore(filter, 0, null, null, null);
+
+    public int FindHistoryOffset(string transactionId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(transactionId);
+        using var c = _connections.Open();
+        using var tx = c.BeginTransaction(deferred: true);
+        var date = Scalar(c, tx, "SELECT date FROM ledger WHERE id=$id AND kind<>'OpeningBalance'", ("$id", transactionId)) as string
+            ?? throw new ArgumentException("The selected transaction no longer exists.", nameof(transactionId));
+        var offset = Convert.ToInt64(Scalar(c, tx, """
+            SELECT COUNT(*) FROM ledger
+            WHERE kind<>'OpeningBalance' AND (date>$date OR (date=$date AND id>$id))
+            """, ("$date", date), ("$id", transactionId)));
+        tx.Commit();
+        return checked((int)offset);
+    }
+
     public HistoryPage ReadHistoryAfter(HistoryFilter filter, DateOnly afterDate, string afterId, int pageSize = 100)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(afterId);
         return ReadHistoryCore(filter, 0, pageSize, afterDate, afterId);
     }
 
-    private HistoryPage ReadHistoryCore(HistoryFilter filter, int offset, int pageSize, DateOnly? afterDate, string? afterId)
+    private HistoryPage ReadHistoryCore(HistoryFilter filter, int offset, int? pageSize, DateOnly? afterDate, string? afterId)
     {
-        if (offset < 0 || pageSize is < 1 or > 200) throw new ArgumentOutOfRangeException(nameof(pageSize));
+        if (offset < 0 || pageSize is < 1 or > 1000) throw new ArgumentOutOfRangeException(nameof(pageSize));
         if (filter.From > filter.To) throw new ArgumentException("Start date must be on or before end date.");
         if (filter.Minimum?.Centimes < 0 || filter.Maximum?.Centimes < 0 ||
             filter.Minimum is { } minimum && filter.Maximum is { } maximum && minimum.Centimes > maximum.Centimes)
@@ -76,7 +94,7 @@ public sealed partial class LedgerStore
             " AND ($cursorDate IS NULL OR l.date<$cursorDate OR (l.date=$cursorDate AND l.id<$cursorId))" +
             " ORDER BY l.date DESC,l.id DESC LIMIT $limit OFFSET $offset",
             [.. values, ("$cursorDate", afterDate is null ? null : DateText(afterDate.Value)),
-                ("$cursorId", afterId), ("$limit", pageSize), ("$offset", offset)]))
+                ("$cursorId", afterId), ("$limit", pageSize ?? -1), ("$offset", offset)]))
         using (var reader = cmd.ExecuteReader())
             while (reader.Read())
             {
@@ -93,11 +111,19 @@ public sealed partial class LedgerStore
             }
         var revision = Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1"));
         tx.Commit();
-        return new(hits, count, offset, pageSize, revision);
+        return new(hits, count, offset, pageSize ?? hits.Count, revision);
     }
 
     public LedgerSnapshot ReadDesktopSnapshot()
     {
+        var today = Today;
+        var start = new DateOnly(today.Year, today.Month, 1);
+        return ReadDesktopSnapshotForPeriod(start, start.AddMonths(1).AddDays(-1));
+    }
+
+    public LedgerSnapshot ReadDesktopSnapshotForPeriod(DateOnly? from, DateOnly? to)
+    {
+        if (from > to) throw new ArgumentException("Start date must be on or before end date.");
         using var c = _connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         var categories = new List<Category>();
@@ -113,23 +139,20 @@ public sealed partial class LedgerStore
         using (var r = cmd.ExecuteReader()) while (r.Read())
             accounts.Add(new(r.GetString(0),r.GetString(1),ParseDate(r.GetString(2)),new(r.GetInt64(4)),r.GetBoolean(3),
                 new(checked((long)balances.GetValueOrDefault(r.GetString(0))))));
-        var today = Today;
-        var start = new DateOnly(today.Year,today.Month,1);
-        var end = start.AddMonths(1);
-        long MonthTotal(string kind) => Convert.ToInt64(Scalar(c, tx, "SELECT COALESCE(SUM(abs(m.amount)),0) FROM ledger l JOIN movements m ON m.transaction_id=l.id WHERE l.kind=$kind AND l.date>=$from AND l.date<$to",
-            ("$kind",kind),("$from",DateText(start)),("$to",DateText(end))));
+        long PeriodTotal(string kind) => Convert.ToInt64(Scalar(c, tx, "SELECT COALESCE(SUM(abs(m.amount)),0) FROM ledger l JOIN movements m ON m.transaction_id=l.id WHERE l.kind=$kind AND ($from IS NULL OR l.date>=$from) AND ($to IS NULL OR l.date<=$to)",
+            ("$kind",kind),("$from",from is null ? null : DateText(from.Value)),("$to",to is null ? null : DateText(to.Value))));
         var top = new List<CategoryTotal>();
         using (var cmd = Command(c, tx, """
             SELECT COALESCE(parent.name,category.name,'Uncategorized'),SUM(-m.amount)
             FROM ledger l JOIN movements m ON m.transaction_id=l.id
             LEFT JOIN categories category ON category.id=l.category_id
             LEFT JOIN categories parent ON parent.id=category.parent_id
-            WHERE l.kind='Expense' AND l.date>=$from AND l.date<$to
+            WHERE l.kind='Expense' AND ($from IS NULL OR l.date>=$from) AND ($to IS NULL OR l.date<=$to)
             GROUP BY COALESCE(parent.id,category.id,'') ORDER BY 2 DESC LIMIT 5
-            """, ("$from",DateText(start)),("$to",DateText(end))))
+            """, ("$from",from is null ? null : DateText(from.Value)),("$to",to is null ? null : DateText(to.Value))))
         using (var r = cmd.ExecuteReader()) while (r.Read()) top.Add(new(r.GetString(0),new(r.GetInt64(1))));
         var result = new LedgerSnapshot(accounts,categories,[],new(checked((long)accounts.Sum(a => (decimal)a.Balance.Centimes))),
-            new(MonthTotal("Income")),new(MonthTotal("Expense")),top,
+            new(PeriodTotal("Income")),new(PeriodTotal("Expense")),top,
             Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")));
         tx.Commit();
         return result;

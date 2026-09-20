@@ -4,12 +4,10 @@ A personal finance ledger for Windows, with a read-only Android companion.
 Record income, expenses, and transfers; browse history; see account balances and
 upcoming recurring payments. C#/.NET, Avalonia, and SQLite are the agreed stack.
 
-**Status:** M4 searchable Windows ledger. Accounts, two-level categories,
-opening balances, income, expenses, and transfers can be created and edited;
-transactions can also be removed. Dashboard balances and monthly totals come
-from the local SQLite ledger. CSV preview/import and paged transaction history
-with combined search/filters are available from Transactions. Recurring reminders,
-routine backups/snapshots, and Android are still planned.
+**Status:** The Windows ledger, CSV import/export, recurring reminders, snapshot
+backup/restore, and read-only Android snapshot viewer are implemented. Release
+polish and distribution remain. Dashboard balances and history come from the
+local SQLite ledger; Transactions provides combined search and filters.
 
 ## Project map
 
@@ -43,7 +41,7 @@ No additional packages are required for these PowerShell checks.
 
 ## Private data
 
-`transactions.csv` is the user's local Buxfer export. It is intentionally ignored
+`transactions.csv` is the user's private import source. It is intentionally ignored
 by Git. Keep live databases, exported snapshots, and backups outside source
 control. Committed tests use only synthetic fixtures.
 Ignore rules do not encrypt data or remove files already tracked elsewhere.
@@ -77,25 +75,32 @@ The Windows editor uses small navigation and dialog event handlers.
 Tests use synthetic data and temporary SQLite files, removed after each test.
 The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db`.
 For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--`
-in the `dotnet run` command. The app creates that directory and its version 2
+in the `dotnet run` command. The app creates that directory and its version 3
 schema on first run. Upgrading a version 1 database writes a consistent `.bak`
 file beside it before migration. Opening an unsupported newer schema fails. Close the
 running app before rebuilding on Windows. Android workloads, device access, and
 packaging remain unchecked.
 
-To import, open Transactions, choose **Import Buxfer CSV**, inspect the preview,
+To import, open Transactions, choose **Import CSV**, inspect the preview,
 and apply it. Invalid rows block import. Repeated identical imports add nothing;
-changed Buxfer IDs or locally edited imported entries cause a conflict. The
+changed CSV IDs or locally edited imported entries cause a conflict. The
 source file is never modified. For a private-export reconciliation test in an
 isolated temporary database, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute
 path before running the test command, then remove the environment variable.
+**Export CSV** on the Transactions page saves the current ledger, including
+opening balances, as a standard nine-column CSV. It is a ledger export and has
+a different format from the eleven-column source accepted by Import CSV.
 
 The Transactions page shows 100 newest entries at a time. Description search is
 case-insensitive; account, type, category/subcategory, inclusive date, and
 inclusive absolute CHF amount filters combine. A parent category includes its
-subcategories. Use Previous/Next to browse results. The overview loads five
-recent transactions and calculates balances and current-month totals directly
-from the ledger. Recurring payments on the overview are still an M5 placeholder.
+subcategories. Use Previous/Next to browse results. The overview shows all
+transactions in the selected period; double-clicking a row selects it in the
+Transactions page. The window minimum is 1280 × 1280.
+The top tabs are Overview, Transactions, Accounts, and Categories. Recurring
+template Add/Edit actions are in the Upcoming payments card on Overview.
+Transactions also holds Export snapshot and Restore snapshot; Categories places
+Add/Edit above a list that grows with the window.
 
 The harness explicitly instructs agents to read MEMORY.md; it does not assume
 that filename is loaded automatically. The instruction entry point follows the

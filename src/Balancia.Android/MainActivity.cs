@@ -57,8 +57,8 @@ public class MainActivity : Activity
             File.Move(staged, dbPath, true);
             var snapshot = new LedgerStore(dbPath).ReadSnapshot();
             _viewerStore = new LedgerStore(dbPath);
-            _status.Text = $"Revision {manifest.Revision} · Net worth {snapshot.NetWorth.Francs:N2} CHF\n" +
-                $"Income {snapshot.MonthlyIncome.Francs:N2} · Expenses {snapshot.MonthlyExpenses.Francs:N2} CHF\n" +
+            _status.Text = $"Revision {manifest.Revision} · Net worth {snapshot.NetWorth.Francs:N2}\n" +
+                $"Income {snapshot.MonthlyIncome.Francs:N2} · Expenses {snapshot.MonthlyExpenses.Francs:N2}\n" +
                 $"{snapshot.Entries.Count} transactions · read-only viewer";
         }
         catch (Exception ex) { _status!.Text = "Snapshot rejected: " + ex.Message; }
@@ -71,7 +71,7 @@ public class MainActivity : Activity
         {
             var page = _viewerStore.ReadHistory(new HistoryFilter(_search?.Text), 0, 50);
             _results!.Text = page.Hits.Count == 0 ? "No matching transactions." :
-                string.Join("\n", page.Hits.Select(h => $"{h.Entry.Draft.Date:yyyy-MM-dd} · {h.Entry.Draft.Kind} · {h.Entry.Draft.Amount.Francs:N2} CHF · {h.Entry.Draft.Description}"));
+                string.Join("\n", page.Hits.Select(h => $"{h.Entry.Draft.Date:yyyy-MM-dd} · {h.Entry.Draft.Kind} · {h.Entry.Draft.Amount.Francs:N2} · {h.Entry.Draft.Description}"));
         }
         catch (Exception ex) { _results!.Text = "Search failed: " + ex.Message; }
     }

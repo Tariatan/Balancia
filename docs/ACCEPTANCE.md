@@ -18,6 +18,14 @@ Scenario IDs connect implementation milestones to observable behavior.
 | H03 | Several transactions share a date across loaded pages | Stable order; no missing/duplicate rows in unchanged dataset |
 | H04 | Save/edit/delete from history | Affected home totals and history refresh; failed save retains form values |
 | H05 | Clock crosses month/year boundary | Current-month totals and reminder display refresh correctly |
+| H06 | Select overview period presets or inclusive custom dates | Flows, categories, and visible history use that range; account balances and next reminders remain current |
+| H07 | Select an overview period with over 1,000 transactions, then open Transactions | Every overview match can be reached by scrolling; Transactions uses the same table design and retains search, paging, and edit/remove actions |
+| H08 | Double-click an overview transaction beyond the first history page | Transactions opens the page containing that record and selects it |
+| H09 | Resize Windows app from its 1280 × 1280 minimum | Overview history tracks height; Transactions history fills the page without an outer scrollbar; bold history amounts show green income, red expense, dark blue transfer |
+| H10 | Select a row in Overview, Transactions, Accounts, Categories, or Upcoming payments | Light selection keeps labels and colored values legible, including while focused or hovered |
+| H11 | Open Custom period, Categories, and Transactions at minimum and larger heights | Apply aligns with date inputs; Categories actions precede a height-filling list; CSV and snapshot actions appear together in Transactions |
+| H12 | View the Overview history with a long category and a transfer account label | Category gets more width; Account starts farther right and fits the representative "Revolut → Revolut" label without clipping |
+| H13 | Select, add, edit, and delete an upcoming payment from Overview | Compact rows match the card layout; + opens Add, double-click opens Edit, delete confirms; no Archive field or Calendar action is shown |
 | R01 | Rent expected Sep 25; exact-description payment Sep 1 for another amount | September satisfied; next date Oct 25 for interval 1 |
 | R02 | September rent paid Aug 31, or Sep in another year | September occurrence remains unresolved |
 | R03 | Case/whitespace differs from template description | No exact recurrence match; ordinary search may still find it |
@@ -35,6 +43,7 @@ Scenario IDs connect implementation milestones to observable behavior.
 | I05 | Source changes after preview or import fails mid-batch | Abort/re-preview or roll back; ledger stays unchanged |
 | I06 | Import current private export locally | Re-read hash; reconcile each account and total against source; do not commit private expectations |
 | I07 | Opening balances plus ordinary transfers in one batch | Openings counted once; transfer net sum zero; neither inflates income |
+| I08 | Export CSV with openings, income, expense, transfer, commas and newlines | Consistent file, quoted text intact, signed amounts, one row per transfer; existing target replaced only after complete write |
 | S01 | Export while transactions are being entered | Export represents one consistent revision, not mixed states |
 | S02 | Import valid snapshot on Android | Balances/search reflect revision and visible export timestamp; no write UI |
 | S03 | Truncated/corrupt/unsupported/wrong-dataset snapshot | Explain failure and retain previous usable copy |

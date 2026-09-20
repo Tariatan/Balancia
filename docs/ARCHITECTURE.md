@@ -55,7 +55,7 @@ M4. No MVVM utility package was needed for this initial editor; revisit that
 choice when form complexity grows.
 
 M3 upgrades to schema version 2. A consistent SQLite backup is written beside
-the database before a version 1 migration. `import_sources` links each Buxfer ID
+the database before a version 1 migration. `import_sources` links each CSV ID
 to one logical ledger entry, stores both raw transfer rows and a canonical source
 fingerprint, and records local edits/deletions as conflicts for reimport. CSV
 preview validates all rows and groups before the existing atomic write boundary.
@@ -73,6 +73,28 @@ materializing every history entry. On 50,000 synthetic rows, Release storage/que
 p95 ranged from 33.9 to 104.2 ms for measured reads and edit-plus-refresh;
 Avalonia rendering time was not included. These measurements do not justify a
 balance cache or full-text index yet.
+
+The 2026-09-19 overview refinement reads aggregates for an optional inclusive
+date range and applies the same range to its history. A null range means
+all dates. Account balances still sum all posted movements, and reminder queries
+retain their independent next-occurrence semantics. The default monthly read
+method remains available for existing consumers.
+The overview now reads all matching history in one SQLite read transaction and
+shows it through a height-constrained, virtualized Avalonia ListBox. The
+Transactions page keeps its cursor-paged query and shares the row layout with
+the overview; its filters remain independent of the overview period selection.
+Double-click navigation resolves a transaction's stable date/ID sort offset and
+opens the corresponding Transactions page with that row selected. Overview and
+Transactions use a height-filling content host; the Transactions table scrolls
+internally. CSV export reads one snapshot, writes a temporary file with standard
+quoting, then replaces the selected target after the write completes. Import
+provenance queries match external IDs across existing source labels so records
+imported before the UI rename remain idempotent.
+The next Windows layout refinement uses a shared application-level ListBoxItem
+template-presenter style so focused and unfocused selections retain the same
+light, readable color across pages. Categories joins the height-filling content
+host; its list owns its scrolling. Snapshot actions move to the Transactions
+header, and the overview's history occupies the space to the page bottom.
 
 ## Storage model
 

@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Balancia.Storage.Tests;
 
-public sealed class BuxferImportTests : IDisposable
+public sealed class CsvImportTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "balancia-import-" + Guid.NewGuid().ToString("N"));
     private readonly LedgerStore _store;
@@ -19,7 +19,7 @@ public sealed class BuxferImportTests : IDisposable
         "t1,04-09-26,Transfer,CHF,-5.00,Transfer,,A,Cleared,,\n" +
         "t1,04-09-26,Transfer,CHF,5.00,Transfer,,B,Cleared,,\n";
 
-    public BuxferImportTests()
+    public CsvImportTests()
     {
         Directory.CreateDirectory(_dir);
         _csv = Path.Combine(_dir, "source.csv");
@@ -31,11 +31,11 @@ public sealed class BuxferImportTests : IDisposable
     public void I01_I02_I03_I07_QuotedTextOpeningsTransfersAndIdempotency()
     {
         Csv(Rows);
-        var preview = _store.PreviewBuxfer(_csv);
+        var preview = _store.PreviewCsvImport(_csv);
         Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Select(x => x.Message)));
         Assert.Equal(6, preview.Summary.Rows);
         Assert.Equal(2, preview.Summary.Openings); Assert.Equal(1, preview.Summary.Transfers);
-        Assert.Equal(5, _store.ApplyBuxfer(preview).Added);
+        Assert.Equal(5, _store.ApplyCsvImport(preview).Added);
         var s = _store.ReadSnapshot();
         Assert.Equal(11110, s.NetWorth.Centimes);
         Assert.Equal(120, s.MonthlyIncome.Centimes);
@@ -44,11 +44,11 @@ public sealed class BuxferImportTests : IDisposable
         Assert.Contains("\n", s.Entries.Single(e => e.Draft.Kind == TransactionKind.Expense).Draft.Description);
         Assert.Equal("note, preserved", s.Entries.Single(e => e.Draft.Kind == TransactionKind.Expense).Draft.Memo);
         var revision = s.Revision;
-        Assert.Equal(0, _store.ApplyBuxfer(_store.PreviewBuxfer(_csv)).Added);
-        Assert.Equal(5, _store.ApplyBuxfer(_store.PreviewBuxfer(_csv)).Unchanged);
+        Assert.Equal(0, _store.ApplyCsvImport(_store.PreviewCsvImport(_csv)).Added);
+        Assert.Equal(5, _store.ApplyCsvImport(_store.PreviewCsvImport(_csv)).Unchanged);
         Assert.Equal(revision, _store.ReadSnapshot().Revision);
         Csv(Rows.Replace("-10.10", "-11.10"));
-        Assert.Throws<InvalidOperationException>(() => _store.ApplyBuxfer(_store.PreviewBuxfer(_csv)));
+        Assert.Throws<InvalidOperationException>(() => _store.ApplyCsvImport(_store.PreviewCsvImport(_csv)));
         Assert.Equal(11110, _store.ReadSnapshot().NetWorth.Centimes);
     }
 
@@ -61,34 +61,49 @@ public sealed class BuxferImportTests : IDisposable
     public void I04_InvalidRowsBlockImport(string row)
     {
         Csv(row);
-        var preview = _store.PreviewBuxfer(_csv);
+        var preview = _store.PreviewCsvImport(_csv);
         Assert.False(preview.CanApply);
-        Assert.Throws<InvalidOperationException>(() => _store.ApplyBuxfer(preview));
+        Assert.Throws<InvalidOperationException>(() => _store.ApplyCsvImport(preview));
         Assert.Empty(_store.ReadSnapshot().Accounts);
     }
 
     [Fact]
     public void I05_ChangedFileAndFailedBatchLeaveLedgerUntouched()
     {
-        Csv(Rows); var preview = _store.PreviewBuxfer(_csv);
+        Csv(Rows); var preview = _store.PreviewCsvImport(_csv);
         File.AppendAllText(_csv, "\n");
-        Assert.Throws<InvalidOperationException>(() => _store.ApplyBuxfer(preview));
+        Assert.Throws<InvalidOperationException>(() => _store.ApplyCsvImport(preview));
         Assert.Empty(_store.ReadSnapshot().Accounts);
-        Csv(Rows); preview = _store.PreviewBuxfer(_csv);
+        Csv(Rows); preview = _store.PreviewCsvImport(_csv);
         using (var c = new SqliteConnectionFactory(Path.Combine(_dir, "test.db")).Open())
         using (var cmd = c.CreateCommand())
         { cmd.CommandText = "CREATE TRIGGER reject_import BEFORE INSERT ON import_sources WHEN NEW.external_id='t1' BEGIN SELECT RAISE(ABORT,'test rollback'); END;"; cmd.ExecuteNonQuery(); }
-        Assert.Throws<SqliteException>(() => _store.ApplyBuxfer(preview));
+        Assert.Throws<SqliteException>(() => _store.ApplyCsvImport(preview));
         Assert.Empty(_store.ReadSnapshot().Accounts);
     }
 
     [Fact]
     public void LocalEditBecomesExplicitReimportConflict()
     {
-        Csv(Rows); _store.ApplyBuxfer(_store.PreviewBuxfer(_csv));
+        Csv(Rows); _store.ApplyCsvImport(_store.PreviewCsvImport(_csv));
         var entry = _store.ReadSnapshot().Entries.Single(e => e.Draft.Kind == TransactionKind.Income);
         _store.SaveTransaction(entry.Id, entry.Draft with { Description = "edited" });
-        Assert.Throws<InvalidOperationException>(() => _store.ApplyBuxfer(_store.PreviewBuxfer(_csv)));
+        Assert.Throws<InvalidOperationException>(() => _store.ApplyCsvImport(_store.PreviewCsvImport(_csv)));
+    }
+
+    [Fact]
+    public void PriorProvenanceLabelsStillMatchRepeatedImports()
+    {
+        Csv(Rows);
+        _store.ApplyCsvImport(_store.PreviewCsvImport(_csv));
+        using (var c = new SqliteConnectionFactory(Path.Combine(_dir, "test.db")).Open())
+        using (var cmd = c.CreateCommand())
+        { cmd.CommandText = "UPDATE import_sources SET source='LegacySource'"; cmd.ExecuteNonQuery(); }
+
+        var result = _store.ApplyCsvImport(_store.PreviewCsvImport(_csv));
+
+        Assert.Equal(0, result.Added);
+        Assert.Equal(5, result.Unchanged);
     }
 
     [Fact]
@@ -96,14 +111,14 @@ public sealed class BuxferImportTests : IDisposable
     {
         var source = Environment.GetEnvironmentVariable("BALANCIA_PRIVATE_IMPORT_PATH");
         if (source is null) return;
-        var preview = _store.PreviewBuxfer(source);
+        var preview = _store.PreviewCsvImport(source);
         Assert.True(preview.CanApply, $"Private export has {preview.Issues.Count} import issues; first line: {preview.Issues.FirstOrDefault()?.Line}.");
-        var applied = _store.ApplyBuxfer(preview);
+        var applied = _store.ApplyCsvImport(preview);
         Assert.Equal(preview.Summary.Expenses + preview.Summary.Incomes + preview.Summary.Transfers + preview.Summary.Openings, applied.Added);
         var accounts = _store.ReadSnapshot().Accounts;
         foreach (var expected in preview.Summary.AccountTotals)
             Assert.Equal(expected.Centimes, accounts.Single(a => a.Name == expected.Account).Balance.Centimes);
-        Assert.Equal(0, _store.ApplyBuxfer(_store.PreviewBuxfer(source)).Added);
+        Assert.Equal(0, _store.ApplyCsvImport(_store.PreviewCsvImport(source)).Added);
     }
 
     [Fact]

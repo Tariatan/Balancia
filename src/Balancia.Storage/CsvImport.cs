@@ -15,19 +15,19 @@ public sealed record ImportSummary(int Rows, int Expenses, int Incomes, int Tran
     IReadOnlyList<ImportAccountTotal> AccountTotals, IReadOnlyList<string> Categories);
 public sealed record ImportResult(int Added, int Unchanged);
 
-internal sealed record BuxferRow(long Line, string Id, DateOnly Date, string Description, long Amount,
+internal sealed record CsvImportRow(long Line, string Id, DateOnly Date, string Description, long Amount,
     string Type, string Tags, string Account, string Memo, string[] Fields);
-internal sealed record BuxferGroup(string Id, string Kind, BuxferRow[] Rows, string Fingerprint);
+internal sealed record CsvImportGroup(string Id, string Kind, CsvImportRow[] Rows, string Fingerprint);
 
-public sealed class BuxferPreview
+public sealed class CsvImportPreview
 {
-    internal BuxferPreview(string path, string hash, long revision, BuxferGroup[] groups,
+    internal CsvImportPreview(string path, string hash, long revision, CsvImportGroup[] groups,
         ImportIssue[] issues, ImportSummary summary)
     { Path = path; FileHash = hash; Revision = revision; Groups = groups; Issues = issues; Summary = summary; }
     public string Path { get; }
     public string FileHash { get; }
     public long Revision { get; }
-    internal BuxferGroup[] Groups { get; }
+    internal CsvImportGroup[] Groups { get; }
     public IReadOnlyList<ImportIssue> Issues { get; }
     public ImportSummary Summary { get; }
     public IReadOnlyList<ImportDateExample> ResolvedDates => Groups.SelectMany(g => g.Rows)
@@ -37,16 +37,16 @@ public sealed class BuxferPreview
 
 public sealed partial class LedgerStore
 {
-    private static readonly string[] BuxferHeader =
+    private static readonly string[] CsvImportHeader =
         ["ID", "Date", "Description", "Currency", "Amount", "Type", "Tags", "Account", "Status", "Memo", "IOU"];
 
-    public BuxferPreview PreviewBuxfer(string path)
+    public CsvImportPreview PreviewCsvImport(string path)
     {
         var fullPath = Path.GetFullPath(path);
         var bytes = File.ReadAllBytes(fullPath);
         var hash = Convert.ToHexString(SHA256.HashData(bytes));
         var issues = new List<ImportIssue>();
-        var rows = new List<BuxferRow>();
+        var rows = new List<CsvImportRow>();
         var sourceRows = 0;
         using var stream = new MemoryStream(bytes);
         using var reader = new StreamReader(stream, new UTF8Encoding(false, true), true);
@@ -55,8 +55,8 @@ public sealed partial class LedgerStore
         try
         {
             var header = parser.ReadFields();
-            if (header is null || !header.SequenceEqual(BuxferHeader))
-                issues.Add(new(1, "Expected the 11 Buxfer export columns in their original order."));
+            if (header is null || !header.SequenceEqual(CsvImportHeader))
+                issues.Add(new(1, "Expected the 11 import columns in their original order."));
             if (issues.Count == 0)
             {
                 while (!parser.EndOfData)
@@ -69,7 +69,7 @@ public sealed partial class LedgerStore
                     sourceRows++;
                     if (f.Length != 11) { issues.Add(new(line, $"Expected 11 columns; found {f.Length}.")); continue; }
                     var errors = new List<string>();
-                    if (string.IsNullOrWhiteSpace(f[0])) errors.Add("Missing Buxfer ID.");
+                    if (string.IsNullOrWhiteSpace(f[0])) errors.Add("Missing source ID.");
                     DateOnly date = default;
                     if (f[1].Length != 8 || f[1][2] != '-' || f[1][5] != '-' ||
                         !int.TryParse(f[1][..2], out var day) ||
@@ -103,7 +103,7 @@ public sealed partial class LedgerStore
         catch (DecoderFallbackException ex) { issues.Add(new(0, "Invalid UTF-8: " + ex.Message)); }
         catch (MalformedLineException ex) { issues.Add(new(1, "Malformed CSV header: " + ex.Message)); }
 
-        var groups = new List<BuxferGroup>();
+        var groups = new List<CsvImportGroup>();
         foreach (var grouping in rows.GroupBy(r => r.Id, StringComparer.Ordinal))
         {
             var members = grouping.ToArray();
@@ -138,7 +138,7 @@ public sealed partial class LedgerStore
         return new(fullPath, hash, ReadSnapshot().Revision, groups.ToArray(), issues.ToArray(), summary);
     }
 
-    public ImportResult ApplyBuxfer(BuxferPreview preview)
+    public ImportResult ApplyCsvImport(CsvImportPreview preview)
     {
         if (!preview.CanApply) throw new InvalidOperationException("Resolve preview errors before applying the import.");
         if (Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(preview.Path))) != preview.FileHash)
@@ -151,11 +151,11 @@ public sealed partial class LedgerStore
             var matched = 0;
             foreach (var group in preview.Groups)
             {
-                using var cmd = Command(c, tx, "SELECT fingerprint,locally_modified FROM import_sources WHERE source='Buxfer' AND external_id=$id", ("$id", group.Id));
+                using var cmd = Command(c, tx, "SELECT fingerprint,locally_modified FROM import_sources WHERE external_id=$id", ("$id", group.Id));
                 using var found = cmd.ExecuteReader();
                 if (!found.Read()) continue;
                 if (found.GetBoolean(1) || found.GetString(0) != group.Fingerprint)
-                    throw new InvalidOperationException($"Buxfer ID {group.Id} conflicts with a prior import or local edit.");
+                    throw new InvalidOperationException($"Source ID {group.Id} conflicts with a prior import or local edit.");
                 matched++;
             }
             if (matched == preview.Groups.Length)
@@ -172,18 +172,18 @@ public sealed partial class LedgerStore
                 throw new InvalidOperationException("Ledger changed after preview. Preview the import again.");
             foreach (var group in preview.Groups)
             {
-                using var cmd = Command(c, tx, "SELECT fingerprint,locally_modified FROM import_sources WHERE source='Buxfer' AND external_id=$id", ("$id", group.Id));
+                using var cmd = Command(c, tx, "SELECT fingerprint,locally_modified FROM import_sources WHERE external_id=$id", ("$id", group.Id));
                 using var result = cmd.ExecuteReader();
                 if (!result.Read()) continue;
                 if (result.GetBoolean(1) || result.GetString(0) != group.Fingerprint)
-                    throw new InvalidOperationException($"Buxfer ID {group.Id} conflicts with a prior import or local edit.");
+                    throw new InvalidOperationException($"Source ID {group.Id} conflicts with a prior import or local edit.");
                 unchanged++;
             }
             var oldIds = new HashSet<string>();
-            using (var cmd = Command(c, tx, "SELECT external_id FROM import_sources WHERE source='Buxfer'"))
+            using (var cmd = Command(c, tx, "SELECT external_id FROM import_sources"))
             using (var reader = cmd.ExecuteReader()) while (reader.Read()) oldIds.Add(reader.GetString(0));
             if (oldIds.Except(preview.Groups.Select(g => g.Id)).Any())
-                throw new InvalidOperationException("This export omits previously imported Buxfer IDs; use a full export for reconciliation.");
+                throw new InvalidOperationException("This file omits previously imported source IDs; use a full file for reconciliation.");
             var pending = preview.Groups.Where(g => !oldIds.Contains(g.Id)).ToArray();
             var accounts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             using (var cmd = Command(c, tx, "SELECT id,name FROM accounts"))
@@ -227,7 +227,7 @@ public sealed partial class LedgerStore
                         AddMovement(c, tx, transactionId, accounts[movement.Account], movement.Amount);
                     }
                 }
-                Execute(c, tx, "INSERT INTO import_sources(source,external_id,transaction_id,fingerprint,raw_rows_json) VALUES('Buxfer',$external,$transaction,$fingerprint,$raw)",
+                Execute(c, tx, "INSERT INTO import_sources(source,external_id,transaction_id,fingerprint,raw_rows_json) VALUES('CSV',$external,$transaction,$fingerprint,$raw)",
                     ("$external", group.Id), ("$transaction", transactionId), ("$fingerprint", group.Fingerprint),
                     ("$raw", JsonSerializer.Serialize(group.Rows.Select(r => r.Fields).ToArray())));
                 added++;
@@ -236,7 +236,7 @@ public sealed partial class LedgerStore
                 .ToDictionary(g => g.Key, g => checked((long)g.Sum(r => (decimal)r.Amount)));
             foreach (var (name, total) in importedTotals)
             {
-                var importedSum = Convert.ToDecimal(Scalar(c, tx, "SELECT COALESCE(SUM(m.amount),0) FROM movements m JOIN import_sources s ON s.transaction_id=m.transaction_id WHERE s.source='Buxfer' AND m.account_id=$id", ("$id", accounts[name])));
+                var importedSum = Convert.ToDecimal(Scalar(c, tx, "SELECT COALESCE(SUM(m.amount),0) FROM movements m JOIN import_sources s ON s.transaction_id=m.transaction_id WHERE m.account_id=$id", ("$id", accounts[name])));
                 if (importedSum != total) throw new InvalidOperationException($"Imported balance reconciliation failed for {name}.");
             }
         });

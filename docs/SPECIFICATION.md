@@ -6,7 +6,7 @@ implementation choice; it must not be reported as explicitly user-confirmed.
 
 ## 1. Purpose and scope — confirmed
 
-A single-user personal finance ledger that replaces the owner's Buxfer workflow.
+A single-user personal finance ledger that replaces the owner's CSV workflow.
 Windows provides full management. Android provides read-only balances and history
 search. Both operate on local data; synchronization may be delayed and manually
 refreshed. No online service is required for ordinary use.
@@ -20,22 +20,55 @@ external notifications, hosted backend, and subscription billing.
 
 ## 2. Home and balances — confirmed
 
-Display in this order:
-1. Net worth and current calendar-month income and expense totals.
-2. A short ranked list of largest expense categories.
-3. Upcoming and overdue recurring payments.
-4. Transaction history.
+The Windows overview uses a top navigation bar and shows account rows plus a
+total in the net-worth card. Income and expenses sit beside that card. Below,
+transaction history occupies the wide left column; largest expense categories
+and upcoming/overdue recurring payments stack on the right. Amounts omit the
+CHF label in the interface because the ledger has only one currency.
+
+The overview offers All, This Week, This Month, This Year, and Custom From/To
+date filters. This Month is the initial selection. Week means Monday through
+Sunday; custom endpoints are inclusive. The selected period changes income,
+expenses, largest expense categories, and visible transaction history. Net worth
+and its account balances remain current across selections; recurring reminders
+continue to show the next unresolved occurrences. History filters on the
+Transactions page remain separate from these overview selections.
+The overview history contains every transaction matching its selected period,
+with an internal scrollable table rather than a recent-entry limit. Double-clicking
+an overview row opens the Transactions page with that same transaction selected.
+The Transactions page uses the same visual table and card style, with its own
+search/advanced filters and edit, remove, import, export, and paging controls.
+History amounts are bold; income is green, expense is red, and transfer is dark
+blue. The overview history follows the bottom edge as the window changes height.
+The Transactions history fills its available height without an outer page scrollbar.
+Selected list rows use a light background so their text and colored values remain
+readable. The Windows window minimum size is 1280 × 1280.
+
+The top navigation order is Overview, Transactions, Accounts, Categories. The
+Transactions header contains Import CSV, Export CSV, Export
+snapshot, and Restore snapshot actions. Account creation stays on Accounts.
+Recurring template Add/Edit actions live in the Upcoming payments card on
+Overview; there is no separate recurring payments tab. Categories places Add and
+Edit above a list that fills the remaining page height.
+Upcoming payment rows use the compact date/description and right-aligned amount
+layout. The card header provides + and delete actions; delete asks for
+confirmation, and double-clicking a row opens its edit form. The recurring edit
+form does not expose archive state.
+The Custom period Apply button aligns with its date inputs. Net-worth account and
+total amounts are green when positive and red otherwise; overview income is green
+and expenses are red. Transaction history gives Category more width than before
+while sizing the Account column to the representative "Revolut → Revolut" text.
 
 Account balance = opening balance + all signed movements after the opening point.
 Net worth = sum of account balances. Opening balances are counted exactly once;
 transfers cancel across accounts and are excluded from income/expense totals.
-History filters do not change the global home totals (default).
+Filters on the Transactions page do not change overview totals.
 
 Every successful add/edit/delete refreshes affected balances, category totals,
 reminders, and visible history without restarting or manually reloading the app.
 Month changes refresh the dashboard without requiring a transaction edit.
 
-Defaults: show the five largest parent expense categories for the current month,
+Defaults: show the five largest parent expense categories for the selected period,
 with their subcategory expenses included. Use the device's local calendar date;
 transaction dates have no time zone. Future expectations belong in reminders;
 future-dated posted transactions are excluded from the initial form. Thus net
@@ -124,7 +157,7 @@ Defaults for deterministic edge cases:
 
 ## 6. CSV migration
 
-Confirmed source is the local Buxfer export transactions.csv. Columns observed:
+Confirmed import source is the local `transactions.csv` file. Columns observed:
 ID, Date, Description, Currency, Amount, Type, Tags, Account, Status, Memo, IOU.
 
 Import contract:
@@ -136,11 +169,11 @@ Import contract:
   invert inconsistent signs. Currency must be CHF for version 1.
 - Map Tags of the form Parent / Child to the two-level hierarchy. Preserve blank
   category and standalone categories. Unknown multi-tag/deeper paths need a mapping.
-- Group Transfer rows by Buxfer ID: require exactly two different accounts, same
+- Group Transfer rows by CSV ID: require exactly two different accounts, same
   currency/date, opposite equal amounts. Do not pair by amount/date alone.
 - Recognize the observed singleton Transfer rows described as Opening balance as
   account opening entries. Preview this classification; reject ambiguous openings.
-- Preserve Buxfer IDs and source provenance. The repeated ID of a transfer is not
+- Preserve CSV IDs and source provenance. The repeated ID of a transfer is not
   a duplicate transaction. Reimporting identical data adds nothing. Changed data
   under an existing ID is a conflict to review, never a silent overwrite.
 - Show preview counts, mappings, errors, and calculated account totals before
@@ -153,6 +186,12 @@ Import contract:
 Re-read and fingerprint the file for each import. A preview must not apply a
 different file version. Reconcile signed source sums against imported account
 balances, including openings once and both sides of transfers.
+
+Export CSV writes all account opening balances and posted transactions from one
+consistent ledger read. It uses one row per logical transaction (including a
+transfer), an ISO date, signed expense amounts, and standard CSV quoting. The
+columns are ID, Date, Type, Description, Amount, Account, DestinationAccount,
+Category, and Memo. The export is independent of the 11-column import format.
 
 ## 7. Android, snapshots, and recovery
 

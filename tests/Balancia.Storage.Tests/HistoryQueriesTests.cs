@@ -64,8 +64,24 @@ public sealed class HistoryQueriesTests : IDisposable
         Assert.Equal(30, all.Count);
         Assert.Equal(30, all.Distinct().Count());
         Assert.Equal(_store.ReadSnapshot().Entries.Select(e => e.Id), all);
+        Assert.Equal(9, _store.FindHistoryOffset(all[9]));
         var transfer = _store.ReadHistory(new(AccountId: b)).Hits.Single();
         Assert.Equal(500, transfer.AccountEffect?.Centimes);
+    }
+
+    [Fact]
+    public void OverviewReadIncludesEveryTransactionInSelectedPeriod()
+    {
+        var account = Account("Everyday");
+        Entry(account, "outside", 1, date: Start.AddDays(1));
+        for (var i = 0; i < 1005; i++) Entry(account, "inside " + i, 1, date: Start.AddDays(2));
+
+        var page = _store.ReadAllHistory(new(From: Start.AddDays(2), To: Start.AddDays(2)));
+
+        Assert.Equal(1005, page.TotalCount);
+        Assert.Equal(1005, page.Hits.Count);
+        Assert.Equal(1005, page.Hits.Select(hit => hit.Entry.Id).Distinct().Count());
+        Assert.DoesNotContain(page.Hits, hit => hit.Entry.Draft.Description == "outside");
     }
 
     [Fact]
@@ -83,6 +99,35 @@ public sealed class HistoryQueriesTests : IDisposable
         _store.DeleteTransaction(id);
         Assert.Empty(_store.ReadHistory(new()).Hits);
         Assert.Equal(0, _store.ReadDesktopSnapshot().NetWorth.Centimes);
+    }
+
+    [Fact]
+    public void OverviewPeriodChangesFlowsCategoriesAndHistoryButNotBalances()
+    {
+        var account = _store.SaveAccount(null, "Everyday", new DateOnly(2026, 8, 1), new Money(0));
+        var food = _store.SaveCategory(null, "Food", null);
+        var transport = _store.SaveCategory(null, "Transport", null);
+        Entry(account, "August groceries", 10, food, new DateOnly(2026, 8, 31));
+        Entry(account, "September train", 20, transport, Start);
+        Entry(account, "September salary", 50, date: Start.AddDays(17), kind: TransactionKind.Income);
+
+        var august = _store.ReadDesktopSnapshotForPeriod(new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 31));
+        var september = _store.ReadDesktopSnapshotForPeriod(Start, Start.AddDays(17));
+        var all = _store.ReadDesktopSnapshotForPeriod(null, null);
+
+        Assert.Equal(2000, august.NetWorth.Centimes);
+        Assert.Equal(2000, september.NetWorth.Centimes);
+        Assert.Equal(2000, all.NetWorth.Centimes);
+        Assert.Equal(1000, august.MonthlyExpenses.Centimes);
+        Assert.Equal(0, august.MonthlyIncome.Centimes);
+        Assert.Equal("Food", august.LargestCategories.Single().Name);
+        Assert.Equal(2000, september.MonthlyExpenses.Centimes);
+        Assert.Equal(5000, september.MonthlyIncome.Centimes);
+        Assert.Equal("Transport", september.LargestCategories.Single().Name);
+        Assert.Equal(3000, all.MonthlyExpenses.Centimes);
+        Assert.Equal(2, all.LargestCategories.Count);
+        Assert.Equal(1, _store.ReadHistory(new(From: new DateOnly(2026, 8, 31), To: new DateOnly(2026, 8, 31))).TotalCount);
+        Assert.Throws<ArgumentException>(() => _store.ReadDesktopSnapshotForPeriod(Start, new DateOnly(2026, 8, 31)));
     }
 
     [Fact]

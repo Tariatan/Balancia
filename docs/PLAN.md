@@ -9,7 +9,7 @@ Last updated: 2026-09-19.
 | M0 | Specification and context harness | Files, working local links, harness check, source unchanged | Complete |
 | M1 | Pinned SDK/packages, solution, Windows shell, test projects | Restore/build/test and manual shell launch; exact commands in README | Complete |
 | M2 | Accounts, categories, openings, ledger operations | L01–L07, SQLite atomicity tests, immediate UI refresh | Complete |
-| M3 | Buxfer import preview and application | I01–I07, current local source reconciliation, repeated import no-op | Complete |
+| M3 | CSV import preview and application | I01–I07, current local source reconciliation, repeated import no-op | Complete |
 | M4 | Home, transaction form, history/search/filtering | H01–H05 history/dashboard checks, keyboard/scroll checks, P01 measurement | Complete |
 | M5 | Recurring templates and reminders | R01–R10, editable schedule and overdue behavior in UI | Complete |
 | M6 | Backups and snapshot export | S01, S06; recovery tested before relying on migration | Complete |
@@ -59,7 +59,7 @@ Android polish. Keep the source CSV untouched during implementation.
   expense to CHF 25 updated the transaction row. Empty amount validation kept the
   form open. The default user database and private CSV were not used.
 - M2 committed and pushed as `576db1f` on main.
-- M3 adds schema v2 import provenance, backup before v1 migration, strict Buxfer
+- M3 adds schema v2 import provenance, backup before v1 migration, strict CSV
   CSV preview, Windows file selection and apply dialog, atomic import, reimport
   conflict detection, and account reconciliation. The source CSV remains ignored.
 - Verified 2026-09-19: locked restore and Release build passed with zero warnings;
@@ -68,7 +68,7 @@ Android polish. Keep the source CSV untouched during implementation.
   I01–I05/I07 and backup migration. Unchanged reimport adds no entries and does
   not increment revision. No real export was applied to the normal app database.
 - Windows interaction checked in a separate synthetic dataset: Transactions
-  exposes Import Buxfer CSV and opens the CSV picker. The preview/apply modal was
+  exposes Import CSV and opens the CSV picker. The preview/apply modal was
   not exercised through UI automation; its application path is covered by SQLite
   integration tests. M4 can refine long history and preview presentation.
 - Owner verified the M3 import in the Windows app on 2026-09-19: account balances
@@ -145,7 +145,76 @@ Android polish. Keep the source CSV untouched during implementation.
 Begin M8: package and document the Android release workflow, improve snapshot
 refresh/error presentation, and run a final Windows/Android regression pass.
 
+## Overview design refinement — 2026-09-19
+
+The selected horizontal-navigation overview is implemented locally. Net worth
+lists each account and a total; history is the wide left panel, with categories
+and reminders stacked to the right. The period controls offer All, This Week,
+This Month, This Year, and inclusive Custom dates. The period changes income,
+expenses, categories, and visible history while balances/reminders stay current.
+Visible currency labels were removed from Windows and Android. The data model
+remains CHF-only. Locked restore and Release solution build passed with zero
+warnings/errors; 47 tests passed, including a new synthetic range test. A Windows
+synthetic-data interaction checked the layout and period choices. This work is
+local and uncommitted; M8 release packaging remains the next milestone.
+
+The owner next requested a 1280 × 1024 minimum window, all period-matching
+transactions in Overview, and a Transactions page matching the overview style.
+These changes are implemented locally. A synthetic query with 1,005 matches
+verified no overview cap; the Windows UI showed 221 overview matches and scrolled
+to the oldest row, while Transactions retained its search and edit flow. The
+minimum size was checked by attempting a smaller window resize. The Release
+solution build passed with zero warnings/errors and 48 tests passed. The owner's
+already-running Debug app was left open; the separate Release test window was
+closed. M8 remains next.
+
+The 2026-09-19 follow-up raises the minimum to 1280 × 1280, enlarges and colors
+history amounts by kind, anchors the overview history/actions and Transactions
+history to the resizable body, and selects an overview double-clicked record on
+the correct Transactions page. The Description input ends beside Max amount.
+The Transactions toolbar offers Import CSV and Export CSV. Export writes a
+consistent nine-column ledger file; the import code and visible copy use generic
+CSV names while matching prior provenance labels by external ID. Synthetic
+Windows UI checks confirmed resize anchoring, row navigation, aligned input
+edges, no outer Transactions scrollbar, and the Export CSV picker. Locked restore
+and Release solution build passed with zero warnings/errors; 50 tests passed
+(8 Core, 42 Storage), including export quoting/transfer and prior-provenance
+reimport checks. These changes remain local and uncommitted; M8 remains next.
+
+The next 2026-09-19 UI refinement removes Overview's Add account and snapshot
+buttons. Import/Export CSV and Export/Restore snapshot now sit together in the
+Transactions header. Navigation orders Transactions and Recurring payments before
+Accounts and Categories. The Custom period Apply button aligns with its date
+inputs. Overview income, expense, and net-worth values have sign-based colors;
+history gives Category more space by narrowing Account. A shared translucent
+selection style improves list-row readability. Categories has top Add/Edit
+actions and a list that fills the remaining page. Synthetic Windows checks
+confirmed the selected-row contrast, action locations, date-input alignment,
+and a fixed Categories bottom gap while resizing. Locked restore and final
+Release solution build passed with zero warnings/errors; all 50 tests passed.
+The final translucent selection rendered as RGB 225/237/242 against white on a
+selected synthetic row. The separate Release test app was closed. M8 remains next.
+
+The next local Overview adjustment gives the compact Category column 170 layout
+units and sizes Account to 118, enough for the representative transfer label and
+its cell padding. The lower panel split changes from 1.5:0.85 to 1.7:0.85 so
+Account visibly moves right while Category grows and Amount keeps its width.
+Description remains flexible. A Release Desktop build passed with zero
+warnings/errors; a synthetic Overview UI check showed the Account header 62
+screen pixels farther right than the first adjustment, with the Category
+column 25 layout units wider than the prior version.
+
 ## Handoff format for subsequent work
+
+The 2026-09-20 follow-up removes the dedicated Recurring payments navigation and
+page. Upcoming payments on Overview now owns a selectable reminder list with Add
+recurring template and Edit selected actions; the Calendar link and tab are gone.
+Recurring reminder storage and calculation remain unchanged.
+
+The following UI pass restores the compact Upcoming payments rows, adds + and
+dustbin header actions, makes rows double-click editable, and removes Archive
+from the recurring edit form. Desktop build and all tests passed; synthetic UI
+inspection found only the header, +, and dustbin actions in the card.
 
 Record date, milestone, behavior implemented, files affected, exact checks and
 results, limitations, and next action. Update existing checkpoint facts rather than

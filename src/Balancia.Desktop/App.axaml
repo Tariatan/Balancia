@@ -3,5 +3,21 @@
              x:Class="Balancia.Desktop.App" RequestedThemeVariant="Light">
   <Application.Styles>
     <FluentTheme />
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#263989A7" />
+      <Setter Property="Foreground" Value="#263C48" />
+    </Style>
+    <Style Selector="ListBoxItem:selected:not(:focus) /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#263989A7" />
+      <Setter Property="Foreground" Value="#263C48" />
+    </Style>
+    <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#303989A7" />
+      <Setter Property="Foreground" Value="#263C48" />
+    </Style>
+    <Style Selector="ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#403989A7" />
+      <Setter Property="Foreground" Value="#263C48" />
+    </Style>
   </Application.Styles>
 </Application>

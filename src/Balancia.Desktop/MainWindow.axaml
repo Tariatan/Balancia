@@ -1,45 +1,58 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Balancia.Desktop.MainWindow"
-        Title="Balancia" Width="1120" Height="760" MinWidth="800" MinHeight="620"
-        Background="#F3F5F4" WindowStartupLocation="CenterScreen">
+        Title="Balancia" Width="1440" Height="1280" MinWidth="1280" MinHeight="1280"
+        Background="#F6F8FA" WindowStartupLocation="CenterScreen">
   <Window.Styles>
     <Style Selector="Button">
-      <Setter Property="Background" Value="#E4ECE7" />
-      <Setter Property="Foreground" Value="#193D35" />
+      <Setter Property="Background" Value="#E7F2F6" />
+      <Setter Property="Foreground" Value="#263C48" />
     </Style>
     <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#C8DDD1" />
-      <Setter Property="Foreground" Value="#193D35" />
+      <Setter Property="Background" Value="#D5EAF1" />
+      <Setter Property="Foreground" Value="#263C48" />
     </Style>
     <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#AFCDBC" />
-      <Setter Property="Foreground" Value="#193D35" />
+      <Setter Property="Background" Value="#BDDDE9" />
+      <Setter Property="Foreground" Value="#263C48" />
+    </Style>
+    <Style Selector="Button.nav">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="#D3E1E7" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="10,8" />
+    </Style>
+    <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#355364" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.nav.selected">
+      <Setter Property="Background" Value="#3989A7" />
+      <Setter Property="Foreground" Value="White" />
     </Style>
   </Window.Styles>
-  <Grid ColumnDefinitions="210,*">
-    <Border Background="#163D34" Padding="20,30">
+  <Grid RowDefinitions="Auto,*">
+    <Border Background="#1B303D" Padding="18,9">
       <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,36">
-          <TextBlock Text="Balancia" FontSize="27" FontWeight="Bold" Foreground="White" />
-          <TextBlock Text="Your money, in view." Foreground="#C4D7CF" />
-        </StackPanel>
-        <TextBlock DockPanel.Dock="Bottom" Text="Windows · CHF&#10;Saved on this device" Foreground="#C4D7CF" />
-        <StackPanel x:Name="Navigation" Spacing="10">
-          <Button Content="Overview" HorizontalAlignment="Stretch" Click="ShowOverview" />
-          <Button Content="Accounts" HorizontalAlignment="Stretch" Click="ShowAccounts" />
-          <Button Content="Categories" HorizontalAlignment="Stretch" Click="ShowCategories" />
-          <Button Content="Transactions" HorizontalAlignment="Stretch" Click="ShowTransactions" />
-          <Button Content="Recurring payments" HorizontalAlignment="Stretch" Click="ShowRecurring" />
+        <TextBlock Text="Balancia" DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="19" FontWeight="Bold" Foreground="White" Margin="0,0,27,0" />
+        <StackPanel x:Name="Navigation" Orientation="Horizontal" Spacing="5">
+          <Button Classes="nav" Content="Overview" Click="ShowOverview" />
+          <Button Classes="nav" Content="Transactions" Click="ShowTransactions" />
+          <Button Classes="nav" Content="Accounts" Click="ShowAccounts" />
+          <Button Classes="nav" Content="Categories" Click="ShowCategories" />
         </StackPanel>
       </DockPanel>
     </Border>
-    <DockPanel Grid.Column="1" Margin="32">
-      <TextBlock x:Name="PageTitle" DockPanel.Dock="Top" Text="Overview" FontSize="30" FontWeight="SemiBold" Foreground="#193D35" Margin="0,0,0,20" />
-      <TextBlock x:Name="Status" DockPanel.Dock="Bottom" Text="Loading…" TextWrapping="Wrap" Margin="0,16,0,0" Foreground="#52645E" />
-      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <StackPanel x:Name="PageBody" Spacing="18" />
+    <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="24,20,24,14">
+      <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,14">
+        <TextBlock x:Name="PageTitle" Text="Overview" FontSize="29" FontWeight="SemiBold" Foreground="#263C48" />
+        <StackPanel x:Name="HeaderActions" Grid.Column="1" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center" />
+      </Grid>
+      <ScrollViewer x:Name="PageScrollViewer" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
+        <StackPanel x:Name="PageBody" Spacing="18" HorizontalAlignment="Stretch" />
       </ScrollViewer>
-    </DockPanel>
+      <ContentControl x:Name="ResponsiveBody" Grid.Row="1" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+      <TextBlock x:Name="Status" Grid.Row="2" Text="Loading…" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#71838D" FontSize="11" />
+    </Grid>
   </Grid>
 </Window>
