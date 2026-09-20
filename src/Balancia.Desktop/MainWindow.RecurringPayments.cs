@@ -50,7 +50,7 @@ public partial class MainWindow
                 var row = new Grid
                 {
                     ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-                    MinHeight = 29
+                    MinHeight = 20
                 };
                 var reminder = choice.Value;
 
@@ -60,7 +60,6 @@ public partial class MainWindow
                     FontSize = 12,
                     VerticalAlignment = VerticalAlignment.Center,
                     TextTrimming = TextTrimming.CharacterEllipsis
-
                 });
 
                 var amount = new TextBlock
@@ -150,7 +149,11 @@ public partial class MainWindow
                 dialog.Close();
                 await Run(Refresh);
             }
-            catch (Exception ex) { await ShowErrorDialog("Balancia", FriendlyError(ex)); remove.IsEnabled = true; }
+            catch (Exception ex)
+            {
+                await ShowErrorDialog("Balancia", FriendlyError(ex));
+                remove.IsEnabled = true;
+            }
         };
         cancel.Click += (_, _) => dialog.Close();
         dialog.Content = new StackPanel
@@ -158,7 +161,10 @@ public partial class MainWindow
             Spacing = 14,
             Margin = new Thickness(22),
             Children =
-        { Text($"Delete '{choice.Value.Template.Description}'?"), Row(remove, cancel) }
+            {
+                Text($"Delete '{choice.Value.Template.Description}'?"),
+                Row(remove, cancel)
+            }
         };
         await dialog.ShowDialog(this);
     }

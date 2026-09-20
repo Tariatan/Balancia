@@ -21,13 +21,16 @@ public partial class MainWindow : Window
     {
         All, ThisWeek, ThisMonth, ThisYear, Custom
     }
-    private const int HistoryPageSize = 1000;
+    private const int HistoryPageSize = 100;
     private readonly LedgerStore _store;
     private LedgerSnapshot? _snapshot;
-    private HistoryPage? _historyPage;
+    private HistoryPage? _historyPage = null;
     private HistoryPage? _overviewHistory;
+    private int _overviewOffset;
     private IReadOnlyList<RecurringReminder> _reminders = [];
     private HistoryFilter _historyFilter = new();
+    private HistoryFilter _overviewFilter = new();
+    private bool _overviewFiltersVisible;
     private int _historyOffset;
     private readonly List<(DateOnly Date, string Id)> _historyCursors = [];
     private bool _historyUseOffsetPaging;
@@ -57,7 +60,11 @@ public partial class MainWindow : Window
 
         Opened += async (_, _) => await Run(async () =>
         {
-            await Task.Run(() => { Directory.CreateDirectory(directory); _store.Initialize(); });
+            await Task.Run(() =>
+            {
+                Directory.CreateDirectory(directory);
+                _store.Initialize();
+            });
             await Refresh();
         });
         _timer.Tick += async (_, _) =>
@@ -78,16 +85,14 @@ public partial class MainWindow : Window
         var (from, to) = OverviewRange();
         _snapshot = await Task.Run(() => _page == "Overview" ? _store.ReadDesktopSnapshotForPeriod(from, to) : _store.ReadDesktopSnapshot());
         _reminders = await Task.Run(() => _store.ReadRecurringReminders());
-        if (_page == "Transactions")
-        {
-            _historyPage = await Task.Run(() => _historyUseOffsetPaging ? _store.ReadHistory(_historyFilter, _historyOffset, HistoryPageSize) :
-                _historyCursors.Count == 0 ? _store.ReadHistory(_historyFilter, 0, HistoryPageSize) :
-                _store.ReadHistoryAfter(_historyFilter, _historyCursors[^1].Date, _historyCursors[^1].Id, HistoryPageSize));
-        }
-
         if (_page == "Overview")
         {
-            _overviewHistory = await Task.Run(() => _store.ReadAllHistory(new HistoryFilter(From: from, To: to)));
+            var filter = _overviewFilter with
+            {
+                From = _overviewFilter.From ?? from,
+                To = _overviewFilter.To ?? to
+            };
+            _overviewHistory = await Task.Run(() => _store.ReadHistory(filter, _overviewOffset, HistoryPageSize));
         }
 
         Render();
@@ -111,13 +116,23 @@ public partial class MainWindow : Window
             await action();
             Status.Text = "Saved locally";
         }
-        catch (Exception ex) { Status.Text = FriendlyError(ex); await ShowErrorDialog("Balancia", FriendlyError(ex)); }
-        finally { _busy = false; PageBody.IsEnabled = true; ResponsiveBody.IsEnabled = true; Navigation.IsEnabled = true; HeaderActions.IsEnabled = true; }
+        catch (Exception ex)
+        {
+            Status.Text = FriendlyError(ex);
+            await ShowErrorDialog("Balancia", FriendlyError(ex));
+        }
+        finally
+        {
+            _busy = false;
+            PageBody.IsEnabled = true;
+            ResponsiveBody.IsEnabled = true;
+            Navigation.IsEnabled = true;
+            HeaderActions.IsEnabled = true;
+        }
     }
 
     private async void ShowOverview(object? sender, RoutedEventArgs e) => await Navigate("Overview");
     private async void ShowCategories(object? sender, RoutedEventArgs e) => await Navigate("Categories");
-    private async void ShowTransactions(object? sender, RoutedEventArgs e) => await Navigate("Transactions");
     private async Task Navigate(string page)
     {
         if (_page == page)
@@ -130,35 +145,25 @@ public partial class MainWindow : Window
 
     private void Render()
     {
-        PageTitle.Text = _page;
+        PageTitle.Text = _page == "Categories" ? "Settings" : _page;
+        PageTitle.IsVisible = _page != "Overview";
+        HeaderActions.IsVisible = _page == "Categories";
 
         foreach (var child in Navigation.Children.OfType<Button>())
         {
-            child.Classes.Set("selected", Equals(child.Content, _page));
+            child.Classes.Set("selected", Equals(child.Content, _page == "Categories" ? "Settings" : _page));
         }
         HeaderActions.Children.Clear();
 
-        if (_page == "Overview")
-        {
-            HeaderActions.Children.Add(ActionButton("Search", () => Navigate("Transactions")));
-            var add = ActionButton("+ Transaction", () => EditTransaction(null));
-            add.Background = Brush.Parse("#3989A7");
-            add.Foreground = Brushes.White;
-            HeaderActions.Children.Add(add);
-        }
-        else if (_page == "Transactions")
+        if (_page == "Categories")
         {
             HeaderActions.Children.Add(ActionButton("Import CSV", ImportCsv));
             HeaderActions.Children.Add(ActionButton("Export CSV", ExportCsv));
             HeaderActions.Children.Add(ActionButton("Export snapshot", ExportSnapshot));
             HeaderActions.Children.Add(ActionButton("Restore snapshot", RestoreSnapshot));
-            var add = ActionButton("+ Transaction", () => EditTransaction(null));
-            add.Background = Brush.Parse("#3989A7");
-            add.Foreground = Brushes.White;
-            HeaderActions.Children.Add(add);
         }
 
-        var responsive = _page is "Overview" or "Transactions" or "Categories";
+        var responsive = _page is "Overview" or "Categories";
         PageScrollViewer.IsVisible = !responsive;
         ResponsiveBody.IsVisible = responsive;
         ResponsiveBody.Content = null;
@@ -187,9 +192,6 @@ public partial class MainWindow : Window
                 break;
             case "Categories":
                 RenderCategories(s);
-                break;
-            case "Transactions":
-                RenderTransactions(s);
                 break;
         }
     }

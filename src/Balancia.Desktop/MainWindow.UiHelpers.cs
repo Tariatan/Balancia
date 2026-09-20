@@ -119,11 +119,14 @@ public partial class MainWindow
             {
                 new TextBlock
                 {
-                    Text = "The operation could not be completed.", FontSize = 20, FontWeight = FontWeight.SemiBold
+                    Text = "The operation could not be completed.",
+                    FontSize = 20,
+                    FontWeight = FontWeight.SemiBold
                 },
                 new TextBlock
                 {
-                    Text = message, TextWrapping = TextWrapping.Wrap
+                    Text = message,
+                    TextWrapping = TextWrapping.Wrap
                 },
                 close
             }
@@ -216,8 +219,15 @@ public partial class MainWindow
                 _historyOffset = 0;
                 dialog.Close();
             }
-            catch (Exception ex) { error.Text = FriendlyError(ex); }
-            finally { saving = false; body.IsEnabled = true; }
+            catch (Exception ex)
+            {
+                error.Text = FriendlyError(ex);
+            }
+            finally
+            {
+                saving = false;
+                body.IsEnabled = true;
+            }
         };
         dialog.Opened += (_, _) =>
         {

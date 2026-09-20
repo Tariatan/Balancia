@@ -10,6 +10,10 @@ Last updated: 2026-09-19. Scope: this repository only.
 - Windows performs all writes. Android checks balances and searches history;
   stale snapshots and manual refresh are acceptable. Offline local operation.
 - Accounts: UBS, Cash, Revolut; CHF only. Opening balances and transfers matter.
+- Overview transaction history now has add/delete header actions; double-click
+  opens the transaction edit form directly.
+- Transactions navigation was removed; CSV and snapshot actions now live at the
+  top of Categories.
 - Expense, Income, Transfer; description plus optional category/subcategory.
   No split transactions, bank sync, budgeting limits, or paid hosting.
 - Recurrence: exact description within scheduled month/year, ignoring amount/day;
@@ -137,3 +141,5 @@ contradictory entries. Do not copy the user's transaction details into this file
 
 - Accounts card replaces Accounts tab: selectable account rows with add/delete
   actions and double-click editing; deletion is guarded when transactions exist.
+- Settings category rows open editing on double-click; + adds and trash archives
+  the selected category.

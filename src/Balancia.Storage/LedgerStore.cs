@@ -274,6 +274,22 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         return key;
     }
 
+    public void DeleteCategory(string id) => Write((c, tx) =>
+    {
+        Require(c, tx, "SELECT 1 FROM categories WHERE id=$id", id, "Category no longer exists.");
+        if (Scalar(c, tx, "SELECT 1 FROM categories WHERE parent_id=$id LIMIT 1", ("$id", id)) is not null)
+        {
+            throw new InvalidOperationException("A category with subcategories cannot be deleted. Archive it instead.");
+        }
+
+        if (Scalar(c, tx, "SELECT 1 FROM ledger WHERE category_id=$id LIMIT 1", ("$id", id)) is not null)
+        {
+            throw new InvalidOperationException("A category used by transactions cannot be deleted. Archive it instead.");
+        }
+
+        Execute(c, tx, "DELETE FROM categories WHERE id=$id", ("$id", id));
+    });
+
     public string SaveTransaction(string? id, TransactionDraft draft)
     {
         draft.Validate(Today);

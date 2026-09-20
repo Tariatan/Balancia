@@ -38,7 +38,7 @@ public partial class MainWindow
             var row = new Grid
             {
                 ColumnDefinitions = new ColumnDefinitions("75,*,80"),
-                MinHeight = 27
+                MinHeight = 20
             };
 
             row.Children.Add(new TextBlock
@@ -47,7 +47,6 @@ public partial class MainWindow
                 FontSize = 11,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
-
             });
 
             var bar = new ProgressBar
@@ -93,13 +92,61 @@ public partial class MainWindow
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0)
         };
-        AddRow(layout, Row
-            (
-                ActionButton("Add category", () => EditCategory(null)),
-                ActionButton("Edit selected category", () => categories.SelectedItem is Category c ? EditCategory(c) : SelectFirst())),
-            1);
+        var actions = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
+        var add = ActionButton("+", () => EditCategory(null));
+        add.Width = 30;
+        add.Padding = new Thickness(0);
+        add.FontSize = 18;
+        var archive = ActionButton("▣", () => ArchiveSelectedCategory(categories));
+        archive.Width = 30;
+        archive.Padding = new Thickness(0);
+        archive.FontSize = 14;
+        var remove = ActionButton("🗑", () => DeleteSelectedCategory(categories));
+        remove.Width = 30;
+        remove.Padding = new Thickness(0);
+        remove.FontSize = 14;
+        ToolTip.SetTip(add, "Add category");
+        ToolTip.SetTip(archive, "Archive selected category");
+        ToolTip.SetTip(remove, "Delete selected category");
+        buttons.Children.Add(add);
+        buttons.Children.Add(archive);
+        buttons.Children.Add(remove);
+        AddColumn(actions, buttons, 1);
+        AddRow(layout, actions, 1);
+        categories.DoubleTapped += async (_, _) =>
+        {
+            if (categories.SelectedItem is Category category)
+            {
+                await EditCategory(category);
+            }
+        };
         AddRow(layout, Panel(categories), 2);
         ResponsiveBody.Content = layout;
+    }
+
+    private async Task ArchiveSelectedCategory(ListBox categories)
+    {
+        if (categories.SelectedItem is not Category category)
+        {
+            return;
+        }
+
+        await EditDialog("Archive category",
+            [Text($"Archive {category.Path}?"), Text("Subcategories will also be archived.")],
+            () => () => _store.SaveCategory(category.Id, category.Name, category.ParentId, true), "Archive");
+    }
+
+    private async Task DeleteSelectedCategory(ListBox categories)
+    {
+        if (categories.SelectedItem is not Category category)
+        {
+            return;
+        }
+
+        await EditDialog("Delete category",
+            [Text($"Delete {category.Path}?"), Text("Categories used by transactions or with subcategories must be archived instead.")],
+            () => () => _store.DeleteCategory(category.Id), "Delete");
     }
 
     private async Task EditCategory(Category? category)
@@ -118,12 +165,12 @@ public partial class MainWindow
             SelectedItem = options.FirstOrDefault(c => c.Value == category?.ParentId) ?? options[0],
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        var archived = new CheckBox
-        {
-            Content = "Archived",
-            IsChecked = category?.Archived ?? false
-        };
-        await EditDialog(category is null ? "Add category" : "Edit category", [Field("Name", name), Field("Parent category", parent), archived],
-            () => { var values = (name.Text ?? "", ((Choice<string?>)parent.SelectedItem!).Value, archived.IsChecked == true); return () => _store.SaveCategory(category?.Id, values.Item1, values.Item2, values.Item3); });
+        await EditDialog(category is null ? "Add category" : "Edit category",
+            [Field("Name", name), Field("Parent category", parent)],
+            () =>
+            {
+                var values = (name.Text ?? "", ((Choice<string?>)parent.SelectedItem!).Value, category?.Archived ?? false);
+                return () => _store.SaveCategory(category?.Id, values.Item1, values.Item2, values.Item3);
+            });
     }
 }

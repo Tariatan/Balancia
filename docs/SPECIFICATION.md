@@ -33,26 +33,30 @@ expenses, largest expense categories, and visible transaction history. Net worth
 and its account balances remain current across selections; recurring reminders
 continue to show the next unresolved occurrences. History filters on the
 Transactions page remain separate from these overview selections.
-The overview history contains every transaction matching its selected period,
-with an internal scrollable table rather than a recent-entry limit. Double-clicking
-an overview row opens the Transactions page with that same transaction selected.
+The overview history is paged in groups of 100 transactions matching its selected
+period, with Previous page and Next page controls. Double-clicking
+an overview row opens the transaction edit form for that record. The history
+card header provides add and delete actions for the selected row.
 The Transactions page uses the same visual table and card style, with its own
 search/advanced filters and edit, remove, import, export, and paging controls.
 History amounts are bold; income is green, expense is red, and transfer is dark
 blue. The overview history follows the bottom edge as the window changes height.
-The Transactions history fills its available height without an outer page scrollbar.
+Overview history fills its available height without an outer page scrollbar.
 Selected list rows use a light background so their text and colored values remain
 readable. The Windows window minimum size is 1280 × 1280.
 
-The top navigation order is Overview, Transactions, Categories. Account
+The Overview period controls are All, This Week, This Month, This Year, and
+Filter. Filter opens the same Search and filters panel used by Transactions.
+The top navigation order is Overview, Settings. Account
 management is available from the Accounts card on Overview. The
 Transactions header contains Import CSV, Export CSV, Export
 snapshot, and Restore snapshot actions. Accounts can be added, edited, and
 deleted from the Accounts card; accounts with transaction history are archived
 instead of deleted.
 Recurring template Add/Edit actions live in the Upcoming payments card on
-Overview; there is no separate recurring payments tab. Categories places Add and
-Edit above a list that fills the remaining page height.
+Overview; there is no separate recurring payments tab. Settings places Add and
+Edit above a list that fills the remaining page height. Category rows open the
+edit form on double-click; the header provides add and archive actions.
 Upcoming payment rows use the compact date/description and right-aligned amount
 layout. The card header provides + and delete actions; delete asks for
 confirmation, and double-clicking a row opens its edit form. The recurring edit

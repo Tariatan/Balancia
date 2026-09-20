@@ -52,7 +52,7 @@ public partial class MainWindow
         var row = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions(compact ? "98,*,200,80,80" : "110,*,255,145,140"),
-            MinHeight = header ? 31 : 39
+            MinHeight = header ? 31 : 20
         };
         var values = new[] { date, description, category, account, amount };
 

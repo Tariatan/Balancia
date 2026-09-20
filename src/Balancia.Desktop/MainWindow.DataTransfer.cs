@@ -24,7 +24,6 @@ public partial class MainWindow
             Title = "Choose transactions CSV",
             AllowMultiple = false,
             FileTypeFilter = [new FilePickerFileType("CSV") { Patterns = ["*.csv"] }]
-
         });
         if (files.Count == 0)
         {
@@ -93,7 +92,11 @@ public partial class MainWindow
                     await Refresh();
                     Status.Text = $"Imported {result.Added} entries; {result.Unchanged} unchanged.";
                 }
-                catch (Exception ex) { error.Text = FriendlyError(ex); apply.IsEnabled = true; }
+                catch (Exception ex)
+                {
+                    error.Text = FriendlyError(ex);
+                    apply.IsEnabled = true;
+                }
             };
             await dialog.ShowDialog(this);
         });
@@ -106,7 +109,6 @@ public partial class MainWindow
             Title = "Export CSV",
             SuggestedFileName = $"balancia-{DateTime.Today:yyyyMMdd}.csv",
             FileTypeChoices = [new FilePickerFileType("CSV") { Patterns = ["*.csv"] }]
-
         });
         var path = file?.TryGetLocalPath();
         if (path is null)
@@ -128,7 +130,6 @@ public partial class MainWindow
             Title = "Export Balancia snapshot",
             SuggestedFileName = $"balancia-{DateTime.Today:yyyyMMdd}.balancia",
             FileTypeChoices = [new FilePickerFileType("Balancia snapshot") { Patterns = ["*.balancia"] }]
-
         });
         var path = file?.TryGetLocalPath();
         if (path is null)
@@ -136,7 +137,11 @@ public partial class MainWindow
             return;
         }
 
-        await Run(async () => { var manifest = await Task.Run(() => _store.ExportSnapshot(path)); Status.Text = $"Snapshot exported · revision {manifest.Revision}"; });
+        await Run(async () =>
+        {
+            var manifest = await Task.Run(() => _store.ExportSnapshot(path));
+            Status.Text = $"Snapshot exported · revision {manifest.Revision}";
+        });
     }
 
     private async Task RestoreSnapshot()
@@ -146,7 +151,6 @@ public partial class MainWindow
             Title = "Choose Balancia snapshot",
             AllowMultiple = false,
             FileTypeFilter = [new FilePickerFileType("Balancia snapshot") { Patterns = ["*.balancia"] }]
-
         });
         var path = files.FirstOrDefault()?.TryGetLocalPath();
         if (path is null)

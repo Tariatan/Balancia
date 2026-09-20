@@ -228,6 +228,12 @@ results, limitations, and next action. Update existing checkpoint facts rather t
 appending a full transcript. Keep unfinished milestones visibly unfinished.
 ## 2026-09-20 UI checkpoint
 
+The Transactions tab was removed. CSV and snapshot actions now appear at the
+top of Settings; Overview remains the transaction editing surface.
+
+Overview transaction history now provides add and guarded delete header actions;
+double-clicking a row opens its edit form directly.
+
 The standalone Accounts tab was removed. Overview now provides an Accounts
 card with selectable rows, add and guarded delete actions, and double-click
 editing. Accounts containing transaction history cannot be deleted and remain
