@@ -24,17 +24,11 @@ public partial class MainWindow : Window
     private const int HistoryPageSize = 100;
     private readonly LedgerStore _store;
     private LedgerSnapshot? _snapshot;
-    private HistoryPage? _historyPage = null;
     private HistoryPage? _overviewHistory;
     private int _overviewOffset;
     private IReadOnlyList<RecurringReminder> _reminders = [];
-    private HistoryFilter _historyFilter = new();
     private HistoryFilter _overviewFilter = new();
     private bool _overviewFiltersVisible;
-    private int _historyOffset;
-    private readonly List<(DateOnly Date, string Id)> _historyCursors = [];
-    private bool _historyUseOffsetPaging;
-    private string? _pendingHistoryId;
     private string _page = "Overview";
     private bool _busy;
     private DateOnly _displayDate = DateOnly.FromDateTime(DateTime.Today);

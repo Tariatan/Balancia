@@ -80,13 +80,10 @@ all dates. Account balances still sum all posted movements, and reminder queries
 retain their independent next-occurrence semantics. The default monthly read
 method remains available for existing consumers.
 The overview now reads all matching history in one SQLite read transaction and
-shows it through a height-constrained, virtualized Avalonia ListBox. The
-Transactions page keeps its cursor-paged query and shares the row layout with
-the overview; its filters remain independent of the overview period selection.
-Double-click navigation resolves a transaction's stable date/ID sort offset and
-opens the corresponding Transactions page with that row selected. Overview and
-Transactions use a height-filling content host; the Transactions table scrolls
-internally. CSV export reads one snapshot, writes a temporary file with standard
+shows it through a height-constrained, virtualized Avalonia ListBox. The overview
+history filter panel shares the row layout with the history card; there is no
+separate Transactions page. Double-clicking a row opens the transaction editor
+directly. CSV export reads one snapshot, writes a temporary file with standard
 quoting, then replaces the selected target after the write completes. Import
 provenance queries match external IDs across existing source labels so records
 imported before the UI rename remain idempotent.

@@ -31,14 +31,13 @@ date filters. This Month is the initial selection. Week means Monday through
 Sunday; custom endpoints are inclusive. The selected period changes income,
 expenses, largest expense categories, and visible transaction history. Net worth
 and its account balances remain current across selections; recurring reminders
-continue to show the next unresolved occurrences. History filters on the
-Transactions page remain separate from these overview selections.
+continue to show the next unresolved occurrences.
 The overview history is paged in groups of 100 transactions matching its selected
 period, with Previous page and Next page controls. Double-clicking
 an overview row opens the transaction edit form for that record. The history
 card header provides add and delete actions for the selected row.
-The Transactions page uses the same visual table and card style, with its own
-search/advanced filters and edit, remove, import, export, and paging controls.
+The overview history filter panel provides search, advanced filters, and paging
+alongside the same visual table used by the history card.
 History amounts are bold; income is green, expense is red, and transfer is dark
 blue. The overview history follows the bottom edge as the window changes height.
 Overview history fills its available height without an outer page scrollbar.
@@ -46,11 +45,11 @@ Selected list rows use a light background so their text and colored values remai
 readable. The Windows window minimum size is 1280 × 1280.
 
 The Overview period controls are All, This Week, This Month, This Year, and
-Filter. Filter opens the same Search and filters panel used by Transactions.
+Filter. Filter opens the history search and filter fields in the overview.
 The top navigation order is Overview, Settings. Account
 management is available from the Accounts card on Overview. The
-Transactions header contains Import CSV, Export CSV, Export
-snapshot, and Restore snapshot actions. Accounts can be added, edited, and
+Settings header contains Import CSV, Export CSV, Export snapshot, and Restore
+snapshot actions. Accounts can be added, edited, and
 deleted from the Accounts card; accounts with transaction history are archived
 instead of deleted.
 Recurring template Add/Edit actions live in the Upcoming payments card on
@@ -69,7 +68,7 @@ while sizing the Account column to the representative "Revolut → Revolut" text
 Account balance = opening balance + all signed movements after the opening point.
 Net worth = sum of account balances. Opening balances are counted exactly once;
 transfers cancel across accounts and are excluded from income/expense totals.
-Filters on the Transactions page do not change overview totals.
+History filters do not change overview account balances or period totals.
 
 Every successful add/edit/delete refreshes affected balances, category totals,
 reminders, and visible history without restarting or manually reloading the app.

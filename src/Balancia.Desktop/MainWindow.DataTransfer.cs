@@ -87,8 +87,6 @@ public partial class MainWindow
                 {
                     var result = await Task.Run(() => _store.ApplyCsvImport(preview));
                     dialog.Close();
-                    _historyCursors.Clear();
-                    _historyOffset = 0;
                     await Refresh();
                     Status.Text = $"Imported {result.Added} entries; {result.Unchanged} unchanged.";
                 }

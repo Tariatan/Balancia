@@ -143,13 +143,14 @@ public partial class MainWindow
     // Snapshot inputs on the UI thread, then perform the complete write off-thread.
     private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, string saveLabel = "Save")
     {
+        var isRemoval = saveLabel == "Remove";
         var dialog = new Window
         {
             Title = title,
             Width = 530,
-            Height = title.Contains("transaction", StringComparison.OrdinalIgnoreCase) ? 730 : 480,
-            MinWidth = 430,
-            MinHeight = 360,
+            Height = isRemoval ? 200 : title.Contains("transaction", StringComparison.OrdinalIgnoreCase) ? 730 : 480,
+            MinWidth = isRemoval ? 900 : 430,
+            MinHeight = isRemoval ? 240 : 360,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Background = Brushes.White
         };
@@ -215,8 +216,6 @@ public partial class MainWindow
                 error.Text = "Saving…";
                 await Task.Run(action);
                 saving = false;
-                _historyCursors.Clear();
-                _historyOffset = 0;
                 dialog.Close();
             }
             catch (Exception ex)
@@ -275,7 +274,7 @@ public partial class MainWindow
         var row = new WrapPanel();
         foreach (var control in controls)
         {
-            control.Margin = new Thickness(0, 0, 10, 10);
+            control.Margin = new Thickness(0, 10, 10, 10);
             row.Children.Add(control);
         }
         return row;

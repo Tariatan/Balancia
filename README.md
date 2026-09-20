@@ -78,32 +78,29 @@ For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--`
 in the `dotnet run` command. The app creates that directory and its version 3
 schema on first run. Upgrading a version 1 database writes a consistent `.bak`
 file beside it before migration. Opening an unsupported newer schema fails. Close the
-running app before rebuilding on Windows. Android workloads, device access, and
-packaging remain unchecked.
+running app before rebuilding on Windows. The Android API 36 viewer is built and
+has been verified on a Samsung S20 FE.
 
-To import, open Transactions, choose **Import CSV**, inspect the preview,
+To import, open Settings, choose **Import CSV**, inspect the preview,
 and apply it. Invalid rows block import. Repeated identical imports add nothing;
 changed CSV IDs or locally edited imported entries cause a conflict. The
 source file is never modified. For a private-export reconciliation test in an
 isolated temporary database, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute
 path before running the test command, then remove the environment variable.
-**Export CSV** on the Transactions page saves the current ledger, including
+**Export CSV** on the Settings page saves the current ledger, including
 opening balances, as a standard nine-column CSV. It is a ledger export and has
 a different format from the eleven-column source accepted by Import CSV.
 
-The Transactions page shows 100 newest entries at a time. Description search is
-case-insensitive; account, type, category/subcategory, inclusive date, and
-inclusive absolute CHF amount filters combine. A parent category includes its
-subcategories. Use Previous/Next to browse results. The overview shows all
-transactions in the selected period; double-clicking a row selects it in the
-Transactions page. The window minimum is 1280 × 1280.
-The top tabs are Overview and Categories. Account management is
+The Overview history shows 100 newest entries in the selected period. Its filter
+panel combines case-insensitive description search, account, type,
+category/subcategory, inclusive date, and inclusive absolute CHF amount filters;
+parent categories include their subcategories. Use Previous/Next to browse
+results. Double-click a row to edit it. The window minimum is 1280 × 1280.
+The top tabs are Overview and Settings. Account management is
 available from the Accounts card on Overview. Recurring
 template Add/Edit actions are in the Upcoming payments card on Overview.
-The Overview Filter control opens the same search and filter fields as the
-Transactions tab.
-Transactions also holds Export snapshot and Restore snapshot; Categories places
-Add/Edit above a list that grows with the window.
+The Settings tab places category Add/Edit above a list that grows with the
+window and holds CSV and snapshot actions.
 
 The harness explicitly instructs agents to read MEMORY.md; it does not assume
 that filename is loaded automatically. The instruction entry point follows the

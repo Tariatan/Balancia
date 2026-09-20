@@ -330,7 +330,10 @@ public partial class MainWindow
             ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             Margin = new Thickness(0, 0, 0, 10)
         };
-        header.Children.Add(Heading($"Transaction history · {_overviewHistory?.TotalCount:N0}", 13));
+        var total = _overviewHistory?.TotalCount ?? 0;
+        var first = total == 0 ? 0 : _overviewOffset + 1;
+        var last = _overviewOffset + (_overviewHistory?.Hits.Count ?? 0);
+        header.Children.Add(Heading($"Transaction history · {first:N0}-{last:N0} / {total:N0}", 13));
         var actions = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -360,7 +363,7 @@ public partial class MainWindow
         actions.Children.Add(remove);
         AddColumn(header, actions, 1);
         AddRow(body, header, 0);
-        AddRow(body, HistoryRow("Date", "Description", "Category", "Account", "Amount", true, true), 1);
+        AddRow(body, HistoryRow("Date", "Description", "Category", "Account", "Amount", true), 1);
 
         if (_overviewHistory is not { Hits.Count: > 0 })
         {
@@ -368,7 +371,7 @@ public partial class MainWindow
         }
         else
         {
-            historyList = HistoryList(_overviewHistory.Hits, true);
+            historyList = HistoryList(_overviewHistory.Hits);
             historyList.DoubleTapped += async (_, _) =>
             {
                 if (historyList.SelectedItem is HistoryItem item)
@@ -393,7 +396,9 @@ public partial class MainWindow
         next.IsEnabled = _overviewHistory is { } page && _overviewOffset + page.Hits.Count < page.TotalCount;
         AddRow(body, Row(previous, next), 3);
 
-        return Panel(body);
+        var panel = Panel(body);
+        panel.Padding = new Thickness(15, 15, 15, 5);
+        return panel;
     }
 
     private static Grid SectionHeader(string title, string link, Func<Task> action)

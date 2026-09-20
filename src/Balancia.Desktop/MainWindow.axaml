@@ -41,7 +41,7 @@
         </StackPanel>
       </DockPanel>
     </Border>
-    <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="24,20,24,14">
+    <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="24,0,24,14">
       <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,14">
         <TextBlock x:Name="PageTitle" Text="Overview" FontSize="29" FontWeight="SemiBold" Foreground="#263C48" />
         <StackPanel x:Name="HeaderActions" Grid.Column="1" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center" />
