@@ -78,6 +78,18 @@ public partial class MainWindow : Window
         Opened += (_, _) => _timer.Start();
         Closed += (_, _) => _timer.Stop();
         Closed += (_, _) => SaveWindowSettings();
+        KeyDown += async (_, e) =>
+        {
+            if (e.Handled || _busy || _snapshot is null || e.Key is not (Key.OemPlus or Key.Add) ||
+                (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt)) != 0 ||
+                e.Source is TextBox or AutoCompleteBox)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            await EditTransaction(null);
+        };
     }
 
     private Task Refresh() => RefreshCore(false);

@@ -112,12 +112,13 @@ public partial class MainWindow
             SelectedItem = accounts.FirstOrDefault(a => a.Id == existing?.DestinationId),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
+        var categoryPaths = _snapshot.Categories
+            .Where(c => !c.Archived || c.Id == existing?.CategoryId)
+            .Select(c => c.Path)
+            .ToList();
         var category = new AutoCompleteBox
         {
-            ItemsSource = _snapshot.Categories
-                .Where(c => !c.Archived || c.Id == existing?.CategoryId)
-                .Select(c => c.Path)
-                .ToArray(),
+            ItemsSource = categoryPaths,
             Text = _snapshot.Categories.FirstOrDefault(c => c.Id == existing?.CategoryId)?.Path ?? "",
             FilterMode = AutoCompleteFilterMode.ContainsOrdinal,
             MinimumPrefixLength = 1,
@@ -135,6 +136,26 @@ public partial class MainWindow
         }
         kind.SelectionChanged += (_, _) => UpdateFields();
         UpdateFields();
+        Action? continueAfterSave = null;
+        if (entry is null)
+        {
+            continueAfterSave = () =>
+            {
+                var path = category.Text?.Trim();
+                if (!string.IsNullOrEmpty(path) && !categoryPaths.Contains(path, StringComparer.OrdinalIgnoreCase))
+                {
+                    categoryPaths.Add(path);
+                    category.ItemsSource = categoryPaths.ToArray();
+                    category.Text = path;
+                }
+
+                description.Text = "";
+                amount.Text = "";
+                memo.Text = "";
+                amount.Focus();
+            };
+        }
+
         await EditDialog(entry is null ? "Add transaction" : "Edit transaction",
             [Field("Type", kind), Field("Date", date), categoryField, Field("Amount (positive)", amount), Field("Account", account), toField, Field("Description", description), Field("Notes", memo)],
             () =>
@@ -147,7 +168,7 @@ public partial class MainWindow
                 var categoryPath = type == TransactionKind.Transfer ? null : category.Text;
                 _lastAccountId = draft.AccountId;
                 return () => _store.SaveTransactionWithCategoryPath(entry?.Id, draft, categoryPath);
-            }, initialFocus: category);
+            }, initialFocus: category, onSaveAndContinue: continueAfterSave);
     }
 
     private async Task RemoveTransaction(LedgerEntry entry) => await EditDialog("Remove transaction",

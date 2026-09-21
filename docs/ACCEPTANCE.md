@@ -31,6 +31,7 @@ Scenario IDs connect implementation milestones to observable behavior.
 | H16 | Select text in a desktop text or autocomplete field and select an item in a list or combo box | The selection highlight and text remain clearly readable |
 | H17 | Combine Overview history filters, then select a parent expense category | Income, expenses, and history use the same matching transactions; the category card splits the selected parent's own expenses and matching child categories; net worth remains unchanged |
 | H18 | Change Overview filters or period presets while viewing transactions | Values and matching rows update without clearing the whole page; Accounts and Upcoming payments controls remain mounted, focus stays in the filter, and rapid changes converge on the latest choice |
+| H19 | Press + in the main window, then enter several transactions | Shortcut opens Add unless a text field owns the key; Enter saves and leaves a ready Add form; Save closes; failed saves keep entered values and do not create duplicates |
 | R01 | Rent expected Sep 25; exact-description payment Sep 1 for another amount | September satisfied; next date Oct 25 for interval 1 |
 | R02 | September rent paid Aug 31, or Sep in another year | September occurrence remains unresolved |
 | R03 | Case/whitespace differs from template description | No exact recurrence match; ordinary search may still find it |

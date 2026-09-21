@@ -141,7 +141,8 @@ public partial class MainWindow
     }
 
     // Snapshot inputs on the UI thread, then perform the complete write off-thread.
-    private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, string saveLabel = "Save", InputElement? initialFocus = null)
+    private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, string saveLabel = "Save",
+        InputElement? initialFocus = null, Action? onSaveAndContinue = null)
     {
         var isRemoval = saveLabel == "Remove";
         var dialog = new Window
@@ -176,16 +177,27 @@ public partial class MainWindow
         var save = new Button
         {
             Content = saveLabel,
-            IsDefault = saveLabel == "Save"
+            IsDefault = saveLabel == "Save" && onSaveAndContinue is null
         };
+        Button? saveAndContinue = null;
+        if (onSaveAndContinue is not null)
+        {
+            saveAndContinue = new Button
+            {
+                Content = "Add another transaction",
+                IsDefault = true
+            };
+        }
+
         var cancel = new Button
         {
             Content = "Cancel",
             IsCancel = true
         };
-        body.Children.Add(Row(save, cancel));
+        body.Children.Add(saveAndContinue is null ? Row(save, cancel) : Row(save, saveAndContinue, cancel));
         dialog.Content = new ScrollViewer { Content = body };
         var saving = false;
+        var saved = false;
         cancel.Click += (_, _) => dialog.Close();
         dialog.Closing += (_, e) =>
         {
@@ -201,7 +213,7 @@ public partial class MainWindow
                 dialog.Close();
             }
         };
-        save.Click += async (_, _) =>
+        async Task SaveAsync(bool continueEditing)
         {
             if (saving)
             {
@@ -216,7 +228,18 @@ public partial class MainWindow
                 error.Text = "Saving…";
                 await Task.Run(action);
                 saving = false;
-                dialog.Close();
+                if (continueEditing)
+                {
+                    body.IsEnabled = true;
+                    initialFocus?.Focus();
+                    onSaveAndContinue!();
+                    error.Text = "";
+                }
+                else
+                {
+                    saved = true;
+                    dialog.Close();
+                }
             }
             catch (Exception ex)
             {
@@ -227,7 +250,13 @@ public partial class MainWindow
                 saving = false;
                 body.IsEnabled = true;
             }
-        };
+        }
+
+        save.Click += async (_, _) => await SaveAsync(false);
+        if (saveAndContinue is not null)
+        {
+            saveAndContinue.Click += async (_, _) => await SaveAsync(true);
+        }
         dialog.Opened += (_, _) =>
         {
             if (initialFocus is not null)
@@ -241,7 +270,10 @@ public partial class MainWindow
             }
         };
         await dialog.ShowDialog(this);
-        await Run(Refresh);
+        if (saved)
+        {
+            await Run(Refresh);
+        }
     }
 
     private static Money ParseMoney(TextBox input) => Money.FromFrancs(decimal.Parse(input.Text ?? "", NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture));

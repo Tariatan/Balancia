@@ -175,3 +175,12 @@ contradictory entries. Do not copy the user's transaction details into this file
   Synthetic tests cover reuse, archived paths, and rollback; locked restore,
   Release solution build, and 52 tests passed. Direct Windows form interaction
   is pending because the CUA surface exposed no native apps.
+- Windows quick entry: `+` outside text controls opens Add transaction. Add has
+  Save to close and a default Enter/Add another action that saves, clears amount,
+  description, and notes, and retains date/account/type/category. Locked restore,
+  Release solution build, 53 tests, and harness check passed; manual keyboard
+  interaction remains to be checked.
+- Shared edit dialogs now refresh the mounted Overview only after a successful
+  save or delete. Cancelling Remove transaction therefore leaves the page stable
+  without the redraw blink seen before; Release build and 53 tests passed on
+  2026-09-20.

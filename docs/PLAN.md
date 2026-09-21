@@ -271,8 +271,19 @@ synthetic Release window was closed after the check.
 The Transactions tab was removed. CSV and snapshot actions now appear at the
 top of Settings; Overview remains the transaction editing surface.
 
+The 2026-09-20 quick-entry follow-up binds `+` in the main window to Add
+transaction and adds a default Add another transaction button to the Add form.
+The continued save clears amount, description, and notes but keeps the other
+selections; Save still closes. Locked restore, Release solution build, all 53
+tests, and the harness check passed. Direct Windows keyboard interaction remains
+to be checked because the computer-use surface exposed no native apps.
+
 Overview transaction history now provides add and guarded delete header actions;
 double-clicking a row opens its edit form directly.
+
+Edit dialog cancellation no longer refreshes the Overview. The shared dialog
+refreshes only after a successful final save or delete, avoiding redraw blink
+when dismissing Remove transaction.
 
 The standalone Accounts tab was removed. Overview now provides an Accounts
 card with selectable rows, add and guarded delete actions, and double-click

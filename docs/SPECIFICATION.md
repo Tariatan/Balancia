@@ -142,6 +142,11 @@ Defaults:
 - Clear filters in one action; show empty states and matching result count.
 - Keyboard-first form: sensible focus/tab order, Enter to save, Escape to cancel,
   inline validation, searchable category selection, and retained last-used account.
+- Pressing `+` from the main Windows window opens Add transaction, except while
+  entering text. Add transaction offers Save (close) and Add another transaction
+  (save and keep the form open); Enter activates Add another. After a successful
+  continued save, clear amount, description, and notes while retaining the chosen
+  date, account, type, and category for the next entry.
 - Editing a row opens its existing values. Failed saves retain entered values and
   show the error without committing partial data.
 

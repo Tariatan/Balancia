@@ -109,6 +109,10 @@ Its category `AutoCompleteBox` suggests active category paths while preserving
 typed text. Storage resolves case-insensitive path components inside the same
 SQLite write transaction as the ledger entry; a failed save rolls back newly
 created parent and child categories with the entry.
+The desktop window handles `+` for quick transaction entry outside text controls.
+The shared edit dialog accepts an optional successful-save callback for Add
+transaction: its default Enter action saves and resets the entry fields without
+closing, while its ordinary Save button commits and closes.
 
 On 2026-09-20, the desktop window code was split into partial `MainWindow`
 files by responsibility. `MainWindow.axaml.cs` owns state, initialization,
@@ -181,3 +185,7 @@ No project-specific agent skill or MCP service is needed for the initial harness
 - Snapshot encryption, backup retention, and full restore UX.
 - Android document-provider compatibility and whether automatic export adds value.
 - End-to-end UI latency at 50,000 rows, beyond measured storage timings.
+
+Desktop edit dialogs mark a successful final save before closing and refresh
+the mounted page only in that case. Cancellation does not trigger a full
+Overview rebuild, preventing visible redraws when dismissing delete dialogs.
