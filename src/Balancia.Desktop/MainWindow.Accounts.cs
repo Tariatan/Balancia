@@ -1,5 +1,4 @@
 using System.Globalization;
-using Avalonia;
 using Avalonia.Controls;
 using Balancia.Core;
 
@@ -27,50 +26,9 @@ public partial class MainWindow
             return;
         }
 
-        var dialog = new Window
-        {
-            Title = "Delete account",
-            Width = 430,
-            Height = 210,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-        var cancel = new Button
-        {
-            Content = "Cancel",
-            IsCancel = true
-        };
-        var remove = new Button
-        {
-            Content = "Delete",
-            IsDefault = true
-        };
-        remove.Click += async (_, _) =>
-        {
-            remove.IsEnabled = false;
-            try
-            {
-                await Task.Run(() => store.DeleteAccount(choice.Value.Id));
-                dialog.Close();
-                await Run(Refresh);
-            }
-            catch (Exception ex)
-            {
-                await ShowErrorDialog("Balancia", FriendlyError(ex));
-                remove.IsEnabled = true;
-            }
-        };
-        cancel.Click += (_, _) => dialog.Close();
-        dialog.Content = new StackPanel
-        {
-            Spacing = 14,
-            Margin = new Thickness(22),
-            Children =
-            {
-                Text($"Delete '{choice.Value.Name}'?"),
-                Row(remove, cancel)
-            }
-        };
-        await dialog.ShowDialog(this);
+        await EditDialog("Delete account",
+            [Text($"Delete '{choice.Value.Name}'?")],
+            () => () => store.DeleteAccount(choice.Value.Id), "Delete");
     }
 
     private async Task EditAccount(Account? account)
