@@ -1,17 +1,7 @@
-using System.Globalization;
 using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
-using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using Avalonia.Threading;
-using Balancia.Core;
-using Balancia.Storage;
-using Microsoft.Data.Sqlite;
 
 namespace Balancia.Desktop;
 
@@ -38,7 +28,7 @@ public partial class MainWindow
         }
         await Run(async () =>
         {
-            var preview = await Task.Run(() => _store.PreviewCsvImport(path));
+            var preview = await Task.Run(() => store.PreviewCsvImport(path));
             var summary = preview.Summary;
             var message = $"{summary.Rows} rows: {summary.Expenses} expenses, {summary.Incomes} income, {summary.Transfers} paired transfers, {summary.Openings} openings.\n\n" +
                 "Resolved dates (first 10 rows, 2000–2099): " +
@@ -85,7 +75,7 @@ public partial class MainWindow
                 apply.IsEnabled = false;
                 try
                 {
-                    var result = await Task.Run(() => _store.ApplyCsvImport(preview));
+                    var result = await Task.Run(() => store.ApplyCsvImport(preview));
                     dialog.Close();
                     await Refresh();
                     Status.Text = $"Imported {result.Added} entries; {result.Unchanged} unchanged.";
@@ -116,7 +106,7 @@ public partial class MainWindow
 
         await Run(async () =>
         {
-            var count = await Task.Run(() => _store.ExportCsv(path));
+            var count = await Task.Run(() => store.ExportCsv(path));
             Status.Text = $"Exported {count} rows to CSV.";
         });
     }
@@ -137,7 +127,7 @@ public partial class MainWindow
 
         await Run(async () =>
         {
-            var manifest = await Task.Run(() => _store.ExportSnapshot(path));
+            var manifest = await Task.Run(() => store.ExportSnapshot(path));
             Status.Text = $"Snapshot exported · revision {manifest.Revision}";
         });
     }
@@ -158,8 +148,8 @@ public partial class MainWindow
 
         await Run(async () =>
         {
-            var manifest = await Task.Run(() => _store.ValidateSnapshot(path));
-            var backup = await Task.Run(() => _store.RestoreSnapshot(path));
+            var manifest = await Task.Run(() => store.ValidateSnapshot(path));
+            var backup = await Task.Run(() => store.RestoreSnapshot(path));
             Status.Text = $"Snapshot restored · revision {manifest.Revision} · backup {Path.GetFileName(backup)}";
             await Refresh();
         });

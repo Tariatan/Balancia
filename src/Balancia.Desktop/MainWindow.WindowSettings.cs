@@ -1,24 +1,25 @@
 using System.Text.Json;
 using Avalonia;
+using Avalonia.Controls;
 
 namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
     private sealed record WindowSettings(double Width, double Height, int X, int Y);
-    private PixelPoint? _loadedWindowPosition;
-    private PixelPoint? _windowPositionForPersistence;
+    private PixelPoint? loadedWindowPosition;
+    private PixelPoint? windowPositionForPersistence;
 
     private void LoadWindowSettings()
     {
         try
         {
-            if (!File.Exists(_windowSettingsPath))
+            if (!File.Exists(windowSettingsPath))
             {
                 return;
             }
 
-            var json = File.ReadAllText(_windowSettingsPath);
+            var json = File.ReadAllText(windowSettingsPath);
             var settings = JsonSerializer.Deserialize<WindowSettings>(json);
             if (settings is null || !IsValidWindowSize(settings.Width, settings.Height))
             {
@@ -27,9 +28,9 @@ public partial class MainWindow
 
             Width = settings.Width;
             Height = settings.Height;
-            _loadedWindowPosition = new PixelPoint(settings.X, settings.Y);
-            _windowPositionForPersistence = _loadedWindowPosition;
-            WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.Manual;
+            loadedWindowPosition = new PixelPoint(settings.X, settings.Y);
+            windowPositionForPersistence = loadedWindowPosition;
+            WindowStartupLocation = WindowStartupLocation.Manual;
         }
         catch (JsonException)
         {
@@ -47,7 +48,7 @@ public partial class MainWindow
 
     private void ApplyLoadedWindowPosition()
     {
-        if (_loadedWindowPosition is { } position)
+        if (loadedWindowPosition is { } position)
         {
             Position = position;
         }
@@ -57,19 +58,19 @@ public partial class MainWindow
     {
         try
         {
-            var directory = Path.GetDirectoryName(_windowSettingsPath);
+            var directory = Path.GetDirectoryName(windowSettingsPath);
             if (string.IsNullOrWhiteSpace(directory))
             {
                 return;
             }
 
             Directory.CreateDirectory(directory);
-            var position = _windowPositionForPersistence ?? Position;
+            var position = windowPositionForPersistence ?? Position;
             var settings = new WindowSettings(Width, Height, position.X, position.Y);
             var json = JsonSerializer.Serialize(settings);
-            var temporaryPath = _windowSettingsPath + ".tmp";
+            var temporaryPath = windowSettingsPath + ".tmp";
             File.WriteAllText(temporaryPath, json);
-            File.Move(temporaryPath, _windowSettingsPath, true);
+            File.Move(temporaryPath, windowSettingsPath, true);
         }
         catch (IOException)
         {

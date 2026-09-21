@@ -6,9 +6,9 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
-    public int ExportCsv(string path)
+    public int ExportCsv(string exportPath)
     {
-        var fullPath = Path.GetFullPath(path);
+        var fullPath = Path.GetFullPath(exportPath);
         var directory = Path.GetDirectoryName(fullPath)!;
         Directory.CreateDirectory(directory);
         var snapshot = ReadSnapshot();

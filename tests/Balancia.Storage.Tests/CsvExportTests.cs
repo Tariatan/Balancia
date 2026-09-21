@@ -1,5 +1,4 @@
 using Balancia.Core;
-using Balancia.Storage;
 using Microsoft.VisualBasic.FileIO;
 using Xunit;
 
@@ -19,11 +18,11 @@ public sealed class CsvExportTests
             var from = store.SaveAccount(null, "Everyday", new DateOnly(2026, 1, 1), Money.FromFrancs(100));
             var to = store.SaveAccount(null, "Savings", new DateOnly(2026, 1, 1), new Money(0));
             var category = store.SaveCategory(null, "Food", null);
-            store.SaveTransaction(null, new(TransactionKind.Expense, new DateOnly(2026, 1, 2),
+            store.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, new DateOnly(2026, 1, 2),
                 "Bread, \"fresh\"\nloaf", Money.FromFrancs(12.34m), from, CategoryId: category, Memo: "first\nsecond"));
-            store.SaveTransaction(null, new(TransactionKind.Income, new DateOnly(2026, 1, 3),
+            store.SaveTransaction(null, new TransactionDraft(TransactionKind.Income, new DateOnly(2026, 1, 3),
                 "Refund", Money.FromFrancs(5), from));
-            store.SaveTransaction(null, new(TransactionKind.Transfer, new DateOnly(2026, 1, 4),
+            store.SaveTransaction(null, new TransactionDraft(TransactionKind.Transfer, new DateOnly(2026, 1, 4),
                 "Move", Money.FromFrancs(20), from, to));
 
             var path = Path.Combine(directory, "export.csv");

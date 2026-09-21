@@ -1,17 +1,10 @@
 using System.Globalization;
 using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using Balancia.Core;
-using Balancia.Storage;
-using Microsoft.Data.Sqlite;
 
 namespace Balancia.Desktop;
 
@@ -40,8 +33,8 @@ public partial class MainWindow
 
         var recurring = new ListBox
         {
-            ItemsSource = _reminders.Take(5).Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray(),
-            MinHeight = _reminders.Count == 0 ? 0 : 45,
+            ItemsSource = reminders.Take(5).Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray(),
+            MinHeight = reminders.Count == 0 ? 0 : 45,
             MaxHeight = 175,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
@@ -104,7 +97,7 @@ public partial class MainWindow
             }
         };
 
-        if (_reminders.Count == 0)
+        if (reminders.Count == 0)
         {
             body.Children.Add(QuietText("No recurring payment templates.", 12));
         }
@@ -145,7 +138,7 @@ public partial class MainWindow
             remove.IsEnabled = false;
             try
             {
-                await Task.Run(() => _store.DeleteRecurringTemplate(choice.Value.Template.Id));
+                await Task.Run(() => store.DeleteRecurringTemplate(choice.Value.Template.Id));
                 dialog.Close();
                 await Run(Refresh);
             }
@@ -176,7 +169,7 @@ public partial class MainWindow
     {
         var template = reminder?.Template;
         var description = Input(template?.Description ?? "");
-        var date = DateInput(template?.ExpectedDate ?? _displayDate);
+        var date = DateInput(template?.ExpectedDate ?? displayDate);
         var amount = Input((template?.IndicativeAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
         var interval = Input((template?.IntervalMonths ?? 1).ToString(CultureInfo.InvariantCulture));
         await EditDialog(template is null ? "Add recurring template" : "Edit recurring template",
@@ -185,7 +178,7 @@ public partial class MainWindow
             {
                 var values = (description.Text ?? "", ParseDate(date), ParseMoney(amount),
                     int.Parse(interval.Text ?? "", CultureInfo.InvariantCulture));
-                return () => _store.SaveRecurringTemplate(template?.Id, values.Item1, values.Item2, values.Item3, values.Item4, template?.Archived ?? false);
+                return () => store.SaveRecurringTemplate(template?.Id, values.Item1, values.Item2, values.Item3, values.Item4, template?.Archived ?? false);
             });
     }
 }

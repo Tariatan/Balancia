@@ -22,8 +22,8 @@ public sealed partial class LedgerStore
             throw new InvalidDataException("An older snapshot cannot replace the current ledger.");
         }
 
-        var staged = _path + ".restore-" + Guid.NewGuid().ToString("N");
-        var backup = _path + ".pre-restore-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N") + ".bak";
+        var staged = path + ".restore-" + Guid.NewGuid().ToString("N");
+        var backup = path + ".pre-restore-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N") + ".bak";
         try
         {
             using (var archive = ZipFile.OpenRead(Path.GetFullPath(source)))
@@ -34,8 +34,8 @@ public sealed partial class LedgerStore
             }
 
             SqliteConnection.ClearAllPools();
-            File.Copy(_path, backup, true);
-            File.Move(staged, _path, true);
+            File.Copy(path, backup, true);
+            File.Move(staged, path, true);
             return backup;
         }
         finally
@@ -49,7 +49,7 @@ public sealed partial class LedgerStore
 
     private string ReadDatasetId()
     {
-        using var c = _connections.Open();
+        using var c = connections.Open();
         using var cmd = c.CreateCommand();
         cmd.CommandText = "SELECT dataset_id FROM metadata WHERE id=1";
         return Convert.ToString(cmd.ExecuteScalar())!;
@@ -71,7 +71,7 @@ public sealed partial class LedgerStore
         }
 
         var database = archive.GetEntry("ledger.db") ?? throw new InvalidDataException("Snapshot database is missing.");
-        var temporary = _path + ".snapshot-check-" + Guid.NewGuid().ToString("N");
+        var temporary = path + ".snapshot-check-" + Guid.NewGuid().ToString("N");
         try
         {
             using (var input = database.Open())
@@ -116,7 +116,7 @@ public sealed partial class LedgerStore
         try
         {
             SnapshotManifest manifest;
-            using (var source = _connections.Open())
+            using (var source = connections.Open())
             using (var backup = new SqliteConnectionFactory(temporary).Open())
             {
                 source.BackupDatabase(backup);
@@ -128,7 +128,7 @@ public sealed partial class LedgerStore
                     throw new InvalidOperationException("Ledger metadata is missing.");
                 }
 
-                manifest = new("balancia-snapshot-1", 3, reader.GetString(0), reader.GetInt64(1), DateTimeOffset.UtcNow);
+                manifest = new SnapshotManifest("balancia-snapshot-1", 3, reader.GetString(0), reader.GetInt64(1), DateTimeOffset.UtcNow);
             }
             var staged = full + ".staged-" + Guid.NewGuid().ToString("N");
             using (var archive = ZipFile.Open(staged, ZipArchiveMode.Create))

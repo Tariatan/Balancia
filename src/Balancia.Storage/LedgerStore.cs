@@ -7,21 +7,21 @@ namespace Balancia.Storage;
 /// <summary>Owns the single-writer ledger boundary; all logical changes commit together.</summary>
 public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
 {
-    private readonly string _path = path;
-    private readonly SqliteConnectionFactory _connections = new(path);
-    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
-    private DateOnly Today => DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
+    private readonly string path = path;
+    private readonly SqliteConnectionFactory connections = new(path);
+    private readonly TimeProvider clock = clock ?? TimeProvider.System;
+    private DateOnly Today => DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
 
     public void Initialize()
     {
-        using var c = _connections.Open();
+        using var c = connections.Open();
         using (var check = c.CreateCommand())
         {
             check.CommandText = "PRAGMA user_version";
             var existing = Convert.ToInt64(check.ExecuteScalar());
             if (existing == 1)
             {
-                var backupPath = _path + ".pre-v2-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N") + ".bak";
+                var backupPath = path + ".pre-v2-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N") + ".bak";
                 using var backup = new SqliteConnectionFactory(backupPath).Open();
                 c.BackupDatabase(backup);
             }
@@ -106,21 +106,21 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
     public IReadOnlyList<RecurringReminder> ReadRecurringReminders(DateOnly? asOf = null)
     {
         var today = asOf ?? Today;
-        using var c = _connections.Open();
+        using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         var result = new List<RecurringReminder>();
         using var cmd = Command(c, tx, "SELECT id,description,expected_date,indicative_amount,interval_months,archived FROM recurring_templates WHERE archived=0 ORDER BY expected_date,description COLLATE NOCASE");
         using var r = cmd.ExecuteReader();
         while (r.Read())
         {
-            var template = new RecurringTemplate(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new(r.GetInt64(3)), r.GetInt32(4), r.GetBoolean(5));
+            var template = new RecurringTemplate(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new Money(r.GetInt64(3)), r.GetInt32(4), r.GetBoolean(5));
             var occurrence = template.ExpectedDate;
             while (occurrence < today && IsSatisfied(c, tx, template.Description, occurrence))
             {
                 occurrence = AddMonthsClamped(occurrence, template.IntervalMonths, template.ExpectedDate.Day);
             }
 
-            result.Add(new(template, occurrence, occurrence < today, IsSatisfied(c, tx, template.Description, occurrence)));
+            result.Add(new RecurringReminder(template, occurrence, occurrence < today, IsSatisfied(c, tx, template.Description, occurrence)));
         }
         tx.Commit();
         return result.OrderBy(x => x.Satisfied ? 1 : 0).ThenBy(x => x.Occurrence).ToArray();
@@ -222,7 +222,10 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
     {
         Require(c, tx, "SELECT 1 FROM accounts WHERE id=$id", id, "Account no longer exists.");
         if (Scalar(c, tx, "SELECT 1 FROM movements WHERE account_id=$id AND transaction_id<>'opening:' || $id LIMIT 1", ("$id", id)) is not null)
+        {
             throw new InvalidOperationException("An account with transactions cannot be deleted. Archive it instead.");
+        }
+
         Execute(c, tx, "DELETE FROM movements WHERE account_id=$id AND transaction_id='opening:' || $id; DELETE FROM ledger WHERE id='opening:' || $id; DELETE FROM accounts WHERE id=$id", ("$id", id));
     });
 
@@ -436,7 +439,7 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
 
     public LedgerSnapshot ReadSnapshot()
     {
-        using var c = _connections.Open();
+        using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         var result = ReadSnapshot(c, tx);
         tx.Commit();
@@ -451,7 +454,7 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         {
             while (r.Read())
             {
-                categories.Add(new(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4)));
+                categories.Add(new Category(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4)));
             }
         }
 
@@ -471,7 +474,7 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
         {
             while (r.Read())
             {
-                accounts.Add(new(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new(r.GetInt64(4)), r.GetBoolean(3), new(checked((long)balances.GetValueOrDefault(r.GetString(0))))));
+                accounts.Add(new Account(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new Money(r.GetInt64(4)), r.GetBoolean(3), new Money(checked((long)balances.GetValueOrDefault(r.GetString(0))))));
             }
         }
 
@@ -494,14 +497,13 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
                 var destination = r.IsDBNull(8) ? null : r.GetString(8);
                 var draft = new TransactionDraft(Enum.Parse<TransactionKind>(r.GetString(1)), ParseDate(r.GetString(2)), r.GetString(3),
                     new Money(Math.Abs(r.GetInt64(7))), account, destination, category, r.GetString(5));
-                entries.Add(new(r.GetString(0), draft, accountMap[account].Name, destination is null ? null : accountMap[destination].Name,
+                entries.Add(new LedgerEntry(r.GetString(0), draft, accountMap[account].Name, destination is null ? null : accountMap[destination].Name,
                     category is null ? null : categoryMap[category].Path));
             }
         }
 
         var today = Today;
         var monthEntries = entries.Where(e => e.Draft.Date.Year == today.Year && e.Draft.Date.Month == today.Month).ToArray();
-        Money Total(IEnumerable<long> amounts) => new(checked((long)amounts.Sum(v => (decimal)v)));
         // Validate all months, not only the displayed month, before committing a write.
         foreach (var period in entries.Where(e => e.Draft.Kind != TransactionKind.Transfer).GroupBy(e => (e.Draft.Date.Year, e.Draft.Date.Month, e.Draft.Kind)))
         {
@@ -512,15 +514,16 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
             .GroupBy(e => e.Draft.CategoryId is null ? "Uncategorized" : categoryMap[e.Draft.CategoryId].ParentId is { } parent ? categoryMap[parent].Name : categoryMap[e.Draft.CategoryId].Name)
             .Select(g => new CategoryTotal(g.Key, Total(g.Select(e => e.Draft.Amount.Centimes))))
             .OrderByDescending(g => g.Amount.Centimes).Take(5).ToArray();
-        return new(accounts, categories, entries, Total(accounts.Select(a => a.Balance.Centimes)),
+        return new LedgerSnapshot(accounts, categories, entries, Total(accounts.Select(a => a.Balance.Centimes)),
             Total(monthEntries.Where(e => e.Draft.Kind == TransactionKind.Income).Select(e => e.Draft.Amount.Centimes)),
             Total(monthEntries.Where(e => e.Draft.Kind == TransactionKind.Expense).Select(e => e.Draft.Amount.Centimes)), top,
             Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")));
+        Money Total(IEnumerable<long> amounts) => new(checked((long)amounts.Sum(v => (decimal)v)));
     }
 
     private void Write(Action<SqliteConnection, SqliteTransaction> action)
     {
-        using var c = _connections.Open();
+        using var c = connections.Open();
         using var tx = c.BeginTransaction();
         action(c, tx);
         ValidateLedgerTotals(c, tx);

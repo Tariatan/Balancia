@@ -1,3 +1,4 @@
+using System.Globalization;
 using Xunit;
 
 namespace Balancia.Core.Tests;
@@ -14,7 +15,7 @@ public class MoneyTests
     [InlineData("-92233720368547758.08")]
     public void SupportedAmountsRoundTrip(string text)
     {
-        var value = decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
+        var value = decimal.Parse(text, CultureInfo.InvariantCulture);
         Assert.Equal(value, Money.FromFrancs(value).Francs);
     }
 

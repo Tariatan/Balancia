@@ -5,20 +5,20 @@ namespace Balancia.Storage.Tests;
 
 public sealed class HistoryQueriesTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), "balancia-history-" + Guid.NewGuid().ToString("N") + ".db");
-    private readonly Clock _clock = new();
-    private readonly LedgerStore _store;
+    private readonly string path = Path.Combine(Path.GetTempPath(), "balancia-history-" + Guid.NewGuid().ToString("N") + ".db");
+    private readonly Clock clock = new();
+    private readonly LedgerStore store;
     private static readonly DateOnly Start = new(2026, 9, 1);
 
     public HistoryQueriesTests()
     {
-        _store = new(_path, _clock);
-        _store.Initialize();
+        store = new LedgerStore(path, clock);
+        store.Initialize();
     }
-    private string Account(string name) => _store.SaveAccount(null, name, Start, new Money(0));
+    private string Account(string name) => store.SaveAccount(null, name, Start, new Money(0));
     private string Entry(string account, string text, decimal francs, string? category = null, DateOnly? date = null,
-        TransactionKind kind = TransactionKind.Expense) => _store.SaveTransaction(null,
-        new(kind, date ?? Start.AddDays(1), text, Money.FromFrancs(francs), account, CategoryId: category));
+        TransactionKind kind = TransactionKind.Expense) => store.SaveTransaction(null,
+        new TransactionDraft(kind, date ?? Start.AddDays(1), text, Money.FromFrancs(francs), account, CategoryId: category));
 
     [Fact]
     public void H01_CombinedSearchDateAmountAccountAndTypeUseInclusiveEndpoints()
@@ -31,26 +31,26 @@ public sealed class HistoryQueriesTests : IDisposable
         Entry(a, "Lunch at work", 13m);
         Entry(a, "Lunch at work", 12.50m, kind: TransactionKind.Income);
         Entry(a, "Crème brûlée", 2m);
-        var page = _store.ReadHistory(new("lUnCh aT wOrK", a, TransactionKind.Expense, null,
+        var page = store.ReadHistory(new HistoryFilter("lUnCh aT wOrK", a, TransactionKind.Expense, null,
             Start.AddDays(1), Start.AddDays(1), Money.FromFrancs(12.50m), Money.FromFrancs(12.50m)));
         Assert.Equal(1, page.TotalCount);
         Assert.Equal(match, page.Hits.Single().Entry.Id);
         Assert.Equal(-1250, page.Hits.Single().AccountEffect?.Centimes);
-        Assert.Equal(1, _store.ReadHistory(new(Description: "CRÈME")).TotalCount);
+        Assert.Equal(1, store.ReadHistory(new HistoryFilter(Description: "CRÈME")).TotalCount);
     }
 
     [Fact]
     public void H02_ParentCategoryIncludesOwnAndChildEntries()
     {
         var a = Account("A");
-        var food = _store.SaveCategory(null, "Food", null);
-        var lunch = _store.SaveCategory(null, "Lunch", food);
-        var car = _store.SaveCategory(null, "Car", null);
+        var food = store.SaveCategory(null, "Food", null);
+        var lunch = store.SaveCategory(null, "Lunch", food);
+        var car = store.SaveCategory(null, "Car", null);
         Entry(a, "one", 1, food);
         Entry(a, "two", 2, lunch);
         Entry(a, "three", 3, car);
-        Assert.Equal(2, _store.ReadHistory(new(CategoryId: food)).TotalCount);
-        Assert.Equal(1, _store.ReadHistory(new(CategoryId: lunch)).TotalCount);
+        Assert.Equal(2, store.ReadHistory(new HistoryFilter(CategoryId: food)).TotalCount);
+        Assert.Equal(1, store.ReadHistory(new HistoryFilter(CategoryId: lunch)).TotalCount);
     }
 
     [Fact]
@@ -63,21 +63,21 @@ public sealed class HistoryQueriesTests : IDisposable
             Entry(a, "same day " + i, 1);
         }
 
-        _store.SaveTransaction(null, new(TransactionKind.Transfer, Start.AddDays(1), "Move", Money.FromFrancs(5), a, b));
-        var first = _store.ReadHistory(new(), 0, 7);
+        store.SaveTransaction(null, new TransactionDraft(TransactionKind.Transfer, Start.AddDays(1), "Move", Money.FromFrancs(5), a, b));
+        var first = store.ReadHistory(new HistoryFilter(), 0, 7);
         var all = new List<string>();
         var page = first;
         while (page.Hits.Count > 0)
         {
             all.AddRange(page.Hits.Select(h => h.Entry.Id));
             var last = page.Hits[^1].Entry;
-            page = _store.ReadHistoryAfter(new(), last.Draft.Date, last.Id, 7);
+            page = store.ReadHistoryAfter(new HistoryFilter(), last.Draft.Date, last.Id, 7);
         }
         Assert.Equal(30, all.Count);
         Assert.Equal(30, all.Distinct().Count());
-        Assert.Equal(_store.ReadSnapshot().Entries.Select(e => e.Id), all);
-        Assert.Equal(9, _store.FindHistoryOffset(all[9]));
-        var transfer = _store.ReadHistory(new(AccountId: b)).Hits.Single();
+        Assert.Equal(store.ReadSnapshot().Entries.Select(e => e.Id), all);
+        Assert.Equal(9, store.FindHistoryOffset(all[9]));
+        var transfer = store.ReadHistory(new HistoryFilter(AccountId: b)).Hits.Single();
         Assert.Equal(500, transfer.AccountEffect?.Centimes);
     }
 
@@ -91,7 +91,7 @@ public sealed class HistoryQueriesTests : IDisposable
             Entry(account, "inside " + i, 1, date: Start.AddDays(2));
         }
 
-        var page = _store.ReadAllHistory(new(From: Start.AddDays(2), To: Start.AddDays(2)));
+        var page = store.ReadAllHistory(new HistoryFilter(From: Start.AddDays(2), To: Start.AddDays(2)));
 
         Assert.Equal(1005, page.TotalCount);
         Assert.Equal(1005, page.Hits.Count);
@@ -104,34 +104,34 @@ public sealed class HistoryQueriesTests : IDisposable
     {
         var a = Account("A");
         var id = Entry(a, "Expense", 10);
-        Assert.Equal(1000, _store.ReadDesktopSnapshot().MonthlyExpenses.Centimes);
-        var original = _store.ReadHistory(new()).Hits.Single().Entry.Draft;
-        _store.SaveTransaction(id, original with
+        Assert.Equal(1000, store.ReadDesktopSnapshot().MonthlyExpenses.Centimes);
+        var original = store.ReadHistory(new HistoryFilter()).Hits.Single().Entry.Draft;
+        store.SaveTransaction(id, original with
         {
             Amount = Money.FromFrancs(15)
         });
-        Assert.Equal(1500, _store.ReadDesktopSnapshot().MonthlyExpenses.Centimes);
-        Assert.Equal(1500, _store.ReadHistory(new()).Hits.Single().Entry.Draft.Amount.Centimes);
-        _clock.Now = new(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
-        Assert.Equal(0, _store.ReadDesktopSnapshot().MonthlyExpenses.Centimes);
-        _store.DeleteTransaction(id);
-        Assert.Empty(_store.ReadHistory(new()).Hits);
-        Assert.Equal(0, _store.ReadDesktopSnapshot().NetWorth.Centimes);
+        Assert.Equal(1500, store.ReadDesktopSnapshot().MonthlyExpenses.Centimes);
+        Assert.Equal(1500, store.ReadHistory(new HistoryFilter()).Hits.Single().Entry.Draft.Amount.Centimes);
+        clock.Now = new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
+        Assert.Equal(0, store.ReadDesktopSnapshot().MonthlyExpenses.Centimes);
+        store.DeleteTransaction(id);
+        Assert.Empty(store.ReadHistory(new HistoryFilter()).Hits);
+        Assert.Equal(0, store.ReadDesktopSnapshot().NetWorth.Centimes);
     }
 
     [Fact]
     public void OverviewPeriodChangesFlowsCategoriesAndHistoryButNotBalances()
     {
-        var account = _store.SaveAccount(null, "Everyday", new DateOnly(2026, 8, 1), new Money(0));
-        var food = _store.SaveCategory(null, "Food", null);
-        var transport = _store.SaveCategory(null, "Transport", null);
+        var account = store.SaveAccount(null, "Everyday", new DateOnly(2026, 8, 1), new Money(0));
+        var food = store.SaveCategory(null, "Food", null);
+        var transport = store.SaveCategory(null, "Transport", null);
         Entry(account, "August groceries", 10, food, new DateOnly(2026, 8, 31));
         Entry(account, "September train", 20, transport, Start);
         Entry(account, "September salary", 50, date: Start.AddDays(17), kind: TransactionKind.Income);
 
-        var august = _store.ReadDesktopSnapshotForPeriod(new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 31));
-        var september = _store.ReadDesktopSnapshotForPeriod(Start, Start.AddDays(17));
-        var all = _store.ReadDesktopSnapshotForPeriod(null, null);
+        var august = store.ReadDesktopSnapshotForPeriod(new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 31));
+        var september = store.ReadDesktopSnapshotForPeriod(Start, Start.AddDays(17));
+        var all = store.ReadDesktopSnapshotForPeriod(null, null);
 
         Assert.Equal(2000, august.NetWorth.Centimes);
         Assert.Equal(2000, september.NetWorth.Centimes);
@@ -144,8 +144,8 @@ public sealed class HistoryQueriesTests : IDisposable
         Assert.Equal("Transport", september.LargestCategories.Single().Name);
         Assert.Equal(3000, all.MonthlyExpenses.Centimes);
         Assert.Equal(2, all.LargestCategories.Count);
-        Assert.Equal(1, _store.ReadHistory(new(From: new DateOnly(2026, 8, 31), To: new DateOnly(2026, 8, 31))).TotalCount);
-        Assert.Throws<ArgumentException>(() => _store.ReadDesktopSnapshotForPeriod(Start, new DateOnly(2026, 8, 31)));
+        Assert.Equal(1, store.ReadHistory(new HistoryFilter(From: new DateOnly(2026, 8, 31), To: new DateOnly(2026, 8, 31))).TotalCount);
+        Assert.Throws<ArgumentException>(() => store.ReadDesktopSnapshotForPeriod(Start, new DateOnly(2026, 8, 31)));
     }
 
     [Fact]
@@ -153,10 +153,10 @@ public sealed class HistoryQueriesTests : IDisposable
     {
         var account = Account("Everyday");
         var other = Account("Other");
-        var food = _store.SaveCategory(null, "Food", null);
-        var lunch = _store.SaveCategory(null, "Lunch", food);
-        var dinner = _store.SaveCategory(null, "Dinner", food);
-        var car = _store.SaveCategory(null, "Car", null);
+        var food = store.SaveCategory(null, "Food", null);
+        var lunch = store.SaveCategory(null, "Lunch", food);
+        var dinner = store.SaveCategory(null, "Dinner", food);
+        var car = store.SaveCategory(null, "Car", null);
         Entry(account, "match", 3, food);
         Entry(account, "match", 4, lunch);
         Entry(account, "match", 5, dinner);
@@ -168,20 +168,20 @@ public sealed class HistoryQueriesTests : IDisposable
         var filter = new HistoryFilter(Description: "MATCH", AccountId: account,
             CategoryId: food, From: Start.AddDays(1), To: Start.AddDays(1),
             Minimum: Money.FromFrancs(3), Maximum: Money.FromFrancs(7));
-        var history = _store.ReadHistory(filter);
-        var overview = _store.ReadDesktopSnapshotForFilter(filter);
+        var history = store.ReadHistory(filter);
+        var overview = store.ReadDesktopSnapshotForFilter(filter);
 
         Assert.Equal(4, history.TotalCount);
         Assert.Equal(1200, overview.MonthlyExpenses.Centimes);
         Assert.Equal(700, overview.MonthlyIncome.Centimes);
         Assert.Equal(new[] { "Dinner", "Lunch", "Food" }, overview.LargestCategories.Select(x => x.Name));
         Assert.Equal(new long[] { 500, 400, 300 }, overview.LargestCategories.Select(x => x.Amount.Centimes));
-        Assert.Equal(_store.ReadDesktopSnapshotForPeriod(null, null).NetWorth, overview.NetWorth);
+        Assert.Equal(store.ReadDesktopSnapshotForPeriod(null, null).NetWorth, overview.NetWorth);
 
-        var expensesOnly = _store.ReadDesktopSnapshotForFilter(filter with { Kind = TransactionKind.Expense });
+        var expensesOnly = store.ReadDesktopSnapshotForFilter(filter with { Kind = TransactionKind.Expense });
         Assert.Equal(0, expensesOnly.MonthlyIncome.Centimes);
         Assert.Equal(1200, expensesOnly.MonthlyExpenses.Centimes);
-        var lunchOnly = _store.ReadDesktopSnapshotForFilter(filter with { CategoryId = lunch });
+        var lunchOnly = store.ReadDesktopSnapshotForFilter(filter with { CategoryId = lunch });
         Assert.Equal(400, lunchOnly.MonthlyExpenses.Centimes);
         Assert.Equal(700, lunchOnly.MonthlyIncome.Centimes);
     }
@@ -204,16 +204,16 @@ public sealed class HistoryQueriesTests : IDisposable
         var lunch = store.SaveCategory(null, "Lunch", food);
         for (var i = 0; i < 220; i++)
         {
-            store.SaveTransaction(null, new(TransactionKind.Expense, Start.AddDays(i % 10),
+            store.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, Start.AddDays(i % 10),
                 i % 2 == 0 ? "Synthetic lunch" : "Synthetic groceries", Money.FromFrancs(1 + i % 5),
                 a, CategoryId: i % 2 == 0 ? lunch : food));
         }
 
-        store.SaveTransaction(null, new(TransactionKind.Transfer, Start.AddDays(3), "Synthetic transfer",
+        store.SaveTransaction(null, new TransactionDraft(TransactionKind.Transfer, Start.AddDays(3), "Synthetic transfer",
             Money.FromFrancs(25), a, b));
     }
 
-    public void Dispose() => File.Delete(_path);
+    public void Dispose() => File.Delete(path);
     private sealed class Clock : TimeProvider
     {
         public DateTimeOffset Now { get; set; } = new(2026, 9, 18, 12, 0, 0, TimeSpan.Zero);

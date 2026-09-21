@@ -1,17 +1,11 @@
 using System.Globalization;
 using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using Balancia.Core;
 using Balancia.Storage;
-using Microsoft.Data.Sqlite;
 
 namespace Balancia.Desktop;
 
@@ -84,7 +78,7 @@ public partial class MainWindow
     private async Task EditTransaction(LedgerEntry? entry)
     {
         var existing = entry?.Draft;
-        var accounts = _snapshot!.Accounts.Where(a => !a.Archived || a.Id == existing?.AccountId || a.Id == existing?.DestinationId).ToArray();
+        var accounts = snapshot!.Accounts.Where(a => !a.Archived || a.Id == existing?.AccountId || a.Id == existing?.DestinationId).ToArray();
         if (accounts.Length == 0)
         {
             Status.Text = "Add an active account before entering transactions.";
@@ -103,7 +97,7 @@ public partial class MainWindow
         var account = new ComboBox
         {
             ItemsSource = accounts,
-            SelectedItem = accounts.FirstOrDefault(a => a.Id == (existing?.AccountId ?? _lastAccountId)) ?? accounts[0],
+            SelectedItem = accounts.FirstOrDefault(a => a.Id == (existing?.AccountId ?? lastAccountId)) ?? accounts[0],
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         var destination = new ComboBox
@@ -112,14 +106,14 @@ public partial class MainWindow
             SelectedItem = accounts.FirstOrDefault(a => a.Id == existing?.DestinationId),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        var categoryPaths = _snapshot.Categories
+        var categoryPaths = snapshot.Categories
             .Where(c => !c.Archived || c.Id == existing?.CategoryId)
             .Select(c => c.Path)
             .ToList();
         var category = new AutoCompleteBox
         {
             ItemsSource = categoryPaths,
-            Text = _snapshot.Categories.FirstOrDefault(c => c.Id == existing?.CategoryId)?.Path ?? "",
+            Text = snapshot.Categories.FirstOrDefault(c => c.Id == existing?.CategoryId)?.Path ?? "",
             FilterMode = AutoCompleteFilterMode.ContainsOrdinal,
             MinimumPrefixLength = 1,
             PlaceholderText = "Type or select a category",
@@ -166,8 +160,8 @@ public partial class MainWindow
                     type == TransactionKind.Transfer ? (destination.SelectedItem as Account)?.Id : null,
                     Memo: memo.Text ?? "");
                 var categoryPath = type == TransactionKind.Transfer ? null : category.Text;
-                _lastAccountId = draft.AccountId;
-                return () => _store.SaveTransactionWithCategoryPath(entry?.Id, draft, categoryPath);
+                lastAccountId = draft.AccountId;
+                return () => store.SaveTransactionWithCategoryPath(entry?.Id, draft, categoryPath);
             }, initialFocus: category, onSaveAndContinue: continueAfterSave);
     }
 
@@ -176,9 +170,14 @@ public partial class MainWindow
             string.IsNullOrWhiteSpace(entry.Draft.Description) ? "(No description)" : entry.Draft.Description,
             entry.CategoryPath ?? "—",
             entry.DestinationName is null ? entry.AccountName : $"{entry.AccountName} → {entry.DestinationName}",
-            (entry.Draft.Kind == TransactionKind.Expense ? "− " : entry.Draft.Kind == TransactionKind.Income ? "+ " : "↔ ") + AmountText(entry.Draft.Amount),
+            (entry.Draft.Kind switch
+            {
+                TransactionKind.Expense => "− ",
+                TransactionKind.Income => "+ ",
+                _ => "↔ "
+            }) + AmountText(entry.Draft.Amount),
             false, entry.Draft.Kind), Text("Remove this transaction? For a transfer, both account movements will be removed together.")],
-        () => () => _store.DeleteTransaction(entry.Id), "Remove");
+        () => () => store.DeleteTransaction(entry.Id), "Remove");
 
     private sealed record HistoryItem(HistoryHit Hit)
     {

@@ -2,15 +2,10 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using Balancia.Core;
-using Balancia.Storage;
 using Microsoft.Data.Sqlite;
 
 namespace Balancia.Desktop;
@@ -213,6 +208,32 @@ public partial class MainWindow
                 dialog.Close();
             }
         };
+
+        save.Click += async (_, _) => await SaveAsync(false);
+        if (saveAndContinue is not null)
+        {
+            saveAndContinue.Click += async (_, _) => await SaveAsync(true);
+        }
+        dialog.Opened += (_, _) =>
+        {
+            if (initialFocus is not null)
+            {
+                initialFocus.Focus();
+                return;
+            }
+            if (fields.FirstOrDefault() is StackPanel panel && panel.Children.LastOrDefault() is InputElement input)
+            {
+                input.Focus();
+            }
+        };
+        await dialog.ShowDialog(this);
+        if (saved)
+        {
+            await Run(Refresh);
+        }
+
+        return;
+
         async Task SaveAsync(bool continueEditing)
         {
             if (saving)
@@ -250,29 +271,6 @@ public partial class MainWindow
                 saving = false;
                 body.IsEnabled = true;
             }
-        }
-
-        save.Click += async (_, _) => await SaveAsync(false);
-        if (saveAndContinue is not null)
-        {
-            saveAndContinue.Click += async (_, _) => await SaveAsync(true);
-        }
-        dialog.Opened += (_, _) =>
-        {
-            if (initialFocus is not null)
-            {
-                initialFocus.Focus();
-                return;
-            }
-            if (fields.FirstOrDefault() is StackPanel panel && panel.Children.LastOrDefault() is InputElement input)
-            {
-                input.Focus();
-            }
-        };
-        await dialog.ShowDialog(this);
-        if (saved)
-        {
-            await Run(Refresh);
         }
     }
 
@@ -337,11 +335,11 @@ public partial class MainWindow
         Foreground = Brush.Parse("#344D44")
     };
     private static string AmountText(Money value) => value.Francs.ToString("N2", CultureInfo.GetCultureInfo("de-CH"));
-    private static string EntryText(LedgerEntry entry) => $"{entry.Draft.Date:yyyy-MM-dd}  ·  {entry.Draft.Kind}  ·  {AmountText(entry.Draft.Amount)}  ·  {entry.AccountName}{(entry.DestinationName is null ? "" : " → " + entry.DestinationName)}  ·  {entry.Draft.Description}  ·  {entry.CategoryPath ?? ""}";
+
     private static StackPanel Field(string label, Control input)
     {
         AutomationProperties.SetName(input, label);
-        return new()
+        return new StackPanel
         {
             Spacing = 5,
             Children = { Text(label), input }
@@ -369,21 +367,15 @@ public partial class MainWindow
         public override string ToString() => Label;
     }
 
-    private sealed class AmountExpressionParser
+    private sealed class AmountExpressionParser(string text)
     {
-        private readonly string _text;
-        private int _index;
-
-        public AmountExpressionParser(string text)
-        {
-            _text = text;
-        }
+        private int index;
 
         public decimal Parse()
         {
             var value = ParseExpression();
             SkipWhitespace();
-            if (_index != _text.Length)
+            if (index != text.Length)
             {
                 throw new FormatException();
             }
@@ -470,23 +462,23 @@ public partial class MainWindow
         private decimal ParseNumber()
         {
             SkipWhitespace();
-            var start = _index;
+            var start = index;
             var hasDigits = false;
             var hasDecimalPoint = false;
-            while (_index < _text.Length)
+            while (index < text.Length)
             {
-                var character = _text[_index];
+                var character = text[index];
                 if (char.IsDigit(character))
                 {
                     hasDigits = true;
-                    _index++;
+                    index++;
                     continue;
                 }
 
                 if (character == '.' && !hasDecimalPoint)
                 {
                     hasDecimalPoint = true;
-                    _index++;
+                    index++;
                     continue;
                 }
 
@@ -498,25 +490,25 @@ public partial class MainWindow
                 throw new FormatException();
             }
 
-            return decimal.Parse(_text[start.._index], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+            return decimal.Parse(text[start..index], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
         }
 
         private bool Match(char character)
         {
-            if (_index >= _text.Length || _text[_index] != character)
+            if (index >= text.Length || text[index] != character)
             {
                 return false;
             }
 
-            _index++;
+            index++;
             return true;
         }
 
         private void SkipWhitespace()
         {
-            while (_index < _text.Length && char.IsWhiteSpace(_text[_index]))
+            while (index < text.Length && char.IsWhiteSpace(text[index]))
             {
-                _index++;
+                index++;
             }
         }
     }

@@ -1,5 +1,4 @@
 using Balancia.Core;
-using Microsoft.Data.Sqlite;
 
 namespace Balancia.Storage;
 
@@ -50,7 +49,7 @@ public sealed partial class LedgerStore
     public int FindHistoryOffset(string transactionId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(transactionId);
-        using var c = _connections.Open();
+        using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         var date = Scalar(c, tx, "SELECT date FROM ledger WHERE id=$id AND kind<>'OpeningBalance'", ("$id", transactionId)) as string
             ?? throw new ArgumentException("The selected transaction no longer exists.", nameof(transactionId));
@@ -81,12 +80,12 @@ public sealed partial class LedgerStore
         }
 
         if (filter.Minimum?.Centimes < 0 || filter.Maximum?.Centimes < 0 ||
-            filter.Minimum is { } minimum && filter.Maximum is { } maximum && minimum.Centimes > maximum.Centimes)
+            filter is { Minimum: { } minimum, Maximum: { } maximum } && minimum.Centimes > maximum.Centimes)
         {
             throw new ArgumentException("Amount range must be positive and ordered.");
         }
 
-        using var c = _connections.Open();
+        using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         var values = FilterParameters(filter);
         var count = Convert.ToInt64(Scalar(c, tx, HistoryCount, values));
@@ -114,13 +113,13 @@ public sealed partial class LedgerStore
                 var entry = new LedgerEntry(reader.GetString(0), draft, reader.GetString(9),
                     reader.IsDBNull(10) ? null : reader.GetString(10), reader.IsDBNull(11) ? null : reader.GetString(11));
                 Money? effect = filter.AccountId is null ? null : new Money(filter.AccountId == source ? amount : reader.GetInt64(12));
-                hits.Add(new(entry, effect));
+                hits.Add(new HistoryHit(entry, effect));
             }
         }
 
         var revision = Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1"));
         tx.Commit();
-        return new(hits, count, offset, pageSize ?? hits.Count, revision);
+        return new HistoryPage(hits, count, offset, pageSize ?? hits.Count, revision);
     }
 
     public LedgerSnapshot ReadDesktopSnapshot()
@@ -141,12 +140,12 @@ public sealed partial class LedgerStore
         }
 
         if (filter.Minimum?.Centimes < 0 || filter.Maximum?.Centimes < 0 ||
-            filter.Minimum is { } minimum && filter.Maximum is { } maximum && minimum.Centimes > maximum.Centimes)
+            filter is { Minimum: { } minimum, Maximum: { } maximum } && minimum.Centimes > maximum.Centimes)
         {
             throw new ArgumentException("Amount range must be positive and ordered.");
         }
 
-        using var c = _connections.Open();
+        using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         var categories = new List<Category>();
         using (var cmd = Command(c, tx, "SELECT c.id,c.name,c.parent_id,CASE WHEN p.id IS NULL THEN c.name ELSE p.name || ' / ' || c.name END,c.archived FROM categories c LEFT JOIN categories p ON p.id=c.parent_id ORDER BY 4 COLLATE NOCASE"))
@@ -154,7 +153,7 @@ public sealed partial class LedgerStore
         {
             while (r.Read())
             {
-                categories.Add(new(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4)));
+                categories.Add(new Category(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4)));
             }
         }
 
@@ -174,8 +173,8 @@ public sealed partial class LedgerStore
         {
             while (r.Read())
             {
-                accounts.Add(new(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new(r.GetInt64(4)), r.GetBoolean(3),
-                new(checked((long)balances.GetValueOrDefault(r.GetString(0))))));
+                accounts.Add(new Account(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new Money(r.GetInt64(4)), r.GetBoolean(3),
+                new Money(checked((long)balances.GetValueOrDefault(r.GetString(0))))));
             }
         }
 
@@ -198,12 +197,12 @@ public sealed partial class LedgerStore
         {
             while (r.Read())
             {
-                top.Add(new(r.GetString(0), new(r.GetInt64(1))));
+                top.Add(new CategoryTotal(r.GetString(0), new Money(r.GetInt64(1))));
             }
         }
 
-        var result = new LedgerSnapshot(accounts, categories, [], new(checked((long)accounts.Sum(a => (decimal)a.Balance.Centimes))),
-            new(PeriodTotal("Income")), new(PeriodTotal("Expense")), top,
+        var result = new LedgerSnapshot(accounts, categories, [], new Money(checked((long)accounts.Sum(a => (decimal)a.Balance.Centimes))),
+            new Money(PeriodTotal("Income")), new Money(PeriodTotal("Expense")), top,
             Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")));
         tx.Commit();
         return result;

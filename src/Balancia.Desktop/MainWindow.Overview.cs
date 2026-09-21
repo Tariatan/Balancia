@@ -1,53 +1,48 @@
 using System.Globalization;
 using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Balancia.Core;
 using Balancia.Storage;
-using Microsoft.Data.Sqlite;
 
 namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private Grid? _overviewLayout;
-    private StackPanel? _overviewFilterBox;
-    private Border? _overviewFilterCard;
-    private readonly Dictionary<OverviewPeriod, Button> _overviewPeriodButtons = new();
-    private (OverviewPeriod Period, bool FiltersVisible)? _renderedPeriodState;
-    private TextBlock? _overviewSummaryLabel;
-    private TextBlock? _overviewIncomeValue;
-    private TextBlock? _overviewIncomeScope;
-    private TextBlock? _overviewExpensesValue;
-    private TextBlock? _overviewExpensesScope;
-    private StackPanel? _overviewCategoryBody;
-    private TextBlock? _overviewCategoryHeading;
-    private IReadOnlyList<CategoryTotal> _renderedOverviewCategories = [];
-    private string? _renderedOverviewCategoryId;
-    private TextBlock? _overviewHistoryHeading;
-    private ListBox? _overviewHistoryList;
-    private TextBlock? _overviewHistoryEmpty;
-    private Button? _overviewPreviousPage;
-    private Button? _overviewNextPage;
-    private CalendarDatePicker? _overviewFilterFrom;
-    private CalendarDatePicker? _overviewFilterTo;
-    private bool _updatingFilterControls;
+    private Grid? overviewLayout;
+    private StackPanel? overviewFilterBox;
+    private Border? overviewFilterCard;
+    private readonly Dictionary<OverviewPeriod, Button> overviewPeriodButtons = new();
+    private (OverviewPeriod Period, bool FiltersVisible)? renderedPeriodState;
+    private TextBlock? overviewSummaryLabel;
+    private TextBlock? overviewIncomeValue;
+    private TextBlock? overviewIncomeScope;
+    private TextBlock? overviewExpensesValue;
+    private TextBlock? overviewExpensesScope;
+    private StackPanel? overviewCategoryBody;
+    private TextBlock? overviewCategoryHeading;
+    private IReadOnlyList<CategoryTotal> renderedOverviewCategories = [];
+    private string? renderedOverviewCategoryId;
+    private TextBlock? overviewHistoryHeading;
+    private ListBox? overviewHistoryList;
+    private TextBlock? overviewHistoryEmpty;
+    private Button? overviewPreviousPage;
+    private Button? overviewNextPage;
+    private CalendarDatePicker? overviewFilterFrom;
+    private CalendarDatePicker? overviewFilterTo;
+    private bool updatingFilterControls;
 
-    private (DateOnly? From, DateOnly? To) OverviewRange() => _overviewPeriod switch
+    private (DateOnly? From, DateOnly? To) OverviewRange() => overviewPeriod switch
     {
         OverviewPeriod.All => (null, null),
-        OverviewPeriod.ThisWeek => WeekRange(_displayDate),
-        OverviewPeriod.ThisMonth => (new DateOnly(_displayDate.Year, _displayDate.Month, 1),
-            new DateOnly(_displayDate.Year, _displayDate.Month, 1).AddMonths(1).AddDays(-1)),
-        OverviewPeriod.ThisYear => (new DateOnly(_displayDate.Year, 1, 1), new DateOnly(_displayDate.Year, 12, 31)),
-        _ => (_customFrom, _customTo)
+        OverviewPeriod.ThisWeek => WeekRange(displayDate),
+        OverviewPeriod.ThisMonth => (new DateOnly(displayDate.Year, displayDate.Month, 1),
+            new DateOnly(displayDate.Year, displayDate.Month, 1).AddMonths(1).AddDays(-1)),
+        OverviewPeriod.ThisYear => (new DateOnly(displayDate.Year, 1, 1), new DateOnly(displayDate.Year, 12, 31)),
+        _ => (_customFrom: customFrom, _customTo: customTo)
     };
 
     private static (DateOnly From, DateOnly To) WeekRange(DateOnly date)
@@ -57,44 +52,44 @@ public partial class MainWindow
         return (monday, monday.AddDays(6));
     }
 
-    private string OverviewPeriodLabel() => _overviewPeriod switch
+    private string OverviewPeriodLabel() => overviewPeriod switch
     {
         OverviewPeriod.All => "All dates",
         OverviewPeriod.ThisWeek => "This week",
-        OverviewPeriod.ThisMonth => _displayDate.ToString("MMMM yyyy", CultureInfo.CurrentCulture),
-        OverviewPeriod.ThisYear => _displayDate.Year.ToString(CultureInfo.CurrentCulture),
-        _ => $"{_customFrom:dd MMM yyyy} – {_customTo:dd MMM yyyy}"
+        OverviewPeriod.ThisMonth => displayDate.ToString("MMMM yyyy", CultureInfo.CurrentCulture),
+        OverviewPeriod.ThisYear => displayDate.Year.ToString(CultureInfo.CurrentCulture),
+        _ => $"{customFrom:dd MMM yyyy} – {customTo:dd MMM yyyy}"
     };
 
     private string OverviewScopeLabel()
     {
         var range = OverviewRange();
-        var hasAdditionalFilter = !string.IsNullOrEmpty(_overviewFilter.Description) ||
-            _overviewFilter.AccountId is not null || _overviewFilter.Kind is not null ||
-            _overviewFilter.CategoryId is not null || _overviewFilter.Minimum is not null ||
-            _overviewFilter.Maximum is not null ||
-            (_overviewFilter.From ?? range.From) != range.From ||
-            (_overviewFilter.To ?? range.To) != range.To;
+        var hasAdditionalFilter = !string.IsNullOrEmpty(overviewFilter.Description) ||
+            overviewFilter.AccountId is not null || overviewFilter.Kind is not null ||
+            overviewFilter.CategoryId is not null || overviewFilter.Minimum is not null ||
+            overviewFilter.Maximum is not null ||
+            (overviewFilter.From ?? range.From) != range.From ||
+            (overviewFilter.To ?? range.To) != range.To;
         return hasAdditionalFilter ? "Filtered transactions" : OverviewPeriodLabel();
     }
 
-    private void RenderOverview(LedgerSnapshot snapshot)
+    private void RenderOverview(LedgerSnapshot ledgerSnapshot)
     {
         var label = OverviewScopeLabel();
-        _overviewFilterCard = null;
-        _overviewFilterFrom = null;
-        _overviewFilterTo = null;
-        _renderedPeriodState = null;
+        overviewFilterCard = null;
+        overviewFilterFrom = null;
+        overviewFilterTo = null;
+        renderedPeriodState = null;
         var layout = new Grid
         {
             RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*"),
             RowSpacing = 11
         };
-        _overviewSummaryLabel = QuietText($"{label} · All accounts", 12);
-        AddRow(layout, _overviewSummaryLabel, 0);
+        overviewSummaryLabel = QuietText($"{label} · All accounts", 12);
+        AddRow(layout, overviewSummaryLabel, 0);
         var filterBox = new StackPanel { Spacing = 8 };
-        _overviewFilterBox = filterBox;
-        _overviewPeriodButtons.Clear();
+        overviewFilterBox = filterBox;
+        overviewPeriodButtons.Clear();
         var filters = new WrapPanel();
         filters.Children.Add(QuietText("PERIOD", 11));
         foreach (var (period, title) in new[] { (OverviewPeriod.All, "All"), (OverviewPeriod.ThisWeek, "This Week"),
@@ -104,43 +99,43 @@ public partial class MainWindow
             {
                 if (period == OverviewPeriod.Custom)
                 {
-                    _overviewFiltersVisible = !_overviewFiltersVisible;
+                    overviewFiltersVisible = !overviewFiltersVisible;
                     UpdateOverviewFilterVisibility();
                     return;
                 }
 
-            _overviewPeriod = period;
-            _overviewOffset = 0;
-            if (period == OverviewPeriod.Custom && (_customFrom is null || _customTo is null))
-            {
-                _customFrom = new DateOnly(_displayDate.Year, _displayDate.Month, 1);
-                _customTo = _displayDate;
-            }
+                overviewPeriod = period;
+                overviewOffset = 0;
+                if (period == OverviewPeriod.Custom && (customFrom is null || customTo is null))
+                {
+                    customFrom = new DateOnly(displayDate.Year, displayDate.Month, 1);
+                    customTo = displayDate;
+                }
 
-            // Keep the advanced filter fields in sync with the selected period
-            // shortcut so the active date range is visible when Filter opens.
-            var range = OverviewRange();
-            _overviewFilter = _overviewFilter with { From = range.From, To = range.To };
+                // Keep the advanced filter fields in sync with the selected period
+                // shortcut so the active date range is visible when Filter opens.
+                var range = OverviewRange();
+                overviewFilter = overviewFilter with { From = range.From, To = range.To };
 
-            SyncOverviewFilterDates();
-            await RequestOverviewFilterRefresh();
+                SyncOverviewFilterDates();
+                await RequestOverviewFilterRefresh();
             });
             button.Margin = new Thickness(5, 0, 0, 0);
-            if (_overviewPeriod == period || period == OverviewPeriod.Custom && _overviewFiltersVisible)
+            if (overviewPeriod == period || period == OverviewPeriod.Custom && overviewFiltersVisible)
             {
                 button.Background = Brush.Parse("#D8ECF3");
                 button.Foreground = Brush.Parse("#1C627E");
                 button.FontWeight = FontWeight.SemiBold;
             }
             filters.Children.Add(button);
-            _overviewPeriodButtons.Add(period, button);
+            overviewPeriodButtons.Add(period, button);
         }
         filterBox.Children.Add(filters);
         UpdateOverviewFilterVisibility();
-        if (_overviewPeriod == OverviewPeriod.Custom)
+        if (overviewPeriod == OverviewPeriod.Custom)
         {
-            var from = DateInput(_customFrom);
-            var to = DateInput(_customTo);
+            var from = DateInput(customFrom);
+            var to = DateInput(customTo);
             from.Width = to.Width = 150;
             var customDates = new Grid
             {
@@ -158,9 +153,9 @@ public partial class MainWindow
                     Status.Text = "Choose a valid From and To date.";
                     return;
                 }
-                _customFrom = first;
-                _customTo = last;
-                _overviewFilter = _overviewFilter with { From = first, To = last };
+                customFrom = first;
+                customTo = last;
+                overviewFilter = overviewFilter with { From = first, To = last };
                 await Run(Refresh);
             });
             apply.VerticalAlignment = VerticalAlignment.Bottom;
@@ -188,8 +183,8 @@ public partial class MainWindow
         };
         var accounts = new ListBox
         {
-            ItemsSource = snapshot.Accounts.Select(a => new Choice<Account>(a, a.Name)).ToArray(),
-            MinHeight = snapshot.Accounts.Count == 0 ? 0 : 45,
+            ItemsSource = ledgerSnapshot.Accounts.Select(a => new Choice<Account>(a, a.Name)).ToArray(),
+            MinHeight = ledgerSnapshot.Accounts.Count == 0 ? 0 : 45,
             MaxHeight = 170,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
@@ -252,7 +247,7 @@ public partial class MainWindow
         AddColumn(accountHeader, accountActions, 1);
         accountRows.Children.Add(accountHeader);
 
-        if (snapshot.Accounts.Count == 0)
+        if (ledgerSnapshot.Accounts.Count == 0)
         {
             accountRows.Children.Add(QuietText("No accounts yet", 12));
         }
@@ -261,19 +256,19 @@ public partial class MainWindow
             accountRows.Children.Add(accounts);
         }
 
-        var total = TwoColumn("Total net worth", AmountText(snapshot.NetWorth), 16,
-            BalanceColor(snapshot.NetWorth));
+        var total = TwoColumn("Total net worth", AmountText(ledgerSnapshot.NetWorth), 16,
+            BalanceColor(ledgerSnapshot.NetWorth));
         total.Margin = new Thickness(0, 9, 0, 0);
         accountRows.Children.Add(total);
         AddColumn(summary, Panel(accountRows), 0);
-        var income = Metric("INCOME", snapshot.MonthlyIncome, label, "#2C8B6D");
-        var expenses = Metric("EXPENSES", snapshot.MonthlyExpenses, label, "#B95D4D");
+        var income = Metric("INCOME", ledgerSnapshot.MonthlyIncome, label, "#2C8B6D");
+        var expenses = Metric("EXPENSES", ledgerSnapshot.MonthlyExpenses, label, "#B95D4D");
         var incomeBody = (StackPanel)income.Child!;
         var expensesBody = (StackPanel)expenses.Child!;
-        _overviewIncomeValue = (TextBlock)incomeBody.Children[1];
-        _overviewIncomeScope = (TextBlock)incomeBody.Children[2];
-        _overviewExpensesValue = (TextBlock)expensesBody.Children[1];
-        _overviewExpensesScope = (TextBlock)expensesBody.Children[2];
+        overviewIncomeValue = (TextBlock)incomeBody.Children[1];
+        overviewIncomeScope = (TextBlock)incomeBody.Children[2];
+        overviewExpensesValue = (TextBlock)expensesBody.Children[1];
+        overviewExpensesScope = (TextBlock)expensesBody.Children[2];
         AddColumn(summary, income, 1);
         AddColumn(summary, expenses, 2);
         AddRow(layout, summary, 2);
@@ -285,39 +280,39 @@ public partial class MainWindow
         };
         AddColumn(lower, HistoryPanel(), 0);
         var right = new StackPanel { Spacing = 11 };
-        right.Children.Add(CategoriesPanel(snapshot));
+        right.Children.Add(CategoriesPanel(ledgerSnapshot));
         right.Children.Add(RemindersPanel());
         AddColumn(lower, right, 1);
         AddRow(layout, lower, 3);
-        _overviewLayout = layout;
+        overviewLayout = layout;
         ResponsiveBody.Content = layout;
     }
 
     private void UpdateOverviewFilterVisibility()
     {
-        if (_overviewFilterBox is null)
+        if (overviewFilterBox is null)
         {
             return;
         }
 
-        if (_overviewFiltersVisible)
+        if (overviewFiltersVisible)
         {
-            _overviewFilterCard ??= OverviewFilterPanel();
-            if (!_overviewFilterBox.Children.Contains(_overviewFilterCard))
+            overviewFilterCard ??= OverviewFilterPanel();
+            if (!overviewFilterBox.Children.Contains(overviewFilterCard))
             {
-                _overviewFilterBox.Children.Add(_overviewFilterCard);
+                overviewFilterBox.Children.Add(overviewFilterCard);
             }
         }
-        else if (_overviewFilterCard is not null)
+        else if (overviewFilterCard is not null)
         {
-            _updatingFilterControls = true;
+            updatingFilterControls = true;
             try
             {
-                _overviewFilterBox.Children.Remove(_overviewFilterCard);
+                overviewFilterBox.Children.Remove(overviewFilterCard);
             }
             finally
             {
-                _updatingFilterControls = false;
+                updatingFilterControls = false;
             }
         }
 
@@ -326,16 +321,16 @@ public partial class MainWindow
 
     private void UpdateOverviewPeriodButtons()
     {
-        var current = (_overviewPeriod, _overviewFiltersVisible);
-        if (_renderedPeriodState == current)
+        var current = (_overviewPeriod: overviewPeriod, _overviewFiltersVisible: overviewFiltersVisible);
+        if (renderedPeriodState == current)
         {
             return;
         }
 
-        foreach (var (period, button) in _overviewPeriodButtons)
+        foreach (var (period, button) in overviewPeriodButtons)
         {
-            var selected = period == _overviewPeriod ||
-                period == OverviewPeriod.Custom && _overviewFiltersVisible;
+            var selected = period == overviewPeriod ||
+                period == OverviewPeriod.Custom && overviewFiltersVisible;
             if (selected)
             {
                 button.Background = Brush.Parse("#D8ECF3");
@@ -344,87 +339,87 @@ public partial class MainWindow
             }
             else
             {
-                button.ClearValue(Button.BackgroundProperty);
-                button.ClearValue(Button.ForegroundProperty);
-                button.ClearValue(Button.FontWeightProperty);
+                button.ClearValue(BackgroundProperty);
+                button.ClearValue(ForegroundProperty);
+                button.ClearValue(FontWeightProperty);
             }
         }
 
-        _renderedPeriodState = current;
+        renderedPeriodState = current;
     }
 
     private void SyncOverviewFilterDates()
     {
         var range = OverviewRange();
-        _updatingFilterControls = true;
+        updatingFilterControls = true;
         try
         {
-            if (_overviewFilterFrom is not null)
+            if (overviewFilterFrom is not null)
             {
-                _overviewFilterFrom.SelectedDate = (_overviewFilter.From ?? range.From)?.ToDateTime(TimeOnly.MinValue);
+                overviewFilterFrom.SelectedDate = (overviewFilter.From ?? range.From)?.ToDateTime(TimeOnly.MinValue);
             }
 
-            if (_overviewFilterTo is not null)
+            if (overviewFilterTo is not null)
             {
-                _overviewFilterTo.SelectedDate = (_overviewFilter.To ?? range.To)?.ToDateTime(TimeOnly.MinValue);
+                overviewFilterTo.SelectedDate = (overviewFilter.To ?? range.To)?.ToDateTime(TimeOnly.MinValue);
             }
         }
         finally
         {
-            _updatingFilterControls = false;
+            updatingFilterControls = false;
         }
     }
 
     private void UpdateOverviewInPlace()
     {
-        if (_snapshot is not { } snapshot)
+        if (snapshot is not { } ledgerSnapshot)
         {
             return;
         }
 
         var label = OverviewScopeLabel();
-        _overviewSummaryLabel!.Text = $"{label} · All accounts";
-        _overviewIncomeValue!.Text = AmountText(snapshot.MonthlyIncome);
-        _overviewIncomeScope!.Text = label;
-        _overviewExpensesValue!.Text = AmountText(snapshot.MonthlyExpenses);
-        _overviewExpensesScope!.Text = label;
+        overviewSummaryLabel!.Text = $"{label} · All accounts";
+        overviewIncomeValue!.Text = AmountText(ledgerSnapshot.MonthlyIncome);
+        overviewIncomeScope!.Text = label;
+        overviewExpensesValue!.Text = AmountText(ledgerSnapshot.MonthlyExpenses);
+        overviewExpensesScope!.Text = label;
         UpdateOverviewPeriodButtons();
-        if (_renderedOverviewCategoryId != _overviewFilter.CategoryId ||
-            !_renderedOverviewCategories.SequenceEqual(snapshot.LargestCategories))
+        if (renderedOverviewCategoryId != overviewFilter.CategoryId ||
+            !renderedOverviewCategories.SequenceEqual(ledgerSnapshot.LargestCategories))
         {
-            FillCategoriesPanel(_overviewCategoryBody!, snapshot);
+            FillCategoriesPanel(overviewCategoryBody!, ledgerSnapshot);
         }
 
-        var total = _overviewHistory?.TotalCount ?? 0;
-        var first = total == 0 ? 0 : _overviewOffset + 1;
-        var last = _overviewOffset + (_overviewHistory?.Hits.Count ?? 0);
-        _overviewHistoryHeading!.Text = $"Transaction history · {first:N0}-{last:N0} / {total:N0}";
-        _overviewHistoryEmpty!.IsVisible = total == 0;
-        var currentItems = _overviewHistoryList!.ItemsSource?.OfType<HistoryItem>().ToArray() ?? [];
-        var nextItems = _overviewHistory?.Hits.Select(hit => new HistoryItem(hit)).ToArray() ?? [];
+        var total = overviewHistory?.TotalCount ?? 0;
+        var first = total == 0 ? 0 : overviewOffset + 1;
+        var last = overviewOffset + (overviewHistory?.Hits.Count ?? 0);
+        overviewHistoryHeading!.Text = $"Transaction history · {first:N0}-{last:N0} / {total:N0}";
+        overviewHistoryEmpty!.IsVisible = total == 0;
+        var currentItems = overviewHistoryList!.ItemsSource?.OfType<HistoryItem>().ToArray() ?? [];
+        var nextItems = overviewHistory?.Hits.Select(hit => new HistoryItem(hit)).ToArray() ?? [];
         if (!currentItems.SequenceEqual(nextItems))
         {
-            var selectedId = (_overviewHistoryList.SelectedItem as HistoryItem)?.Hit.Entry.Id;
-            _overviewHistoryList.ItemsSource = nextItems;
-            _overviewHistoryList.SelectedItem = nextItems.FirstOrDefault(item => item.Hit.Entry.Id == selectedId);
+            var selectedId = (overviewHistoryList.SelectedItem as HistoryItem)?.Hit.Entry.Id;
+            overviewHistoryList.ItemsSource = nextItems;
+            overviewHistoryList.SelectedItem = nextItems.FirstOrDefault(item => item.Hit.Entry.Id == selectedId);
         }
-        _overviewPreviousPage!.IsEnabled = _overviewOffset > 0;
-        _overviewNextPage!.IsEnabled = _overviewHistory is { } page &&
-            _overviewOffset + page.Hits.Count < page.TotalCount;
+        overviewPreviousPage!.IsEnabled = overviewOffset > 0;
+        overviewNextPage!.IsEnabled = overviewHistory is { } currentPage &&
+            overviewOffset + currentPage.Hits.Count < currentPage.TotalCount;
     }
 
     private Border OverviewFilterPanel()
     {
-        var activeFilter = _overviewFilter with
+        var activeFilter = overviewFilter with
         {
-            From = _overviewFilter.From ?? OverviewRange().From,
-            To = _overviewFilter.To ?? OverviewRange().To
+            From = overviewFilter.From ?? OverviewRange().From,
+            To = overviewFilter.To ?? OverviewRange().To
         };
         var search = Input(activeFilter.Description ?? "");
         search.Width = 300;
         search.HorizontalAlignment = HorizontalAlignment.Left;
         var accountChoices = new List<Choice<string?>> { new(null, "All accounts") };
-        accountChoices.AddRange((_snapshot?.Accounts ?? []).Select(a => new Choice<string?>(a.Id, a.Name)));
+        accountChoices.AddRange((snapshot?.Accounts ?? []).Select(a => new Choice<string?>(a.Id, a.Name)));
         var account = new ComboBox
         {
             ItemsSource = accountChoices,
@@ -440,7 +435,7 @@ public partial class MainWindow
             Width = 160
         };
         var categories = new List<Choice<string?>> { new(null, "All categories") };
-        categories.AddRange((_snapshot?.Categories ?? []).Select(c => new Choice<string?>(c.Id, c.Path)));
+        categories.AddRange((snapshot?.Categories ?? []).Select(c => new Choice<string?>(c.Id, c.Path)));
         var category = new ComboBox
         {
             ItemsSource = categories,
@@ -451,15 +446,15 @@ public partial class MainWindow
         from.Width = 170;
         var to = DateInput(activeFilter.To);
         to.Width = 170;
-        _overviewFilterFrom = from;
-        _overviewFilterTo = to;
+        overviewFilterFrom = from;
+        overviewFilterTo = to;
         var minimum = Input(activeFilter.Minimum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
         minimum.Width = 130;
         var maximum = Input(activeFilter.Maximum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
         maximum.Width = 130;
         async Task ApplyValues()
         {
-            if (_updatingFilterControls || _overviewFilterFrom != from)
+            if (updatingFilterControls || overviewFilterFrom != from)
             {
                 return;
             }
@@ -469,13 +464,13 @@ public partial class MainWindow
                 from.SelectedDate is { } ? ParseDate(from) : null,
                 to.SelectedDate is { } ? ParseDate(to) : null,
                 OptionalMoney(minimum), OptionalMoney(maximum));
-            if (nextFilter == _overviewFilter)
+            if (nextFilter == overviewFilter)
             {
                 return;
             }
 
-            _overviewFilter = nextFilter;
-            _overviewOffset = 0;
+            overviewFilter = nextFilter;
+            overviewOffset = 0;
             await RequestOverviewFilterRefresh();
         }
 
@@ -507,24 +502,24 @@ public partial class MainWindow
         title.Children.Add(Heading("Search and filters", 13));
         var clear = ActionButton("🗑", async () =>
         {
-            _overviewFilter = new();
-            _overviewOffset = 0;
-            _updatingFilterControls = true;
+            overviewFilter = new HistoryFilter();
+            overviewOffset = 0;
+            updatingFilterControls = true;
             try
             {
-                if (_overviewFilterCard is not null)
+                if (overviewFilterCard is not null)
                 {
-                    _overviewFilterBox?.Children.Remove(_overviewFilterCard);
-                    _overviewFilterCard = null;
+                    overviewFilterBox?.Children.Remove(overviewFilterCard);
+                    overviewFilterCard = null;
                 }
 
-                _overviewFilterFrom = null;
-                _overviewFilterTo = null;
+                overviewFilterFrom = null;
+                overviewFilterTo = null;
                 UpdateOverviewFilterVisibility();
             }
             finally
             {
-                _updatingFilterControls = false;
+                updatingFilterControls = false;
             }
 
             await RequestOverviewFilterRefresh();
@@ -588,18 +583,18 @@ public partial class MainWindow
             RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
             RowSpacing = 2
         };
-        var historyList = HistoryList(_overviewHistory?.Hits ?? []);
-        _overviewHistoryList = historyList;
+        var historyList = HistoryList(overviewHistory?.Hits ?? []);
+        overviewHistoryList = historyList;
         var header = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             Margin = new Thickness(0, 0, 0, 10)
         };
-        var total = _overviewHistory?.TotalCount ?? 0;
-        var first = total == 0 ? 0 : _overviewOffset + 1;
-        var last = _overviewOffset + (_overviewHistory?.Hits.Count ?? 0);
-        _overviewHistoryHeading = Heading($"Transaction history · {first:N0}-{last:N0} / {total:N0}", 13);
-        header.Children.Add(_overviewHistoryHeading);
+        var total = overviewHistory?.TotalCount ?? 0;
+        var first = total == 0 ? 0 : overviewOffset + 1;
+        var last = overviewOffset + (overviewHistory?.Hits.Count ?? 0);
+        overviewHistoryHeading = Heading($"Transaction history · {first:N0}-{last:N0} / {total:N0}", 13);
+        header.Children.Add(overviewHistoryHeading);
         var actions = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -632,11 +627,11 @@ public partial class MainWindow
         AddRow(body, HistoryRow("Date", "Description", "Category", "Account", "Amount", true), 1);
 
         var historyContent = new Grid();
-        _overviewHistoryEmpty = QuietText("No matching transactions.", 13);
-        _overviewHistoryEmpty.IsVisible = total == 0;
-        _overviewHistoryEmpty.VerticalAlignment = VerticalAlignment.Top;
-        _overviewHistoryEmpty.Margin = new Thickness(0, 6, 0, 0);
-        historyContent.Children.Add(_overviewHistoryEmpty);
+        overviewHistoryEmpty = QuietText("No matching transactions.", 13);
+        overviewHistoryEmpty.IsVisible = total == 0;
+        overviewHistoryEmpty.VerticalAlignment = VerticalAlignment.Top;
+        overviewHistoryEmpty.Margin = new Thickness(0, 6, 0, 0);
+        historyContent.Children.Add(overviewHistoryEmpty);
         historyList.DoubleTapped += async (_, _) =>
         {
             if (historyList.SelectedItem is HistoryItem item)
@@ -649,18 +644,18 @@ public partial class MainWindow
 
         var previous = ActionButton("Previous page", async () =>
         {
-            _overviewOffset = Math.Max(0, _overviewOffset - HistoryPageSize);
+            overviewOffset = Math.Max(0, overviewOffset - HistoryPageSize);
             await RequestOverviewFilterRefresh();
         });
-        _overviewPreviousPage = previous;
-        previous.IsEnabled = _overviewOffset > 0;
+        overviewPreviousPage = previous;
+        previous.IsEnabled = overviewOffset > 0;
         var next = ActionButton("Next page", async () =>
         {
-            _overviewOffset += HistoryPageSize;
+            overviewOffset += HistoryPageSize;
             await RequestOverviewFilterRefresh();
         });
-        _overviewNextPage = next;
-        next.IsEnabled = _overviewHistory is { } page && _overviewOffset + page.Hits.Count < page.TotalCount;
+        overviewNextPage = next;
+        next.IsEnabled = overviewHistory is { } currentPage && overviewOffset + currentPage.Hits.Count < currentPage.TotalCount;
         AddRow(body, Row(previous, next), 3);
 
         var panel = Panel(body);

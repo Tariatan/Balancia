@@ -5,7 +5,7 @@ namespace Balancia.Storage;
 /// <summary>Opens app-local databases with foreign-key enforcement on every connection.</summary>
 public sealed class SqliteConnectionFactory
 {
-    private readonly string _connectionString;
+    private readonly string connectionString;
 
     public SqliteConnectionFactory(string databasePath)
     {
@@ -15,7 +15,7 @@ public sealed class SqliteConnectionFactory
             throw new ArgumentException("Use an absolute application-local database path.", nameof(databasePath));
         }
 
-        _connectionString = new SqliteConnectionStringBuilder
+        connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = databasePath,
             Mode = SqliteOpenMode.ReadWriteCreate,
@@ -27,7 +27,7 @@ public sealed class SqliteConnectionFactory
 
     public SqliteConnection Open()
     {
-        var connection = new SqliteConnection(_connectionString);
+        var connection = new SqliteConnection(connectionString);
         try
         {
             connection.Open();

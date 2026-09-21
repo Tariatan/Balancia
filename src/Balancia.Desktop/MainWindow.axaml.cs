@@ -1,17 +1,9 @@
-using System.Globalization;
-using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Layout;
-using Avalonia.Media;
-using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Balancia.Core;
 using Balancia.Storage;
-using Microsoft.Data.Sqlite;
 
 namespace Balancia.Desktop;
 
@@ -22,23 +14,23 @@ public partial class MainWindow : Window
         All, ThisWeek, ThisMonth, ThisYear, Custom
     }
     private const int HistoryPageSize = 100;
-    private readonly LedgerStore _store;
-    private readonly string _windowSettingsPath;
-    private LedgerSnapshot? _snapshot;
-    private HistoryPage? _overviewHistory;
-    private int _overviewOffset;
-    private IReadOnlyList<RecurringReminder> _reminders = [];
-    private HistoryFilter _overviewFilter = new();
-    private bool _overviewFiltersVisible;
-    private bool _pendingOverviewFilterRefresh;
-    private string _page = "Overview";
-    private bool _busy;
-    private DateOnly _displayDate = DateOnly.FromDateTime(DateTime.Today);
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(30) };
-    private string? _lastAccountId;
-    private OverviewPeriod _overviewPeriod = OverviewPeriod.ThisMonth;
-    private DateOnly? _customFrom;
-    private DateOnly? _customTo;
+    private readonly LedgerStore store;
+    private readonly string windowSettingsPath;
+    private LedgerSnapshot? snapshot;
+    private HistoryPage? overviewHistory;
+    private int overviewOffset;
+    private IReadOnlyList<RecurringReminder> reminders = [];
+    private HistoryFilter overviewFilter = new();
+    private bool overviewFiltersVisible;
+    private bool pendingOverviewFilterRefresh;
+    private string page = "Overview";
+    private bool busy;
+    private DateOnly displayDate = DateOnly.FromDateTime(DateTime.Today);
+    private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
+    private string? lastAccountId;
+    private OverviewPeriod overviewPeriod = OverviewPeriod.ThisMonth;
+    private DateOnly? customFrom;
+    private DateOnly? customTo;
 
     public MainWindow()
     {
@@ -48,10 +40,10 @@ public partial class MainWindow : Window
         var directory = directoryArg >= 0 && directoryArg + 1 < args.Length
             ? Path.GetFullPath(args[directoryArg + 1])
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia");
-        _store = new LedgerStore(Path.Combine(directory, "balancia.db"));
-        _windowSettingsPath = Path.Combine(directory, "window.json");
+        store = new LedgerStore(Path.Combine(directory, "balancia.db"));
+        windowSettingsPath = Path.Combine(directory, "window.json");
         LoadWindowSettings();
-        PositionChanged += (_, _) => _windowPositionForPersistence = Position;
+        PositionChanged += (_, _) => windowPositionForPersistence = Position;
         if (directoryArg >= 0)
         {
             Title = "Balancia — Separate data folder";
@@ -63,24 +55,24 @@ public partial class MainWindow : Window
             await Task.Run(() =>
             {
                 Directory.CreateDirectory(directory);
-                _store.Initialize();
+                store.Initialize();
             });
             await Refresh();
         });
-        _timer.Tick += async (_, _) =>
+        timer.Tick += async (_, _) =>
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
-            if (!_busy && today != _displayDate)
+            if (!busy && today != displayDate)
             {
                 await Run(Refresh);
             }
         };
-        Opened += (_, _) => _timer.Start();
-        Closed += (_, _) => _timer.Stop();
+        Opened += (_, _) => timer.Start();
+        Closed += (_, _) => timer.Stop();
         Closed += (_, _) => SaveWindowSettings();
         KeyDown += async (_, e) =>
         {
-            if (e.Handled || _busy || _snapshot is null || e.Key is not (Key.OemPlus or Key.Add) ||
+            if (e.Handled || busy || snapshot is null || e.Key is not (Key.OemPlus or Key.Add) ||
                 (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt)) != 0 ||
                 e.Source is TextBox or AutoCompleteBox)
             {
@@ -98,9 +90,9 @@ public partial class MainWindow : Window
 
     private async Task RequestOverviewFilterRefresh()
     {
-        if (_busy)
+        if (busy)
         {
-            _pendingOverviewFilterRefresh = true;
+            pendingOverviewFilterRefresh = true;
             return;
         }
 
@@ -109,21 +101,21 @@ public partial class MainWindow : Window
 
     private async Task RefreshCore(bool updateOverviewInPlace)
     {
-        _displayDate = DateOnly.FromDateTime(DateTime.Today);
+        displayDate = DateOnly.FromDateTime(DateTime.Today);
         var (from, to) = OverviewRange();
-        var filter = _overviewFilter with
+        var filter = overviewFilter with
         {
-            From = _overviewFilter.From ?? from,
-            To = _overviewFilter.To ?? to
+            From = overviewFilter.From ?? from,
+            To = overviewFilter.To ?? to
         };
-        _snapshot = await Task.Run(() => _page == "Overview" ? _store.ReadDesktopSnapshotForFilter(filter) : _store.ReadDesktopSnapshot());
-        _reminders = await Task.Run(() => _store.ReadRecurringReminders());
-        if (_page == "Overview")
+        snapshot = await Task.Run(() => page == "Overview" ? store.ReadDesktopSnapshotForFilter(filter) : store.ReadDesktopSnapshot());
+        reminders = await Task.Run(() => store.ReadRecurringReminders());
+        if (page == "Overview")
         {
-            _overviewHistory = await Task.Run(() => _store.ReadHistory(filter, _overviewOffset, HistoryPageSize));
+            overviewHistory = await Task.Run(() => store.ReadHistory(filter, overviewOffset));
         }
 
-        if (updateOverviewInPlace && _page == "Overview" && _overviewLayout is not null)
+        if (updateOverviewInPlace && page == "Overview" && overviewLayout is not null)
         {
             UpdateOverviewInPlace();
         }
@@ -135,12 +127,12 @@ public partial class MainWindow : Window
 
     private async Task Run(Func<Task> action, bool disableControls = true)
     {
-        if (_busy)
+        if (busy)
         {
             return;
         }
 
-        _busy = true;
+        busy = true;
         if (disableControls)
         {
             PageBody.IsEnabled = false;
@@ -164,7 +156,7 @@ public partial class MainWindow : Window
         }
         finally
         {
-            _busy = false;
+            busy = false;
             if (disableControls)
             {
                 PageBody.IsEnabled = true;
@@ -173,10 +165,10 @@ public partial class MainWindow : Window
                 HeaderActions.IsEnabled = true;
             }
 
-            if (_pendingOverviewFilterRefresh)
+            if (pendingOverviewFilterRefresh)
             {
-                _pendingOverviewFilterRefresh = false;
-                if (_page == "Overview")
+                pendingOverviewFilterRefresh = false;
+                if (page == "Overview")
                 {
                     Dispatcher.UIThread.Post(() => _ = RequestOverviewFilterRefresh());
                 }
@@ -188,27 +180,27 @@ public partial class MainWindow : Window
     private async void ShowCategories(object? sender, RoutedEventArgs e) => await Navigate("Categories");
     private async Task Navigate(string page)
     {
-        if (_page == page)
+        if (this.page == page)
         {
             return;
         }
-        _page = page;
+        this.page = page;
         await Run(Refresh);
     }
 
     private void Render()
     {
-        PageTitle.Text = _page == "Categories" ? "Settings" : _page;
-        PageTitle.IsVisible = _page != "Overview";
-        HeaderActions.IsVisible = _page == "Categories";
+        PageTitle.Text = page == "Categories" ? "Settings" : page;
+        PageTitle.IsVisible = page != "Overview";
+        HeaderActions.IsVisible = page == "Categories";
 
         foreach (var child in Navigation.Children.OfType<Button>())
         {
-            child.Classes.Set("selected", Equals(child.Content, _page == "Categories" ? "Settings" : _page));
+            child.Classes.Set("selected", Equals(child.Content, page == "Categories" ? "Settings" : page));
         }
         HeaderActions.Children.Clear();
 
-        if (_page == "Categories")
+        if (page == "Categories")
         {
             HeaderActions.Children.Add(ActionButton("Import CSV", ImportCsv));
             HeaderActions.Children.Add(ActionButton("Export CSV", ExportCsv));
@@ -216,17 +208,17 @@ public partial class MainWindow : Window
             HeaderActions.Children.Add(ActionButton("Restore snapshot", RestoreSnapshot));
         }
 
-        var responsive = _page is "Overview" or "Categories";
+        var responsive = page is "Overview" or "Categories";
         PageScrollViewer.IsVisible = !responsive;
         ResponsiveBody.IsVisible = responsive;
-        _overviewFilterFrom = null;
-        _overviewFilterTo = null;
+        overviewFilterFrom = null;
+        overviewFilterTo = null;
         ResponsiveBody.Content = null;
-        _overviewLayout = null;
+        overviewLayout = null;
         PageBody.Spacing = 18;
         PageBody.Children.Clear();
 
-        if (_snapshot is not { } s)
+        if (snapshot is not { } s)
         {
             var message = Text("The ledger could not be loaded. Check the message below and restart after resolving it.");
             if (responsive)
@@ -241,7 +233,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        switch (_page)
+        switch (page)
         {
             case "Overview":
                 RenderOverview(s);

@@ -21,7 +21,7 @@ public sealed class PerformanceTests(ITestOutputHelper output)
         {
             var store = new LedgerStore(path);
             store.Initialize();
-            var account = store.SaveAccount(null, "Synthetic wallet", new(2024, 1, 1), new(0));
+            var account = store.SaveAccount(null, "Synthetic wallet", new DateOnly(2024, 1, 1), new Money(0));
             var category = store.SaveCategory(null, "Synthetic food", null);
             using (var c = new SqliteConnectionFactory(path).Open())
             using (var tx = c.BeginTransaction())
@@ -61,16 +61,16 @@ public sealed class PerformanceTests(ITestOutputHelper output)
             }
             var mix = new (string Name, Action Action)[]
             {
-                ("first page", () => _ = store.ReadHistory(new(), 0, 100)),
-                ("deep cursor page", () => _ = store.ReadHistoryAfter(new(), deepCursor.Date, deepCursor.Id, 100)),
-                ("search", () => _ = store.ReadHistory(new(Description: "expense 12345"), 0, 100)),
-                ("combined filter", () => _ = store.ReadHistory(new(AccountId: account, Kind: TransactionKind.Expense,
-                    CategoryId: category, From: new(2025, 1, 1), To: new(2025, 12, 31),
-                    Minimum: new Money(100), Maximum: new Money(100)), 0, 100)),
+                ("first page", () => _ = store.ReadHistory(new HistoryFilter())),
+                ("deep cursor page", () => _ = store.ReadHistoryAfter(new HistoryFilter(), deepCursor.Date, deepCursor.Id)),
+                ("search", () => _ = store.ReadHistory(new HistoryFilter(Description: "expense 12345"))),
+                ("combined filter", () => _ = store.ReadHistory(new HistoryFilter(AccountId: account, Kind: TransactionKind.Expense,
+                    CategoryId: category, From: new DateOnly(2025, 1, 1), To: new DateOnly(2025, 12, 31),
+                    Minimum: new Money(100), Maximum: new Money(100)))),
                 ("dashboard", () => _ = store.ReadDesktopSnapshot()),
                 ("committed edit and dashboard", () =>
                 {
-                    store.SaveTransaction("synthetic-000001", new(TransactionKind.Expense, new(2024, 1, 2),
+                    store.SaveTransaction("synthetic-000001", new TransactionDraft(TransactionKind.Expense, new DateOnly(2024, 1, 2),
                         "Synthetic edited", new Money(100), account, CategoryId: category));
                     _ = store.ReadDesktopSnapshot();
                 })

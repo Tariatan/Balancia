@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Balancia.Core;
 using Microsoft.Data.Sqlite;
 using Microsoft.VisualBasic.FileIO;
 
@@ -55,8 +54,11 @@ public sealed class CsvImportPreview
     {
         get;
     }
-    public IReadOnlyList<ImportDateExample> ResolvedDates => Groups.SelectMany(g => g.Rows)
-        .OrderBy(r => r.Line).Take(10).Select(r => new ImportDateExample(r.Line, r.Date)).ToArray();
+    public IReadOnlyList<ImportDateExample> ResolvedDates =>
+    [
+        .. Groups.SelectMany(g => g.Rows)
+            .OrderBy(r => r.Line).Take(10).Select(r => new ImportDateExample(r.Line, r.Date))
+    ];
     public bool CanApply => Issues.Count == 0;
 }
 
@@ -65,9 +67,9 @@ public sealed partial class LedgerStore
     private static readonly string[] CsvImportHeader =
         ["ID", "Date", "Description", "Currency", "Amount", "Type", "Tags", "Account", "Status", "Memo", "IOU"];
 
-    public CsvImportPreview PreviewCsvImport(string path)
+    public CsvImportPreview PreviewCsvImport(string importPath)
     {
-        var fullPath = Path.GetFullPath(path);
+        var fullPath = Path.GetFullPath(importPath);
         var bytes = File.ReadAllBytes(fullPath);
         var hash = Convert.ToHexString(SHA256.HashData(bytes));
         var issues = new List<ImportIssue>();
@@ -75,18 +77,16 @@ public sealed partial class LedgerStore
         var sourceRows = 0;
         using var stream = new MemoryStream(bytes);
         using var reader = new StreamReader(stream, new UTF8Encoding(false, true), true);
-        using var parser = new TextFieldParser(reader)
-        {
-            HasFieldsEnclosedInQuotes = true,
-            TrimWhiteSpace = false
-        };
+        using var parser = new TextFieldParser(reader);
+        parser.HasFieldsEnclosedInQuotes = true;
+        parser.TrimWhiteSpace = false;
         parser.SetDelimiters(",");
         try
         {
             var header = parser.ReadFields();
             if (header is null || !header.SequenceEqual(CsvImportHeader))
             {
-                issues.Add(new(1, "Expected the 11 import columns in their original order."));
+                issues.Add(new ImportIssue(1, "Expected the 11 import columns in their original order."));
             }
 
             if (issues.Count == 0)
@@ -99,7 +99,7 @@ public sealed partial class LedgerStore
                     {
                         f = parser.ReadFields();
                     }
-                    catch (MalformedLineException ex) { issues.Add(new(line, "Malformed CSV quoting: " + ex.Message)); break; }
+                    catch (MalformedLineException ex) { issues.Add(new ImportIssue(line, "Malformed CSV quoting: " + ex.Message)); break; }
                     if (f is null)
                     {
                         break;
@@ -108,7 +108,7 @@ public sealed partial class LedgerStore
                     sourceRows++;
                     if (f.Length != 11)
                     {
-                        issues.Add(new(line, $"Expected 11 columns; found {f.Length}."));
+                        issues.Add(new ImportIssue(line, $"Expected 11 columns; found {f.Length}."));
                         continue;
                     }
                     var errors = new List<string>();
@@ -120,7 +120,7 @@ public sealed partial class LedgerStore
                     DateOnly date = default;
                     if (f[1].Length != 8 || f[1][2] != '-' || f[1][5] != '-' ||
                         !int.TryParse(f[1][..2], out var day) ||
-                        !int.TryParse(f[1].Substring(3, 2), out var month) ||
+                        !int.TryParse(f[1].AsSpan(3, 2), out var month) ||
                         !int.TryParse(f[1][6..], out var year) ||
                         !DateOnly.TryParseExact($"{2000 + year:D4}-{month:D2}-{day:D2}", "yyyy-MM-dd",
                             CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
@@ -171,26 +171,23 @@ public sealed partial class LedgerStore
                         errors.Add("IOU data is unsupported; review before import.");
                     }
 
-                    if (f[6].Split('/', StringSplitOptions.None).Length > 2 ||
+                    if (f[6].Split('/').Length > 2 ||
                         f[6].Split('/').Any(x => f[6].Length > 0 && string.IsNullOrWhiteSpace(x)))
                     {
                         errors.Add("Tags must be a standalone category or Parent / Child.");
                     }
 
-                    foreach (var error in errors)
-                    {
-                        issues.Add(new(line, error));
-                    }
+                    issues.AddRange(errors.Select(error => new ImportIssue(line, error)));
 
                     if (errors.Count == 0)
                     {
-                        rows.Add(new(line, f[0], date, f[2], amount, f[5], f[6], f[7], f[9], f));
+                        rows.Add(new CsvImportRow(line, f[0], date, f[2], amount, f[5], f[6], f[7], f[9], f));
                     }
                 }
             }
         }
-        catch (DecoderFallbackException ex) { issues.Add(new(0, "Invalid UTF-8: " + ex.Message)); }
-        catch (MalformedLineException ex) { issues.Add(new(1, "Malformed CSV header: " + ex.Message)); }
+        catch (DecoderFallbackException ex) { issues.Add(new ImportIssue(0, "Invalid UTF-8: " + ex.Message)); }
+        catch (MalformedLineException ex) { issues.Add(new ImportIssue(1, "Malformed CSV header: " + ex.Message)); }
 
         var groups = new List<CsvImportGroup>();
         foreach (var grouping in rows.GroupBy(r => r.Id, StringComparer.Ordinal))
@@ -207,43 +204,43 @@ public sealed partial class LedgerStore
                 members[0].Account == members[1].Account || members[0].Date != members[1].Date ||
                 members.Any(r => r.Type != "Transfer")))
             {
-                issues.Add(new(first.Line, "Transfer ID requires exactly two same-date, different-account rows with opposite equal amounts."));
+                issues.Add(new ImportIssue(first.Line, "Transfer ID requires exactly two same-date, different-account rows with opposite equal amounts."));
             }
             else if (kind != "Transfer" && members.Length != 1)
             {
-                issues.Add(new(first.Line, "Duplicate ID or ambiguous opening balance."));
+                issues.Add(new ImportIssue(first.Line, "Duplicate ID or ambiguous opening balance."));
             }
 
             if (kind == "OpeningBalance" && (first.Fields[6].Length > 0 ||
-                rows.Count(r => r.Type == "Transfer" && r.Description == "Opening balance" && r.Account == first.Account) != 1))
+                rows.Count(r => r is { Type: "Transfer", Description: "Opening balance" } && r.Account == first.Account) != 1))
             {
-                issues.Add(new(first.Line, "Ambiguous opening balance; one untagged singleton is required per account."));
+                issues.Add(new ImportIssue(first.Line, "Ambiguous opening balance; one untagged singleton is required per account."));
             }
 
             if (kind == "Transfer" && members.Any(r => r.Tags.Length > 0))
             {
-                issues.Add(new(first.Line, "Tagged transfers require manual review."));
+                issues.Add(new ImportIssue(first.Line, "Tagged transfers require manual review."));
             }
 
             var canonical = members.OrderBy(r => r.Account, StringComparer.Ordinal).Select(r => r.Fields).ToArray();
             var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(canonical))));
-            groups.Add(new(grouping.Key, kind, members, fingerprint));
+            groups.Add(new CsvImportGroup(grouping.Key, kind, members, fingerprint));
         }
         var duplicateOpenings = groups.Where(g => g.Kind == "OpeningBalance").GroupBy(g => g.Rows[0].Account)
             .Where(g => g.Count() > 1);
         foreach (var group in duplicateOpenings)
         {
-            issues.Add(new(group.First().Rows[0].Line, "Multiple opening balances for one account."));
+            issues.Add(new ImportIssue(group.First().Rows[0].Line, "Multiple opening balances for one account."));
         }
 
         var totals = rows.GroupBy(r => r.Account).Select(g => new ImportAccountTotal(g.Key,
-            checked((long)g.Sum(r => (decimal)r.Amount)))).OrderBy(x => x.Account).ToArray();
+            (long)g.Sum(r => (decimal)r.Amount))).OrderBy(x => x.Account).ToArray();
         var categories = rows.Where(r => r.Tags.Length > 0).Select(r => r.Tags.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s).ToArray();
         var summary = new ImportSummary(sourceRows, groups.Count(g => g.Kind == "Expense"),
             groups.Count(g => g.Kind == "Income"), groups.Count(g => g.Kind == "Transfer"),
             groups.Count(g => g.Kind == "OpeningBalance"), totals, categories);
-        return new(fullPath, hash, ReadSnapshot().Revision, groups.ToArray(), issues.ToArray(), summary);
+        return new CsvImportPreview(fullPath, hash, ReadSnapshot().Revision, groups.ToArray(), issues.ToArray(), summary);
     }
 
     public ImportResult ApplyCsvImport(CsvImportPreview preview)
@@ -258,7 +255,7 @@ public sealed partial class LedgerStore
             throw new InvalidOperationException("Source file changed after preview. Preview it again.");
         }
 
-        using (var c = _connections.Open())
+        using (var c = connections.Open())
         using (var tx = c.BeginTransaction(deferred: true))
         {
             if (Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")) != preview.Revision)
@@ -286,7 +283,7 @@ public sealed partial class LedgerStore
             if (matched == preview.Groups.Length)
             {
                 tx.Commit();
-                return new(0, matched);
+                return new ImportResult(0, matched);
             }
             tx.Commit();
         }
@@ -409,7 +406,7 @@ public sealed partial class LedgerStore
                 }
             }
         });
-        return new(added, unchanged);
+        return new ImportResult(added, unchanged);
     }
 
     private static string? FindOrCreateCategory(SqliteConnection c, SqliteTransaction tx, string tag)

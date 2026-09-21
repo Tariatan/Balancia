@@ -1,59 +1,50 @@
-using System.Globalization;
 using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using Balancia.Core;
-using Balancia.Storage;
-using Microsoft.Data.Sqlite;
 
 namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private Border CategoriesPanel(LedgerSnapshot snapshot)
+    private Border CategoriesPanel(LedgerSnapshot ledgerSnapshot)
     {
         var body = new StackPanel
         {
             Spacing = 1
         };
         var header = SectionHeader("Largest expense categories", "View all →", () => Navigate("Categories"));
-        _overviewCategoryHeading = (TextBlock)header.Children[0];
+        overviewCategoryHeading = (TextBlock)header.Children[0];
         body.Children.Add(header);
         var rows = new StackPanel { Spacing = 1 };
         body.Children.Add(rows);
-        _overviewCategoryBody = rows;
-        FillCategoriesPanel(rows, snapshot);
+        overviewCategoryBody = rows;
+        FillCategoriesPanel(rows, ledgerSnapshot);
         return Panel(body);
     }
 
-    private void FillCategoriesPanel(StackPanel body, LedgerSnapshot snapshot)
+    private void FillCategoriesPanel(StackPanel body, LedgerSnapshot ledgerSnapshot)
     {
         body.Children.Clear();
-        _renderedOverviewCategories = snapshot.LargestCategories.ToArray();
-        _renderedOverviewCategoryId = _overviewFilter.CategoryId;
-        var selectedCategory = snapshot.Categories.FirstOrDefault(c => c.Id == _overviewFilter.CategoryId);
+        renderedOverviewCategories = [.. ledgerSnapshot.LargestCategories];
+        renderedOverviewCategoryId = overviewFilter.CategoryId;
+        var selectedCategory = ledgerSnapshot.Categories.FirstOrDefault(c => c.Id == overviewFilter.CategoryId);
         var hasSubcategories = selectedCategory is not null &&
-            snapshot.Categories.Any(c => c.ParentId == selectedCategory.Id);
+            ledgerSnapshot.Categories.Any(c => c.ParentId == selectedCategory.Id);
         var title = hasSubcategories
             ? $"Largest expense subcategories · {selectedCategory!.Name}"
             : "Largest expense categories";
-        _overviewCategoryHeading!.Text = title;
+        overviewCategoryHeading!.Text = title;
 
-        if (snapshot.LargestCategories.Count == 0)
+        if (ledgerSnapshot.LargestCategories.Count == 0)
         {
             body.Children.Add(QuietText("No matching expenses.", 12));
         }
 
-        var maximum = snapshot.LargestCategories.FirstOrDefault()?.Amount.Centimes ?? 1;
+        var maximum = ledgerSnapshot.LargestCategories.Count > 0 ? ledgerSnapshot.LargestCategories[0].Amount.Centimes : 1;
 
-        foreach (var category in snapshot.LargestCategories)
+        foreach (var category in ledgerSnapshot.LargestCategories)
         {
             var row = new Grid
             {
@@ -95,7 +86,7 @@ public partial class MainWindow
         }
     }
 
-    private void RenderCategories(LedgerSnapshot snapshot)
+    private void RenderCategories(LedgerSnapshot ledgerSnapshot)
     {
         var layout = new Grid
         {
@@ -105,7 +96,7 @@ public partial class MainWindow
         AddRow(layout, Text("Choose an optional parent for a subcategory. Archiving a parent also archives its children."), 0);
         var categories = new ListBox
         {
-            ItemsSource = snapshot.Categories,
+            ItemsSource = ledgerSnapshot.Categories,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
             Background = Brushes.Transparent,
@@ -159,7 +150,7 @@ public partial class MainWindow
 
         await EditDialog("Archive category",
             [Text($"Archive {category.Path}?"), Text("Subcategories will also be archived.")],
-            () => () => _store.SaveCategory(category.Id, category.Name, category.ParentId, true), "Archive");
+            () => () => store.SaveCategory(category.Id, category.Name, category.ParentId, true), "Archive");
     }
 
     private async Task DeleteSelectedCategory(ListBox categories)
@@ -171,17 +162,17 @@ public partial class MainWindow
 
         await EditDialog("Delete category",
             [Text($"Delete {category.Path}?"), Text("Categories used by transactions or with subcategories must be archived instead.")],
-            () => () => _store.DeleteCategory(category.Id), "Delete");
+            () => () => store.DeleteCategory(category.Id), "Delete");
     }
 
     private async Task EditCategory(Category? category)
     {
         var name = Input(category?.Name ?? "");
         var options = new List<Choice<string?>> { new(null, "No parent (top-level)") };
-        options.AddRange(_snapshot!.Categories.Where(c => c.ParentId is null && !c.Archived && c.Id != category?.Id).Select(c => new Choice<string?>(c.Id, c.Path)));
+        options.AddRange(snapshot!.Categories.Where(c => c.ParentId is null && !c.Archived && c.Id != category?.Id).Select(c => new Choice<string?>(c.Id, c.Path)));
         if (category?.ParentId is { } current && options.All(c => c.Value != current))
         {
-            options.Add(new(current, _snapshot.Categories.Single(c => c.Id == current).ToString()));
+            options.Add(new Choice<string?>(current, snapshot.Categories.Single(c => c.Id == current).ToString()));
         }
 
         var parent = new ComboBox
@@ -195,7 +186,7 @@ public partial class MainWindow
             () =>
             {
                 var values = (name.Text ?? "", ((Choice<string?>)parent.SelectedItem!).Value, category?.Archived ?? false);
-                return () => _store.SaveCategory(category?.Id, values.Item1, values.Item2, values.Item3);
+                return () => store.SaveCategory(category?.Id, values.Item1, values.Value, values.Item3);
             });
     }
 }

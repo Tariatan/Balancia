@@ -5,12 +5,12 @@ namespace Balancia.Storage.Tests;
 
 public sealed class SqliteConnectionFactoryTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"balancia-test-{Guid.NewGuid():N}.db");
+    private readonly string path = Path.Combine(Path.GetTempPath(), $"balancia-test-{Guid.NewGuid():N}.db");
 
     [Fact]
     public void CommittedIntegerAmountSurvivesReopening()
     {
-        var factory = new SqliteConnectionFactory(_path);
+        var factory = new SqliteConnectionFactory(path);
         using (var connection = factory.Open())
         {
             using var command = connection.CreateCommand();
@@ -27,7 +27,7 @@ public sealed class SqliteConnectionFactoryTests : IDisposable
     [Fact]
     public void EveryConnectionEnforcesForeignKeys()
     {
-        var factory = new SqliteConnectionFactory(_path);
+        var factory = new SqliteConnectionFactory(path);
         for (var attempt = 0; attempt < 2; attempt++)
         {
             using var connection = factory.Open();
@@ -41,5 +41,5 @@ public sealed class SqliteConnectionFactoryTests : IDisposable
     [Fact]
     public void RelativePathsAreRejected() => Assert.Throws<ArgumentException>(() => new SqliteConnectionFactory("ledger.db"));
 
-    public void Dispose() => File.Delete(_path);
+    public void Dispose() => File.Delete(path);
 }
