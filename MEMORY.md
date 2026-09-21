@@ -184,3 +184,24 @@ contradictory entries. Do not copy the user's transaction details into this file
   save or delete. Cancelling Remove transaction therefore leaves the page stable
   without the redraw blink seen before; Release build and 53 tests passed on
   2026-09-20.
+- Settings location actions now sit beside aligned database, backup, and
+  snapshot paths; the category guidance is separated below the path table.
+- `Balancia.ico` is embedded as the Avalonia resource and configured as the
+  Windows application icon; modal dialogs reuse the main window icon.
+- All owned edit, delete, and import dialogs set `ShowInTaskbar = false`, so
+  modal forms no longer create a second Balancia taskbar icon.
+- Settings now offers a database-folder picker. The selected `balancia.db` path
+  is persisted in `%LOCALAPPDATA%\Balancia\settings.json`, loaded before startup,
+  and switched at runtime after the replacement store initializes. Manual restart
+  verification is pending; locked restore, Release solution build, 53 tests, and
+  the harness check passed on 2026-09-21.
+
+- 2026-09-21: Optional backup-folder setting now writes timestamped .balancia snapshots on clean desktop close and retains ten successful backups. Build verification passed; direct UI retention check remains unavailable.
+
+- 2026-09-21: Added independent snapshot-folder setting; every clean desktop close writes a timestamped .balancia snapshot there without rolling retention, for manual Google Drive and Android transport.
+
+- 2026-09-21: Window Delete key now removes the selected Overview transaction through the existing guarded delete flow; text and category inputs are excluded.
+
+- 2026-09-21: Account editor now offers a default-account checkbox; new transaction forms prefer the persisted default account before the last-used account.
+
+- 2026-09-21 correction: Snapshot folder now contains one fixed Snapshot.balancia file overwritten on each clean desktop close; rolling retention applies only to the separate backup folder.

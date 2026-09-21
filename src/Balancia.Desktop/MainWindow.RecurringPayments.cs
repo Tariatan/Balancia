@@ -119,6 +119,8 @@ public partial class MainWindow
         var dialog = new Window
         {
             Title = "Delete recurring payment",
+            Icon = Icon,
+            ShowInTaskbar = false,
             Width = 430,
             Height = 210,
             WindowStartupLocation = WindowStartupLocation.CenterOwner

@@ -95,6 +95,8 @@ public partial class MainWindow
         var dialog = new Window
         {
             Title = title,
+            Icon = Icon,
+            ShowInTaskbar = false,
             Width = 520,
             Height = 260,
             WindowStartupLocation = WindowStartupLocation.CenterOwner
@@ -143,6 +145,8 @@ public partial class MainWindow
         var dialog = new Window
         {
             Title = title,
+            Icon = Icon,
+            ShowInTaskbar = false,
             Width = 530,
             Height = isRemoval ? 200 : title.Contains("transaction", StringComparison.OrdinalIgnoreCase) ? 730 : 480,
             MinWidth = isRemoval ? 900 : 430,
@@ -251,6 +255,7 @@ public partial class MainWindow
                 saving = false;
                 if (continueEditing)
                 {
+                    await Run(Refresh, false);
                     body.IsEnabled = true;
                     initialFocus?.Focus();
                     onSaveAndContinue!();

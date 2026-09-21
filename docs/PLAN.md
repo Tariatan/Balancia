@@ -278,12 +278,34 @@ selections; Save still closes. Locked restore, Release solution build, all 53
 tests, and the harness check passed. Direct Windows keyboard interaction remains
 to be checked because the computer-use surface exposed no native apps.
 
+The following Settings refinement adds a database-folder picker and persists the
+selected `balancia.db` path in the application settings. Switching initializes
+the replacement store before swapping it into the window; startup reads the path
+before opening the store. Locked restore, Release solution build, all 53 tests,
+and the harness check passed. Direct picker and restart interaction remain to be
+checked in the Windows UI.
+
+The next Settings refinement adds an optional backup-folder picker. A successful
+desktop close writes a consistent snapshot and retains the ten newest backups.
+Locked restore and Release verification pass; direct close/retention interaction
+remains to be checked in the Windows UI.
+The follow-up adds a separate snapshot-folder picker and exports one timestamped
+`Snapshot.balancia` on every clean desktop close for manual Google Drive and Android
+transport. Direct close behavior remains to be checked in the Windows UI.
+
 Overview transaction history now provides add and guarded delete header actions;
 double-clicking a row opens its edit form directly.
 
 Edit dialog cancellation no longer refreshes the Overview. The shared dialog
 refreshes only after a successful final save or delete, avoiding redraw blink
 when dismissing Remove transaction.
+
+Settings now presents database, backup, and snapshot locations in aligned rows
+with their change buttons beside each path, followed by separated category
+guidance text.
+
+The supplied Balancia icon is embedded for the desktop binary, main window,
+and modal forms.
 
 The standalone Accounts tab was removed. Overview now provides an Accounts
 card with selectable rows, add and guarded delete actions, and double-click

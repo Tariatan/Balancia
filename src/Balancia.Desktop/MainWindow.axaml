@@ -2,7 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Balancia.Desktop.MainWindow"
         Title="Balancia" Width="1440" Height="1280" MinWidth="1280" MinHeight="1280"
-        Background="#F6F8FA" WindowStartupLocation="CenterScreen">
+        Background="#F6F8FA" WindowStartupLocation="CenterScreen"
+        Icon="avares://Balancia.Desktop/Balancia.ico">
   <Window.Styles>
     <Style Selector="Button">
       <Setter Property="Background" Value="#E7F2F6" />

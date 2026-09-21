@@ -59,9 +59,16 @@ overview.
 The top navigation order is Overview, Settings. Account
 management is available from the Accounts card on Overview. The
 Settings header contains Import CSV, Export CSV, Export snapshot, and Restore
-snapshot actions. Accounts can be added, edited, and
+snapshot actions, plus a database-location picker. The active database path is
+shown on Settings and is restored automatically on the next startup. Accounts can be added, and
 deleted from the Accounts card; accounts with transaction history are archived
 instead of deleted.
+Settings also shows an optional backup-folder picker. On a clean desktop close,
+Balancia writes a consistent `.balancia` snapshot there and retains the ten most
+recently written backups, deleting older files only after the new backup succeeds.
+Settings also provides a separate snapshot-folder picker. Every clean desktop
+close overwrites `Snapshot.balancia` there for Google Drive transport and Android
+restore; this file is not subject to the rolling backup limit.
 Recurring template Add/Edit actions live in the Upcoming payments card on
 Overview; there is no separate recurring payments tab. Settings places Add and
 Edit above a list that fills the remaining page height. Category rows open the

@@ -93,7 +93,36 @@ public partial class MainWindow
             RowDefinitions = new RowDefinitions("Auto,Auto,*"),
             RowSpacing = 11
         };
-        AddRow(layout, Text("Choose an optional parent for a subcategory. Archiving a parent also archives its children."), 0);
+        var locations = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto"),
+            RowSpacing = 5,
+            ColumnSpacing = 12
+        };
+        var databaseButton = ActionButton("Change database location", ChangeDatabaseLocation);
+        var backupButton = ActionButton("Choose backup folder", ChooseBackupLocation);
+        var snapshotButton = ActionButton("Choose snapshot folder", ChooseSnapshotLocation);
+        AddRow(locations, databaseButton, 0);
+        AddRow(locations, backupButton, 1);
+        AddRow(locations, snapshotButton, 2);
+        var databaseText = Text(databasePath);
+        var backupText = Text(backupPath ?? "Not configured");
+        var snapshotText = Text(snapshotPath ?? "Not configured");
+        databaseText.VerticalAlignment = VerticalAlignment.Center;
+        backupText.VerticalAlignment = VerticalAlignment.Center;
+        snapshotText.VerticalAlignment = VerticalAlignment.Center;
+        AddColumn(locations, databaseText, 1);
+        AddColumn(locations, backupText, 1);
+        AddColumn(locations, snapshotText, 1);
+        Grid.SetRow(databaseText, 0);
+        Grid.SetRow(backupText, 1);
+        Grid.SetRow(snapshotText, 2);
+        var instruction = Text("Choose an optional parent for a subcategory. Archiving a parent also archives its children.");
+        instruction.Margin = new Thickness(0, 12, 0, 0);
+        AddRow(locations, instruction, 3);
+        Grid.SetColumnSpan(instruction, 2);
+        AddRow(layout, locations, 0);
         var categories = new ListBox
         {
             ItemsSource = ledgerSnapshot.Categories,

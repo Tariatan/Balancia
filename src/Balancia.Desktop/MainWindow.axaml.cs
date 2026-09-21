@@ -14,8 +14,13 @@ public partial class MainWindow : Window
         All, ThisWeek, ThisMonth, ThisYear, Custom
     }
     private const int HistoryPageSize = 100;
-    private readonly LedgerStore store;
-    private readonly string windowSettingsPath;
+    private LedgerStore store;
+    private string databasePath;
+    private string windowSettingsPath;
+    private readonly string applicationSettingsPath;
+    private string? backupPath;
+    private string? snapshotPath;
+    private string? defaultAccountId;
     private LedgerSnapshot? snapshot;
     private HistoryPage? overviewHistory;
     private int overviewOffset;
@@ -37,10 +42,16 @@ public partial class MainWindow : Window
         InitializeComponent();
         var args = Environment.GetCommandLineArgs();
         var directoryArg = Array.IndexOf(args, "--data-dir");
+        applicationSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia", "settings.json");
+        backupPath = LoadSavedBackupPath(applicationSettingsPath);
+        snapshotPath = LoadSavedSnapshotPath(applicationSettingsPath);
+        defaultAccountId = LoadSavedDefaultAccountId(applicationSettingsPath);
         var directory = directoryArg >= 0 && directoryArg + 1 < args.Length
             ? Path.GetFullPath(args[directoryArg + 1])
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia");
-        store = new LedgerStore(Path.Combine(directory, "balancia.db"));
+            : Path.GetDirectoryName(LoadSavedDatabasePath(applicationSettingsPath) ?? "") ??
+              Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia");
+        databasePath = Path.Combine(directory, "balancia.db");
+        store = new LedgerStore(databasePath);
         windowSettingsPath = Path.Combine(directory, "window.json");
         LoadWindowSettings();
         PositionChanged += (_, _) => windowPositionForPersistence = Position;
@@ -70,17 +81,27 @@ public partial class MainWindow : Window
         Opened += (_, _) => timer.Start();
         Closed += (_, _) => timer.Stop();
         Closed += (_, _) => SaveWindowSettings();
+        Closed += (_, _) => SaveBackupOnClose();
+        Closed += (_, _) => SaveSnapshotOnClose();
         KeyDown += async (_, e) =>
         {
-            if (e.Handled || busy || snapshot is null || e.Key is not (Key.OemPlus or Key.Add) ||
+            if (e.Handled || busy || snapshot is null ||
                 (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt)) != 0 ||
                 e.Source is TextBox or AutoCompleteBox)
             {
                 return;
             }
 
-            e.Handled = true;
-            await EditTransaction(null);
+            if (e.Key is Key.OemPlus or Key.Add)
+            {
+                e.Handled = true;
+                await EditTransaction(null);
+            }
+            else if (e.Key == Key.Delete && page == "Overview" && overviewHistoryList?.SelectedItem is HistoryItem item)
+            {
+                e.Handled = true;
+                await RemoveTransaction(item.Hit.Entry);
+            }
         };
     }
 

@@ -2,11 +2,87 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Balancia.Storage;
 
 namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
+    private async Task ChangeDatabaseLocation()
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Choose Balancia database folder",
+            AllowMultiple = false
+        });
+        var directory = folders.FirstOrDefault()?.TryGetLocalPath();
+        if (directory is null)
+        {
+            return;
+        }
+
+        var databasePath = Path.Combine(Path.GetFullPath(directory), "balancia.db");
+        if (string.Equals(databasePath, this.databasePath, StringComparison.OrdinalIgnoreCase))
+        {
+            Status.Text = "This database folder is already active.";
+            return;
+        }
+
+        await Run(async () =>
+        {
+            var replacement = new LedgerStore(databasePath);
+            await Task.Run(replacement.Initialize);
+            await Task.Run(() => SaveApplicationSettings(databasePath));
+            store = replacement;
+            this.databasePath = databasePath;
+            windowSettingsPath = Path.Combine(Path.GetDirectoryName(databasePath)!, "window.json");
+            await Refresh();
+        });
+    }
+
+    private async Task ChooseBackupLocation()
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Choose backup folder",
+            AllowMultiple = false
+        });
+        var directory = folders.FirstOrDefault()?.TryGetLocalPath();
+        if (directory is null)
+        {
+            return;
+        }
+        var selected = Path.GetFullPath(directory);
+        await Run(async () =>
+        {
+            await Task.Run(() => SaveApplicationSettings(databasePath, selected));
+            backupPath = selected;
+            await Refresh();
+        });
+    }
+
+    private async Task ChooseSnapshotLocation()
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Choose snapshot folder",
+            AllowMultiple = false
+        });
+        var directory = folders.FirstOrDefault()?.TryGetLocalPath();
+        if (directory is null)
+        {
+            return;
+        }
+
+        var selected = Path.GetFullPath(directory);
+        await Run(async () =>
+        {
+            await Task.Run(() => SaveApplicationSettings(databasePath, backupPath, selected));
+            snapshotPath = selected;
+            await Refresh();
+        });
+    }
+
     private async Task ImportCsv()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -42,6 +118,8 @@ public partial class MainWindow
             var dialog = new Window
             {
                 Title = "CSV import preview",
+                Icon = Icon,
+                ShowInTaskbar = false,
                 Width = 700,
                 Height = 650,
                 MinWidth = 500,

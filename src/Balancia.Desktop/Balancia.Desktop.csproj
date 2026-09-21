@@ -1,8 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <ApplicationIcon>Balancia.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Balancia.ico" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Balancia.Core/Balancia.Core.csproj" />
     <ProjectReference Include="../Balancia.Storage/Balancia.Storage.csproj" />

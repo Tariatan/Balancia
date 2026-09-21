@@ -102,6 +102,16 @@ The desktop persists window geometry separately from ledger data. `window.json`
 is written beside the active `balancia.db` with an atomic replace on close and
 contains width, height, and screen position. Invalid settings are ignored so a
 damaged optional UI preference cannot block ledger startup.
+The selected database file is stored independently in `%LOCALAPPDATA%\Balancia\settings.json`.
+Settings can switch the active folder at runtime; the replacement store is
+initialized before it is assigned, and the selected path is written atomically.
+The same settings file optionally stores a backup folder. The desktop close
+handler exports a consistent snapshot with a unique timestamped filename, then
+retains only the ten newest backup files. Backup failures are swallowed during
+shutdown so they cannot prevent the application from closing.
+An independent snapshot folder is persisted alongside the backup folder. Each
+clean close exports `Snapshot.balancia` there without retention pruning, so
+the folder can be synchronized manually to Google Drive and consumed by Android.
 The transaction editor reuses the filter `DatePicker`; its amount input uses a
 small decimal recursive-descent evaluator for the four basic operators and
 normalizes valid results to centime precision before the existing `Money` parser.

@@ -97,7 +97,7 @@ public partial class MainWindow
         var account = new ComboBox
         {
             ItemsSource = accounts,
-            SelectedItem = accounts.FirstOrDefault(a => a.Id == (existing?.AccountId ?? lastAccountId)) ?? accounts[0],
+            SelectedItem = accounts.FirstOrDefault(a => a.Id == (existing?.AccountId ?? defaultAccountId ?? lastAccountId)) ?? accounts[0],
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         var destination = new ComboBox
@@ -146,7 +146,7 @@ public partial class MainWindow
                 description.Text = "";
                 amount.Text = "";
                 memo.Text = "";
-                amount.Focus();
+                category.Focus();
             };
         }
 

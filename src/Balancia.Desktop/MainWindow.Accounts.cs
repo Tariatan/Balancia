@@ -36,12 +36,22 @@ public partial class MainWindow
         var name = Input(account?.Name ?? "");
         var date = DateInput(account?.OpeningDate ?? displayDate);
         var amount = Input((account?.OpeningAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
+        var defaultAccount = new CheckBox { Content = "Use as default account for new transactions", IsChecked = account is not null && account.Id == defaultAccountId };
         await EditDialog(account is null ? "Add account" : "Edit account",
-            [Field("Name", name), Field("Opening date", date), Field("Opening amount", amount)],
+            [Field("Name", name), Field("Opening date", date), Field("Opening amount", amount), defaultAccount],
             () =>
             {
                 var values = (name.Text ?? "", ParseDate(date), ParseMoney(amount), account?.Archived ?? false);
-                return () => store.SaveAccount(account?.Id, values.Item1, values.Item2, values.Item3, values.Item4);
+                var useAsDefault = defaultAccount.IsChecked == true;
+                return () =>
+                {
+                    store.SaveAccount(account?.Id, values.Item1, values.Item2, values.Item3, values.Item4);
+                    if (useAsDefault && account?.Id is not null)
+                    {
+                        defaultAccountId = account.Id;
+                        SaveApplicationSettings(databasePath, backupPath, snapshotPath, defaultAccountId);
+                    }
+                };
             });
     }
 }
