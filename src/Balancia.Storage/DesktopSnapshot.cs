@@ -24,10 +24,8 @@ public sealed partial class LedgerStore
         var accounts = ReadAccountsWithBalances(c, tx);
 
         var values = FilterParameters(filter);
-        long PeriodTotal(string kind) => Convert.ToInt64(Scalar(c, tx,
-            "SELECT COALESCE(SUM(abs(m.amount)),0) " + HistoryFrom + " AND l.kind=$flowKind",
-            [.. values, ("$flowKind", kind)]));
         var top = new List<CategoryTotal>();
+        // Mirrors the top-category rollup in LedgerStore.ReadSnapshot's LINQ grouping — keep both in sync.
         using (var cmd = Command(c, tx, """
             SELECT CASE WHEN parent.id=$category THEN category.name
                    ELSE COALESCE(parent.name,category.name,'Uncategorized') END,
@@ -51,5 +49,9 @@ public sealed partial class LedgerStore
             Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")));
         tx.Commit();
         return result;
+
+        long PeriodTotal(string kind) => Convert.ToInt64(Scalar(c, tx,
+            "SELECT COALESCE(SUM(abs(m.amount)),0) " + HistoryFrom + " AND l.kind=$flowKind",
+            [.. values, ("$flowKind", kind)]));
     }
 }

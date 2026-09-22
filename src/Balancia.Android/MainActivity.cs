@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using _Microsoft.Android.Resource.Designer;
 using Android.Content;
 using Balancia.Storage;
@@ -54,18 +53,8 @@ public class MainActivity : Activity
             }
 
             var dbPath = Path.Combine(FilesDir.AbsolutePath, "viewer.db");
-            var validator = new LedgerStore(dbPath);
-            var manifest = validator.ValidateSnapshot(archivePath);
-            var staged = dbPath + ".staged";
-            await using (var archive = await ZipFile.OpenReadAsync(archivePath))
-            await using (var input = await archive.GetEntry("ledger.db")!.OpenAsync())
-            await using (var output = File.Create(staged))
-            {
-                await input.CopyToAsync(output);
-            }
-
-            File.Move(staged, dbPath, true);
-            viewerStore = new LedgerStore(dbPath);
+            var (importedStore, manifest) = SnapshotImporter.Import(archivePath, dbPath);
+            viewerStore = importedStore;
             var snapshot = viewerStore.ReadSnapshot();
             status.Text = $"Revision {manifest.Revision} · Net worth {snapshot.NetWorth.Francs:N2}\n" +
                 $"Income {snapshot.MonthlyIncome.Francs:N2} · Expenses {snapshot.MonthlyExpenses.Francs:N2}\n" +

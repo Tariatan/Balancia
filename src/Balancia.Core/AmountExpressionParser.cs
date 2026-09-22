@@ -21,11 +21,11 @@ public sealed class AmountExpressionParser(string text)
             SkipWhitespace();
             if (Match('+'))
             {
-                value += ParseTerm();
+                value = Add(value, ParseTerm());
             }
             else if (Match('-'))
             {
-                value -= ParseTerm();
+                value = Subtract(value, ParseTerm());
             }
             else
             {
@@ -42,11 +42,11 @@ public sealed class AmountExpressionParser(string text)
             SkipWhitespace();
             if (Match('*'))
             {
-                value *= ParseUnary();
+                value = Multiply(value, ParseUnary());
             }
             else if (Match('/'))
             {
-                value /= ParseUnary();
+                value = Divide(value, ParseUnary());
             }
             else
             {
@@ -117,6 +117,54 @@ public sealed class AmountExpressionParser(string text)
         return hasDigits
             ? decimal.Parse(text[start..index], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture)
             : throw new FormatException();
+    }
+
+    private static decimal Add(decimal left, decimal right)
+    {
+        try
+        {
+            return left + right;
+        }
+        catch (OverflowException)
+        {
+            throw new FormatException();
+        }
+    }
+
+    private static decimal Subtract(decimal left, decimal right)
+    {
+        try
+        {
+            return left - right;
+        }
+        catch (OverflowException)
+        {
+            throw new FormatException();
+        }
+    }
+
+    private static decimal Multiply(decimal left, decimal right)
+    {
+        try
+        {
+            return left * right;
+        }
+        catch (OverflowException)
+        {
+            throw new FormatException();
+        }
+    }
+
+    private static decimal Divide(decimal left, decimal right)
+    {
+        try
+        {
+            return left / right;
+        }
+        catch (Exception ex) when (ex is DivideByZeroException or OverflowException)
+        {
+            throw new FormatException();
+        }
     }
 
     private bool Match(char character)

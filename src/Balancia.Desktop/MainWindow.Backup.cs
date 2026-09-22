@@ -1,3 +1,5 @@
+using Microsoft.Data.Sqlite;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -24,6 +26,7 @@ public partial class MainWindow
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
         catch (InvalidOperationException) { }
+        catch (SqliteException) { }
     }
 
     private void SaveSnapshotOnClose()
@@ -41,5 +44,6 @@ public partial class MainWindow
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
         catch (InvalidOperationException) { }
+        catch (SqliteException) { }
     }
 }

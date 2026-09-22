@@ -70,6 +70,20 @@ public sealed class CsvImportTests : IDisposable
     }
 
     [Fact]
+    public void ArchivedCategoryTagBlocksImport()
+    {
+        var categoryId = store.SaveCategory(null, "Groceries", null);
+        store.SaveCategory(categoryId, "Groceries", null, archived: true);
+        Csv("o1,01-09-26,Opening balance,CHF,100.00,Transfer,,A,Cleared,,\n" +
+            "x1,02-09-26,X,CHF,-1.00,Expense,Groceries,A,Cleared,,\n");
+        var preview = store.PreviewCsvImport(csv);
+        Assert.True(preview.CanApply);
+        var error = Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(preview));
+        Assert.Contains("archived", error.Message);
+        Assert.Empty(store.ReadSnapshot().Accounts);
+    }
+
+    [Fact]
     public void DuplicateOpeningBalancesForOneAccountAreFlagged()
     {
         Csv("o1,01-09-26,Opening balance,CHF,100.00,Transfer,,A,Cleared,,\n" +

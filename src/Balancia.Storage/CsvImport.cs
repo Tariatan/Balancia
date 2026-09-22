@@ -243,6 +243,11 @@ public sealed partial class LedgerStore
                 found = Guid.NewGuid().ToString("N");
                 Execute(c, tx, "INSERT INTO categories VALUES($id,$name,$parent,0)", ("$id", found), ("$name", name), ("$parent", parent));
             }
+            else if (Convert.ToInt64(Scalar(c, tx, "SELECT archived FROM categories WHERE id=$id", ("$id", found))) != 0)
+            {
+                throw new InvalidOperationException($"Category '{name}' is archived; restore it before importing.");
+            }
+
             parent = found;
         }
         return parent;

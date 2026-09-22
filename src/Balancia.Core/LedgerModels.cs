@@ -12,17 +12,17 @@ public sealed record TransactionDraft(TransactionKind Kind, DateOnly Date, strin
     {
         if (!Enum.IsDefined(Kind))
         {
-            throw new ArgumentException("Choose a valid transaction type.");
+            throw new ArgumentException("Choose a valid transaction type.", nameof(Kind));
         }
 
         if (Amount <= Money.Zero)
         {
-            throw new ArgumentException("Enter an amount greater than zero.");
+            throw new ArgumentException("Enter an amount greater than zero.", nameof(Amount));
         }
 
         if (Date > today)
         {
-            throw new ArgumentException("Transactions cannot be dated in the future.");
+            throw new ArgumentException("Transactions cannot be dated in the future.", nameof(Date));
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(AccountId);
@@ -30,17 +30,17 @@ public sealed record TransactionDraft(TransactionKind Kind, DateOnly Date, strin
         {
             if (string.IsNullOrWhiteSpace(DestinationId) || AccountId == DestinationId)
             {
-                throw new ArgumentException("Choose two different accounts for a transfer.");
+                throw new ArgumentException("Choose two different accounts for a transfer.", nameof(DestinationId));
             }
 
             if (CategoryId is not null)
             {
-                throw new ArgumentException("Transfers do not have expense categories.");
+                throw new ArgumentException("Transfers do not have expense categories.", nameof(CategoryId));
             }
         }
         else if (DestinationId is not null)
         {
-            throw new ArgumentException("Only transfers have a destination account.");
+            throw new ArgumentException("Only transfers have a destination account.", nameof(DestinationId));
         }
     }
 }

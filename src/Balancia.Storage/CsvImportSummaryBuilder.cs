@@ -6,7 +6,7 @@ internal static class CsvImportSummaryBuilder
     {
         var totals = rows
             .GroupBy(r => r.Account)
-            .Select(g => new ImportAccountTotal(g.Key, (long)g.Sum(r => (decimal)r.Amount)))
+            .Select(g => new ImportAccountTotal(g.Key, checked((long)g.Sum(r => (decimal)r.Amount))))
             .OrderBy(x => x.Account)
             .ToArray();
         var categories = rows

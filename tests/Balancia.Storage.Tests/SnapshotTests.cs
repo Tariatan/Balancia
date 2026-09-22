@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Balancia.Core;
+using Microsoft.Data.Sqlite;
 using Xunit;
 
 namespace Balancia.Storage.Tests;
@@ -61,6 +62,45 @@ public sealed class SnapshotTests : IDisposable
         Assert.Single(store.ReadSnapshot().Entries);
     }
 
+    [Fact]
+    public void RestoreSnapshotCreatesValidRecoverableBackup()
+    {
+        var path = Path.Combine(dir, "current.balancia");
+        var account = store.ReadSnapshot().Accounts.Single().Id;
+        store.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, new DateOnly(2026, 1, 2), "Coffee", new Money(1), account));
+        var manifest = store.ExportSnapshot(path);
+        var result = store.RestoreSnapshot(path);
+        Assert.Equal(manifest.Revision, result.Manifest.Revision);
+        Assert.True(File.Exists(result.BackupPath));
+        using var backupConnection = new SqliteConnectionFactory(result.BackupPath).Open();
+        using var command = backupConnection.CreateCommand();
+        command.CommandText = "PRAGMA integrity_check";
+        Assert.Equal("ok", Convert.ToString(command.ExecuteScalar()), ignoreCase: true);
+        command.CommandText = "SELECT COUNT(*) FROM ledger WHERE kind<>'OpeningBalance'";
+        Assert.Equal(1L, command.ExecuteScalar());
+    }
+
+    [Fact]
+    public void TopCategoryRollupMatchesBetweenFullAndDesktopSnapshot()
+    {
+        var parityStore = new LedgerStore(Path.Combine(dir, "parity.db"), new FixedClock());
+        parityStore.Initialize();
+        var account = parityStore.SaveAccount(null, "Cash", new DateOnly(2026, 1, 1), new Money(100000));
+        var foodId = parityStore.SaveCategory(null, "Food", null);
+        var lunchId = parityStore.SaveCategory(null, "Lunch", foodId);
+        var rentId = parityStore.SaveCategory(null, "Rent", null);
+        var today = new DateOnly(2026, 6, 15);
+        parityStore.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, today, "Groceries", new Money(3000), account, CategoryId: foodId));
+        parityStore.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, today, "Lunch out", new Money(1500), account, CategoryId: lunchId));
+        parityStore.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, today, "Rent", new Money(20000), account, CategoryId: rentId));
+
+        var full = parityStore.ReadSnapshot().LargestCategories.OrderBy(c => c.Name).ToArray();
+        var desktop = parityStore.ReadDesktopSnapshot().LargestCategories.OrderBy(c => c.Name).ToArray();
+
+        Assert.Equal(full, desktop);
+        Assert.Equal(2, full.Length);
+    }
+
     public void Dispose()
     {
         try
@@ -71,5 +111,11 @@ public sealed class SnapshotTests : IDisposable
         {
             // ignored
         }
+    }
+
+    private sealed class FixedClock : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(2026, 6, 15, 0, 0, 0, TimeSpan.Zero);
+        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
     }
 }

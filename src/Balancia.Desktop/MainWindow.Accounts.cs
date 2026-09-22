@@ -57,12 +57,16 @@ public partial class MainWindow
             {
                 var values = (name.Text ?? "", ParseDate(date), ParseMoney(amount), account?.Archived ?? false);
                 var useAsDefault = defaultAccount.IsChecked == true;
+                if (useAsDefault && account?.Id is not null)
+                {
+                    defaultAccountId = account.Id;
+                }
+
                 return () =>
                 {
                     store.SaveAccount(account?.Id, values.Item1, values.Item2, values.Item3, values.Item4);
                     if (useAsDefault && account?.Id is not null)
                     {
-                        defaultAccountId = account.Id;
                         SaveApplicationSettings(databasePath, backupPath, snapshotPath, defaultAccountId);
                     }
                 };

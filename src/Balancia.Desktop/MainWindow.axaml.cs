@@ -9,11 +9,6 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow : Window
 {
-    private enum OverviewPeriod
-    {
-        All, ThisWeek, ThisMonth, ThisYear, Custom
-    }
-    private const int HistoryPageSize = 100;
     private LedgerStore store;
     private string databasePath;
     private string windowSettingsPath;
@@ -22,20 +17,12 @@ public partial class MainWindow : Window
     private string? snapshotPath;
     private string? defaultAccountId;
     private LedgerSnapshot? snapshot;
-    private HistoryPage? overviewHistory;
-    private int overviewOffset;
     private IReadOnlyList<RecurringReminder> reminders = [];
-    private HistoryFilter overviewFilter = new();
-    private bool overviewFiltersVisible;
-    private bool pendingOverviewFilterRefresh;
     private string page = "Overview";
     private bool busy;
     private DateOnly displayDate = DateOnly.FromDateTime(DateTime.Today);
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
     private string? lastAccountId;
-    private OverviewPeriod overviewPeriod = OverviewPeriod.ThisMonth;
-    private DateOnly? customFrom;
-    private DateOnly? customTo;
 
     public MainWindow()
     {
@@ -107,19 +94,6 @@ public partial class MainWindow : Window
     }
 
     private Task Refresh() => RefreshCore(false);
-
-    private Task RefreshFilteredOverview() => RefreshCore(true);
-
-    private async Task RequestOverviewFilterRefresh()
-    {
-        if (busy)
-        {
-            pendingOverviewFilterRefresh = true;
-            return;
-        }
-
-        await Run(RefreshFilteredOverview, false);
-    }
 
     private async Task RefreshCore(bool updateOverviewInPlace)
     {

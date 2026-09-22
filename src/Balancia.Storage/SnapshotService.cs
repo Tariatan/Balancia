@@ -31,8 +31,13 @@ public sealed partial class LedgerStore
         {
             ExtractDatabaseEntry(archive, staged);
             ValidateExtractedDatabase(staged, manifest);
+            using (var liveConnection = connections.Open())
+            using (var backupConnection = new SqliteConnectionFactory(backup).Open())
+            {
+                liveConnection.BackupDatabase(backupConnection);
+            }
+
             SqliteConnection.ClearAllPools();
-            File.Copy(path, backup, true);
             File.Move(staged, path, true);
             return new SnapshotRestoreResult(backup, manifest);
         }
@@ -48,11 +53,16 @@ public sealed partial class LedgerStore
     private (string DatasetId, long Revision) ReadDatasetIdAndRevision()
     {
         using var c = connections.Open();
+        using var tx = c.BeginTransaction(deferred: true);
         using var cmd = c.CreateCommand();
+        cmd.Transaction = tx;
         cmd.CommandText = "SELECT dataset_id,revision FROM metadata WHERE id=1";
         using var reader = cmd.ExecuteReader();
         reader.Read();
-        return (reader.GetString(0), reader.GetInt64(1));
+        var result = (reader.GetString(0), reader.GetInt64(1));
+        reader.Close();
+        tx.Commit();
+        return result;
     }
 
     public SnapshotManifest ValidateSnapshot(string source)

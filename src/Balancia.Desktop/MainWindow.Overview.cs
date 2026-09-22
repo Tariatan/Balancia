@@ -12,6 +12,19 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
+    private enum OverviewPeriod
+    {
+        All, ThisWeek, ThisMonth, ThisYear, Custom
+    }
+    private const int HistoryPageSize = 100;
+    private HistoryPage? overviewHistory;
+    private int overviewOffset;
+    private HistoryFilter overviewFilter = new();
+    private bool overviewFiltersVisible;
+    private bool pendingOverviewFilterRefresh;
+    private OverviewPeriod overviewPeriod = OverviewPeriod.ThisMonth;
+    private DateOnly? customFrom;
+    private DateOnly? customTo;
     private Grid? overviewLayout;
     private StackPanel? overviewFilterBox;
     private Border? overviewFilterCard;
@@ -34,6 +47,19 @@ public partial class MainWindow
     private CalendarDatePicker? overviewFilterFrom;
     private CalendarDatePicker? overviewFilterTo;
     private bool updatingFilterControls;
+
+    private Task RefreshFilteredOverview() => RefreshCore(true);
+
+    private async Task RequestOverviewFilterRefresh()
+    {
+        if (busy)
+        {
+            pendingOverviewFilterRefresh = true;
+            return;
+        }
+
+        await Run(RefreshFilteredOverview, false);
+    }
 
     private (DateOnly? From, DateOnly? To) OverviewRange() => overviewPeriod switch
     {
@@ -156,7 +182,8 @@ public partial class MainWindow
                 customFrom = first;
                 customTo = last;
                 overviewFilter = overviewFilter with { From = first, To = last };
-                await Run(Refresh);
+                overviewOffset = 0;
+                await RequestOverviewFilterRefresh();
             });
             apply.VerticalAlignment = VerticalAlignment.Bottom;
             AddColumn(customDates, apply, 2);
@@ -261,16 +288,14 @@ public partial class MainWindow
         total.Margin = new Thickness(0, 9, 0, 0);
         accountRows.Children.Add(total);
         AddColumn(summary, Panel(accountRows), 0);
-        var income = Metric("INCOME", ledgerSnapshot.MonthlyIncome, label, "#2C8B6D");
-        var expenses = Metric("EXPENSES", ledgerSnapshot.MonthlyExpenses, label, "#B95D4D");
-        var incomeBody = (StackPanel)income.Child!;
-        var expensesBody = (StackPanel)expenses.Child!;
-        overviewIncomeValue = (TextBlock)incomeBody.Children[1];
-        overviewIncomeScope = (TextBlock)incomeBody.Children[2];
-        overviewExpensesValue = (TextBlock)expensesBody.Children[1];
-        overviewExpensesScope = (TextBlock)expensesBody.Children[2];
-        AddColumn(summary, income, 1);
-        AddColumn(summary, expenses, 2);
+        var (incomeBorder, incomeValue, incomeScope) = Metric("INCOME", ledgerSnapshot.MonthlyIncome, label, "#2C8B6D");
+        var (expensesBorder, expensesValue, expensesScope) = Metric("EXPENSES", ledgerSnapshot.MonthlyExpenses, label, "#B95D4D");
+        overviewIncomeValue = incomeValue;
+        overviewIncomeScope = incomeScope;
+        overviewExpensesValue = expensesValue;
+        overviewExpensesScope = expensesScope;
+        AddColumn(summary, incomeBorder, 1);
+        AddColumn(summary, expensesBorder, 2);
         AddRow(layout, summary, 2);
 
         var lower = new Grid
@@ -555,22 +580,23 @@ public partial class MainWindow
         }
     }
 
-    private static Border Metric(string title, Money value, string scope, string valueColor) => Panel(new StackPanel
+    private static (Border Border, TextBlock Value, TextBlock Scope) Metric(string title, Money value, string scope, string valueColor)
     {
-        Spacing = 18,
-        Children =
+        var valueText = new TextBlock
         {
-            Heading(title, 11),
-            new TextBlock
-            {
-                Text = AmountText(value),
-                FontSize = 23,
-                FontWeight = FontWeight.SemiBold,
-                Foreground = Brush.Parse(valueColor)
-            },
-            QuietText(scope, 11)
-        }
-    });
+            Text = AmountText(value),
+            FontSize = 23,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brush.Parse(valueColor)
+        };
+        var scopeText = QuietText(scope, 11);
+        var border = Panel(new StackPanel
+        {
+            Spacing = 18,
+            Children = { Heading(title, 11), valueText, scopeText }
+        });
+        return (border, valueText, scopeText);
+    }
 
     private Border HistoryPanel()
     {
