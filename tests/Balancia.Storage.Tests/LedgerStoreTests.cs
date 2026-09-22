@@ -73,7 +73,7 @@ public sealed class LedgerStoreTests : IDisposable
     {
         var a = Account("A", 1000);
         var b = Account("B");
-        string? id = edit ? store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 10, b)) : null;
+        var id = edit ? store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 10, b)) : null;
         var before = store.ReadSnapshot();
         Sql("CREATE TRIGGER fail_second BEFORE INSERT ON movements WHEN NEW.amount>0 AND NEW.transaction_id NOT LIKE 'opening:%' BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
         Assert.Throws<SqliteException>(() => store.SaveTransaction(id, Draft(a, TransactionKind.Transfer, 100, b)));

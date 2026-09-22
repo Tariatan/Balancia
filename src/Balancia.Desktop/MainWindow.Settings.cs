@@ -2,7 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Balancia.Core;
+using Balancia.Storage;
 
 namespace Balancia.Desktop;
 
@@ -14,7 +16,7 @@ public partial class MainWindow
         {
             Spacing = 1
         };
-        var header = SectionHeader("Largest expense categories", "View all →", () => Navigate("Categories"));
+        var header = SectionHeader("Largest expense categories", "View all →", () => Navigate("Settings"));
         overviewCategoryHeading = (TextBlock)header.Children[0];
         body.Children.Add(header);
         var rows = new StackPanel { Spacing = 1 };
@@ -86,7 +88,7 @@ public partial class MainWindow
         }
     }
 
-    private void RenderCategories(LedgerSnapshot ledgerSnapshot)
+    private void RenderSettings(LedgerSnapshot ledgerSnapshot)
     {
         var layout = new Grid
         {
@@ -100,15 +102,15 @@ public partial class MainWindow
             RowSpacing = 5,
             ColumnSpacing = 12
         };
-        var databaseButton = ActionButton("Change database location", ChangeDatabaseLocation);
-        var backupButton = ActionButton("Choose backup folder", ChooseBackupLocation);
-        var snapshotButton = ActionButton("Choose snapshot folder", ChooseSnapshotLocation);
-        AddRow(locations, databaseButton, 0);
-        AddRow(locations, backupButton, 1);
-        AddRow(locations, snapshotButton, 2);
+
+        AddRow(locations, ActionButton("Change database location", ChangeDatabaseLocation), 0);
+        AddRow(locations, ActionButton("Choose backup folder", ChooseBackupLocation), 1);
+        AddRow(locations, ActionButton("Choose snapshot folder", ChooseSnapshotLocation), 2);
+
         var databaseText = Text(databasePath);
         var backupText = Text(backupPath ?? "Not configured");
         var snapshotText = Text(snapshotPath ?? "Not configured");
+
         databaseText.VerticalAlignment = VerticalAlignment.Center;
         backupText.VerticalAlignment = VerticalAlignment.Center;
         snapshotText.VerticalAlignment = VerticalAlignment.Center;
@@ -123,85 +125,160 @@ public partial class MainWindow
         AddRow(locations, instruction, 3);
         Grid.SetColumnSpan(instruction, 2);
         AddRow(layout, locations, 0);
+
         var categories = new ListBox
         {
-            ItemsSource = ledgerSnapshot.Categories,
+            ItemsSource = ledgerSnapshot.Categories.Select(c => new Choice<Category>(c, c.Path + (c.Archived ? " (archived)" : ""))).ToArray(),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0)
         };
-        var actions = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
-        var add = ActionButton("+", () => EditCategory(null));
-        add.Width = 30;
-        add.Padding = new Thickness(0);
-        add.FontSize = 18;
-        add.HorizontalContentAlignment = HorizontalAlignment.Center;
 
-        var archive = ActionButton("▣", () => ArchiveSelectedCategory(categories));
-        archive.Width = 30;
-        archive.Padding = new Thickness(0);
-        archive.FontSize = 18;
-        archive.HorizontalContentAlignment = HorizontalAlignment.Center;
+        var actions = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto")
+        };
 
-        var remove = ActionButton("🗑", () => DeleteSelectedCategory(categories));
-        remove.Width = 30;
-        remove.Padding = new Thickness(0);
-        remove.FontSize = 18;
-        remove.HorizontalContentAlignment = HorizontalAlignment.Center;
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 3
+        };
 
-        ToolTip.SetTip(add, "Add category");
-        ToolTip.SetTip(archive, "Archive selected category");
-        ToolTip.SetTip(remove, "Delete selected category");
-        buttons.Children.Add(add);
-        buttons.Children.Add(archive);
-        buttons.Children.Add(remove);
+        buttons.Children.Add(IconButton("+", "Add category", () => EditCategory(null)));
+        buttons.Children.Add(IconButton("▣", "Archive selected category", () => ArchiveSelectedCategory(categories)));
+        buttons.Children.Add(IconButton("🗑", "Delete selected category", () => DeleteSelectedCategory(categories)));
         AddColumn(actions, buttons, 1);
         AddRow(layout, actions, 1);
         categories.DoubleTapped += async (_, _) =>
         {
-            if (categories.SelectedItem is Category category)
+            if (categories.SelectedItem is Choice<Category> choice)
             {
-                await EditCategory(category);
+                await EditCategory(choice.Value);
             }
         };
         AddRow(layout, Panel(categories), 2);
         ResponsiveBody.Content = layout;
     }
 
-    private async Task ArchiveSelectedCategory(ListBox categories)
+    private async Task<string?> PickFolder(string title)
     {
-        if (categories.SelectedItem is not Category category)
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false
+        });
+        var directory = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+        return directory is null ? null : Path.GetFullPath(directory);
+    }
+
+    private async Task ChangeDatabaseLocation()
+    {
+        var directory = await PickFolder("Choose Balancia database folder");
+        if (directory is null)
         {
             return;
         }
 
+        var dbPath = Path.Combine(directory, "balancia.db");
+        if (string.Equals(dbPath, this.databasePath, StringComparison.OrdinalIgnoreCase))
+        {
+            Status.Text = "This database folder is already active.";
+            return;
+        }
+
+        await Run(async () =>
+        {
+            var replacement = new LedgerStore(dbPath);
+            await Task.Run(replacement.Initialize);
+            await Task.Run(() => SaveApplicationSettings(dbPath));
+            store = replacement;
+            this.databasePath = dbPath;
+            windowSettingsPath = Path.Combine(Path.GetDirectoryName(dbPath)!, "window.json");
+            await Refresh();
+        });
+    }
+
+    private async Task ChooseBackupLocation()
+    {
+        var selected = await PickFolder("Choose backup folder");
+        if (selected is null)
+        {
+            return;
+        }
+
+        await Run(async () =>
+        {
+            await Task.Run(() => SaveApplicationSettings(databasePath, selected));
+            backupPath = selected;
+            await Refresh();
+        });
+    }
+
+    private async Task ChooseSnapshotLocation()
+    {
+        var selected = await PickFolder("Choose snapshot folder");
+        if (selected is null)
+        {
+            return;
+        }
+
+        await Run(async () =>
+        {
+            await Task.Run(() => SaveApplicationSettings(databasePath, backupPath, selected));
+            snapshotPath = selected;
+            await Refresh();
+        });
+    }
+
+    private async Task ArchiveSelectedCategory(ListBox categories)
+    {
+        if (categories.SelectedItem is not Choice<Category> choice)
+        {
+            return;
+        }
+
+        var category = choice.Value;
+
         await EditDialog("Archive category",
-            [Text($"Archive {category.Path}?"), Text("Subcategories will also be archived.")],
-            () => () => store.SaveCategory(category.Id, category.Name, category.ParentId, true), "Archive");
+            [
+                Text($"Archive {category.Path}?"),
+                Text("Subcategories will also be archived.")
+            ],
+            () => () => store.SaveCategory(category.Id, category.Name, category.ParentId, true),
+            "Archive");
     }
 
     private async Task DeleteSelectedCategory(ListBox categories)
     {
-        if (categories.SelectedItem is not Category category)
+        if (categories.SelectedItem is not Choice<Category> choice)
         {
             return;
         }
 
+        var category = choice.Value;
+
         await EditDialog("Delete category",
-            [Text($"Delete {category.Path}?"), Text("Categories used by transactions or with subcategories must be archived instead.")],
-            () => () => store.DeleteCategory(category.Id), "Delete");
+            [
+                Text($"Delete {category.Path}?"),
+                Text("Categories used by transactions or with subcategories must be archived instead.")
+            ],
+            () => () => store.DeleteCategory(category.Id),
+            "Delete");
     }
 
     private async Task EditCategory(Category? category)
     {
         var name = Input(category?.Name ?? "");
         var options = new List<Choice<string?>> { new(null, "No parent (top-level)") };
-        options.AddRange(snapshot!.Categories.Where(c => c.ParentId is null && !c.Archived && c.Id != category?.Id).Select(c => new Choice<string?>(c.Id, c.Path)));
+        options.AddRange(snapshot!.Categories.
+            Where(c => c.ParentId is null && !c.Archived && c.Id != category?.Id).
+            Select(c => new Choice<string?>(c.Id, c.Path)));
+
         if (category?.ParentId is { } current && options.All(c => c.Value != current))
         {
-            options.Add(new Choice<string?>(current, snapshot.Categories.Single(c => c.Id == current).ToString()));
+            var archivedParent = snapshot.Categories.Single(c => c.Id == current);
+            options.Add(new Choice<string?>(current, archivedParent.Path + (archivedParent.Archived ? " (archived)" : "")));
         }
 
         var parent = new ComboBox
@@ -211,11 +288,16 @@ public partial class MainWindow
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         await EditDialog(category is null ? "Add category" : "Edit category",
-            [Field("Name", name), Field("Parent category", parent)],
+            [
+                Field("Name", name),
+                Field("Parent category", parent)
+            ],
             () =>
             {
-                var values = (name.Text ?? "", ((Choice<string?>)parent.SelectedItem!).Value, category?.Archived ?? false);
-                return () => store.SaveCategory(category?.Id, values.Item1, values.Value, values.Item3);
+                var newName = name.Text ?? "";
+                var newParentId = ((Choice<string?>)parent.SelectedItem!).Value;
+                var archived = category?.Archived ?? false;
+                return () => store.SaveCategory(category?.Id, newName, newParentId, archived);
             });
     }
 }

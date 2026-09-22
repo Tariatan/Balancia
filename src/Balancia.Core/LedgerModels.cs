@@ -15,7 +15,7 @@ public sealed record TransactionDraft(TransactionKind Kind, DateOnly Date, strin
             throw new ArgumentException("Choose a valid transaction type.");
         }
 
-        if (Amount.Centimes <= 0)
+        if (Amount <= Money.Zero)
         {
             throw new ArgumentException("Enter an amount greater than zero.");
         }
@@ -45,15 +45,9 @@ public sealed record TransactionDraft(TransactionKind Kind, DateOnly Date, strin
     }
 }
 
-public sealed record Account(string Id, string Name, DateOnly OpeningDate, Money OpeningAmount, bool Archived, Money Balance)
-{
-    public override string ToString() => Name + (Archived ? " (archived)" : "");
-}
+public sealed record Account(string Id, string Name, DateOnly OpeningDate, Money OpeningAmount, bool Archived, Money Balance);
 
-public sealed record Category(string Id, string Name, string? ParentId, string Path, bool Archived)
-{
-    public override string ToString() => Path + (Archived ? " (archived)" : "");
-}
+public sealed record Category(string Id, string Name, string? ParentId, string Path, bool Archived);
 
 public sealed record LedgerEntry(string Id, TransactionDraft Draft, string AccountName, string? DestinationName, string? CategoryPath);
 public sealed record CategoryTotal(string Name, Money Amount);

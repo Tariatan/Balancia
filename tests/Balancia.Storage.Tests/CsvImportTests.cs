@@ -70,6 +70,17 @@ public sealed class CsvImportTests : IDisposable
     }
 
     [Fact]
+    public void DuplicateOpeningBalancesForOneAccountAreFlagged()
+    {
+        Csv("o1,01-09-26,Opening balance,CHF,100.00,Transfer,,A,Cleared,,\n" +
+            "o1b,01-09-26,Opening balance,CHF,50.00,Transfer,,A,Cleared,,\n");
+        var preview = store.PreviewCsvImport(csv);
+        Assert.False(preview.CanApply);
+        Assert.All(preview.Issues, issue => Assert.Contains("Ambiguous opening balance", issue.Message));
+        Assert.Equal(2, preview.Issues.Count);
+    }
+
+    [Fact]
     public void I05_ChangedFileAndFailedBatchLeaveLedgerUntouched()
     {
         Csv(Rows);
@@ -160,6 +171,24 @@ public sealed class CsvImportTests : IDisposable
         using var check = restored.CreateCommand();
         check.CommandText = "PRAGMA user_version";
         Assert.Equal(1L, Convert.ToInt64(check.ExecuteScalar()));
+    }
+
+    [Fact]
+    public void V1MigrationReachesCurrentSchemaInOneInitializeCall()
+    {
+        var db = Path.Combine(dir, "test.db");
+        using (var c = new SqliteConnectionFactory(db).Open())
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = "DROP TABLE import_sources; DROP TABLE recurring_templates; PRAGMA user_version=1";
+            cmd.ExecuteNonQuery();
+        }
+        store.Initialize();
+        store.SaveRecurringTemplate(null, "Rent", new DateOnly(2026, 10, 1), Money.FromFrancs(1), 1);
+        using var c2 = new SqliteConnectionFactory(db).Open();
+        using var check = c2.CreateCommand();
+        check.CommandText = "PRAGMA user_version";
+        Assert.Equal(3L, Convert.ToInt64(check.ExecuteScalar()));
     }
 
     public void Dispose()

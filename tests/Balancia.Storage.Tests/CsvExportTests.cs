@@ -27,7 +27,8 @@ public sealed class CsvExportTests
 
             var path = Path.Combine(directory, "export.csv");
             Assert.Equal(5, store.ExportCsv(path));
-            using var parser = new TextFieldParser(path) { HasFieldsEnclosedInQuotes = true };
+            using var parser = new TextFieldParser(path);
+            parser.HasFieldsEnclosedInQuotes = true;
             parser.SetDelimiters(",");
             var rows = new List<string[]>();
             while (!parser.EndOfData)

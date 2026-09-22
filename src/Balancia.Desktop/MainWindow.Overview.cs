@@ -146,8 +146,8 @@ public partial class MainWindow
             AddColumn(customDates, Field("To", to), 1);
             var apply = ActionButton("Apply", async () =>
             {
-                var first = from.SelectedDate is { } ? ParseDate(from) : (DateOnly?)null;
-                var last = to.SelectedDate is { } ? ParseDate(to) : (DateOnly?)null;
+                var first = from.SelectedDate is not null ? ParseDate(from) : (DateOnly?)null;
+                var last = to.SelectedDate is not null ? ParseDate(to) : (DateOnly?)null;
                 if (first is null || last is null || first > last)
                 {
                     Status.Text = "Choose a valid From and To date.";
@@ -354,15 +354,9 @@ public partial class MainWindow
         updatingFilterControls = true;
         try
         {
-            if (overviewFilterFrom is not null)
-            {
-                overviewFilterFrom.SelectedDate = (overviewFilter.From ?? range.From)?.ToDateTime(TimeOnly.MinValue);
-            }
+            overviewFilterFrom?.SelectedDate = (overviewFilter.From ?? range.From)?.ToDateTime(TimeOnly.MinValue);
 
-            if (overviewFilterTo is not null)
-            {
-                overviewFilterTo.SelectedDate = (overviewFilter.To ?? range.To)?.ToDateTime(TimeOnly.MinValue);
-            }
+            overviewFilterTo?.SelectedDate = (overviewFilter.To ?? range.To)?.ToDateTime(TimeOnly.MinValue);
         }
         finally
         {
@@ -452,39 +446,10 @@ public partial class MainWindow
         minimum.Width = 130;
         var maximum = Input(activeFilter.Maximum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
         maximum.Width = 130;
-        async Task ApplyValues()
-        {
-            if (updatingFilterControls || overviewFilterFrom != from)
-            {
-                return;
-            }
-
-            var nextFilter = new HistoryFilter(search.Text, ((Choice<string?>)account.SelectedItem!).Value,
-                ((Choice<TransactionKind?>)type.SelectedItem!).Value, ((Choice<string?>)category.SelectedItem!).Value,
-                from.SelectedDate is { } ? ParseDate(from) : null,
-                to.SelectedDate is { } ? ParseDate(to) : null,
-                OptionalMoney(minimum), OptionalMoney(maximum));
-            if (nextFilter == overviewFilter)
-            {
-                return;
-            }
-
-            overviewFilter = nextFilter;
-            overviewOffset = 0;
-            await RequestOverviewFilterRefresh();
-        }
 
         type.SelectionChanged += async (_, _) => await ApplyValues();
         account.SelectionChanged += async (_, _) => await ApplyValues();
         category.SelectionChanged += async (_, _) => await ApplyValues();
-        // Apply after the calendar closes, rather than on every intermediate
-        // SelectedDateChanged event while the popup is navigating.
-        void ApplyAfterCalendarClosed()
-        {
-            // CalendarClosed can precede the control's final SelectedDate
-            // property update on the first click. Run after that UI event turn.
-            Dispatcher.UIThread.Post(() => _ = ApplyValues());
-        }
 
         from.CalendarClosed += (_, _) => ApplyAfterCalendarClosed();
         to.CalendarClosed += (_, _) => ApplyAfterCalendarClosed();
@@ -537,7 +502,8 @@ public partial class MainWindow
             Field("Description", search),
             Field("Account", account),
             Field("Type", type),
-            Field("Category / subcategory", category));
+            Field("Category / subcategory", category)
+            );
         foreach (var child in mainRow.Children)
         {
             child.Margin = new Thickness(0, 2, 8, 2);
@@ -547,7 +513,8 @@ public partial class MainWindow
             Field("From", from),
             Field("To", to),
             Field("Min amount", minimum),
-            Field("Max amount", maximum));
+            Field("Max amount", maximum)
+            );
         foreach (var child in amountRow.Children)
         {
             child.Margin = new Thickness(0, 2, 8, 2);
@@ -557,6 +524,35 @@ public partial class MainWindow
         var panel = Panel(filters);
         panel.Padding = new Thickness(10);
         return panel;
+
+        async Task ApplyValues()
+        {
+            if (updatingFilterControls || overviewFilterFrom != from)
+            {
+                return;
+            }
+
+            var nextFilter = new HistoryFilter(search.Text, ((Choice<string?>)account.SelectedItem!).Value,
+                ((Choice<TransactionKind?>)type.SelectedItem!).Value, ((Choice<string?>)category.SelectedItem!).Value,
+                from.SelectedDate is not null ? ParseDate(from) : null,
+                to.SelectedDate is not null ? ParseDate(to) : null,
+                OptionalMoney(minimum), OptionalMoney(maximum));
+            if (nextFilter == overviewFilter)
+            {
+                return;
+            }
+
+            overviewFilter = nextFilter;
+            overviewOffset = 0;
+            await RequestOverviewFilterRefresh();
+        }
+
+        void ApplyAfterCalendarClosed()
+        {
+            // CalendarClosed can precede the control's final SelectedDate
+            // property update on the first click. Run after that UI event turn.
+            Dispatcher.UIThread.Post(() => _ = ApplyValues());
+        }
     }
 
     private static Border Metric(string title, Money value, string scope, string valueColor) => Panel(new StackPanel

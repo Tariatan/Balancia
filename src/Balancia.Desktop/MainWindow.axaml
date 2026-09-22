@@ -38,7 +38,7 @@
         <TextBlock Text="Balancia" DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="19" FontWeight="Bold" Foreground="White" Margin="0,0,27,0" />
         <StackPanel x:Name="Navigation" Orientation="Horizontal" Spacing="5">
           <Button Classes="nav" Content="Overview" Click="ShowOverview" />
-          <Button Classes="nav" Content="Settings" Click="ShowCategories" />
+          <Button Classes="nav" Content="Settings" Click="ShowSettings" />
         </StackPanel>
       </DockPanel>
     </Border>

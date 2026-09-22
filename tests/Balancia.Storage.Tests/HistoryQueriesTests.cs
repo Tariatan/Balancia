@@ -174,8 +174,8 @@ public sealed class HistoryQueriesTests : IDisposable
         Assert.Equal(4, history.TotalCount);
         Assert.Equal(1200, overview.MonthlyExpenses.Centimes);
         Assert.Equal(700, overview.MonthlyIncome.Centimes);
-        Assert.Equal(new[] { "Dinner", "Lunch", "Food" }, overview.LargestCategories.Select(x => x.Name));
-        Assert.Equal(new long[] { 500, 400, 300 }, overview.LargestCategories.Select(x => x.Amount.Centimes));
+        Assert.Equal(["Dinner", "Lunch", "Food"], overview.LargestCategories.Select(x => x.Name));
+        Assert.Equal([500, 400, 300], overview.LargestCategories.Select(x => x.Amount.Centimes));
         Assert.Equal(store.ReadDesktopSnapshotForPeriod(null, null).NetWorth, overview.NetWorth);
 
         var expensesOnly = store.ReadDesktopSnapshotForFilter(filter with { Kind = TransactionKind.Expense });

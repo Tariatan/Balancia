@@ -14,8 +14,11 @@ public partial class MainWindow
         }
 
         await EditDialog("Archive account",
-            [Text($"Archive '{choice.Value.Name}'?")],
-            () => () => store.SaveAccount(choice.Value.Id, choice.Value.Name, choice.Value.OpeningDate, choice.Value.OpeningAmount, true), "Archive");
+            [
+                Text($"Archive '{choice.Value.Name}'?")
+            ],
+            () => () => store.SaveAccount(choice.Value.Id, choice.Value.Name, choice.Value.OpeningDate, choice.Value.OpeningAmount, true),
+            "Archive");
     }
 
     private async Task DeleteSelectedAccount(ListBox accounts)
@@ -27,7 +30,9 @@ public partial class MainWindow
         }
 
         await EditDialog("Delete account",
-            [Text($"Delete '{choice.Value.Name}'?")],
+            [
+                Text($"Delete '{choice.Value.Name}'?")
+            ],
             () => () => store.DeleteAccount(choice.Value.Id), "Delete");
     }
 
@@ -36,9 +41,18 @@ public partial class MainWindow
         var name = Input(account?.Name ?? "");
         var date = DateInput(account?.OpeningDate ?? displayDate);
         var amount = Input((account?.OpeningAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
-        var defaultAccount = new CheckBox { Content = "Use as default account for new transactions", IsChecked = account is not null && account.Id == defaultAccountId };
+        var defaultAccount = new CheckBox
+        {
+            Content = "Use as default account for new transactions",
+            IsChecked = account is not null && account.Id == defaultAccountId
+        };
+
         await EditDialog(account is null ? "Add account" : "Edit account",
-            [Field("Name", name), Field("Opening date", date), Field("Opening amount", amount), defaultAccount],
+            [
+                Field("Name", name),
+                Field("Opening date", date),
+                Field("Opening amount", amount), defaultAccount
+            ],
             () =>
             {
                 var values = (name.Text ?? "", ParseDate(date), ParseMoney(amount), account?.Archived ?? false);

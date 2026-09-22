@@ -4,7 +4,22 @@ namespace Balancia.Storage;
 
 public sealed record HistoryFilter(string? Description = null, string? AccountId = null,
     TransactionKind? Kind = null, string? CategoryId = null, DateOnly? From = null,
-    DateOnly? To = null, Money? Minimum = null, Money? Maximum = null);
+    DateOnly? To = null, Money? Minimum = null, Money? Maximum = null)
+{
+    public void Validate()
+    {
+        if (From > To)
+        {
+            throw new ArgumentException("Start date must be on or before end date.");
+        }
+
+        if (Minimum < Money.Zero || Maximum < Money.Zero ||
+            this is { Minimum: { } minimum, Maximum: { } maximum } && minimum > maximum)
+        {
+            throw new ArgumentException("Amount range must be positive and ordered.");
+        }
+    }
+}
 public sealed record HistoryHit(LedgerEntry Entry, Money? AccountEffect);
 public sealed record HistoryPage(IReadOnlyList<HistoryHit> Hits, long TotalCount, int Offset, int PageSize, long Revision);
 
@@ -74,16 +89,7 @@ public sealed partial class LedgerStore
             throw new ArgumentOutOfRangeException(nameof(pageSize));
         }
 
-        if (filter.From > filter.To)
-        {
-            throw new ArgumentException("Start date must be on or before end date.");
-        }
-
-        if (filter.Minimum?.Centimes < 0 || filter.Maximum?.Centimes < 0 ||
-            filter is { Minimum: { } minimum, Maximum: { } maximum } && minimum.Centimes > maximum.Centimes)
-        {
-            throw new ArgumentException("Amount range must be positive and ordered.");
-        }
+        filter.Validate();
 
         using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
@@ -120,92 +126,6 @@ public sealed partial class LedgerStore
         var revision = Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1"));
         tx.Commit();
         return new HistoryPage(hits, count, offset, pageSize ?? hits.Count, revision);
-    }
-
-    public LedgerSnapshot ReadDesktopSnapshot()
-    {
-        var today = Today;
-        var start = new DateOnly(today.Year, today.Month, 1);
-        return ReadDesktopSnapshotForPeriod(start, start.AddMonths(1).AddDays(-1));
-    }
-
-    public LedgerSnapshot ReadDesktopSnapshotForPeriod(DateOnly? from, DateOnly? to)
-        => ReadDesktopSnapshotForFilter(new HistoryFilter(From: from, To: to));
-
-    public LedgerSnapshot ReadDesktopSnapshotForFilter(HistoryFilter filter)
-    {
-        if (filter.From > filter.To)
-        {
-            throw new ArgumentException("Start date must be on or before end date.");
-        }
-
-        if (filter.Minimum?.Centimes < 0 || filter.Maximum?.Centimes < 0 ||
-            filter is { Minimum: { } minimum, Maximum: { } maximum } && minimum.Centimes > maximum.Centimes)
-        {
-            throw new ArgumentException("Amount range must be positive and ordered.");
-        }
-
-        using var c = connections.Open();
-        using var tx = c.BeginTransaction(deferred: true);
-        var categories = new List<Category>();
-        using (var cmd = Command(c, tx, "SELECT c.id,c.name,c.parent_id,CASE WHEN p.id IS NULL THEN c.name ELSE p.name || ' / ' || c.name END,c.archived FROM categories c LEFT JOIN categories p ON p.id=c.parent_id ORDER BY 4 COLLATE NOCASE"))
-        using (var r = cmd.ExecuteReader())
-        {
-            while (r.Read())
-            {
-                categories.Add(new Category(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4)));
-            }
-        }
-
-        var balances = new Dictionary<string, decimal>();
-        using (var cmd = Command(c, tx, "SELECT account_id,amount FROM movements"))
-        using (var r = cmd.ExecuteReader())
-        {
-            while (r.Read())
-            {
-                balances[r.GetString(0)] = balances.GetValueOrDefault(r.GetString(0)) + r.GetInt64(1);
-            }
-        }
-
-        var accounts = new List<Account>();
-        using (var cmd = Command(c, tx, "SELECT a.id,a.name,a.opening_date,a.archived,m.amount FROM accounts a JOIN movements m ON m.transaction_id='opening:' || a.id AND m.account_id=a.id ORDER BY a.name COLLATE NOCASE"))
-        using (var r = cmd.ExecuteReader())
-        {
-            while (r.Read())
-            {
-                accounts.Add(new Account(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new Money(r.GetInt64(4)), r.GetBoolean(3),
-                new Money(checked((long)balances.GetValueOrDefault(r.GetString(0))))));
-            }
-        }
-
-        var values = FilterParameters(filter);
-        long PeriodTotal(string kind) => Convert.ToInt64(Scalar(c, tx,
-            "SELECT COALESCE(SUM(abs(m.amount)),0) " + HistoryFrom + " AND l.kind=$flowKind",
-            [.. values, ("$flowKind", kind)]));
-        var top = new List<CategoryTotal>();
-        using (var cmd = Command(c, tx, """
-            SELECT CASE WHEN parent.id=$category THEN category.name
-                   ELSE COALESCE(parent.name,category.name,'Uncategorized') END,
-                   SUM(-m.amount)
-            """ + " " + HistoryFrom + """
-             AND l.kind='Expense'
-            GROUP BY CASE WHEN parent.id=$category THEN category.id
-                          ELSE COALESCE(parent.id,category.id,'') END
-            ORDER BY 2 DESC LIMIT 5
-            """, values))
-        using (var r = cmd.ExecuteReader())
-        {
-            while (r.Read())
-            {
-                top.Add(new CategoryTotal(r.GetString(0), new Money(r.GetInt64(1))));
-            }
-        }
-
-        var result = new LedgerSnapshot(accounts, categories, [], new Money(checked((long)accounts.Sum(a => (decimal)a.Balance.Centimes))),
-            new Money(PeriodTotal("Income")), new Money(PeriodTotal("Expense")), top,
-            Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")));
-        tx.Commit();
-        return result;
     }
 
     private static (string, object?)[] FilterParameters(HistoryFilter filter) =>

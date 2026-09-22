@@ -2,7 +2,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Balancia.Storage;
 
-/// <summary>Opens app-local databases with foreign-key enforcement on every connection.</summary>
+/// <summary>Opens app-local databases with foreign-key enforcement and the <c>contains_ci</c> search function wired up on every connection.</summary>
 public sealed class SqliteConnectionFactory
 {
     private readonly string connectionString;
@@ -21,7 +21,6 @@ public sealed class SqliteConnectionFactory
             Mode = SqliteOpenMode.ReadWriteCreate,
             ForeignKeys = true,
             Pooling = false
-
         }.ToString();
     }
 

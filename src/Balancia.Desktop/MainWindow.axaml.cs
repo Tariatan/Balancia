@@ -43,12 +43,13 @@ public partial class MainWindow : Window
         var args = Environment.GetCommandLineArgs();
         var directoryArg = Array.IndexOf(args, "--data-dir");
         applicationSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia", "settings.json");
-        backupPath = LoadSavedBackupPath(applicationSettingsPath);
-        snapshotPath = LoadSavedSnapshotPath(applicationSettingsPath);
-        defaultAccountId = LoadSavedDefaultAccountId(applicationSettingsPath);
+        var savedSettings = LoadApplicationSettings(applicationSettingsPath);
+        backupPath = ResolveFullPath(savedSettings?.BackupPath);
+        snapshotPath = ResolveFullPath(savedSettings?.SnapshotPath);
+        defaultAccountId = savedSettings?.DefaultAccountId;
         var directory = directoryArg >= 0 && directoryArg + 1 < args.Length
             ? Path.GetFullPath(args[directoryArg + 1])
-            : Path.GetDirectoryName(LoadSavedDatabasePath(applicationSettingsPath) ?? "") ??
+            : Path.GetDirectoryName(ResolveFullPath(savedSettings?.DatabasePath) ?? "") ??
               Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia");
         databasePath = Path.Combine(directory, "balancia.db");
         store = new LedgerStore(databasePath);
@@ -198,7 +199,7 @@ public partial class MainWindow : Window
     }
 
     private async void ShowOverview(object? sender, RoutedEventArgs e) => await Navigate("Overview");
-    private async void ShowCategories(object? sender, RoutedEventArgs e) => await Navigate("Categories");
+    private async void ShowSettings(object? sender, RoutedEventArgs e) => await Navigate("Settings");
     private async Task Navigate(string page)
     {
         if (this.page == page)
@@ -211,17 +212,17 @@ public partial class MainWindow : Window
 
     private void Render()
     {
-        PageTitle.Text = page == "Categories" ? "Settings" : page;
+        PageTitle.Text = page;
         PageTitle.IsVisible = page != "Overview";
-        HeaderActions.IsVisible = page == "Categories";
+        HeaderActions.IsVisible = page == "Settings";
 
         foreach (var child in Navigation.Children.OfType<Button>())
         {
-            child.Classes.Set("selected", Equals(child.Content, page == "Categories" ? "Settings" : page));
+            child.Classes.Set("selected", Equals(child.Content, page));
         }
         HeaderActions.Children.Clear();
 
-        if (page == "Categories")
+        if (page == "Settings")
         {
             HeaderActions.Children.Add(ActionButton("Import CSV", ImportCsv));
             HeaderActions.Children.Add(ActionButton("Export CSV", ExportCsv));
@@ -229,7 +230,7 @@ public partial class MainWindow : Window
             HeaderActions.Children.Add(ActionButton("Restore snapshot", RestoreSnapshot));
         }
 
-        var responsive = page is "Overview" or "Categories";
+        var responsive = page is "Overview" or "Settings";
         PageScrollViewer.IsVisible = !responsive;
         ResponsiveBody.IsVisible = responsive;
         overviewFilterFrom = null;
@@ -259,8 +260,8 @@ public partial class MainWindow : Window
             case "Overview":
                 RenderOverview(s);
                 break;
-            case "Categories":
-                RenderCategories(s);
+            case "Settings":
+                RenderSettings(s);
                 break;
         }
     }

@@ -33,8 +33,8 @@ public partial class MainWindow
 
         var recurring = new ListBox
         {
-            ItemsSource = reminders.Take(5).Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray(),
-            MinHeight = reminders.Count == 0 ? 0 : 45,
+            ItemsSource = reminders.Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray(),
+            MinHeight = 45,
             MaxHeight = 175,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
@@ -69,23 +69,9 @@ public partial class MainWindow
             true)
         };
 
-        var add = ActionButton("+", () => EditRecurring(null));
-        add.Width = 30;
-        add.Padding = new Thickness(0);
-        add.FontSize = 18;
-        add.HorizontalContentAlignment = HorizontalAlignment.Center;
+        actions.Children.Add(IconButton("+", "Add recurring payment", () => EditRecurring(null)));
+        actions.Children.Add(IconButton("🗑", "Delete selected recurring payment", () => DeleteSelectedRecurring(recurring)));
 
-        var remove = ActionButton("🗑", () => DeleteSelectedRecurring(recurring));
-        remove.Width = 30;
-        remove.Padding = new Thickness(0);
-        remove.FontSize = 18;
-        remove.HorizontalContentAlignment = HorizontalAlignment.Center;
-
-        ToolTip.SetTip(add, "Add recurring payment");
-        ToolTip.SetTip(remove, "Delete selected recurring payment");
-
-        actions.Children.Add(add);
-        actions.Children.Add(remove);
         AddColumn(header, actions, 1);
         body.Children.Add(header);
 
@@ -116,56 +102,17 @@ public partial class MainWindow
             await SelectFirst();
             return;
         }
-        var dialog = new Window
-        {
-            Title = "Delete recurring payment",
-            Icon = Icon,
-            ShowInTaskbar = false,
-            Width = 430,
-            Height = 210,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-        var cancel = new Button
-        {
-            Content = "Cancel",
-            IsCancel = true
-        };
-        var remove = new Button
-        {
-            Content = "Delete",
-            IsDefault = true
-        };
-        remove.Click += async (_, _) =>
-        {
-            remove.IsEnabled = false;
-            try
-            {
-                await Task.Run(() => store.DeleteRecurringTemplate(choice.Value.Template.Id));
-                dialog.Close();
-                await Run(Refresh);
-            }
-            catch (Exception ex)
-            {
-                await ShowErrorDialog("Balancia", FriendlyError(ex));
-                remove.IsEnabled = true;
-            }
-        };
-        cancel.Click += (_, _) => dialog.Close();
-        dialog.Content = new StackPanel
-        {
-            Spacing = 14,
-            Margin = new Thickness(22),
-            Children =
-            {
-                Text($"Delete '{choice.Value.Template.Description}'?"),
-                Row(remove, cancel)
-            }
-        };
-        await dialog.ShowDialog(this);
+
+        await EditDialog("Delete recurring payment",
+            [
+                Text($"Delete '{choice.Value.Template.Description}'?")
+            ],
+            () => () => store.DeleteRecurringTemplate(choice.Value.Template.Id),
+            "Delete");
     }
 
     private static string ReminderText(RecurringReminder reminder) =>
-        $"{(reminder.Overdue ? "OVERDUE · " : "")}{reminder.Occurrence:yyyy-MM-dd} · {reminder.Template.Description} · indicative {AmountText(reminder.Template.IndicativeAmount)} · every {reminder.Template.IntervalMonths} month(s)";
+        $"{(reminder.Overdue ? "OVERDUE · " : "")}{reminder.Occurrence:yyyy-MM-dd} · {reminder.Template.Description} · {AmountText(reminder.Template.IndicativeAmount)} · every {reminder.Template.IntervalMonths} month(s)";
 
     private async Task EditRecurring(RecurringReminder? reminder)
     {
@@ -174,8 +121,14 @@ public partial class MainWindow
         var date = DateInput(template?.ExpectedDate ?? displayDate);
         var amount = Input((template?.IndicativeAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
         var interval = Input((template?.IntervalMonths ?? 1).ToString(CultureInfo.InvariantCulture));
+
         await EditDialog(template is null ? "Add recurring template" : "Edit recurring template",
-            [Field("Description (exact match)", description), Field("Expected date", date), Field("Indicative amount", amount), Field("Repeat every N months", interval)],
+            [
+                Field("Description (exact match)", description),
+                Field("Expected date", date),
+                Field("Amount", amount),
+                Field("Repeat every N months", interval)
+            ],
             () =>
             {
                 var values = (description.Text ?? "", ParseDate(date), ParseMoney(amount),

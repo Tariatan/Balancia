@@ -67,6 +67,9 @@ public sealed class SnapshotTests : IDisposable
         {
             Directory.Delete(dir, true);
         }
-        catch { }
+        catch
+        {
+            // ignored
+        }
     }
 }

@@ -20,12 +20,12 @@ public partial class MainWindow
         BorderThickness = new Thickness(0)
     };
 
-    private static Grid HistoryRow(HistoryHit hit)
+    private static Grid HistoryRow(HistoryHit hit, string emptyDescriptionText = "")
     {
         var entry = hit.Entry;
         var effect = hit.AccountEffect;
         var amount = effect ?? entry.Draft.Amount;
-        var sign = effect is { } accountEffect ? accountEffect.Centimes < 0 ? "− " : "+ " :
+        var sign = effect is { } accountEffect ? accountEffect < Money.Zero ? "− " : "+ " :
             entry.Draft.Kind switch
             {
                 TransactionKind.Expense => "− ",
@@ -34,10 +34,10 @@ public partial class MainWindow
             };
 
         return HistoryRow(entry.Draft.Date.ToString("dd MMM yyyy", CultureInfo.CurrentCulture),
-            string.IsNullOrWhiteSpace(entry.Draft.Description) ? "" : entry.Draft.Description,
+            string.IsNullOrWhiteSpace(entry.Draft.Description) ? emptyDescriptionText : entry.Draft.Description,
             entry.CategoryPath ?? "—",
             entry.DestinationName is null ? entry.AccountName : $"{entry.AccountName} → {entry.DestinationName}",
-            sign + AmountText(new Money(Math.Abs(amount.Centimes))), false, entry.Draft.Kind);
+            sign + AmountText(amount.Abs()), false, entry.Draft.Kind);
     }
 
     private static Grid HistoryRow(string date, string description, string category, string account, string amount,
@@ -49,16 +49,16 @@ public partial class MainWindow
             MinHeight = header ? 31 : 20
         };
         var values = new[] { date, amount, category, account, description };
+        var amountColor = kind switch
+        {
+            TransactionKind.Income => "#2C8B6D",
+            TransactionKind.Expense => "#B95D4D",
+            TransactionKind.Transfer => "#1B4F72",
+            _ => "#263C48"
+        };
 
         for (var i = 0; i < values.Length; i++)
         {
-            var amountColor = kind switch
-            {
-                TransactionKind.Income => "#2C8B6D",
-                TransactionKind.Expense => "#B95D4D",
-                TransactionKind.Transfer => "#1B4F72",
-                _ => "#263C48"
-            };
             var cell = new TextBlock
             {
                 Text = values[i],
@@ -78,7 +78,9 @@ public partial class MainWindow
     private async Task EditTransaction(LedgerEntry? entry)
     {
         var existing = entry?.Draft;
-        var accounts = snapshot!.Accounts.Where(a => !a.Archived || a.Id == existing?.AccountId || a.Id == existing?.DestinationId).ToArray();
+        var accounts = snapshot!.Accounts.Where(a => !a.Archived || a.Id == existing?.AccountId || a.Id == existing?.DestinationId)
+            .Select(a => new Choice<Account>(a, a.Name + (a.Archived ? " (archived)" : "")))
+            .ToArray();
         if (accounts.Length == 0)
         {
             Status.Text = "Add an active account before entering transactions.";
@@ -97,13 +99,13 @@ public partial class MainWindow
         var account = new ComboBox
         {
             ItemsSource = accounts,
-            SelectedItem = accounts.FirstOrDefault(a => a.Id == (existing?.AccountId ?? defaultAccountId ?? lastAccountId)) ?? accounts[0],
+            SelectedItem = accounts.FirstOrDefault(c => c.Value.Id == (existing?.AccountId ?? defaultAccountId ?? lastAccountId)) ?? accounts[0],
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         var destination = new ComboBox
         {
             ItemsSource = accounts,
-            SelectedItem = accounts.FirstOrDefault(a => a.Id == existing?.DestinationId),
+            SelectedItem = accounts.FirstOrDefault(c => c.Value.Id == existing?.DestinationId),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         var categoryPaths = snapshot.Categories
@@ -122,12 +124,6 @@ public partial class MainWindow
         var memo = Input(existing?.Memo ?? "");
         var toField = Field("Destination account", destination);
         var categoryField = Field("Category / subcategory", category);
-        void UpdateFields()
-        {
-            var transfer = kind.SelectedItem is TransactionKind.Transfer;
-            toField.IsVisible = transfer;
-            categoryField.IsVisible = !transfer;
-        }
         kind.SelectionChanged += (_, _) => UpdateFields();
         UpdateFields();
         Action? continueAfterSave = null;
@@ -151,32 +147,45 @@ public partial class MainWindow
         }
 
         await EditDialog(entry is null ? "Add transaction" : "Edit transaction",
-            [Field("Type", kind), Field("Date", date), categoryField, Field("Amount (positive)", amount), Field("Account", account), toField, Field("Description", description), Field("Notes", memo)],
+            [
+                Field("Type", kind),
+                Field("Date", date), categoryField,
+                Field("Amount (positive)", amount),
+                Field("Account", account), toField,
+                Field("Description", description),
+                Field("Notes", memo)
+            ],
             () =>
             {
                 NormalizeAmount(amount);
                 var type = (TransactionKind)kind.SelectedItem!;
-                var draft = new TransactionDraft(type, ParseDate(date), description.Text ?? "", ParseMoney(amount), ((Account)account.SelectedItem!).Id,
-                    type == TransactionKind.Transfer ? (destination.SelectedItem as Account)?.Id : null,
+                var draft = new TransactionDraft(
+                    type,
+                    ParseDate(date),
+                    description.Text ?? "",
+                    ParseMoney(amount),
+                    ((Choice<Account>)account.SelectedItem!).Value.Id,
+                    type == TransactionKind.Transfer ? (destination.SelectedItem as Choice<Account>)?.Value.Id : null,
                     Memo: memo.Text ?? "");
                 var categoryPath = type == TransactionKind.Transfer ? null : category.Text;
                 lastAccountId = draft.AccountId;
                 return () => store.SaveTransactionWithCategoryPath(entry?.Id, draft, categoryPath);
             }, initialFocus: category, onSaveAndContinue: continueAfterSave);
+        return;
+
+        void UpdateFields()
+        {
+            var transfer = kind.SelectedItem is TransactionKind.Transfer;
+            toField.IsVisible = transfer;
+            categoryField.IsVisible = !transfer;
+        }
     }
 
     private async Task RemoveTransaction(LedgerEntry entry) => await EditDialog("Remove transaction",
-        [HistoryRow(entry.Draft.Date.ToString("dd MMM yyyy", CultureInfo.CurrentCulture),
-            string.IsNullOrWhiteSpace(entry.Draft.Description) ? "(No description)" : entry.Draft.Description,
-            entry.CategoryPath ?? "—",
-            entry.DestinationName is null ? entry.AccountName : $"{entry.AccountName} → {entry.DestinationName}",
-            (entry.Draft.Kind switch
-            {
-                TransactionKind.Expense => "− ",
-                TransactionKind.Income => "+ ",
-                _ => "↔ "
-            }) + AmountText(entry.Draft.Amount),
-            false, entry.Draft.Kind), Text("Remove this transaction? For a transfer, both account movements will be removed together.")],
+        [
+            HistoryRow(new HistoryHit(entry, null), "(No description)"),
+            Text("Remove this transaction? For a transfer, both account movements will be removed together.")
+        ],
         () => () => store.DeleteTransaction(entry.Id), "Remove");
 
     private sealed record HistoryItem(HistoryHit Hit)

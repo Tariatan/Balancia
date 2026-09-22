@@ -1,9 +1,6 @@
-using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
-using Microsoft.VisualBasic.FileIO;
 
 namespace Balancia.Storage;
 
@@ -64,182 +61,12 @@ public sealed class CsvImportPreview
 
 public sealed partial class LedgerStore
 {
-    private static readonly string[] CsvImportHeader =
-        ["ID", "Date", "Description", "Currency", "Amount", "Type", "Tags", "Account", "Status", "Memo", "IOU"];
-
     public CsvImportPreview PreviewCsvImport(string importPath)
     {
         var fullPath = Path.GetFullPath(importPath);
         var bytes = File.ReadAllBytes(fullPath);
         var hash = Convert.ToHexString(SHA256.HashData(bytes));
-        var issues = new List<ImportIssue>();
-        var rows = new List<CsvImportRow>();
-        var sourceRows = 0;
-        using var stream = new MemoryStream(bytes);
-        using var reader = new StreamReader(stream, new UTF8Encoding(false, true), true);
-        using var parser = new TextFieldParser(reader);
-        parser.HasFieldsEnclosedInQuotes = true;
-        parser.TrimWhiteSpace = false;
-        parser.SetDelimiters(",");
-        try
-        {
-            var header = parser.ReadFields();
-            if (header is null || !header.SequenceEqual(CsvImportHeader))
-            {
-                issues.Add(new ImportIssue(1, "Expected the 11 import columns in their original order."));
-            }
-
-            if (issues.Count == 0)
-            {
-                while (!parser.EndOfData)
-                {
-                    var line = parser.LineNumber;
-                    string[]? f;
-                    try
-                    {
-                        f = parser.ReadFields();
-                    }
-                    catch (MalformedLineException ex) { issues.Add(new ImportIssue(line, "Malformed CSV quoting: " + ex.Message)); break; }
-                    if (f is null)
-                    {
-                        break;
-                    }
-
-                    sourceRows++;
-                    if (f.Length != 11)
-                    {
-                        issues.Add(new ImportIssue(line, $"Expected 11 columns; found {f.Length}."));
-                        continue;
-                    }
-                    var errors = new List<string>();
-                    if (string.IsNullOrWhiteSpace(f[0]))
-                    {
-                        errors.Add("Missing source ID.");
-                    }
-
-                    DateOnly date = default;
-                    if (f[1].Length != 8 || f[1][2] != '-' || f[1][5] != '-' ||
-                        !int.TryParse(f[1][..2], out var day) ||
-                        !int.TryParse(f[1].AsSpan(3, 2), out var month) ||
-                        !int.TryParse(f[1][6..], out var year) ||
-                        !DateOnly.TryParseExact($"{2000 + year:D4}-{month:D2}-{day:D2}", "yyyy-MM-dd",
-                            CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
-                    {
-                        errors.Add("Date must be DD-MM-YY in 2000–2099.");
-                    }
-
-                    if (f[3] != "CHF")
-                    {
-                        errors.Add("Only CHF currency is supported.");
-                    }
-
-                    long amount = 0;
-                    if (!decimal.TryParse(f[4], NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                            CultureInfo.InvariantCulture, out var parsed) ||
-                        parsed * 100 != decimal.Truncate(parsed * 100) ||
-                        parsed * 100 < long.MinValue || parsed * 100 > long.MaxValue)
-                    {
-                        errors.Add("Amount must be an exact CHF centime within Int64 range.");
-                    }
-                    else
-                    {
-                        amount = (long)(parsed * 100);
-                    }
-
-                    if (f[5] is not ("Expense" or "Income" or "Transfer"))
-                    {
-                        errors.Add("Unsupported transaction type.");
-                    }
-
-                    if (f[5] == "Expense" && amount >= 0 || f[5] == "Income" && amount <= 0 || amount == 0)
-                    {
-                        errors.Add("Amount sign or zero conflicts with transaction type.");
-                    }
-
-                    if (string.IsNullOrWhiteSpace(f[7]))
-                    {
-                        errors.Add("Account is required.");
-                    }
-
-                    if (f[8] != "Cleared")
-                    {
-                        errors.Add("Unsupported status; review before import.");
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(f[10]))
-                    {
-                        errors.Add("IOU data is unsupported; review before import.");
-                    }
-
-                    if (f[6].Split('/').Length > 2 ||
-                        f[6].Split('/').Any(x => f[6].Length > 0 && string.IsNullOrWhiteSpace(x)))
-                    {
-                        errors.Add("Tags must be a standalone category or Parent / Child.");
-                    }
-
-                    issues.AddRange(errors.Select(error => new ImportIssue(line, error)));
-
-                    if (errors.Count == 0)
-                    {
-                        rows.Add(new CsvImportRow(line, f[0], date, f[2], amount, f[5], f[6], f[7], f[9], f));
-                    }
-                }
-            }
-        }
-        catch (DecoderFallbackException ex) { issues.Add(new ImportIssue(0, "Invalid UTF-8: " + ex.Message)); }
-        catch (MalformedLineException ex) { issues.Add(new ImportIssue(1, "Malformed CSV header: " + ex.Message)); }
-
-        var groups = new List<CsvImportGroup>();
-        foreach (var grouping in rows.GroupBy(r => r.Id, StringComparer.Ordinal))
-        {
-            var members = grouping.ToArray();
-            var first = members[0];
-            var kind = first.Type;
-            if (kind == "Transfer" && members.Length == 1 && first.Description == "Opening balance")
-            {
-                kind = "OpeningBalance";
-            }
-
-            if (kind == "Transfer" && (members.Length != 2 || members[0].Amount != -members[1].Amount ||
-                members[0].Account == members[1].Account || members[0].Date != members[1].Date ||
-                members.Any(r => r.Type != "Transfer")))
-            {
-                issues.Add(new ImportIssue(first.Line, "Transfer ID requires exactly two same-date, different-account rows with opposite equal amounts."));
-            }
-            else if (kind != "Transfer" && members.Length != 1)
-            {
-                issues.Add(new ImportIssue(first.Line, "Duplicate ID or ambiguous opening balance."));
-            }
-
-            if (kind == "OpeningBalance" && (first.Fields[6].Length > 0 ||
-                rows.Count(r => r is { Type: "Transfer", Description: "Opening balance" } && r.Account == first.Account) != 1))
-            {
-                issues.Add(new ImportIssue(first.Line, "Ambiguous opening balance; one untagged singleton is required per account."));
-            }
-
-            if (kind == "Transfer" && members.Any(r => r.Tags.Length > 0))
-            {
-                issues.Add(new ImportIssue(first.Line, "Tagged transfers require manual review."));
-            }
-
-            var canonical = members.OrderBy(r => r.Account, StringComparer.Ordinal).Select(r => r.Fields).ToArray();
-            var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(canonical))));
-            groups.Add(new CsvImportGroup(grouping.Key, kind, members, fingerprint));
-        }
-        var duplicateOpenings = groups.Where(g => g.Kind == "OpeningBalance").GroupBy(g => g.Rows[0].Account)
-            .Where(g => g.Count() > 1);
-        foreach (var group in duplicateOpenings)
-        {
-            issues.Add(new ImportIssue(group.First().Rows[0].Line, "Multiple opening balances for one account."));
-        }
-
-        var totals = rows.GroupBy(r => r.Account).Select(g => new ImportAccountTotal(g.Key,
-            (long)g.Sum(r => (decimal)r.Amount))).OrderBy(x => x.Account).ToArray();
-        var categories = rows.Where(r => r.Tags.Length > 0).Select(r => r.Tags.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s).ToArray();
-        var summary = new ImportSummary(sourceRows, groups.Count(g => g.Kind == "Expense"),
-            groups.Count(g => g.Kind == "Income"), groups.Count(g => g.Kind == "Transfer"),
-            groups.Count(g => g.Kind == "OpeningBalance"), totals, categories);
+        var (groups, issues, summary) = CsvImportParser.Parse(bytes);
         return new CsvImportPreview(fullPath, hash, ReadSnapshot().Revision, groups.ToArray(), issues.ToArray(), summary);
     }
 
@@ -263,23 +90,7 @@ public sealed partial class LedgerStore
                 throw new InvalidOperationException("Ledger changed after preview. Preview the import again.");
             }
 
-            var matched = 0;
-            foreach (var group in preview.Groups)
-            {
-                using var cmd = Command(c, tx, "SELECT fingerprint,locally_modified FROM import_sources WHERE external_id=$id", ("$id", group.Id));
-                using var found = cmd.ExecuteReader();
-                if (!found.Read())
-                {
-                    continue;
-                }
-
-                if (found.GetBoolean(1) || found.GetString(0) != group.Fingerprint)
-                {
-                    throw new InvalidOperationException($"Source ID {group.Id} conflicts with a prior import or local edit.");
-                }
-
-                matched++;
-            }
+            var matched = CountMatchingSources(c, tx, preview.Groups);
             if (matched == preview.Groups.Length)
             {
                 tx.Commit();
@@ -296,22 +107,7 @@ public sealed partial class LedgerStore
                 throw new InvalidOperationException("Ledger changed after preview. Preview the import again.");
             }
 
-            foreach (var group in preview.Groups)
-            {
-                using var cmd = Command(c, tx, "SELECT fingerprint,locally_modified FROM import_sources WHERE external_id=$id", ("$id", group.Id));
-                using var result = cmd.ExecuteReader();
-                if (!result.Read())
-                {
-                    continue;
-                }
-
-                if (result.GetBoolean(1) || result.GetString(0) != group.Fingerprint)
-                {
-                    throw new InvalidOperationException($"Source ID {group.Id} conflicts with a prior import or local edit.");
-                }
-
-                unchanged++;
-            }
+            unchanged = CountMatchingSources(c, tx, preview.Groups);
             var oldIds = new HashSet<string>();
             using (var cmd = Command(c, tx, "SELECT external_id FROM import_sources"))
             using (var reader = cmd.ExecuteReader())
@@ -407,6 +203,28 @@ public sealed partial class LedgerStore
             }
         });
         return new ImportResult(added, unchanged);
+    }
+
+    private static int CountMatchingSources(SqliteConnection c, SqliteTransaction tx, CsvImportGroup[] groups)
+    {
+        var matched = 0;
+        foreach (var group in groups)
+        {
+            using var cmd = Command(c, tx, "SELECT fingerprint,locally_modified FROM import_sources WHERE external_id=$id", ("$id", group.Id));
+            using var result = cmd.ExecuteReader();
+            if (!result.Read())
+            {
+                continue;
+            }
+
+            if (result.GetBoolean(1) || result.GetString(0) != group.Fingerprint)
+            {
+                throw new InvalidOperationException($"Source ID {group.Id} conflicts with a prior import or local edit.");
+            }
+
+            matched++;
+        }
+        return matched;
     }
 
     private static string? FindOrCreateCategory(SqliteConnection c, SqliteTransaction tx, string tag)
