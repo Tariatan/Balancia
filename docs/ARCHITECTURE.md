@@ -92,6 +92,10 @@ The desktop updates metric text, category rows, history items, and paging state
 in place, skipping list replacement when visible hits are unchanged. Opening or
 closing the filter changes only that panel. Filter reads do not disable the
 page, and changes made during a read queue one refresh for the latest filter.
+The Overview's right column keeps Categories at natural height and lets Upcoming
+payments fill the remaining height beside Transaction history. Its reminder list
+expands with the card; footer totals sum all displayed reminder amounts and the
+subset due in the next local calendar month.
 The next Windows layout refinement uses a shared application-level ListBoxItem
 template-presenter style so focused and unfocused selections retain the same
 light, readable color across pages. Categories joins the height-filling content
@@ -119,6 +123,13 @@ Its category `AutoCompleteBox` suggests active category paths while preserving
 typed text. Storage resolves case-insensitive path components inside the same
 SQLite write transaction as the ledger entry; a failed save rolls back newly
 created parent and child categories with the entry.
+The standard Avalonia `AutoCompleteBox` ranks one best match, then recently used
+matching category paths read by latest transaction date, then the remaining
+matches alphabetically. The editor starts with an empty suggestion source and
+requires one typed character before showing suggestions. A tracked selection
+keeps the typed text intact while Up/Down moves through the ranked suggestions;
+Tab accepts the highlighted suggestion. Text completion is disabled so typing
+stays intact until acceptance.
 The desktop window handles `+` for quick transaction entry outside text controls.
 The shared edit dialog accepts an optional successful-save callback for Add
 transaction: its default Enter action saves and resets the entry fields without

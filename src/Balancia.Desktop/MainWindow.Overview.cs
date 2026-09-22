@@ -141,7 +141,11 @@ public partial class MainWindow
                 // Keep the advanced filter fields in sync with the selected period
                 // shortcut so the active date range is visible when Filter opens.
                 var range = OverviewRange();
-                overviewFilter = overviewFilter with { From = range.From, To = range.To };
+                overviewFilter = overviewFilter with
+                {
+                    From = range.From,
+                    To = range.To
+                };
 
                 SyncOverviewFilterDates();
                 await RequestOverviewFilterRefresh();
@@ -181,7 +185,11 @@ public partial class MainWindow
                 }
                 customFrom = first;
                 customTo = last;
-                overviewFilter = overviewFilter with { From = first, To = last };
+                overviewFilter = overviewFilter with
+                {
+                    From = first,
+                    To = last
+                };
                 overviewOffset = 0;
                 await RequestOverviewFilterRefresh();
             });
@@ -304,9 +312,13 @@ public partial class MainWindow
             ColumnSpacing = 11
         };
         AddColumn(lower, HistoryPanel(), 0);
-        var right = new StackPanel { Spacing = 11 };
-        right.Children.Add(CategoriesPanel(ledgerSnapshot));
-        right.Children.Add(RemindersPanel());
+        var right = new Grid
+        {
+            RowDefinitions = new RowDefinitions("Auto,*"),
+            RowSpacing = 11
+        };
+        AddRow(right, CategoriesPanel(ledgerSnapshot), 0);
+        AddRow(right, RemindersPanel(), 1);
         AddColumn(lower, right, 1);
         AddRow(layout, lower, 3);
         overviewLayout = layout;

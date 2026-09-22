@@ -86,6 +86,10 @@ Account balance = opening balance + all signed movements after the opening point
 Net worth = sum of account balances. Opening balances are counted exactly once;
 transfers cancel across accounts and are excluded from income/expense totals.
 History filters do not change overview account balances or net worth.
+The Upcoming payments card fills the remaining right-column height and reaches
+the bottom of Transaction history. Its list expands to use the available space.
+TOTAL NET sums all amounts shown in the panel; TOTAL UPCOMING MONTH sums the
+amounts for reminders whose occurrence falls in the next local calendar month.
 
 Every successful add/edit/delete refreshes affected balances, category totals,
 reminders, and visible history without restarting or manually reloading the app.
@@ -112,7 +116,10 @@ editing retains its stored date. The amount field
 accepts `+`, `-`, `*`, and `/` expressions, evaluates them when focus leaves the
 field and before saving, and rounds the result to CHF centimes.
 Category / subcategory is one free-text field with matching existing paths shown
-as suggestions while typing. A previously unused name creates a top-level
+as suggestions only after typing starts; it is empty on a new transaction. The
+best match appears first and is highlighted without replacing the typed text; Tab accepts it;
+matching recently used paths follow in latest-use order, then the remaining
+matching paths appear alphabetically. A previously unused name creates a top-level
 category when the transaction saves; `Category / Subcategory` creates or reuses
 both levels. Empty text means Uncategorized. More than one slash or an empty
 side is invalid. Category creation and the transaction save commit together.

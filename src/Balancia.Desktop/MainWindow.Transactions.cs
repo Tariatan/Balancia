@@ -2,6 +2,8 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Balancia.Core;
@@ -112,15 +114,81 @@ public partial class MainWindow
             .Where(c => !c.Archived || c.Id == existing?.CategoryId)
             .Select(c => c.Path)
             .ToList();
+        var recentCategoryPaths = (await Task.Run(() => store.ReadRecentCategoryPaths())).ToList();
+        IReadOnlyList<CategorySuggestion> categorySuggestions = [];
+        var selectedCategorySuggestionIndex = -1;
+        var acceptingCategorySuggestion = false;
         var category = new AutoCompleteBox
         {
-            ItemsSource = categoryPaths,
+            ItemsSource = categorySuggestions,
             Text = snapshot.Categories.FirstOrDefault(c => c.Id == existing?.CategoryId)?.Path ?? "",
-            FilterMode = AutoCompleteFilterMode.ContainsOrdinal,
+            FilterMode = AutoCompleteFilterMode.None,
+            IsTextCompletionEnabled = false,
             MinimumPrefixLength = 1,
             PlaceholderText = "Type or select a category",
-            HorizontalAlignment = HorizontalAlignment.Stretch
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            ItemTemplate = new FuncDataTemplate<CategorySuggestion>((suggestion, _) => CategorySuggestionRow(suggestion), true)
         };
+        var updatingCategorySuggestions = false;
+        category.TextChanged += (_, _) =>
+        {
+            if (updatingCategorySuggestions || acceptingCategorySuggestion)
+            {
+                return;
+            }
+
+            updatingCategorySuggestions = true;
+            try
+            {
+                var query = category.Text ?? string.Empty;
+                IReadOnlyList<CategorySuggestion> matches = string.IsNullOrWhiteSpace(query)
+                    ? []
+                    : BuildCategorySuggestions(categoryPaths, recentCategoryPaths, query);
+                selectedCategorySuggestionIndex = matches.Count > 0 ? 0 : -1;
+                categorySuggestions = HighlightCategorySuggestion(matches, selectedCategorySuggestionIndex);
+                category.ItemsSource = categorySuggestions;
+                category.IsDropDownOpen = matches.Count > 0;
+            }
+            finally
+            {
+                updatingCategorySuggestions = false;
+            }
+        };
+        category.AddHandler(InputElement.KeyDownEvent, (_, eventArgs) =>
+        {
+            if (categorySuggestions.Count == 0)
+            {
+                return;
+            }
+
+            if (eventArgs.Key is Key.Down or Key.Up)
+            {
+                var direction = eventArgs.Key == Key.Down ? 1 : -1;
+                selectedCategorySuggestionIndex = Math.Clamp(
+                    selectedCategorySuggestionIndex + direction,
+                    0,
+                    categorySuggestions.Count - 1);
+                categorySuggestions = HighlightCategorySuggestion(categorySuggestions, selectedCategorySuggestionIndex);
+                category.ItemsSource = categorySuggestions;
+                category.IsDropDownOpen = true;
+                eventArgs.Handled = true;
+            }
+            else if (eventArgs.Key == Key.Tab)
+            {
+                var suggestion = categorySuggestions[Math.Clamp(selectedCategorySuggestionIndex, 0, categorySuggestions.Count - 1)];
+                acceptingCategorySuggestion = true;
+                try
+                {
+                    category.SelectedItem = suggestion;
+                    category.Text = suggestion.Path;
+                    category.IsDropDownOpen = false;
+                }
+                finally
+                {
+                    acceptingCategorySuggestion = false;
+                }
+            }
+        }, RoutingStrategies.Tunnel);
         var memo = Input(existing?.Memo ?? "");
         var toField = Field("Destination account", destination);
         var categoryField = Field("Category / subcategory", category);
@@ -135,7 +203,12 @@ public partial class MainWindow
                 if (!string.IsNullOrEmpty(path) && !categoryPaths.Contains(path, StringComparer.OrdinalIgnoreCase))
                 {
                     categoryPaths.Add(path);
-                    category.ItemsSource = categoryPaths.ToArray();
+                    recentCategoryPaths.RemoveAll(recentPath => string.Equals(recentPath, path, StringComparison.OrdinalIgnoreCase));
+                    recentCategoryPaths.Insert(0, path);
+                    var suggestions = BuildCategorySuggestions(categoryPaths, recentCategoryPaths, path);
+                    selectedCategorySuggestionIndex = suggestions.Count > 0 ? 0 : -1;
+                    categorySuggestions = HighlightCategorySuggestion(suggestions, selectedCategorySuggestionIndex);
+                    category.ItemsSource = categorySuggestions;
                     category.Text = path;
                 }
 
@@ -196,4 +269,102 @@ public partial class MainWindow
             return $"{entry.Draft.Date:yyyy-MM-dd} · {entry.Draft.Description} · {entry.Draft.Kind} · {AmountText(entry.Draft.Amount)} · {entry.AccountName}";
         }
     }
+
+    private sealed record CategorySuggestion(string Path, string? Section, bool IsTopMatch, bool IsKeyboardSelected = false)
+    {
+        public override string ToString() => Path;
+    }
+
+    private static IReadOnlyList<CategorySuggestion> BuildCategorySuggestions(
+        IEnumerable<string> categoryPaths,
+        IEnumerable<string> recentCategoryPaths,
+        string query)
+    {
+        var normalizedQuery = query.Trim();
+        var matches = categoryPaths
+            .Where(path => normalizedQuery.Length == 0 || path.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var suggestions = new List<CategorySuggestion>();
+        string? topMatch = null;
+
+        if (normalizedQuery.Length > 0)
+        {
+            topMatch = matches
+                .OrderBy(path => CategoryMatchRank(path, normalizedQuery))
+                .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
+            if (topMatch is not null)
+            {
+                suggestions.Add(new CategorySuggestion(topMatch, "TOP MATCH", true));
+            }
+        }
+
+        var recentMatches = recentCategoryPaths
+            .Where(path => matches.Contains(path, StringComparer.OrdinalIgnoreCase))
+            .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        suggestions.AddRange(recentMatches.Select((path, index) =>
+            new CategorySuggestion(path, index == 0 ? "RECENT" : null, false)));
+
+        var recentSet = recentMatches.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var remaining = matches
+            .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase) && !recentSet.Contains(path))
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        suggestions.AddRange(remaining.Select((path, index) =>
+            new CategorySuggestion(path, index == 0 ? "CATEGORIES" : null, false)));
+        return suggestions;
+    }
+
+    private static IReadOnlyList<CategorySuggestion> HighlightCategorySuggestion(
+        IReadOnlyList<CategorySuggestion> suggestions,
+        int selectedIndex) => suggestions
+        .Select((suggestion, index) => suggestion with { IsKeyboardSelected = index == selectedIndex })
+        .ToArray();
+
+    private static int CategoryMatchRank(string path, string query)
+    {
+        if (string.Equals(path, query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        if (path.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return path.Split('/').Any(part => part.TrimStart().StartsWith(query, StringComparison.OrdinalIgnoreCase)) ? 2 : 3;
+    }
+
+    private static Control CategorySuggestionRow(CategorySuggestion suggestion)
+    {
+        var body = new StackPanel();
+        if (suggestion.Section is not null)
+        {
+            body.Children.Add(new TextBlock
+            {
+                Text = suggestion.Section,
+                FontSize = 10,
+                FontWeight = FontWeight.SemiBold,
+                Foreground = Brush.Parse(suggestion.IsTopMatch ? "#52636C" : "#71838D"),
+                Margin = new Thickness(2, 4, 2, 2)
+            });
+        }
+
+        body.Children.Add(new Border
+        {
+            Background = suggestion.IsKeyboardSelected ? Brush.Parse("#3989A7") : Brushes.Transparent,
+            Padding = new Thickness(8, 6),
+            Child = new TextBlock
+            {
+                Text = suggestion.Path,
+                Foreground = suggestion.IsKeyboardSelected ? Brushes.White : Brush.Parse("#263C48")
+            }
+        });
+        return body;
+    }
+
 }

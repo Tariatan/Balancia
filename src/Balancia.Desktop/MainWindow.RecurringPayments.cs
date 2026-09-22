@@ -12,9 +12,10 @@ public partial class MainWindow
 {
     private Border RemindersPanel()
     {
-        var body = new StackPanel
+        var body = new Grid
         {
-            Spacing = 1
+            RowDefinitions = new RowDefinitions("Auto,*,Auto"),
+            RowSpacing = 5
         };
 
         var header = new Grid
@@ -35,7 +36,6 @@ public partial class MainWindow
         {
             ItemsSource = reminders.Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray(),
             MinHeight = 45,
-            MaxHeight = 175,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             ItemTemplate = new FuncDataTemplate<Choice<RecurringReminder>>((choice, _) =>
@@ -68,12 +68,19 @@ public partial class MainWindow
             },
             true)
         };
+        var remindersContent = new Grid();
+        remindersContent.Children.Add(recurring);
+        var empty = QuietText("No recurring payment templates.", 12);
+        empty.IsVisible = reminders.Count == 0;
+        empty.VerticalAlignment = VerticalAlignment.Top;
+        empty.Margin = new Thickness(3, 4, 3, 0);
+        remindersContent.Children.Add(empty);
 
         actions.Children.Add(IconButton("+", "Add recurring payment", () => EditRecurring(null)));
         actions.Children.Add(IconButton("🗑", "Delete selected recurring payment", () => DeleteSelectedRecurring(recurring)));
 
         AddColumn(header, actions, 1);
-        body.Children.Add(header);
+        AddRow(body, header, 0);
 
         recurring.DoubleTapped += async (_, _) =>
         {
@@ -83,16 +90,42 @@ public partial class MainWindow
             }
         };
 
-        if (reminders.Count == 0)
+        AddRow(body, remindersContent, 1);
+
+        var totalNet = reminders.Aggregate(Money.Zero,
+            (total, reminder) => total + reminder.Template.IndicativeAmount);
+        var upcomingMonth = displayDate.AddMonths(1);
+        var totalUpcomingMonth = reminders
+            .Where(reminder => reminder.Occurrence.Year == upcomingMonth.Year && reminder.Occurrence.Month == upcomingMonth.Month)
+            .Aggregate(Money.Zero, (total, reminder) => total + reminder.Template.IndicativeAmount);
+        var totals = new Grid
         {
-            body.Children.Add(QuietText("No recurring payment templates.", 12));
-        }
-        else
-        {
-            body.Children.Add(recurring);
-        }
+            ColumnDefinitions = new ColumnDefinitions("*,*"),
+            ColumnSpacing = 8,
+            Margin = new Thickness(0, 5, 0, 0)
+        };
+        AddColumn(totals, ReminderTotal("TOTAL NET", totalNet), 0);
+        AddColumn(totals, ReminderTotal("TOTAL UPCOMING MONTH", totalUpcomingMonth), 1);
+        AddRow(body, totals, 2);
 
         return Panel(body);
+    }
+
+    private static StackPanel ReminderTotal(string label, Money amount)
+    {
+        var total = new StackPanel
+        {
+            Spacing = 3
+        };
+        total.Children.Add(QuietText(label, 10));
+        total.Children.Add(new TextBlock
+        {
+            Text = AmountText(amount),
+            FontSize = 14,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brush.Parse("#263C48")
+        });
+        return total;
     }
 
     private async Task DeleteSelectedRecurring(ListBox recurring)

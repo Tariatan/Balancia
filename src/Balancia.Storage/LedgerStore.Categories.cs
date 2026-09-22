@@ -5,6 +5,37 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
+    public IReadOnlyList<string> ReadRecentCategoryPaths(int limit = 5)
+    {
+        if (limit <= 0)
+        {
+            return [];
+        }
+
+        using var connection = connections.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT CASE WHEN parent.id IS NULL THEN category.name ELSE parent.name || ' / ' || category.name END AS path
+            FROM ledger
+            JOIN categories category ON category.id=ledger.category_id
+            LEFT JOIN categories parent ON parent.id=category.parent_id
+            WHERE category.archived=0
+            GROUP BY category.id
+            ORDER BY MAX(ledger.date) DESC, path COLLATE NOCASE
+            LIMIT $limit;
+            """;
+        command.Parameters.AddWithValue("$limit", limit);
+        using var reader = command.ExecuteReader();
+        var paths = new List<string>();
+
+        while (reader.Read())
+        {
+            paths.Add(reader.GetString(0));
+        }
+
+        return paths;
+    }
+
     public string SaveCategory(string? id, string name, string? parentId, bool archived = false)
     {
         ArgumentNullException.ThrowIfNull(name);

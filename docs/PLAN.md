@@ -312,3 +312,28 @@ card with selectable rows, add and guarded delete actions, and double-click
 editing. Accounts containing transaction history cannot be deleted and remain
 archivable through the edit form. The desktop navigation is Overview,
 Transactions, and Categories.
+
+The 2026-09-22 category-entry refinement ranks and selects the best matching
+category for Tab acceptance, then shows matching recent categories followed by
+the alphabetical remainder. New transaction forms start with an empty category
+field and do not open suggestions until typing starts. Recent paths are distinct and ordered by latest
+transaction date. Locked restore, Release build, 59 tests, the harness, and
+`git diff --check` passed. A follow-up corrected the dropdown data to plain text
+items after the user reported the missing category input. After the field was
+still missing, the transaction editor was returned to the standard Avalonia
+`AutoCompleteBox` and its public selection property; the test data window was
+closed before rebuilding. Release build, 59 tests, targeted format, harness,
+and diff checks pass. Direct Windows form rendering and keyboard interaction
+remain to be confirmed.
+
+The owner clarified that the Category field must remain empty on a new form and
+preserve the typed query until Tab acceptance. The initial suggestion list is now
+empty, requires a typed character to open, disables automatic text completion,
+and marks the best match in the dropdown without assigning the autocomplete's
+selected item. Tab accepts the navigated suggestion or defaults to the first
+ranked result. Release build, targeted formatting, and diff checks pass. No test
+suite was run for this adjustment; visual UI check remains pending.
+
+The 2026-09-22 Overview refinement extends Upcoming payments to the bottom edge
+of Transaction history and adds all-reminder and next-calendar-month totals. Release
+build passes; visual resize and total checks remain pending in the Windows UI.

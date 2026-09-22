@@ -175,7 +175,10 @@ public sealed class LedgerStoreTests : IDisposable
 
         var beforeFailure = withTopLevelAndUncategorized.Revision;
         Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null,
-            draft with { AccountId = "missing-account" }, "New / Subcategory"));
+            draft with
+            {
+                AccountId = "missing-account"
+            }, "New / Subcategory"));
         var afterFailure = store.ReadSnapshot();
         Assert.Equal(beforeFailure, afterFailure.Revision);
         Assert.DoesNotContain(afterFailure.Categories, category => category.Name == "New");
@@ -200,7 +203,10 @@ public sealed class LedgerStoreTests : IDisposable
         var parent = store.ReadSnapshot().Categories.Single(category => category.Name == "Home");
         store.SaveCategory(parent.Id, parent.Name, null, true);
 
-        store.SaveTransactionWithCategoryPath(entryId, draft with { Amount = Money.FromFrancs(11) }, "Home / Utilities");
+        store.SaveTransactionWithCategoryPath(entryId, draft with
+        {
+            Amount = Money.FromFrancs(11)
+        }, "Home / Utilities");
         Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Home / Utilities"));
         Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Home / Other"));
         Assert.DoesNotContain(store.ReadSnapshot().Categories, category => category.Name == "Other");
@@ -216,6 +222,36 @@ public sealed class LedgerStoreTests : IDisposable
         Assert.Throws<ArgumentException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Income, 1)));
         store.SaveTransaction(id, Draft(a, TransactionKind.Expense, 20));
         Assert.Equal(8000, store.ReadSnapshot().NetWorth.Centimes);
+    }
+
+    [Fact]
+    public void ReadRecentCategoryPaths_MultipleTransactions_ReturnsDistinctPathsByLatestTransactionDate()
+    {
+        // Arrange
+        var account = Account("A");
+        var draft = Draft(account, TransactionKind.Expense, 10);
+        store.SaveTransactionWithCategoryPath(null, draft with
+        {
+            Date = Start.AddDays(1)
+        }, "Food / Restaurant");
+        store.SaveTransactionWithCategoryPath(null, draft with
+        {
+            Date = Start.AddDays(4)
+        }, "Car / Fuel");
+        store.SaveTransactionWithCategoryPath(null, draft with
+        {
+            Date = Start.AddDays(3)
+        }, "Food / Restaurant");
+        store.SaveTransactionWithCategoryPath(null, draft with
+        {
+            Date = Start.AddDays(2)
+        }, "Health");
+
+        // Act
+        var paths = store.ReadRecentCategoryPaths(2);
+
+        // Assert
+        Assert.Equal(["Car / Fuel", "Food / Restaurant"], paths);
     }
 
     [Fact]

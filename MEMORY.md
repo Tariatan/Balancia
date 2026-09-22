@@ -205,3 +205,13 @@ contradictory entries. Do not copy the user's transaction details into this file
 - 2026-09-21: Account editor now offers a default-account checkbox; new transaction forms prefer the persisted default account before the last-used account.
 
 - 2026-09-21 correction: Snapshot folder now contains one fixed Snapshot.balancia file overwritten on each clean desktop close; rolling retention applies only to the separate backup folder.
+
+- 2026-09-22: Transaction category autocomplete ranks and selects the best match for Tab acceptance, followed by matching recent categories and the alphabetical remainder. Recent means latest transaction date per distinct category path. After the owner reported the field still missing, replaced the custom autocomplete subclass with the standard Avalonia control and public selection property. Locked restore, Release build, 59 tests, harness, targeted formatting, and diff checks passed; visual UI confirmation remains pending.
+
+- 2026-09-22 correction: New transaction category input and suggestion list now start empty; suggestions populate only after typing, with the top match selected while leaving typed text intact.
+
+- 2026-09-22 refinement: Disabled AutoCompleteBox text completion and stopped assigning its SelectedItem on populate because that overwrites typed text. The top result is now visually marked, and Tab accepts it or the navigated result. Release build, targeted format, and diff checks passed; no tests run for this change and visual UI confirmation remains pending.
+
+- 2026-09-22 keyboard correction: Category suggestions now track a highlighted index separately from AutoCompleteBox selection. Tunnel-phase Up/Down updates the highlighted row while preserving typed text; Tab commits the highlighted suggestion. Locked restore, full Release build (zero warnings/errors), targeted format, and diff checks passed; manual keyboard interaction remains unverified.
+
+- 2026-09-22 Overview refinement: Upcoming payments now fills the right-column space down to the transaction-history bottom edge. TOTAL NET sums all displayed reminder amounts; TOTAL UPCOMING MONTH sums displayed reminders due in the next local calendar month. The owner corrected the initial current-month interpretation after seeing zero for October items while in September. Release build passed with zero warnings/errors; manual resize and totals check remain pending.
