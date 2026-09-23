@@ -190,6 +190,13 @@ contradictory entries. Do not copy the user's transaction details into this file
   Windows application icon; modal dialogs reuse the main window icon.
 - All owned edit, delete, and import dialogs set `ShowInTaskbar = false`, so
   modal forms no longer create a second Balancia taskbar icon.
+- Overview now has a gear action that opens a modal Settings form. Database,
+  backup, snapshot, CSV import, CSV export, snapshot export, and snapshot restore
+  actions live in that form; the Settings page retains category management.
+- The Overview gear is now placed in the same header row as the period/account
+  scope label instead of the page title row.
+- The category-management navigation page is labeled `Category`; the modal
+  application-settings form keeps the separate `Settings` title.
 - Settings now offers a database-folder picker. The selected `balancia.db` path
   is persisted in `%LOCALAPPDATA%\Balancia\settings.json`, loaded before startup,
   and switched at runtime after the replacement store initializes. Manual restart

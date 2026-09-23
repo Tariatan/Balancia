@@ -16,7 +16,7 @@ public partial class MainWindow
         {
             Spacing = 1
         };
-        var header = SectionHeader("Largest expense categories", "View all →", () => Navigate("Settings"));
+        var header = SectionHeader("Largest expense categories", "View all →", () => Navigate("Category"));
         overviewCategoryHeading = (TextBlock)header.Children[0];
         body.Children.Add(header);
         var rows = new StackPanel { Spacing = 1 };
@@ -95,36 +95,8 @@ public partial class MainWindow
             RowDefinitions = new RowDefinitions("Auto,Auto,*"),
             RowSpacing = 11
         };
-        var locations = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto"),
-            RowSpacing = 5,
-            ColumnSpacing = 12
-        };
-
-        AddRow(locations, ActionButton("Change database location", ChangeDatabaseLocation), 0);
-        AddRow(locations, ActionButton("Choose backup folder", ChooseBackupLocation), 1);
-        AddRow(locations, ActionButton("Choose snapshot folder", ChooseSnapshotLocation), 2);
-
-        var databaseText = Text(databasePath);
-        var backupText = Text(backupPath ?? "Not configured");
-        var snapshotText = Text(snapshotPath ?? "Not configured");
-
-        databaseText.VerticalAlignment = VerticalAlignment.Center;
-        backupText.VerticalAlignment = VerticalAlignment.Center;
-        snapshotText.VerticalAlignment = VerticalAlignment.Center;
-        AddColumn(locations, databaseText, 1);
-        AddColumn(locations, backupText, 1);
-        AddColumn(locations, snapshotText, 1);
-        Grid.SetRow(databaseText, 0);
-        Grid.SetRow(backupText, 1);
-        Grid.SetRow(snapshotText, 2);
         var instruction = Text("Choose an optional parent for a subcategory. Archiving a parent also archives its children.");
-        instruction.Margin = new Thickness(0, 12, 0, 0);
-        AddRow(locations, instruction, 3);
-        Grid.SetColumnSpan(instruction, 2);
-        AddRow(layout, locations, 0);
+        AddRow(layout, instruction, 0);
 
         var categories = new ListBox
         {
@@ -159,6 +131,78 @@ public partial class MainWindow
         };
         AddRow(layout, Panel(categories), 2);
         ResponsiveBody.Content = layout;
+    }
+
+    private async Task OpenSettingsDialog()
+    {
+        var body = new StackPanel
+        {
+            Spacing = 12,
+            Margin = new Thickness(24)
+        };
+        body.Children.Add(new TextBlock
+        {
+            Text = "Settings",
+            FontSize = 24,
+            FontWeight = FontWeight.SemiBold
+        });
+
+        var locations = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto"),
+            RowSpacing = 7,
+            ColumnSpacing = 12
+        };
+        AddRow(locations, ActionButton("Change database location", ChangeDatabaseLocation), 0);
+        AddRow(locations, ActionButton("Choose backup folder", ChooseBackupLocation), 1);
+        AddRow(locations, ActionButton("Choose snapshot folder", ChooseSnapshotLocation), 2);
+        var databaseText = Text(databasePath);
+        var backupText = Text(backupPath ?? "Not configured");
+        var snapshotText = Text(snapshotPath ?? "Not configured");
+        foreach (var (text, row) in new[] { (databaseText, 0), (backupText, 1), (snapshotText, 2) })
+        {
+            text.VerticalAlignment = VerticalAlignment.Center;
+            AddColumn(locations, text, 1);
+            Grid.SetRow(text, row);
+        }
+        body.Children.Add(locations);
+        body.Children.Add(new Separator { Margin = new Thickness(0, 4) });
+        body.Children.Add(new TextBlock
+        {
+            Text = "Data transfer",
+            FontWeight = FontWeight.SemiBold
+        });
+        body.Children.Add(Row(
+            ActionButton("Import CSV", ImportCsv),
+            ActionButton("Export CSV", ExportCsv),
+            ActionButton("Export snapshot", ExportSnapshot),
+            ActionButton("Restore snapshot", RestoreSnapshot)));
+        var close = new Button
+        {
+            Content = "Close",
+            IsCancel = true,
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        body.Children.Add(close);
+
+        var dialog = new Window
+        {
+            Title = "Settings",
+            Icon = Icon,
+            ShowInTaskbar = false,
+            Width = 600,
+            Height = 400,
+            MinWidth = 600,
+            MinHeight = 400,
+            MaxWidth = 600,
+            MaxHeight = 400,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new ScrollViewer { Content = body }
+        };
+        close.Click += (_, _) => dialog.Close();
+        await dialog.ShowDialog(this);
     }
 
     private async Task<string?> PickFolder(string title)

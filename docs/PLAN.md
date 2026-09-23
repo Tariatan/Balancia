@@ -307,6 +307,10 @@ guidance text.
 The supplied Balancia icon is embedded for the desktop binary, main window,
 and modal forms.
 
+Overview now exposes a gear action for a modal Settings form. Database-folder,
+backup-folder, snapshot-folder, CSV, and snapshot actions moved into that form;
+the Settings page remains focused on category management.
+
 The standalone Accounts tab was removed. Overview now provides an Accounts
 card with selectable rows, add and guarded delete actions, and double-click
 editing. Accounts containing transaction history cannot be deleted and remain

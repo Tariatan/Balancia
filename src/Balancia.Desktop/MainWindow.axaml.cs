@@ -173,7 +173,7 @@ public partial class MainWindow : Window
     }
 
     private async void ShowOverview(object? sender, RoutedEventArgs e) => await Navigate("Overview");
-    private async void ShowSettings(object? sender, RoutedEventArgs e) => await Navigate("Settings");
+    private async void ShowSettings(object? sender, RoutedEventArgs e) => await Navigate("Category");
     private async Task Navigate(string page)
     {
         if (this.page == page)
@@ -188,7 +188,7 @@ public partial class MainWindow : Window
     {
         PageTitle.Text = page;
         PageTitle.IsVisible = page != "Overview";
-        HeaderActions.IsVisible = page == "Settings";
+        HeaderActions.IsVisible = false;
 
         foreach (var child in Navigation.Children.OfType<Button>())
         {
@@ -196,15 +196,7 @@ public partial class MainWindow : Window
         }
         HeaderActions.Children.Clear();
 
-        if (page == "Settings")
-        {
-            HeaderActions.Children.Add(ActionButton("Import CSV", ImportCsv));
-            HeaderActions.Children.Add(ActionButton("Export CSV", ExportCsv));
-            HeaderActions.Children.Add(ActionButton("Export snapshot", ExportSnapshot));
-            HeaderActions.Children.Add(ActionButton("Restore snapshot", RestoreSnapshot));
-        }
-
-        var responsive = page is "Overview" or "Settings";
+        var responsive = page is "Overview" or "Category";
         PageScrollViewer.IsVisible = !responsive;
         ResponsiveBody.IsVisible = responsive;
         overviewFilterFrom = null;
@@ -234,7 +226,7 @@ public partial class MainWindow : Window
             case "Overview":
                 RenderOverview(s);
                 break;
-            case "Settings":
+            case "Category":
                 RenderSettings(s);
                 break;
         }

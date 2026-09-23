@@ -111,8 +111,17 @@ public partial class MainWindow
             RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*"),
             RowSpacing = 11
         };
+        var overviewHeader = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto")
+        };
         overviewSummaryLabel = QuietText($"{label} · All accounts", 12);
-        AddRow(layout, overviewSummaryLabel, 0);
+        overviewSummaryLabel.VerticalAlignment = VerticalAlignment.Center;
+        AddColumn(overviewHeader, overviewSummaryLabel, 0);
+        var settings = IconButton("⚙", "Open settings", OpenSettingsDialog);
+        settings.VerticalAlignment = VerticalAlignment.Center;
+        AddColumn(overviewHeader, settings, 1);
+        AddRow(layout, overviewHeader, 0);
         var filterBox = new StackPanel { Spacing = 8 };
         overviewFilterBox = filterBox;
         overviewPeriodButtons.Clear();
