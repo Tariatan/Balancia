@@ -24,7 +24,7 @@ public partial class MainWindow
             Margin = new Thickness(0, 0, 0, 7)
         };
 
-        header.Children.Add(Heading("Upcoming payments", 13));
+        header.Children.Add(Heading("Reminders", 13));
 
         var actions = new StackPanel
         {

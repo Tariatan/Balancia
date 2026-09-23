@@ -16,7 +16,7 @@ public partial class MainWindow
         {
             Spacing = 1
         };
-        var header = SectionHeader("Largest expense categories", "View all →", () => Navigate("Category"));
+        var header = SectionHeader("Top expenditures", "View all →", () => Navigate("Category"));
         overviewCategoryHeading = (TextBlock)header.Children[0];
         body.Children.Add(header);
         var rows = new StackPanel { Spacing = 1 };
@@ -35,8 +35,8 @@ public partial class MainWindow
         var hasSubcategories = selectedCategory is not null &&
             ledgerSnapshot.Categories.Any(c => c.ParentId == selectedCategory.Id);
         var title = hasSubcategories
-            ? $"Largest expense subcategories · {selectedCategory!.Name}"
-            : "Largest expense categories";
+            ? $"Top expenditures · {selectedCategory!.Name}"
+            : "Top expenditures";
         overviewCategoryHeading!.Text = title;
 
         if (ledgerSnapshot.LargestCategories.Count == 0)
