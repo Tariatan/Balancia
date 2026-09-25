@@ -210,6 +210,14 @@ contradictory entries. Do not copy the user's transaction details into this file
   default values stay muted, and calendar buttons use reduced opacity.
 - The Description filter now includes an inline × clear action that applies
   immediately.
+- Category add, archive, and delete controls now sit in the category list card
+  header, matching the Accounts card layout.
+- The category management list and its controls now live under the shared
+  filter panel on Overview; the Category page no longer renders a duplicate list.
+- Overview content below Filters now uses a left Categories column and a right
+  dashboard column for Accounts, flow totals, history, expenditures, and reminders.
+- The Categories card now stretches to the dashboard height and its list fills
+  the space beneath the card header.
 - Settings now offers a database-folder picker. The selected `balancia.db` path
   is persisted in `%LOCALAPPDATA%\Balancia\settings.json`, loaded before startup,
   and switched at runtime after the replacement store initializes. Manual restart

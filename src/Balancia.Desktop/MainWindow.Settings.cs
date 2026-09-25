@@ -88,17 +88,8 @@ public partial class MainWindow
         }
     }
 
-    private void RenderSettings(LedgerSnapshot ledgerSnapshot)
+    private Border CategoryManagementPanel(LedgerSnapshot ledgerSnapshot)
     {
-        var layout = new Grid
-        {
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*"),
-            RowSpacing = 11
-        };
-        AddRow(layout, OverviewFilterPanel(), 0);
-        var instruction = Text("Choose an optional parent for a subcategory. Archiving a parent also archives its children.");
-        AddRow(layout, instruction, 1);
-
         var categories = new ListBox
         {
             ItemsSource = ledgerSnapshot.Categories.Select(c => new Choice<Category>(c, c.Path + (c.Archived ? " (archived)" : ""))).ToArray(),
@@ -107,22 +98,27 @@ public partial class MainWindow
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0)
         };
-
-        var actions = new Grid
+        var categoryBody = new Grid
+        {
+            RowDefinitions = new RowDefinitions("Auto,*"),
+            RowSpacing = 6
+        };
+        var categoryHeader = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("*,Auto")
         };
-
+        categoryHeader.Children.Add(Heading("CATEGORIES", 11));
         var buttons = new StackPanel
         {
-            Orientation = Orientation.Horizontal, Spacing = 3
+            Orientation = Orientation.Horizontal,
+            Spacing = 3
         };
-
         buttons.Children.Add(IconButton("+", "Add category", () => EditCategory(null)));
         buttons.Children.Add(IconButton("▣", "Archive selected category", () => ArchiveSelectedCategory(categories)));
         buttons.Children.Add(IconButton("🗑", "Delete selected category", () => DeleteSelectedCategory(categories)));
-        AddColumn(actions, buttons, 1);
-        AddRow(layout, actions, 2);
+        AddColumn(categoryHeader, buttons, 1);
+        AddRow(categoryBody, categoryHeader, 0);
+        AddRow(categoryBody, categories, 1);
         categories.DoubleTapped += async (_, _) =>
         {
             if (categories.SelectedItem is Choice<Category> choice)
@@ -130,7 +126,19 @@ public partial class MainWindow
                 await EditCategory(choice.Value);
             }
         };
-        AddRow(layout, Panel(categories), 3);
+        return Panel(categoryBody);
+    }
+
+    private void RenderSettings(LedgerSnapshot ledgerSnapshot)
+    {
+        var layout = new Grid
+        {
+            RowDefinitions = new RowDefinitions("Auto,Auto,*"),
+            RowSpacing = 11
+        };
+        AddRow(layout, OverviewFilterPanel(), 0);
+        var instruction = Text("Choose an optional parent for a subcategory. Archiving a parent also archives its children.");
+        AddRow(layout, instruction, 1);
         ResponsiveBody.Content = layout;
     }
 

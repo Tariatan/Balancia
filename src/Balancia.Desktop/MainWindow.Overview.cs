@@ -109,7 +109,7 @@ public partial class MainWindow
         renderedPeriodState = null;
         var layout = new Grid
         {
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,*"),
             RowSpacing = 11
         };
         var overviewHeader = new Grid
@@ -233,8 +233,6 @@ public partial class MainWindow
         overviewExpensesScope = expensesScope;
         AddColumn(summary, incomeBorder, 1);
         AddColumn(summary, expensesBorder, 2);
-        AddRow(layout, summary, 2);
-
         var lower = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("2.20*,1*"),
@@ -249,7 +247,22 @@ public partial class MainWindow
         AddRow(right, CategoriesPanel(ledgerSnapshot), 0);
         AddRow(right, RemindersPanel(), 1);
         AddColumn(lower, right, 1);
-        AddRow(layout, lower, 3);
+        var dashboard = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("0.7*,3*"),
+            RowDefinitions = new RowDefinitions("*"),
+            ColumnSpacing = 11
+        };
+        var rightColumn = new Grid
+        {
+            RowDefinitions = new RowDefinitions("Auto,*"),
+            RowSpacing = 11
+        };
+        AddRow(rightColumn, summary, 0);
+        AddRow(rightColumn, lower, 1);
+        AddColumn(dashboard, CategoryManagementPanel(ledgerSnapshot), 0);
+        AddColumn(dashboard, rightColumn, 1);
+        AddRow(layout, dashboard, 2);
         overviewLayout = layout;
         ResponsiveBody.Content = layout;
     }
