@@ -92,11 +92,12 @@ public partial class MainWindow
     {
         var layout = new Grid
         {
-            RowDefinitions = new RowDefinitions("Auto,Auto,*"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*"),
             RowSpacing = 11
         };
+        AddRow(layout, OverviewFilterPanel(), 0);
         var instruction = Text("Choose an optional parent for a subcategory. Archiving a parent also archives its children.");
-        AddRow(layout, instruction, 0);
+        AddRow(layout, instruction, 1);
 
         var categories = new ListBox
         {
@@ -121,7 +122,7 @@ public partial class MainWindow
         buttons.Children.Add(IconButton("▣", "Archive selected category", () => ArchiveSelectedCategory(categories)));
         buttons.Children.Add(IconButton("🗑", "Delete selected category", () => DeleteSelectedCategory(categories)));
         AddColumn(actions, buttons, 1);
-        AddRow(layout, actions, 1);
+        AddRow(layout, actions, 2);
         categories.DoubleTapped += async (_, _) =>
         {
             if (categories.SelectedItem is Choice<Category> choice)
@@ -129,7 +130,7 @@ public partial class MainWindow
                 await EditCategory(choice.Value);
             }
         };
-        AddRow(layout, Panel(categories), 2);
+        AddRow(layout, Panel(categories), 3);
         ResponsiveBody.Content = layout;
     }
 

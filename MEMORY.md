@@ -197,6 +197,19 @@ contradictory entries. Do not copy the user's transaction details into this file
   scope label instead of the page title row.
 - The category-management navigation page is labeled `Category`; the modal
   application-settings form keeps the separate `Settings` title.
+- Overview and Category now use the same compact period/search/filter panel;
+  Overview keeps live filter application and Category shares the controls and
+  layout.
+- Fixed the shared panel startup error caused by attaching the same Border to
+  both a temporary StackPanel and the page Grid; each page now owns it directly.
+- Removed the redundant shared filter title and Filter toggle; period/search
+  controls are always visible, with input borders matching panel borders.
+- Moved the clear filters action into the period row, removed the summary line,
+  and set filter control text to the muted slate UI color.
+- Description now applies on Enter; chosen filter values use darker text while
+  default values stay muted, and calendar buttons use reduced opacity.
+- The Description filter now includes an inline × clear action that applies
+  immediately.
 - Settings now offers a database-folder picker. The selected `balancia.db` path
   is persisted in `%LOCALAPPDATA%\Balancia\settings.json`, loaded before startup,
   and switched at runtime after the replacement store initializes. Manual restart

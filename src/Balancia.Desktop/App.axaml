@@ -4,8 +4,29 @@
   <Application.Styles>
     <FluentTheme />
     <Style Selector="TextBox">
+      <Setter Property="Foreground" Value="#71838D" />
       <Setter Property="SelectionBrush" Value="#3989A7" />
       <Setter Property="SelectionForegroundBrush" Value="White" />
+      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="Foreground" Value="#71838D" />
+      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="AutoCompleteBox">
+      <Setter Property="Foreground" Value="#71838D" />
+      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="CalendarDatePicker">
+      <Setter Property="Foreground" Value="#71838D" />
+      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="CalendarDatePicker /template/ Button#PART_Button">
+      <Setter Property="Opacity" Value="0.55" />
     </Style>
     <Style Selector="AutoCompleteBox TextBox">
       <Setter Property="SelectionBrush" Value="#3989A7" />

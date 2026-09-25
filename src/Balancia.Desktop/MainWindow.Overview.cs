@@ -2,6 +2,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -122,91 +123,10 @@ public partial class MainWindow
         settings.VerticalAlignment = VerticalAlignment.Center;
         AddColumn(overviewHeader, settings, 1);
         AddRow(layout, overviewHeader, 0);
-        var filterBox = new StackPanel { Spacing = 8 };
-        overviewFilterBox = filterBox;
-        overviewPeriodButtons.Clear();
-        var filters = new WrapPanel();
-        filters.Children.Add(QuietText("PERIOD", 11));
-        foreach (var (period, title) in new[] { (OverviewPeriod.All, "All"), (OverviewPeriod.ThisWeek, "This Week"),
-                     (OverviewPeriod.ThisMonth, "This Month"), (OverviewPeriod.ThisYear, "This Year"), (OverviewPeriod.Custom, "Filter") })
-        {
-            var button = ActionButton(title, async () =>
-            {
-                if (period == OverviewPeriod.Custom)
-                {
-                    overviewFiltersVisible = !overviewFiltersVisible;
-                    UpdateOverviewFilterVisibility();
-                    return;
-                }
-
-                overviewPeriod = period;
-                overviewOffset = 0;
-                if (period == OverviewPeriod.Custom && (customFrom is null || customTo is null))
-                {
-                    customFrom = new DateOnly(displayDate.Year, displayDate.Month, 1);
-                    customTo = displayDate;
-                }
-
-                // Keep the advanced filter fields in sync with the selected period
-                // shortcut so the active date range is visible when Filter opens.
-                var range = OverviewRange();
-                overviewFilter = overviewFilter with
-                {
-                    From = range.From,
-                    To = range.To
-                };
-
-                SyncOverviewFilterDates();
-                await RequestOverviewFilterRefresh();
-            });
-            button.Margin = new Thickness(5, 0, 0, 0);
-            if (overviewPeriod == period || period == OverviewPeriod.Custom && overviewFiltersVisible)
-            {
-                button.Background = Brush.Parse("#D8ECF3");
-                button.Foreground = Brush.Parse("#1C627E");
-                button.FontWeight = FontWeight.SemiBold;
-            }
-            filters.Children.Add(button);
-            overviewPeriodButtons.Add(period, button);
-        }
-        filterBox.Children.Add(filters);
-        UpdateOverviewFilterVisibility();
-        if (overviewPeriod == OverviewPeriod.Custom)
-        {
-            var from = DateInput(customFrom);
-            var to = DateInput(customTo);
-            from.Width = to.Width = 150;
-            var customDates = new Grid
-            {
-                ColumnDefinitions = new ColumnDefinitions("Auto,Auto,Auto"),
-                ColumnSpacing = 10
-            };
-            AddColumn(customDates, Field("From", from), 0);
-            AddColumn(customDates, Field("To", to), 1);
-            var apply = ActionButton("Apply", async () =>
-            {
-                var first = from.SelectedDate is not null ? ParseDate(from) : (DateOnly?)null;
-                var last = to.SelectedDate is not null ? ParseDate(to) : (DateOnly?)null;
-                if (first is null || last is null || first > last)
-                {
-                    Status.Text = "Choose a valid From and To date.";
-                    return;
-                }
-                customFrom = first;
-                customTo = last;
-                overviewFilter = overviewFilter with
-                {
-                    From = first,
-                    To = last
-                };
-                overviewOffset = 0;
-                await RequestOverviewFilterRefresh();
-            });
-            apply.VerticalAlignment = VerticalAlignment.Bottom;
-            AddColumn(customDates, apply, 2);
-            filterBox.Children.Add(customDates);
-        }
-        AddRow(layout, Panel(filterBox), 1);
+        overviewFiltersVisible = true;
+        overviewFilterBox = null;
+        overviewFilterCard = OverviewFilterPanel();
+        AddRow(layout, overviewFilterCard, 1);
 
         var summary = new Grid
         {
@@ -496,6 +416,9 @@ public partial class MainWindow
         type.SelectionChanged += async (_, _) => await ApplyValues();
         account.SelectionChanged += async (_, _) => await ApplyValues();
         category.SelectionChanged += async (_, _) => await ApplyValues();
+        account.SelectionChanged += (_, _) => UpdateFilterTone(account, account.SelectedIndex > 0);
+        type.SelectionChanged += (_, _) => UpdateFilterTone(type, type.SelectedIndex > 0);
+        category.SelectionChanged += (_, _) => UpdateFilterTone(category, category.SelectedIndex > 0);
 
         from.CalendarClosed += (_, _) => ApplyAfterCalendarClosed();
         to.CalendarClosed += (_, _) => ApplyAfterCalendarClosed();
@@ -504,13 +427,58 @@ public partial class MainWindow
         search.LostFocus += async (_, _) => await ApplyValues();
         minimum.LostFocus += async (_, _) => await ApplyValues();
         maximum.LostFocus += async (_, _) => await ApplyValues();
-
-        var title = new Grid
+        search.KeyDown += async (_, e) =>
         {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            Margin = new Thickness(0, 0, 0, 2)
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                await ApplyValues();
+            }
         };
-        title.Children.Add(Heading("Search and filters", 13));
+        search.TextChanged += (_, _) => UpdateFilterTone(search, !string.IsNullOrWhiteSpace(search.Text));
+        minimum.TextChanged += (_, _) => UpdateFilterTone(minimum, !string.IsNullOrWhiteSpace(minimum.Text));
+        maximum.TextChanged += (_, _) => UpdateFilterTone(maximum, !string.IsNullOrWhiteSpace(maximum.Text));
+        from.SelectedDateChanged += (_, _) => UpdateFilterTone(from, from.SelectedDate is not null);
+        to.SelectedDateChanged += (_, _) => UpdateFilterTone(to, to.SelectedDate is not null);
+
+        var filters = new StackPanel { Spacing = 4 };
+        var periodRow = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto")
+        };
+        var periodButtons = new WrapPanel { Orientation = Orientation.Horizontal };
+        periodButtons.Children.Add(QuietText("PERIOD", 11));
+        AddColumn(periodRow, periodButtons, 0);
+        overviewPeriodButtons.Clear();
+        foreach (var (period, periodTitle) in new[] { (OverviewPeriod.All, "All"), (OverviewPeriod.ThisWeek, "Week"),
+                     (OverviewPeriod.ThisMonth, "Month"), (OverviewPeriod.ThisYear, "Year") })
+        {
+            var periodButton = ActionButton(periodTitle, async () =>
+            {
+                overviewPeriod = period;
+                overviewOffset = 0;
+                if (period == OverviewPeriod.Custom && (customFrom is null || customTo is null))
+                {
+                    customFrom = new DateOnly(displayDate.Year, displayDate.Month, 1);
+                    customTo = displayDate;
+                }
+
+                var range = OverviewRange();
+                overviewFilter = overviewFilter with
+                {
+                    From = range.From,
+                    To = range.To
+                };
+                SyncOverviewFilterDates();
+                UpdateOverviewPeriodButtons();
+                await RequestOverviewFilterRefresh();
+            });
+            periodButton.Margin = new Thickness(5, 0, 0, 0);
+            periodButtons.Children.Add(periodButton);
+            overviewPeriodButtons.Add(period, periodButton);
+        }
+        filters.Children.Add(periodRow);
+
         var clear = ActionButton("🗑", async () =>
         {
             overviewFilter = new HistoryFilter();
@@ -518,15 +486,13 @@ public partial class MainWindow
             updatingFilterControls = true;
             try
             {
-                if (overviewFilterCard is not null)
-                {
-                    overviewFilterBox?.Children.Remove(overviewFilterCard);
-                    overviewFilterCard = null;
-                }
-
-                overviewFilterFrom = null;
-                overviewFilterTo = null;
-                UpdateOverviewFilterVisibility();
+                search.Text = string.Empty;
+                account.SelectedItem = accountChoices[0];
+                type.SelectedItem = types[0];
+                category.SelectedItem = categories[0];
+                minimum.Text = string.Empty;
+                maximum.Text = string.Empty;
+                SyncOverviewFilterDates();
             }
             finally
             {
@@ -540,36 +506,82 @@ public partial class MainWindow
         clear.FontSize = 16;
         clear.HorizontalContentAlignment = HorizontalAlignment.Center;
         ToolTip.SetTip(clear, "Clear filters");
-        AddColumn(title, clear, 1);
-
-        var filters = new StackPanel { Spacing = 4 };
-        filters.Children.Add(title);
-        var mainRow = Row(
-            Field("Description", search),
-            Field("Account", account),
-            Field("Type", type),
-            Field("Category / subcategory", category)
-            );
-        foreach (var child in mainRow.Children)
+        clear.Margin = new Thickness(8, 0, 0, 0);
+        AddColumn(periodRow, clear, 1);
+        search.PlaceholderText = "Description";
+        account.PlaceholderText = "All accounts ▼";
+        type.PlaceholderText = "All types ▼";
+        category.PlaceholderText = "All categories ▼";
+        minimum.PlaceholderText = "Min amount";
+        maximum.PlaceholderText = "Max amount";
+        search.Width = 260;
+        account.Width = 180;
+        type.Width = 155;
+        category.Width = 225;
+        from.Width = 150;
+        to.Width = 150;
+        minimum.Width = 125;
+        maximum.Width = 125;
+        UpdateFilterTone(account, account.SelectedIndex > 0);
+        UpdateFilterTone(type, type.SelectedIndex > 0);
+        UpdateFilterTone(category, category.SelectedIndex > 0);
+        UpdateFilterTone(search, !string.IsNullOrWhiteSpace(search.Text));
+        UpdateFilterTone(minimum, !string.IsNullOrWhiteSpace(minimum.Text));
+        UpdateFilterTone(maximum, !string.IsNullOrWhiteSpace(maximum.Text));
+        UpdateFilterTone(from, from.SelectedDate is not null);
+        UpdateFilterTone(to, to.SelectedDate is not null);
+        var searchBox = new Grid
         {
-            child.Margin = new Thickness(0, 2, 8, 2);
+            Width = 295
+        };
+        var clearSearch = new Button
+        {
+            Content = "×",
+            Width = 28,
+            Padding = new Thickness(0),
+            FontSize = 17,
+            Background = Brushes.Transparent,
+            Foreground = Brush.Parse("#71838D"),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        ToolTip.SetTip(clearSearch, "Clear search");
+        searchBox.Children.Add(search);
+        searchBox.Children.Add(clearSearch);
+        clearSearch.Click += async (_, _) =>
+        {
+            search.Text = string.Empty;
+            await ApplyValues();
+        };
+        var mainRow = new WrapPanel { Orientation = Orientation.Horizontal };
+        foreach (var control in new Control[] { searchBox, account, type, category, from, to, minimum, maximum })
+        {
+            control.Margin = new Thickness(0, 2, 7, 2);
+            mainRow.Children.Add(control);
         }
         filters.Children.Add(mainRow);
-        var amountRow = Row(
-            Field("From", from),
-            Field("To", to),
-            Field("Min amount", minimum),
-            Field("Max amount", maximum)
-            );
-        foreach (var child in amountRow.Children)
-        {
-            child.Margin = new Thickness(0, 2, 8, 2);
-        }
-        filters.Children.Add(amountRow);
 
         var panel = Panel(filters);
         panel.Padding = new Thickness(10);
         return panel;
+
+        static void UpdateFilterTone(Control control, bool hasValue)
+        {
+            var foreground = Brush.Parse(hasValue ? "#263C48" : "#71838D");
+            switch (control)
+            {
+                case TextBox textBox:
+                    textBox.Foreground = foreground;
+                    break;
+                case ComboBox comboBox:
+                    comboBox.Foreground = foreground;
+                    break;
+                case CalendarDatePicker datePicker:
+                    datePicker.Foreground = foreground;
+                    break;
+            }
+        }
 
         async Task ApplyValues()
         {
