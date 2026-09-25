@@ -24,6 +24,15 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
     private string? lastAccountId;
 
+    private void SetStatus(string text)
+    {
+        Status.Text = text;
+        if (overviewStatus is not null)
+        {
+            overviewStatus.Text = text;
+        }
+    }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -135,19 +144,19 @@ public partial class MainWindow : Window
             ResponsiveBody.IsEnabled = false;
             Navigation.IsEnabled = false;
             HeaderActions.IsEnabled = false;
-            Status.Text = "Working…";
+            SetStatus("Working…");
         }
         try
         {
             await action();
             if (disableControls)
             {
-                Status.Text = "Saved locally";
+                SetStatus("Saved locally");
             }
         }
         catch (Exception ex)
         {
-            Status.Text = FriendlyError(ex);
+            SetStatus(FriendlyError(ex));
             await ShowErrorDialog("Balancia", FriendlyError(ex));
         }
         finally
@@ -172,8 +181,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void ShowOverview(object? sender, RoutedEventArgs e) => await Navigate("Overview");
-    private async void ShowSettings(object? sender, RoutedEventArgs e) => await Navigate("Category");
     private async Task Navigate(string page)
     {
         if (this.page == page)
@@ -186,8 +193,7 @@ public partial class MainWindow : Window
 
     private void Render()
     {
-        PageTitle.Text = page;
-        PageTitle.IsVisible = page != "Overview";
+        PageTitle.IsVisible = false;
         HeaderActions.IsVisible = false;
 
         foreach (var child in Navigation.Children.OfType<Button>())
@@ -196,7 +202,7 @@ public partial class MainWindow : Window
         }
         HeaderActions.Children.Clear();
 
-        var responsive = page is "Overview" or "Category";
+        var responsive = page == "Overview";
         PageScrollViewer.IsVisible = !responsive;
         ResponsiveBody.IsVisible = responsive;
         overviewFilterFrom = null;
@@ -225,9 +231,6 @@ public partial class MainWindow : Window
         {
             case "Overview":
                 RenderOverview(s);
-                break;
-            case "Category":
-                RenderSettings(s);
                 break;
         }
     }

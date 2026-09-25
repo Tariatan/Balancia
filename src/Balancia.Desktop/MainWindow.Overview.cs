@@ -27,11 +27,11 @@ public partial class MainWindow
     private DateOnly? customFrom;
     private DateOnly? customTo;
     private Grid? overviewLayout;
-    private StackPanel? overviewFilterBox;
     private Border? overviewFilterCard;
     private readonly Dictionary<OverviewPeriod, Button> overviewPeriodButtons = new();
     private (OverviewPeriod Period, bool FiltersVisible)? renderedPeriodState;
     private TextBlock? overviewSummaryLabel;
+    private TextBlock? overviewStatus;
     private TextBlock? overviewIncomeValue;
     private TextBlock? overviewIncomeScope;
     private TextBlock? overviewExpensesValue;
@@ -114,25 +114,24 @@ public partial class MainWindow
         };
         var overviewHeader = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto")
+            ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto")
         };
         overviewSummaryLabel = QuietText($"{label} · All accounts", 12);
         overviewSummaryLabel.VerticalAlignment = VerticalAlignment.Center;
         AddColumn(overviewHeader, overviewSummaryLabel, 0);
+        overviewStatus = QuietText(Status.Text ?? string.Empty, 11);
+        overviewStatus.HorizontalAlignment = HorizontalAlignment.Right;
+        overviewStatus.VerticalAlignment = VerticalAlignment.Center;
+        overviewStatus.Margin = new Thickness(0, 0, 8, 0);
+        AddColumn(overviewHeader, overviewStatus, 1);
         var settings = IconButton("⚙", "Open settings", OpenSettingsDialog);
         settings.VerticalAlignment = VerticalAlignment.Center;
-        AddColumn(overviewHeader, settings, 1);
+        AddColumn(overviewHeader, settings, 2);
         AddRow(layout, overviewHeader, 0);
         overviewFiltersVisible = true;
-        overviewFilterBox = null;
         overviewFilterCard = OverviewFilterPanel();
         AddRow(layout, overviewFilterCard, 1);
 
-        var summary = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("1.18*,*,*"),
-            ColumnSpacing = 10
-        };
         var accountRows = new StackPanel { Spacing = 0 };
         var accountHeader = new Grid
         {
@@ -224,79 +223,58 @@ public partial class MainWindow
             BalanceColor(ledgerSnapshot.NetWorth));
         total.Margin = new Thickness(0, 9, 0, 0);
         accountRows.Children.Add(total);
-        AddColumn(summary, Panel(accountRows), 0);
+        var accountPanel = Panel(accountRows);
         var (incomeBorder, incomeValue, incomeScope) = Metric("INCOME", ledgerSnapshot.MonthlyIncome, label, "#2C8B6D");
         var (expensesBorder, expensesValue, expensesScope) = Metric("EXPENSES", ledgerSnapshot.MonthlyExpenses, label, "#B95D4D");
         overviewIncomeValue = incomeValue;
         overviewIncomeScope = incomeScope;
         overviewExpensesValue = expensesValue;
         overviewExpensesScope = expensesScope;
-        AddColumn(summary, incomeBorder, 1);
-        AddColumn(summary, expensesBorder, 2);
-        var lower = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("2.20*,1*"),
-            ColumnSpacing = 11
-        };
-        AddColumn(lower, HistoryPanel(), 0);
-        var right = new Grid
-        {
-            RowDefinitions = new RowDefinitions("Auto,*"),
-            RowSpacing = 11
-        };
-        AddRow(right, CategoriesPanel(ledgerSnapshot), 0);
-        AddRow(right, RemindersPanel(), 1);
-        AddColumn(lower, right, 1);
         var dashboard = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("0.7*,3*"),
-            RowDefinitions = new RowDefinitions("*"),
+            ColumnDefinitions = new ColumnDefinitions("0.6*,0.4*,1.5*,1.5*"),
+            RowDefinitions = new RowDefinitions("Auto,*"),
             ColumnSpacing = 11
         };
+        AddColumn(dashboard, accountPanel, 0);
+        var incomeExpenses = new StackPanel
+        {
+            Spacing = 11,
+            Children = { incomeBorder, expensesBorder }
+        };
+        AddColumn(dashboard, incomeExpenses, 1);
+        AddColumn(dashboard, PlaceholderPanel("TREND"), 2);
+        AddColumn(dashboard, PlaceholderPanel("TIMELINE"), 3);
+
+        var categoryPanel = CategoryManagementPanel(ledgerSnapshot);
+        AddRow(dashboard, categoryPanel, 1);
+        Grid.SetColumnSpan(categoryPanel, 2);
+        var historyPanel = HistoryPanel();
+        AddColumn(dashboard, historyPanel, 2);
+        Grid.SetRow(historyPanel, 1);
         var rightColumn = new Grid
         {
             RowDefinitions = new RowDefinitions("Auto,*"),
             RowSpacing = 11
         };
-        AddRow(rightColumn, summary, 0);
-        AddRow(rightColumn, lower, 1);
-        AddColumn(dashboard, CategoryManagementPanel(ledgerSnapshot), 0);
-        AddColumn(dashboard, rightColumn, 1);
+        AddRow(rightColumn, CategoriesPanel(ledgerSnapshot), 0);
+        AddRow(rightColumn, RemindersPanel(), 1);
+        AddColumn(dashboard, rightColumn, 3);
+        Grid.SetRow(rightColumn, 1);
         AddRow(layout, dashboard, 2);
         overviewLayout = layout;
         ResponsiveBody.Content = layout;
     }
 
-    private void UpdateOverviewFilterVisibility()
+    private static Border PlaceholderPanel(string title) => Panel(new StackPanel
     {
-        if (overviewFilterBox is null)
+        Spacing = 14,
+        Children =
         {
-            return;
+            Heading(title, 13),
+            QuietText("Coming soon", 12)
         }
-
-        if (overviewFiltersVisible)
-        {
-            overviewFilterCard ??= OverviewFilterPanel();
-            if (!overviewFilterBox.Children.Contains(overviewFilterCard))
-            {
-                overviewFilterBox.Children.Add(overviewFilterCard);
-            }
-        }
-        else if (overviewFilterCard is not null)
-        {
-            updatingFilterControls = true;
-            try
-            {
-                overviewFilterBox.Children.Remove(overviewFilterCard);
-            }
-            finally
-            {
-                updatingFilterControls = false;
-            }
-        }
-
-        UpdateOverviewPeriodButtons();
-    }
+    });
 
     private void UpdateOverviewPeriodButtons()
     {
@@ -638,7 +616,7 @@ public partial class MainWindow
         var scopeText = QuietText(scope, 11);
         var border = Panel(new StackPanel
         {
-            Spacing = 18,
+            Spacing = 2,
             Children = { Heading(title, 11), valueText, scopeText }
         });
         return (border, valueText, scopeText);
@@ -729,22 +707,5 @@ public partial class MainWindow
         var panel = Panel(body);
         panel.Padding = new Thickness(15, 15, 15, 5);
         return panel;
-    }
-
-    private static Grid SectionHeader(string title, string link, Func<Task> action)
-    {
-        var row = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            Margin = new Thickness(0, 0, 0, 10)
-        };
-        row.Children.Add(Heading(title, 13));
-        var button = ActionButton(link, action);
-        button.FontSize = 10;
-        button.Padding = new Thickness(4);
-        button.Background = Brushes.Transparent;
-        button.Foreground = Brush.Parse("#3989A7");
-        AddColumn(row, button, 1);
-        return row;
     }
 }

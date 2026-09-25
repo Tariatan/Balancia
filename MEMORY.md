@@ -192,14 +192,13 @@ contradictory entries. Do not copy the user's transaction details into this file
   modal forms no longer create a second Balancia taskbar icon.
 - Overview now has a gear action that opens a modal Settings form. Database,
   backup, snapshot, CSV import, CSV export, snapshot export, and snapshot restore
-  actions live in that form; the Settings page retains category management.
+  actions live in that form; category management is on Overview.
 - The Overview gear is now placed in the same header row as the period/account
   scope label instead of the page title row.
-- The category-management navigation page is labeled `Category`; the modal
-  application-settings form keeps the separate `Settings` title.
-- Overview and Category now use the same compact period/search/filter panel;
-  Overview keeps live filter application and Category shares the controls and
-  layout.
+- The former category-management navigation page was removed; the modal
+  application-settings form remains separate from Overview.
+- Overview uses the compact period/search/filter panel and contains category
+  management alongside the account and transaction panels.
 - Fixed the shared panel startup error caused by attaching the same Border to
   both a temporary StackPanel and the page Grid; each page now owns it directly.
 - Removed the redundant shared filter title and Filter toggle; period/search
@@ -213,11 +212,26 @@ contradictory entries. Do not copy the user's transaction details into this file
 - Category add, archive, and delete controls now sit in the category list card
   header, matching the Accounts card layout.
 - The category management list and its controls now live under the shared
-  filter panel on Overview; the Category page no longer renders a duplicate list.
+  filter panel on Overview.
 - Overview content below Filters now uses a left Categories column and a right
   dashboard column for Accounts, flow totals, history, expenditures, and reminders.
 - The Categories card now stretches to the dashboard height and its list fills
   the space beneath the card header.
+- Overview dashboard now follows the requested matrix: Accounts, Income,
+  Expenses, and Top expenditures across the top; Categories, history, and
+  Reminders across the lower row.
+- Accounts now uses the same first dashboard column as Categories, so both
+  panels have matching widths.
+- Dashboard top expenditures now sits in the lower right stack above Reminders;
+  the top row contains only Accounts, Income, and Expenses.
+- Added visible Trend and Timeline placeholder cards in the top row; Income and
+  Expenses now stack in the second top column as the next layout target shows.
+- Categories now spans the Accounts and Income columns below; transaction
+  history moves to the next column, preserving the requested width relationship.
+- Removed the obsolete Overview navigation button; Overview remains the startup
+  page without a redundant navigation control.
+- The unused PageTitle control is hidden from initial XAML and render state, so
+  startup no longer flashes an Overview label before the ledger loads.
 - Settings now offers a database-folder picker. The selected `balancia.db` path
   is persisted in `%LOCALAPPDATA%\Balancia\settings.json`, loaded before startup,
   and switched at runtime after the replacement store initializes. Manual restart
@@ -243,3 +257,5 @@ contradictory entries. Do not copy the user's transaction details into this file
 - 2026-09-22 keyboard correction: Category suggestions now track a highlighted index separately from AutoCompleteBox selection. Tunnel-phase Up/Down updates the highlighted row while preserving typed text; Tab commits the highlighted suggestion. Locked restore, full Release build (zero warnings/errors), targeted format, and diff checks passed; manual keyboard interaction remains unverified.
 
 - 2026-09-22 Overview refinement: Upcoming payments now fills the right-column space down to the transaction-history bottom edge. TOTAL NET sums all displayed reminder amounts; TOTAL UPCOMING MONTH sums displayed reminders due in the next local calendar month. The owner corrected the initial current-month interpretation after seeing zero for October items while in September. Release build passed with zero warnings/errors; manual resize and totals check remain pending.
+
+- 2026-09-25 Overview refinement: The local-save/error status is mirrored in the Overview header immediately left of the gear button; the former bottom status slot is hidden. Release build and 59 tests passed.

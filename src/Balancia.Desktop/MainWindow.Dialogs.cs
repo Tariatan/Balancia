@@ -63,7 +63,7 @@ public partial class MainWindow
 
     private Task SelectFirst()
     {
-        Status.Text = "Select a row first.";
+        SetStatus("Select a row first.");
         return Task.CompletedTask;
     }
 

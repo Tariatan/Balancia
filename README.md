@@ -87,7 +87,7 @@ changed CSV IDs or locally edited imported entries cause a conflict. The
 source file is never modified. For a private-export reconciliation test in an
 isolated temporary database, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute
 path before running the test command, then remove the environment variable.
-**Export CSV** on the Settings page saves the current ledger, including
+**Export CSV** from the modal Settings form saves the current ledger, including
 opening balances, as a standard nine-column CSV. It is a ledger export and has
 a different format from the eleven-column source accepted by Import CSV.
 
@@ -96,8 +96,8 @@ panel combines case-insensitive description search, account, type,
 category/subcategory, inclusive date, and inclusive absolute CHF amount filters;
 parent categories include their subcategories. Use Previous/Next to browse
 results. Double-click a row to edit it. The window minimum is 1280 × 1280.
-The top tabs are Overview and Settings. Account management is
-available from the Accounts card on Overview. Recurring
+The main page is Overview. Account and category management is
+available from cards on Overview. Recurring
 template Add/Edit actions are in the Upcoming payments card on Overview.
 The Settings tab places category Add/Edit above a list that grows with the
 window and holds CSV and snapshot actions.

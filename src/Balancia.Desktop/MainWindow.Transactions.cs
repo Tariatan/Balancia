@@ -85,7 +85,7 @@ public partial class MainWindow
             .ToArray();
         if (accounts.Length == 0)
         {
-            Status.Text = "Add an active account before entering transactions.";
+            SetStatus("Add an active account before entering transactions.");
             return;
         }
         var kind = new ComboBox

@@ -23,7 +23,7 @@ public partial class MainWindow
         var path = files[0].TryGetLocalPath();
         if (path is null)
         {
-            Status.Text = "Choose a local CSV file.";
+            SetStatus("Choose a local CSV file.");
             return;
         }
         await Run(async () =>
@@ -80,7 +80,7 @@ public partial class MainWindow
                     var result = await Task.Run(() => store.ApplyCsvImport(preview));
                     dialog.Close();
                     await Refresh();
-                    Status.Text = $"Imported {result.Added} entries; {result.Unchanged} unchanged.";
+                    SetStatus($"Imported {result.Added} entries; {result.Unchanged} unchanged.");
                 }
                 catch (Exception ex)
                 {
@@ -109,7 +109,7 @@ public partial class MainWindow
         await Run(async () =>
         {
             var count = await Task.Run(() => store.ExportCsv(path));
-            Status.Text = $"Exported {count} rows to CSV.";
+            SetStatus($"Exported {count} rows to CSV.");
         });
     }
 
@@ -130,7 +130,7 @@ public partial class MainWindow
         await Run(async () =>
         {
             var manifest = await Task.Run(() => store.ExportSnapshot(path));
-            Status.Text = $"Snapshot exported · revision {manifest.Revision}";
+            SetStatus($"Snapshot exported · revision {manifest.Revision}");
         });
     }
 
@@ -151,7 +151,7 @@ public partial class MainWindow
         await Run(async () =>
         {
             var result = await Task.Run(() => store.RestoreSnapshot(path));
-            Status.Text = $"Snapshot restored · revision {result.Manifest.Revision} · backup {Path.GetFileName(result.BackupPath)}";
+            SetStatus($"Snapshot restored · revision {result.Manifest.Revision} · backup {Path.GetFileName(result.BackupPath)}");
             await Refresh();
         });
     }

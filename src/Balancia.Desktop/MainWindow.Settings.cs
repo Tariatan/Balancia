@@ -16,7 +16,12 @@ public partial class MainWindow
         {
             Spacing = 1
         };
-        var header = SectionHeader("Top expenditures", "View all →", () => Navigate("Category"));
+        var header = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+        header.Children.Add(Heading("Top expenditures", 13));
         overviewCategoryHeading = (TextBlock)header.Children[0];
         body.Children.Add(header);
         var rows = new StackPanel { Spacing = 1 };
@@ -129,19 +134,6 @@ public partial class MainWindow
         return Panel(categoryBody);
     }
 
-    private void RenderSettings(LedgerSnapshot ledgerSnapshot)
-    {
-        var layout = new Grid
-        {
-            RowDefinitions = new RowDefinitions("Auto,Auto,*"),
-            RowSpacing = 11
-        };
-        AddRow(layout, OverviewFilterPanel(), 0);
-        var instruction = Text("Choose an optional parent for a subcategory. Archiving a parent also archives its children.");
-        AddRow(layout, instruction, 1);
-        ResponsiveBody.Content = layout;
-    }
-
     private async Task OpenSettingsDialog()
     {
         var body = new StackPanel
@@ -236,7 +228,7 @@ public partial class MainWindow
         var dbPath = Path.Combine(directory, "balancia.db");
         if (string.Equals(dbPath, this.databasePath, StringComparison.OrdinalIgnoreCase))
         {
-            Status.Text = "This database folder is already active.";
+            SetStatus("This database folder is already active.");
             return;
         }
 

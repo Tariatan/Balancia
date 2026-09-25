@@ -36,22 +36,19 @@
     <Border Background="#1B303D" Padding="18,9">
       <DockPanel>
         <TextBlock Text="Balancia" DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="19" FontWeight="Bold" Foreground="White" Margin="0,0,27,0" />
-        <StackPanel x:Name="Navigation" Orientation="Horizontal" Spacing="5">
-          <Button Classes="nav" Content="Overview" Click="ShowOverview" />
-          <Button Classes="nav" Content="Category" Click="ShowSettings" />
-        </StackPanel>
+        <StackPanel x:Name="Navigation" Orientation="Horizontal" Spacing="5" />
       </DockPanel>
     </Border>
     <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="24,0,24,14">
       <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,14">
-        <TextBlock x:Name="PageTitle" Text="Overview" FontSize="29" FontWeight="SemiBold" Foreground="#263C48" />
+        <TextBlock x:Name="PageTitle" IsVisible="False" FontSize="29" FontWeight="SemiBold" Foreground="#263C48" />
         <StackPanel x:Name="HeaderActions" Grid.Column="1" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center" />
       </Grid>
       <ScrollViewer x:Name="PageScrollViewer" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
         <StackPanel x:Name="PageBody" Spacing="18" HorizontalAlignment="Stretch" />
       </ScrollViewer>
       <ContentControl x:Name="ResponsiveBody" Grid.Row="1" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-      <TextBlock x:Name="Status" Grid.Row="2" Text="Loading…" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#71838D" FontSize="11" />
+      <TextBlock x:Name="Status" Grid.Row="2" IsVisible="False" Text="Loading…" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#71838D" FontSize="11" />
     </Grid>
   </Grid>
 </Window>

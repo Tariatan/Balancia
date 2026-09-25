@@ -309,13 +309,13 @@ and modal forms.
 
 Overview now exposes a gear action for a modal Settings form. Database-folder,
 backup-folder, snapshot-folder, CSV, and snapshot actions moved into that form;
-the Settings page remains focused on category management.
+category management remains on Overview.
 
 The standalone Accounts tab was removed. Overview now provides an Accounts
 card with selectable rows, add and guarded delete actions, and double-click
 editing. Accounts containing transaction history cannot be deleted and remain
-archivable through the edit form. The desktop navigation is Overview,
-Transactions, and Categories.
+archivable through the edit form. The desktop navigation is Overview; category
+management is part of the Overview layout.
 
 The 2026-09-22 category-entry refinement ranks and selects the best matching
 category for Tab acceptance, then shows matching recent categories followed by
