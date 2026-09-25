@@ -243,15 +243,13 @@ public partial class MainWindow
             Children = { incomeBorder, expensesBorder }
         };
         AddColumn(dashboard, incomeExpenses, 1);
-        AddColumn(dashboard, PlaceholderPanel("TREND"), 2);
-        AddColumn(dashboard, PlaceholderPanel("TIMELINE"), 3);
+        AddColumn(dashboard, TrendPanel(), 2);
+        AddColumn(dashboard, TimelinePanel(), 3);
 
         var categoryPanel = CategoryManagementPanel(ledgerSnapshot);
         AddRow(dashboard, categoryPanel, 1);
         Grid.SetColumnSpan(categoryPanel, 2);
         var historyPanel = HistoryPanel();
-        AddColumn(dashboard, historyPanel, 2);
-        Grid.SetRow(historyPanel, 1);
         var rightColumn = new Grid
         {
             RowDefinitions = new RowDefinitions("Auto,*"),
@@ -259,22 +257,20 @@ public partial class MainWindow
         };
         AddRow(rightColumn, CategoriesPanel(ledgerSnapshot), 0);
         AddRow(rightColumn, RemindersPanel(), 1);
-        AddColumn(dashboard, rightColumn, 3);
-        Grid.SetRow(rightColumn, 1);
+        var historyAndRightPanels = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("7*,3*"),
+            ColumnSpacing = 11
+        };
+        AddColumn(historyAndRightPanels, historyPanel, 0);
+        AddColumn(historyAndRightPanels, rightColumn, 1);
+        AddColumn(dashboard, historyAndRightPanels, 2);
+        Grid.SetRow(historyAndRightPanels, 1);
+        Grid.SetColumnSpan(historyAndRightPanels, 2);
         AddRow(layout, dashboard, 2);
         overviewLayout = layout;
         ResponsiveBody.Content = layout;
     }
-
-    private static Border PlaceholderPanel(string title) => Panel(new StackPanel
-    {
-        Spacing = 14,
-        Children =
-        {
-            Heading(title, 13),
-            QuietText("Coming soon", 12)
-        }
-    });
 
     private void UpdateOverviewPeriodButtons()
     {
@@ -334,6 +330,7 @@ public partial class MainWindow
         overviewIncomeScope!.Text = label;
         overviewExpensesValue!.Text = AmountText(ledgerSnapshot.MonthlyExpenses);
         overviewExpensesScope!.Text = label;
+        UpdateAnalyticsCharts();
         UpdateOverviewPeriodButtons();
         if (renderedOverviewCategoryId != overviewFilter.CategoryId ||
             !renderedOverviewCategories.SequenceEqual(ledgerSnapshot.LargestCategories))

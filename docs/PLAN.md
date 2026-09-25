@@ -341,3 +341,12 @@ suite was run for this adjustment; visual UI check remains pending.
 The 2026-09-22 Overview refinement extends Upcoming payments to the bottom edge
 of Transaction history and adds all-reminder and next-calendar-month totals. Release
 build passes; visual resize and total checks remain pending in the Windows UI.
+
+2026-09-25: Trend/Timeline placeholders are replaced with filtered analytics,
+calendar bucket selection, negative savings, cumulative comparison, and hover
+values. Preserve the owner's uncommitted history/right-column width adjustment.
+Locked restore, Release solution build (zero warnings/errors), all 63 tests,
+targeted formatting, harness, and diff checks passed. Synthetic Windows UI checks
+covered all-history and category/type filtering, monthly/weekly grouping,
+negative-savings hover values, cumulative step lines, and empty results. Next:
+owner review of the charts with normal ledger filters.

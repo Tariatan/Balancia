@@ -146,6 +146,14 @@ organization change; the same window and storage boundary remain in use.
 
 ## Storage model
 
+Overview charts use `ReadFlowAnalytics`: a parameterized daily aggregate reuses
+the history SQL predicate and reads current/prior periods in one SQLite read
+transaction. Core groups daily amounts into calendar buckets with checked Money
+arithmetic. Desktop renders responsive bars/lines directly with Avalonia drawing
+primitives and provides exact-value hover tooltips; no chart dependency is added.
+Only geometry converts decimal ratios to floating point. Analytics refresh with
+the captured Overview filter and update mounted chart controls in place.
+
 - Account: stable ID, name, CHF currency, archive state.
 - Category: stable ID, name, optional parent; at most two levels.
 - LedgerTransaction: ID, kind, date, description, optional category, optional memo.

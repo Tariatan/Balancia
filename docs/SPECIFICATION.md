@@ -95,6 +95,24 @@ Every successful add/edit/delete refreshes affected balances, category totals,
 reminders, and visible history without restarting or manually reloading the app.
 Month changes refresh the dashboard without requiring a transaction edit.
 
+Trend and Timeline use the same date, description, account, type, category
+(including children), and amount filters as the Overview totals and history.
+They aggregate all matching entries, independently of history pagination;
+opening balances and transfers are excluded from income/expense analysis.
+Trend defaults to calendar-month buckets, with Day and Monday-based Week choices.
+Without a type/category restriction it shows positive income, negative expenses,
+and a Savings line (income minus expenses, which may be negative). Income-only
+and expense-only type/category selections show a single positive series.
+Empty buckets are retained, and hovering shows exact amounts and bucket dates.
+
+Timeline compares cumulative expenses with the immediately preceding period
+of equal length, retaining every non-date filter. Income-only selections compare
+income instead. Both date ranges are displayed; the previous series is gray.
+Lines remain flat between transaction dates and hover shows cumulative values.
+Default for unbounded dates: use the earliest matching flow through today;
+an explicit endpoint is preserved. Empty results and transfer-only filters show
+an explanatory message. Filter edits and successful ledger writes refresh charts.
+
 Defaults: show the five largest parent expense categories for the selected filters,
 with their subcategory expenses included when no parent is selected. Use the device's local calendar date;
 transaction dates have no time zone. Future expectations belong in reminders;

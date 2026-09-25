@@ -1,6 +1,6 @@
 # Balancia project memory
 
-Last updated: 2026-09-20. Scope: this repository only.
+Last updated: 2026-09-25. Scope: this repository only.
 
 ## Durable context
 
@@ -259,3 +259,15 @@ contradictory entries. Do not copy the user's transaction details into this file
 - 2026-09-22 Overview refinement: Upcoming payments now fills the right-column space down to the transaction-history bottom edge. TOTAL NET sums all displayed reminder amounts; TOTAL UPCOMING MONTH sums displayed reminders due in the next local calendar month. The owner corrected the initial current-month interpretation after seeing zero for October items while in September. Release build passed with zero warnings/errors; manual resize and totals check remain pending.
 
 - 2026-09-25 Overview refinement: The local-save/error status is mirrored in the Overview header immediately left of the gear button; the former bottom status slot is hidden. Release build and 59 tests passed.
+
+- 2026-09-25: Trend and Timeline now aggregate all filtered income/expense
+  transactions independently of history pagination. Trend has day/week/month
+  buckets and signed Savings; Timeline compares cumulative expenses (income for
+  income-only selections) with the preceding equal-length period. Opening
+  balances and transfers are excluded. Hover shows exact dates and amounts.
+  Locked restore, Release solution build with zero warnings/errors, 63 tests,
+  targeted formatting, harness, and diff checks passed. Synthetic native UI checks
+  verified all-history/category/type filtering, monthly/weekly grouping, negative
+  savings tooltips, step lines, and empty results. The owner's existing 7:3
+  history/right-panel width edit was preserved. Next: owner review with normal
+  ledger filters; no commit or push performed for this feature.

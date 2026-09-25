@@ -118,6 +118,8 @@ public partial class MainWindow : Window
         if (page == "Overview")
         {
             overviewHistory = await Task.Run(() => store.ReadHistory(filter, overviewOffset));
+            overviewAnalytics = await Task.Run(() => store.ReadFlowAnalytics(filter));
+            analyticsFilter = filter;
         }
 
         if (updateOverviewInPlace && page == "Overview" && overviewLayout is not null)
