@@ -187,6 +187,41 @@ public sealed class HistoryQueriesTests : IDisposable
     }
 
     [Fact]
+    public void FlowAverages_IncludeZeroCalendarPeriodsAndHonorCategoryAndCustomRange()
+    {
+        // Arrange
+        var account = store.SaveAccount(null, "Everyday", new DateOnly(2025, 8, 1), Money.Zero);
+        var food = store.SaveCategory(null, "Food", null);
+        var travel = store.SaveCategory(null, "Travel", null);
+        Entry(account, "food in August", 10, food, new DateOnly(2025, 8, 3));
+        Entry(account, "food in September", 20, food, new DateOnly(2025, 9, 3));
+        Entry(account, "income in September", 50, food, new DateOnly(2025, 9, 4), TransactionKind.Income);
+        Entry(account, "travel in October", 30, travel, new DateOnly(2025, 10, 3));
+
+        // Act
+        var allMonths = store.ReadFlowAverages(new HistoryFilter(CategoryId: food,
+            To: new DateOnly(2025, 10, 31)), AverageInterval.Month);
+        var customMonths = store.ReadFlowAverages(new HistoryFilter(CategoryId: food,
+            From: new DateOnly(2025, 9, 1), To: new DateOnly(2025, 10, 31)), AverageInterval.Month);
+        var octoberDays = store.ReadFlowAverages(new HistoryFilter(CategoryId: food,
+            From: new DateOnly(2025, 10, 1), To: new DateOnly(2025, 10, 3)), AverageInterval.Day);
+        var weeks = store.ReadFlowAverages(new HistoryFilter(CategoryId: food,
+            From: new DateOnly(2025, 8, 3), To: new DateOnly(2025, 9, 3)), AverageInterval.Week);
+        var years = store.ReadFlowAverages(new HistoryFilter(CategoryId: food,
+            From: new DateOnly(2025, 8, 1), To: new DateOnly(2026, 1, 1)), AverageInterval.Year);
+
+        // Assert
+        Assert.Equal(1000, allMonths.Expenses.Centimes);
+        Assert.Equal(1667, allMonths.Income.Centimes);
+        Assert.Equal(1000, customMonths.Expenses.Centimes);
+        Assert.Equal(2500, customMonths.Income.Centimes);
+        Assert.Equal(Money.Zero, octoberDays.Expenses);
+        Assert.Equal(Money.Zero, octoberDays.Income);
+        Assert.Equal(500, weeks.Expenses.Centimes);
+        Assert.Equal(1500, years.Expenses.Centimes);
+    }
+
+    [Fact]
     public void PrepareSyntheticManualUiDatasetWhenRequested()
     {
         var directory = Environment.GetEnvironmentVariable("BALANCIA_UI_TEST_DIR");

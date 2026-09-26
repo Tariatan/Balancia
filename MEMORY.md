@@ -13,9 +13,19 @@ Last updated: 2026-09-26. Scope: this repository only.
 - 2026-09-26: Categories checkboxes share the Overview filter. Multiple checked
   categories are combined, parent checks include children without duplicate sums,
   and no checks means all. Child rows indent 5 pixels; names retain double-click
-  editing. Filter dropdown and Clear filters synchronize the checks. Locked
+  editing. The account/category dropdowns have since been removed from the filter row;
+  dashboard checkboxes remain. Locked
   restore, Release solution build, 64 tests, targeted formatting, and synthetic
   Windows interaction checks passed. Changes remain local for owner review.
+
+- 2026-09-26: Overview filter row now has All/Day/Week/Month/Year, From/To,
+  Description, and Min/Max controls. Release Desktop build and diff check passed;
+  manual UI review remains pending.
+
+- 2026-09-26: Trend defaults to Day for Day/Week ranges, Week for Month and
+  custom ranges over a month but under a year, and Month for Year/All or longer
+  ranges. Wheel selection still changes the granularity manually. Build passed;
+  runtime UI review remains pending.
 
 - Owner: Slava. Personal tool and learning project; enjoys C#.
 - Prior dashboard inspiration: net worth, calendar-month income/expenses, largest expense
@@ -286,3 +296,16 @@ contradictory entries. Do not copy the user's transaction details into this file
   savings tooltips, step lines, and empty results. The owner's existing 7:3
   history/right-panel width edit was preserved. Next: owner review with normal
   ledger filters; no commit or push performed for this feature.
+
+- 2026-09-26: Accounts checkboxes now use the shared Overview filter, supporting multiple accounts combined with categories. Transfers are included once; no selection means all accounts. Release Desktop build, 57 storage tests and synthetic Windows checkbox checks passed. Owner review next.
+
+- 2026-09-26: Overview top row now places Average Income/Expenses placeholders between the Income/Expenses stack and Trend; Trend and Timeline column widths are about 10% narrower. Categories retains the Accounts-plus-Income width; history and right cards span the remaining lower row. Release Desktop build passed; visual review pending.
+
+- 2026-09-26 Overview spacing: Accounts content now uses a top-to-list-to-total grid with roomier account rows and bottom-anchored net worth. Income/Expenses and Average cards split the Accounts row height evenly and distribute their text vertically; chart height remains unchanged.
+
+- 2026-09-26: Average Income/Expenses cards now calculate per calendar Day,
+  Week, Month, or Year over historical flows through the selected endpoint.
+  Zero periods count; other Overview filters restrict the sums. All and custom
+  ranges use months. The owner explicitly corrected an initial transaction-count
+  interpretation and chose to include zero periods. Release Desktop build and
+  focused storage checks passed; direct Windows card interaction is pending.

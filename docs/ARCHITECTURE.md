@@ -158,6 +158,10 @@ arithmetic. Desktop renders responsive bars/lines directly with Avalonia drawing
 primitives and provides exact-value hover tooltips; no chart dependency is added.
 Only geometry converts decimal ratios to floating point. Analytics refresh with
 the captured Overview filter and update mounted chart controls in place.
+The Average cards read income and expense sums through the same parameterized
+history predicate. Their denominator counts calendar days, Monday-based weeks,
+months, or years from the first posted flow (or custom From) to the selected
+endpoint, including periods with no matching filtered transactions.
 
 - Account: stable ID, name, CHF currency, archive state.
 - Category: stable ID, name, optional parent; at most two levels.

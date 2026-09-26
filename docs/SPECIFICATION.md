@@ -20,37 +20,53 @@ external notifications, hosted backend, and subscription billing.
 
 ## 2. Home and balances — confirmed
 
-The Windows overview uses a top navigation bar and shows account rows plus a
-total in the net-worth card. Income and expenses sit beside that card. Below,
-transaction history occupies the wide left column; largest expense categories
-and upcoming/overdue recurring payments stack on the right. Amounts omit the
-CHF label in the interface because the ledger has only one currency.
+The Windows overview uses a top navigation bar. Its first dashboard row places
+Accounts, Income/Expenses, Average Income/Expenses, Trend, and
+Timeline from left to right. The Average panels show income and expense per
+calendar day, week, month, or year, following the selected period button and
+other Overview filters. Every calendar period from the first recorded flow
+through the selected endpoint counts, including periods with zero matching
+transactions. All and custom date ranges use calendar months; custom ranges
+start at From. Amounts round to the nearest centime and empty results show zero.
+Trend and
+Timeline each use 90% of their former width. Below, Categories occupies the
+combined Accounts and Income/Expenses width; transaction history fills the
+remaining left area, while largest expense categories and upcoming/overdue
+recurring payments stack on the right. Amounts omit the CHF label in the
+interface because the ledger has only one currency. Accounts list items have
+even vertical spacing and Total net worth sits below the list. The Income and
+Expenses cards, and the two Average cards, split the Accounts panel height into
+equal halves and distribute their content through each card.
 
-The overview offers All, This Week, This Month, This Year, and Custom From/To
-date filters. This Month is the initial selection. Week means Monday through
-Sunday; custom endpoints are inclusive. The selected period changes income,
-expenses, largest expense categories, and visible transaction history. Net worth
-and its account balances remain current across selections; recurring reminders
+The overview offers All, Day, This Week, This Month, This Year, and inclusive
+From/To date filters. This Month is the initial selection. Week means Monday
+through Sunday. The selected period changes income, expenses, both averages,
+largest expense categories, and visible transaction history. Other Overview
+filters also change both averages. Net worth and its account balances remain
+current across selections; recurring reminders
 continue to show the next unresolved occurrences.
 The overview history is paged in groups of 100 transactions matching its selected
 period, with Previous page and Next page controls. Double-clicking
 an overview row opens the transaction edit form for that record. The history
 card header provides add and delete actions for the selected row.
-The overview history filter panel provides search, advanced filters, and paging
-alongside the same visual table used by the history card. Filter fields apply
-as their values change (text fields apply when they lose focus); the panel has
-no Apply action, and its header trash action clears all filters. Income, expenses,
+The Overview filter panel places All, Day, Week, Month, Year, From, To,
+Description, Min amount, and Max amount controls on one row when space permits.
+The description clear button sits inside its field; the trash action clears all
+filters. Date, description, and amount values apply when changed (description
+also applies on Enter). Account and category filters are controlled by the
+checkboxes in their dashboard panels; there are no account, type, or category
+fields in the filter row. Income, expenses,
 and the largest expense categories use the same description, account, type,
 category, date, and amount filters as history. Selecting a parent category shows
 its own expenses and each matching subcategory separately in the category card.
-The Categories panel provides a checkbox before each category name; child rows
-are indented by 5 pixels. Checked categories form one combined category filter:
+The Accounts and Categories panels provide checkboxes for account and category
+filters; category child rows are indented by 5 pixels. Checked categories form
+one combined category filter:
 a parent includes its children, overlaps never double-count, and no checks means
 all categories. This selection combines with the other filters and updates Income,
-Expenses, Trend, Timeline, top expenditures, and history. The Filter dropdown
-mirrors one selection or displays the number selected; choosing a category there
-replaces the checkbox selection. Clear filters resets both. Double-clicking a
-category name still opens its editor.
+Expenses, Trend, Timeline, top expenditures, and history. Clear filters resets
+both account and category checkbox selections. Double-clicking a category name
+still opens its editor.
 History amounts are bold; income is green, expense is red, and transfer is dark
 blue. The overview history follows the bottom edge as the window changes height.
 Overview history fills its available height without an outer page scrollbar.
@@ -61,9 +77,8 @@ The Windows desktop stores its last usable width, height, and screen position in
 `window.json` beside the selected local data folder and restores them on the next
 start. An unavailable or malformed settings file does not prevent startup.
 
-The Overview period controls are All, This Week, This Month, This Year, and
-Filter. Filter opens the compact history search and filter fields in the
-overview.
+The Overview period controls are All, Day, Week, Month, and Year. From/To date,
+description, and amount controls share the same compact filter row.
 The top navigation order is Overview, Settings. Account
 management is available from the Accounts card on Overview. The
 Settings header contains Import CSV, Export CSV, Export snapshot, and Restore
@@ -107,9 +122,11 @@ Trend and Timeline use the same date, description, account, type, category
 (including children), and amount filters as the Overview totals and history.
 They aggregate all matching entries, independently of history pagination;
 opening balances and transfers are excluded from income/expense analysis.
-Trend defaults to calendar-month buckets. The interval is shown in the panel;
-mouse-wheel up changes Day to Week to Month, and wheel down reverses that order.
-Selection stops at Day and Month rather than cycling. Trend and Timeline omit
+Trend defaults to Day buckets for Day/Week presets, Week buckets for Month
+presets and custom spans over a month but under a year, and Month buckets for
+Year/All presets and custom spans of a year or longer. The interval is shown in
+the panel; mouse-wheel up changes Day to Week to Month, and wheel down reverses
+that order. Selection stops at Day and Month rather than cycling. Trend and Timeline omit
 their titles and descriptive captions.
 Without a type/category restriction it shows positive income, negative expenses,
 and a Savings line (income minus expenses, which may be negative). Income-only
@@ -293,3 +310,5 @@ take a recoverable backup. Test restoration before depending on migration.
 Backup retention and snapshot encryption are open implementation choices; do not
 claim encryption is supplied merely by using a sync folder. Private files never
 belong in source control or routine diagnostic logs.
+
+Accounts checkboxes share the Overview account filter: multiple selections include transactions from any selected account, no checks means all accounts, and transfers appear once. They combine with category and other filters; the dropdown and Clear filters synchronize both controls. Account balances and net worth remain all-time values.

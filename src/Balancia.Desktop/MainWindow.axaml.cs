@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private string? snapshotPath;
     private string? defaultAccountId;
     private LedgerSnapshot? snapshot;
+    private FlowAverages overviewAverages = new(Money.Zero, Money.Zero);
     private IReadOnlyList<RecurringReminder> reminders = [];
     private string page = "Overview";
     private bool busy;
@@ -119,6 +120,18 @@ public partial class MainWindow : Window
         {
             overviewHistory = await Task.Run(() => store.ReadHistory(filter, overviewOffset));
             overviewAnalytics = await Task.Run(() => store.ReadFlowAnalytics(filter));
+            var averageInterval = overviewPeriod switch
+            {
+                OverviewPeriod.Day => AverageInterval.Day,
+                OverviewPeriod.ThisWeek => AverageInterval.Week,
+                OverviewPeriod.ThisYear => AverageInterval.Year,
+                _ => AverageInterval.Month,
+            };
+            var averageFilter = filter with
+            {
+                From = overviewPeriod == OverviewPeriod.Custom ? filter.From : null,
+            };
+            overviewAverages = await Task.Run(() => store.ReadFlowAverages(averageFilter, averageInterval));
             analyticsFilter = filter;
         }
 

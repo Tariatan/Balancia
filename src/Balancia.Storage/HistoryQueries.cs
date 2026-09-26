@@ -6,8 +6,10 @@ namespace Balancia.Storage;
 public sealed record HistoryFilter(string? Description = null, string? AccountId = null,
     TransactionKind? Kind = null, string? CategoryId = null, DateOnly? From = null,
     DateOnly? To = null, Money? Minimum = null, Money? Maximum = null,
-    IReadOnlyList<string>? CategoryIds = null)
+    IReadOnlyList<string>? CategoryIds = null, IReadOnlyList<string>? AccountIds = null)
 {
+    public bool HasAccountFilter => AccountId is not null || AccountIds is { Count: > 0 };
+
     public bool HasCategoryFilter => CategoryId is not null || CategoryIds is { Count: > 0 };
 
     public void Validate()
@@ -39,7 +41,7 @@ public sealed partial class LedgerStore
         LEFT JOIN categories parent ON parent.id=category.parent_id
         WHERE l.kind<>'OpeningBalance'
           AND ($description IS NULL OR contains_ci(l.description,$description))
-          AND ($account IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id=$account))
+          AND ($accounts IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id IN (SELECT value FROM json_each($accounts))))
           AND ($kind IS NULL OR l.kind=$kind)
           AND ($categories IS NULL OR l.category_id IN (SELECT value FROM json_each($categories))
                OR category.parent_id IN (SELECT value FROM json_each($categories)))
@@ -51,7 +53,7 @@ public sealed partial class LedgerStore
     private const string HistoryCount = """
         SELECT COUNT(*) FROM ledger l WHERE l.kind<>'OpeningBalance'
           AND ($description IS NULL OR contains_ci(l.description,$description))
-          AND ($account IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id=$account))
+          AND ($accounts IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id IN (SELECT value FROM json_each($accounts))))
           AND ($kind IS NULL OR l.kind=$kind)
           AND ($categories IS NULL OR l.category_id IN (SELECT value FROM json_each($categories))
                OR EXISTS(SELECT 1 FROM categories child WHERE child.id=l.category_id
@@ -138,7 +140,7 @@ public sealed partial class LedgerStore
     private static (string, object?)[] FilterParameters(HistoryFilter filter) =>
     [
         ("$description", string.IsNullOrEmpty(filter.Description) ? null : filter.Description),
-        ("$account", filter.AccountId),
+        ("$accounts", filter.HasAccountFilter ? JsonSerializer.Serialize((filter.AccountIds ?? []).Concat(filter.AccountId is { } accountId ? [accountId] : []).Distinct()) : null),
         ("$kind", filter.Kind?.ToString()),
         ("$category", filter.CategoryId),
         ("$categories", filter.HasCategoryFilter

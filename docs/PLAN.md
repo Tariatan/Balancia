@@ -364,3 +364,23 @@ checkboxes from the editable category labels. Next: owner interaction review.
 The template accepts null during virtualized presenter updates and returns no row.
 Release Desktop build and synthetic Avalonia null/real-item template checks passed;
 owner should stop the old debugging session and rebuild before retrying scrolling.
+
+2026-09-26: Account checkbox filtering implemented with multiple selection and dropdown synchronization. Release Desktop build, 57 storage tests, and synthetic Windows single/multiple account interaction checks passed. Existing local category styling changes preserved.
+
+2026-09-26: Overview filter row now has All/Day/Week/Month/Year, From/To,
+Description with clear action, and Min/Max fields; account/type/category dropdowns
+were removed while account/category panel checkboxes remain. Release Desktop build
+passed with zero warnings/errors and `git diff --check` passed. Manual UI review is
+pending.
+
+2026-09-26: Trend granularity now defaults to Day for Day/Week ranges, Week for
+Month or custom spans over a month and under a year, and Month for Year/All or
+longer ranges. The mouse wheel still changes granularity within its three levels.
+Desktop Release build and diff check passed; runtime review is pending.
+
+2026-09-26: AVG INCOME and AVG EXPENSES now read filtered historical flow sums
+and divide by calendar periods, including zero periods. Day, Week, Month, and
+Year choose the unit; All and custom ranges use months. The first posted flow
+starts preset and All averages; custom From overrides that start. Release
+Desktop build and focused storage checks passed. Manual Windows card interaction
+remains to be checked.

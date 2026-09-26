@@ -156,6 +156,48 @@ public sealed class FlowQueriesTests : IDisposable
         }).TotalCount);
     }
 
+    [Fact]
+    public void AccountSelection_MultipleAccounts_CountsTransfersOnceAndCombinesCategoryFilter()
+    {
+        // Arrange
+        var cash = store.SaveAccount(null, "Cash", Opening, Money.Zero);
+        var other = store.SaveAccount(null, "Other", Opening, Money.Zero);
+        var category = store.SaveCategory(null, "Food", null);
+        var date = new DateOnly(2025, 1, 10);
+        Add(date, 10m, category: category);
+        Add(date, 20m, source: cash, category: category);
+        Add(date, 40m, source: other, category: category);
+        Add(date, 100m, source: cash, kind: TransactionKind.Income);
+        store.SaveTransaction(null, new TransactionDraft(TransactionKind.Transfer, date, "Transfer",
+            Money.FromFrancs(5), account, cash));
+        var filter = new HistoryFilter(From: date, To: date, AccountIds: [account, cash]);
+
+        // Act
+        var history = store.ReadHistory(filter);
+        var totals = store.ReadDesktopSnapshotForFilter(filter);
+        var flows = store.ReadFlowAnalytics(filter);
+
+        // Assert
+        Assert.Equal(4, history.TotalCount);
+        Assert.Single(history.Hits, hit => hit.Entry.Draft.Kind == TransactionKind.Transfer);
+        Assert.Equal(Money.FromFrancs(30), totals.MonthlyExpenses);
+        Assert.Equal(Money.FromFrancs(100), totals.MonthlyIncome);
+        Assert.Equal(totals.MonthlyExpenses, Assert.Single(flows.Current).Expenses);
+        Assert.Equal(2, store.ReadHistory(filter with
+        {
+            CategoryId = category
+        }).TotalCount);
+        Assert.Equal(5, store.ReadHistory(filter with
+        {
+            AccountIds = []
+        }).TotalCount);
+        Assert.Equal(3, store.ReadHistory(filter with
+        {
+            AccountIds = null,
+            AccountId = cash
+        }).TotalCount);
+    }
+
     private void Add(DateOnly date, decimal amount, string? category = null, string? source = null,
         string description = "Match", TransactionKind kind = TransactionKind.Expense) =>
         store.SaveTransaction(null, new TransactionDraft(kind, date, description,

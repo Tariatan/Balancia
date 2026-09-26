@@ -79,5 +79,8 @@
       <Setter Property="Background" Value="#403989A7" />
       <Setter Property="Foreground" Value="#263C48" />
     </Style>
+    <Style Selector="ListBox.compact-list ListBoxItem">
+      <Setter Property="Padding" Value="8,0" />
+    </Style>
   </Application.Styles>
 </Application>

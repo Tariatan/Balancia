@@ -11,20 +11,23 @@ public partial class MainWindow
     private HistoryFilter analyticsFilter = new();
     private FlowChart? trendChart;
     private FlowChart? timelineChart;
-    private FlowInterval trendInterval = FlowInterval.Month;
+    private TextBlock? trendIntervalLabel;
+    private FlowInterval trendInterval = FlowInterval.Week;
 
     private Border TrendPanel()
     {
         trendChart = new FlowChart();
         var intervalLabel = QuietText(trendInterval.ToString(), 11);
+        trendIntervalLabel = intervalLabel;
         intervalLabel.Height = 16;
         intervalLabel.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
         intervalLabel.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
         var panel = Panel(new StackPanel
         {
-            Spacing = 7,
+            Spacing = 4,
             Children = { intervalLabel, trendChart },
         });
+        panel.Padding = new Avalonia.Thickness(15, 8);
         panel.PointerWheelChanged += (_, args) =>
         {
             var nextInterval = (trendInterval, args.Delta.Y > 0) switch
@@ -47,18 +50,43 @@ public partial class MainWindow
         return panel;
     }
 
+    private void SetDefaultTrendInterval(OverviewPeriod period, DateOnly? from, DateOnly? to)
+    {
+        var interval = period switch
+        {
+            OverviewPeriod.Day or OverviewPeriod.ThisWeek => FlowInterval.Day,
+            OverviewPeriod.ThisMonth => FlowInterval.Week,
+            OverviewPeriod.ThisYear or OverviewPeriod.All => FlowInterval.Month,
+            _ when from is { } start && to is { } end && end < start.AddMonths(1) => FlowInterval.Day,
+            _ when from is { } start && to is { } end && end < start.AddYears(1) => FlowInterval.Week,
+            _ => FlowInterval.Month,
+        };
+        if (interval == trendInterval)
+        {
+            return;
+        }
+
+        trendInterval = interval;
+        if (trendIntervalLabel is not null)
+        {
+            trendIntervalLabel.Text = trendInterval.ToString();
+        }
+    }
+
     private Border TimelinePanel()
     {
         timelineChart = new FlowChart();
-        return Panel(new StackPanel
+        var panel = Panel(new StackPanel
         {
-            Spacing = 7,
+            Spacing = 4,
             Children =
             {
                 new Border { Height = 16 },
                 timelineChart,
             },
         });
+        panel.Padding = new Avalonia.Thickness(15, 8);
+        return panel;
     }
 
     private void UpdateAnalyticsCharts()

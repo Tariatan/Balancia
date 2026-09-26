@@ -14,7 +14,6 @@ namespace Balancia.Desktop;
 public partial class MainWindow
 {
     private readonly Dictionary<string, CheckBox> categoryFilterChecks = [];
-    private Action? syncCategoryFilterChoice;
 
     private void SyncCategoryFilterChecks()
     {
@@ -26,8 +25,6 @@ public partial class MainWindow
             {
                 check.IsChecked = overviewFilter.CategoryId == id || overviewFilter.CategoryIds?.Contains(id) == true;
             }
-
-            syncCategoryFilterChoice?.Invoke();
         }
         finally
         {
@@ -155,6 +152,7 @@ public partial class MainWindow
         categoryFilterChecks.Clear();
         var categories = new ListBox
         {
+            Classes = { "compact-list" },
             ItemsSource = ledgerSnapshot.Categories.Select(c => new Choice<Category>(c, c.Path + (c.Archived ? " (archived)" : ""))).ToArray(),
             ItemTemplate = new FuncDataTemplate<Choice<Category>>((choice, _) =>
             {
@@ -210,7 +208,7 @@ public partial class MainWindow
         {
             ColumnDefinitions = new ColumnDefinitions("*,Auto")
         };
-        categoryHeader.Children.Add(Heading("CATEGORIES", 11));
+        categoryHeader.Children.Add(Heading("Categories", 11));
         var buttons = new StackPanel
         {
             Orientation = Orientation.Horizontal,

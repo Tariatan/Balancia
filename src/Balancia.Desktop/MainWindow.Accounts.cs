@@ -6,6 +6,57 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
+    private readonly Dictionary<string, CheckBox> accountFilterChecks = [];
+
+    private void SyncAccountFilterChecks()
+    {
+        var wasUpdating = updatingFilterControls;
+        updatingFilterControls = true;
+        try
+        {
+            foreach (var (id, check) in accountFilterChecks)
+            {
+                check.IsChecked = overviewFilter.AccountId == id || overviewFilter.AccountIds?.Contains(id) == true;
+            }
+        }
+        finally
+        {
+            updatingFilterControls = wasUpdating;
+        }
+    }
+
+    private async Task ToggleAccountFilter(string id, bool selected)
+    {
+        if (updatingFilterControls)
+        {
+            return;
+        }
+
+        var ids = new HashSet<string>(overviewFilter.AccountIds ?? []);
+        if (overviewFilter.AccountId is { } single)
+        {
+            ids.Add(single);
+        }
+
+        if (selected)
+        {
+            ids.Add(id);
+        }
+        else
+        {
+            ids.Remove(id);
+        }
+
+        overviewFilter = overviewFilter with
+        {
+            AccountId = ids.Count == 1 ? ids.Single() : null,
+            AccountIds = ids.Count > 1 ? ids.Order().ToArray() : null,
+        };
+        overviewOffset = 0;
+        SyncAccountFilterChecks();
+        await RequestOverviewFilterRefresh();
+    }
+
     private async Task ArchiveSelectedAccount(ListBox accounts)
     {
         if (accounts.SelectedItem is not Choice<Account> choice)
