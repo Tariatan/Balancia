@@ -378,6 +378,9 @@ Month or custom spans over a month and under a year, and Month for Year/All or
 longer ranges. The mouse wheel still changes granularity within its three levels.
 Desktop Release build and diff check passed; runtime review is pending.
 
+2026-09-26: Reminder rows now align dates, descriptions, and amounts in separate
+columns. Release Desktop build and diff check passed; runtime review is pending.
+
 2026-09-26: AVG INCOME and AVG EXPENSES now read filtered historical flow sums
 and divide by calendar periods, including zero periods. Day, Week, Month, and
 Year choose the unit; All and custom ranges use months. The first posted flow

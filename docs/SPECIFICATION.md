@@ -96,8 +96,8 @@ Recurring template Add/Edit actions live in the Upcoming payments card on
 Overview; there is no separate recurring payments tab. Settings places Add and
 Edit above a list that fills the remaining page height. Category rows open the
 edit form on double-click; the header provides add and archive actions.
-Upcoming payment rows use the compact date/description and right-aligned amount
-layout. The card header provides + and delete actions; delete asks for
+Upcoming payment rows use separate aligned date and description columns with a
+right-aligned amount column. The card header provides + and delete actions; delete asks for
 confirmation, and double-clicking a row opens its edit form. The recurring edit
 form does not expose archive state.
 The Custom period Apply button aligns with its date inputs. Net-worth account and

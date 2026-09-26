@@ -292,6 +292,7 @@ public partial class MainWindow
         {
             ColumnDefinitions = new ColumnDefinitions("0.6*,0.4*,0.4*,1.45*,1.45*"),
             RowDefinitions = new RowDefinitions("Auto,*"),
+            RowSpacing = 11,
             ColumnSpacing = 11
         };
         AddColumn(dashboard, accountPanel, 0);
@@ -503,6 +504,8 @@ public partial class MainWindow
                 UpdateOverviewPeriodButtons();
                 await RequestOverviewFilterRefresh();
             });
+            periodButton.MinWidth = 70;
+            periodButton.HorizontalContentAlignment = HorizontalAlignment.Center;
             periodButton.Margin = new Thickness(0, 2, 7, 2);
             mainRow.Children.Add(periodButton);
             overviewPeriodButtons.Add(period, periodButton);

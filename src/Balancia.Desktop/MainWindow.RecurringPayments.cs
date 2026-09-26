@@ -42,28 +42,36 @@ public partial class MainWindow
             {
                 var row = new Grid
                 {
-                    ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+                    ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
+                    ColumnSpacing = 10,
                     MinHeight = 20
                 };
                 var reminder = choice.Value;
 
-                row.Children.Add(new TextBlock
+                AddColumn(row, new TextBlock
                 {
-                    Text = $"{reminder.Occurrence:dd MMM} · {reminder.Template.Description}",
+                    Text = reminder.Occurrence.ToString("dd MMM", CultureInfo.CurrentCulture),
+                    FontSize = 12,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, 0);
+                AddColumn(row, new TextBlock
+                {
+                    Text = reminder.Template.Description,
                     FontSize = 12,
                     VerticalAlignment = VerticalAlignment.Center,
                     TextTrimming = TextTrimming.CharacterEllipsis
-                });
+                }, 1);
 
                 var amount = new TextBlock
                 {
                     Text = AmountText(reminder.Template.IndicativeAmount),
                     FontSize = 12,
                     FontWeight = FontWeight.SemiBold,
+                    HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center
                 };
 
-                AddColumn(row, amount, 1);
+                AddColumn(row, amount, 2);
                 return row;
             },
             true)

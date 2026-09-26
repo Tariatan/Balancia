@@ -27,6 +27,10 @@ Last updated: 2026-09-26. Scope: this repository only.
   ranges. Wheel selection still changes the granularity manually. Build passed;
   runtime UI review remains pending.
 
+- 2026-09-26: Upcoming reminder rows split dates, descriptions, and amounts into
+  aligned columns. Release Desktop build and diff check passed; runtime review
+  remains pending.
+
 - Owner: Slava. Personal tool and learning project; enjoys C#.
 - Prior dashboard inspiration: net worth, calendar-month income/expenses, largest expense
   categories, upcoming payments, then transaction history.
