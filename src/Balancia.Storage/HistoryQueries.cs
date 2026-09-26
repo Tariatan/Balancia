@@ -1,11 +1,15 @@
 using Balancia.Core;
+using System.Text.Json;
 
 namespace Balancia.Storage;
 
 public sealed record HistoryFilter(string? Description = null, string? AccountId = null,
     TransactionKind? Kind = null, string? CategoryId = null, DateOnly? From = null,
-    DateOnly? To = null, Money? Minimum = null, Money? Maximum = null)
+    DateOnly? To = null, Money? Minimum = null, Money? Maximum = null,
+    IReadOnlyList<string>? CategoryIds = null)
 {
+    public bool HasCategoryFilter => CategoryId is not null || CategoryIds is { Count: > 0 };
+
     public void Validate()
     {
         if (From > To)
@@ -37,7 +41,8 @@ public sealed partial class LedgerStore
           AND ($description IS NULL OR contains_ci(l.description,$description))
           AND ($account IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id=$account))
           AND ($kind IS NULL OR l.kind=$kind)
-          AND ($category IS NULL OR l.category_id=$category OR category.parent_id=$category)
+          AND ($categories IS NULL OR l.category_id IN (SELECT value FROM json_each($categories))
+               OR category.parent_id IN (SELECT value FROM json_each($categories)))
           AND ($from IS NULL OR l.date>=$from)
           AND ($to IS NULL OR l.date<=$to)
           AND ($minimum IS NULL OR abs(m.amount)>=$minimum)
@@ -48,7 +53,9 @@ public sealed partial class LedgerStore
           AND ($description IS NULL OR contains_ci(l.description,$description))
           AND ($account IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id=$account))
           AND ($kind IS NULL OR l.kind=$kind)
-          AND ($category IS NULL OR l.category_id=$category OR EXISTS(SELECT 1 FROM categories child WHERE child.id=l.category_id AND child.parent_id=$category))
+          AND ($categories IS NULL OR l.category_id IN (SELECT value FROM json_each($categories))
+               OR EXISTS(SELECT 1 FROM categories child WHERE child.id=l.category_id
+                         AND child.parent_id IN (SELECT value FROM json_each($categories))))
           AND ($from IS NULL OR l.date>=$from)
           AND ($to IS NULL OR l.date<=$to)
           AND ($minimum IS NULL OR EXISTS(SELECT 1 FROM movements amount WHERE amount.transaction_id=l.id AND abs(amount.amount)>=$minimum))
@@ -134,6 +141,9 @@ public sealed partial class LedgerStore
         ("$account", filter.AccountId),
         ("$kind", filter.Kind?.ToString()),
         ("$category", filter.CategoryId),
+        ("$categories", filter.HasCategoryFilter
+            ? JsonSerializer.Serialize((filter.CategoryIds ?? []).Concat(filter.CategoryId is { } id ? [id] : []).Distinct())
+            : null),
         ("$from", filter.From is null ? null : DateText(filter.From.Value)),
         ("$to", filter.To is null ? null : DateText(filter.To.Value)),
         ("$minimum", filter.Minimum?.Centimes),

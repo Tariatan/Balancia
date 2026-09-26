@@ -109,6 +109,53 @@ public sealed class FlowQueriesTests : IDisposable
         Assert.Equal(Money.Zero, Assert.Single(data.Trend(FlowInterval.Day)).Savings);
     }
 
+    [Fact]
+    public void CategorySelection_OverlappingParentsAndChildren_FiltersEveryReadWithoutDuplicates()
+    {
+        // Arrange
+        var parent = store.SaveCategory(null, "Food", null);
+        var child = store.SaveCategory(null, "Lunch", parent);
+        var salary = store.SaveCategory(null, "Salary", null);
+        var other = store.SaveCategory(null, "Other", null);
+        var date = new DateOnly(2025, 1, 10);
+        Add(date, 10m, category: parent);
+        Add(date, 20m, category: child);
+        Add(date, 100m, category: salary, kind: TransactionKind.Income);
+        Add(date, 40m, category: other);
+        Add(date, 50m);
+        Add(new DateOnly(2024, 12, 10), 5m, category: child);
+        var filter = new HistoryFilter(Description: "match", AccountId: account,
+            From: new DateOnly(2025, 1, 1), To: new DateOnly(2025, 1, 31),
+            CategoryIds: [parent, child, salary]);
+
+        // Act
+        var history = store.ReadHistory(filter, pageSize: 1);
+        var totals = store.ReadDesktopSnapshotForFilter(filter);
+        var flows = store.ReadFlowAnalytics(filter);
+
+        // Assert
+        Assert.Equal(3, history.TotalCount);
+        Assert.Single(history.Hits);
+        Assert.Equal(Money.FromFrancs(30), totals.MonthlyExpenses);
+        Assert.Equal(Money.FromFrancs(100), totals.MonthlyIncome);
+        Assert.Equal(totals.MonthlyExpenses, Assert.Single(flows.Current).Expenses);
+        Assert.Equal(totals.MonthlyIncome, Assert.Single(flows.Current).Income);
+        Assert.Equal(Money.FromFrancs(5), Assert.Single(flows.Previous).Expenses);
+        Assert.Equal(1, store.ReadHistory(filter with
+        {
+            CategoryIds = [child]
+        }).TotalCount);
+        Assert.Equal(5, store.ReadHistory(filter with
+        {
+            CategoryIds = []
+        }).TotalCount);
+        Assert.Equal(2, store.ReadHistory(filter with
+        {
+            CategoryIds = null,
+            CategoryId = parent
+        }).TotalCount);
+    }
+
     private void Add(DateOnly date, decimal amount, string? category = null, string? source = null,
         string description = "Match", TransactionKind kind = TransactionKind.Expense) =>
         store.SaveTransaction(null, new TransactionDraft(kind, date, description,

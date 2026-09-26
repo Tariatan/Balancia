@@ -119,10 +119,9 @@ the folder can be synchronized manually to Google Drive and consumed by Android.
 The transaction editor reuses the filter `DatePicker`; its amount input uses a
 small decimal recursive-descent evaluator for the four basic operators and
 normalizes valid results to centime precision before the existing `Money` parser.
-Its category `AutoCompleteBox` suggests active category paths while preserving
-typed text. Storage resolves case-insensitive path components inside the same
-SQLite write transaction as the ledger entry; a failed save rolls back newly
-created parent and child categories with the entry.
+Its category `AutoCompleteBox` suggests available category paths while preserving
+typed text. Save accepts only an existing case-insensitive path (plus an archived
+path already assigned to the edited transaction); typed unknown paths are rejected.
 The standard Avalonia `AutoCompleteBox` ranks one best match, then recently used
 matching category paths read by latest transaction date, then the remaining
 matches alphabetically. The editor starts with an empty suggestion source and
@@ -145,6 +144,12 @@ refresh, navigation, and page selection. `MainWindow.Overview.cs`,
 organization change; the same window and storage boundary remain in use.
 
 ## Storage model
+
+HistoryFilter accepts an optional category ID set alongside the existing single
+category. Shared history/count/aggregate predicates use a parameterized JSON
+array with SQLite json_each, matching either the category or its parent without
+joining and multiplying rows. Desktop checkbox and dropdown state share that
+filter and the existing queued in-place refresh.
 
 Overview charts use `ReadFlowAnalytics`: a parameterized daily aggregate reuses
 the history SQL predicate and reads current/prior periods in one SQLite read

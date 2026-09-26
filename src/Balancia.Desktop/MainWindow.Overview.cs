@@ -28,7 +28,7 @@ public partial class MainWindow
     private DateOnly? customTo;
     private Grid? overviewLayout;
     private Border? overviewFilterCard;
-    private readonly Dictionary<OverviewPeriod, Button> overviewPeriodButtons = new();
+    private readonly Dictionary<OverviewPeriod, Button> overviewPeriodButtons = [];
     private (OverviewPeriod Period, bool FiltersVisible)? renderedPeriodState;
     private TextBlock? overviewSummaryLabel;
     private TextBlock? overviewStatus;
@@ -93,7 +93,7 @@ public partial class MainWindow
         var range = OverviewRange();
         var hasAdditionalFilter = !string.IsNullOrEmpty(overviewFilter.Description) ||
             overviewFilter.AccountId is not null || overviewFilter.Kind is not null ||
-            overviewFilter.CategoryId is not null || overviewFilter.Minimum is not null ||
+            overviewFilter.HasCategoryFilter || overviewFilter.Minimum is not null ||
             overviewFilter.Maximum is not null ||
             (overviewFilter.From ?? range.From) != range.From ||
             (overviewFilter.To ?? range.To) != range.To;
@@ -270,6 +270,7 @@ public partial class MainWindow
         AddRow(layout, dashboard, 2);
         overviewLayout = layout;
         ResponsiveBody.Content = layout;
+        UpdateAnalyticsCharts();
     }
 
     private void UpdateOverviewPeriodButtons()
@@ -384,6 +385,7 @@ public partial class MainWindow
         };
         var categories = new List<Choice<string?>> { new(null, "All categories") };
         categories.AddRange((snapshot?.Categories ?? []).Select(c => new Choice<string?>(c.Id, c.Path)));
+        Choice<string?>? multipleCategories = null;
         var category = new ComboBox
         {
             ItemsSource = categories,
@@ -404,6 +406,25 @@ public partial class MainWindow
         type.SelectionChanged += async (_, _) => await ApplyValues();
         account.SelectionChanged += async (_, _) => await ApplyValues();
         category.SelectionChanged += async (_, _) => await ApplyValues();
+        syncCategoryFilterChoice = () =>
+        {
+            if (multipleCategories is not null)
+            {
+                categories.Remove(multipleCategories);
+                multipleCategories = null;
+            }
+
+            if (overviewFilter.CategoryIds is { Count: > 1 } selectedIds)
+            {
+                multipleCategories = new Choice<string?>(null, $"{selectedIds.Count} categories selected");
+                categories.Add(multipleCategories);
+            }
+
+            category.ItemsSource = categories.ToArray();
+            category.SelectedItem = multipleCategories ?? categories.FirstOrDefault(c => c.Value == overviewFilter.CategoryId) ?? categories[0];
+            UpdateFilterTone(category, overviewFilter.HasCategoryFilter);
+        };
+        SyncCategoryFilterChecks();
         account.SelectionChanged += (_, _) => UpdateFilterTone(account, account.SelectedIndex > 0);
         type.SelectionChanged += (_, _) => UpdateFilterTone(type, type.SelectedIndex > 0);
         category.SelectionChanged += (_, _) => UpdateFilterTone(category, category.SelectedIndex > 0);
@@ -487,6 +508,7 @@ public partial class MainWindow
                 updatingFilterControls = false;
             }
 
+            SyncCategoryFilterChecks();
             await RequestOverviewFilterRefresh();
         });
         clear.Width = 30;
@@ -582,7 +604,8 @@ public partial class MainWindow
                 ((Choice<TransactionKind?>)type.SelectedItem!).Value, ((Choice<string?>)category.SelectedItem!).Value,
                 from.SelectedDate is not null ? ParseDate(from) : null,
                 to.SelectedDate is not null ? ParseDate(to) : null,
-                OptionalMoney(minimum), OptionalMoney(maximum));
+                OptionalMoney(minimum), OptionalMoney(maximum),
+                multipleCategories is not null && ReferenceEquals(category.SelectedItem, multipleCategories) ? overviewFilter.CategoryIds : null);
             if (nextFilter == overviewFilter)
             {
                 return;
@@ -590,6 +613,7 @@ public partial class MainWindow
 
             overviewFilter = nextFilter;
             overviewOffset = 0;
+            SyncCategoryFilterChecks();
             await RequestOverviewFilterRefresh();
         }
 

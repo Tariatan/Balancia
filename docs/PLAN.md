@@ -350,3 +350,17 @@ targeted formatting, harness, and diff checks passed. Synthetic Windows UI check
 covered all-history and category/type filtering, monthly/weekly grouping,
 negative-savings hover values, cumulative step lines, and empty results. Next:
 owner review of the charts with normal ledger filters.
+
+2026-09-26: Categories has a 5-pixel child indent and checkboxes sharing the
+Overview category filter. Multiple checks form a union, including parent children
+without double-counting. Dropdown changes replace the set; Clear filters resets it.
+Locked restore, full Release build (zero warnings/errors), 64 tests, targeted
+formatting, and diff checks passed. Synthetic Windows UI checks covered parent
+and multi-category filtering, dropdown synchronization, clearing, indentation,
+and double-click category editing. A final desktop rebuild passed after separating
+checkboxes from the editable category labels. Next: owner interaction review.
+
+2026-09-26 follow-up: fixed a NullReferenceException while scrolling Categories.
+The template accepts null during virtualized presenter updates and returns no row.
+Release Desktop build and synthetic Avalonia null/real-item template checks passed;
+owner should stop the old debugging session and rebuild before retrying scrolling.

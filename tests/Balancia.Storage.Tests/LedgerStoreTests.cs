@@ -148,32 +148,37 @@ public sealed class LedgerStoreTests : IDisposable
     }
 
     [Fact]
-    public void TypedCategoryPathCreatesOrReusesCategoriesWithTransactionAtomically()
+    public void TypedCategoryPathRequiresExistingCategoryAndLeavesLedgerUnchangedOnFailure()
     {
         var account = Account("Synthetic account", 100);
         var draft = Draft(account, TransactionKind.Expense, 10);
+        var parent = store.SaveCategory(null, "Travel", null);
+        store.SaveCategory(null, "Rail", parent);
+        store.SaveCategory(null, "Taxi", parent);
+        store.SaveCategory(null, "Parking", null);
         var first = store.SaveTransactionWithCategoryPath(null, draft, "Travel / Rail");
         var initial = store.ReadSnapshot();
         Assert.Equal("Travel / Rail", initial.Entries.Single().CategoryPath);
-        Assert.Equal(2, initial.Categories.Count);
+        Assert.Equal(4, initial.Categories.Count);
 
         store.SaveTransactionWithCategoryPath(null, draft, "travel / rail");
         var reused = store.ReadSnapshot();
-        Assert.Equal(2, reused.Categories.Count);
+        Assert.Equal(4, reused.Categories.Count);
         Assert.Equal(2, reused.Entries.Count);
 
         store.SaveTransactionWithCategoryPath(first, draft, "Travel / Taxi");
         var edited = store.ReadSnapshot();
         Assert.Equal("Travel / Taxi", edited.Entries.Single(entry => entry.Id == first).CategoryPath);
-        Assert.Equal(3, edited.Categories.Count);
+        Assert.Equal(4, edited.Categories.Count);
 
         store.SaveTransactionWithCategoryPath(null, draft, "Parking");
         store.SaveTransactionWithCategoryPath(null, draft, " ");
-        var withTopLevelAndUncategorized = store.ReadSnapshot();
-        Assert.Contains(withTopLevelAndUncategorized.Categories, category => category.Path == "Parking");
-        Assert.Contains(withTopLevelAndUncategorized.Entries, entry => entry.CategoryPath is null);
+        var beforeUnknownPath = store.ReadSnapshot();
+        Assert.Contains(beforeUnknownPath.Entries, entry => entry.CategoryPath is null);
+        Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Unmatched free-text category"));
+        Assert.Equal(beforeUnknownPath.Revision, store.ReadSnapshot().Revision);
 
-        var beforeFailure = withTopLevelAndUncategorized.Revision;
+        var beforeFailure = beforeUnknownPath.Revision;
         Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null,
             draft with
             {
@@ -185,12 +190,12 @@ public sealed class LedgerStoreTests : IDisposable
         Assert.DoesNotContain(afterFailure.Entries, entry => entry.CategoryPath == "New / Subcategory");
 
         Sql("CREATE TRIGGER fail_typed_path BEFORE INSERT ON movements WHEN NEW.transaction_id NOT LIKE 'opening:%' BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
-        Assert.Throws<SqliteException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Failed / Child"));
+        Assert.Throws<SqliteException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Travel / Rail"));
         var afterInjectedFailure = store.ReadSnapshot();
         Assert.Equal(beforeFailure, afterInjectedFailure.Revision);
-        Assert.DoesNotContain(afterInjectedFailure.Categories, category => category.Name == "Failed");
+        Assert.Equal(4, afterInjectedFailure.Categories.Count);
 
-        Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Bad / / Path"));
+        Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Travel / Missing"));
         Assert.Equal(beforeFailure, store.ReadSnapshot().Revision);
     }
 
@@ -199,7 +204,9 @@ public sealed class LedgerStoreTests : IDisposable
     {
         var account = Account("Synthetic account");
         var draft = Draft(account, TransactionKind.Expense, 10);
-        var entryId = store.SaveTransactionWithCategoryPath(null, draft, "Home / Utilities");
+        var parentId = store.SaveCategory(null, "Home", null);
+        var childId = store.SaveCategory(null, "Utilities", parentId);
+        var entryId = store.SaveTransaction(null, draft with { CategoryId = childId });
         var parent = store.ReadSnapshot().Categories.Single(category => category.Name == "Home");
         store.SaveCategory(parent.Id, parent.Name, null, true);
 
@@ -230,22 +237,33 @@ public sealed class LedgerStoreTests : IDisposable
         // Arrange
         var account = Account("A");
         var draft = Draft(account, TransactionKind.Expense, 10);
-        store.SaveTransactionWithCategoryPath(null, draft with
+        var food = store.SaveCategory(null, "Food", null);
+        store.SaveCategory(null, "Restaurant", food);
+        var car = store.SaveCategory(null, "Car", null);
+        store.SaveCategory(null, "Fuel", car);
+        var health = store.SaveCategory(null, "Health", null);
+        var restaurant = store.ReadSnapshot().Categories.Single(category => category.Name == "Restaurant").Id;
+        var fuel = store.ReadSnapshot().Categories.Single(category => category.Name == "Fuel").Id;
+        store.SaveTransaction(null, draft with
         {
-            Date = Start.AddDays(1)
-        }, "Food / Restaurant");
-        store.SaveTransactionWithCategoryPath(null, draft with
+            Date = Start.AddDays(1),
+            CategoryId = restaurant
+        });
+        store.SaveTransaction(null, draft with
         {
-            Date = Start.AddDays(4)
-        }, "Car / Fuel");
-        store.SaveTransactionWithCategoryPath(null, draft with
+            Date = Start.AddDays(4),
+            CategoryId = fuel
+        });
+        store.SaveTransaction(null, draft with
         {
-            Date = Start.AddDays(3)
-        }, "Food / Restaurant");
-        store.SaveTransactionWithCategoryPath(null, draft with
+            Date = Start.AddDays(3),
+            CategoryId = restaurant
+        });
+        store.SaveTransaction(null, draft with
         {
-            Date = Start.AddDays(2)
-        }, "Health");
+            Date = Start.AddDays(2),
+            CategoryId = health
+        });
 
         // Act
         var paths = store.ReadRecentCategoryPaths(2);

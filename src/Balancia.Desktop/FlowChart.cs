@@ -21,7 +21,7 @@ internal sealed class FlowChart : Control
 
     public FlowChart()
     {
-        Height = 210;
+        Height = 170;
         ClipToBounds = true;
         PointerMoved += Hover;
         PointerExited += (_, _) =>

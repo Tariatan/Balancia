@@ -1,6 +1,7 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -110,25 +111,46 @@ public partial class MainWindow
             SelectedItem = accounts.FirstOrDefault(c => c.Value.Id == existing?.DestinationId),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        var categoryPaths = snapshot.Categories
+        var availableCategories = snapshot.Categories
             .Where(c => !c.Archived || c.Id == existing?.CategoryId)
-            .Select(c => c.Path)
-            .ToList();
+            .ToArray();
+        var categoryPaths = availableCategories.Select(c => c.Path).ToList();
         var recentCategoryPaths = (await Task.Run(() => store.ReadRecentCategoryPaths())).ToList();
         IReadOnlyList<CategorySuggestion> categorySuggestions = [];
         var selectedCategorySuggestionIndex = -1;
         var acceptingCategorySuggestion = false;
-        var category = new AutoCompleteBox
+        string? acceptedCategoryPath = null;
+        var category = new TextBox
         {
-            ItemsSource = categorySuggestions,
             Text = snapshot.Categories.FirstOrDefault(c => c.Id == existing?.CategoryId)?.Path ?? "",
-            FilterMode = AutoCompleteFilterMode.None,
-            IsTextCompletionEnabled = false,
-            MinimumPrefixLength = 1,
             PlaceholderText = "Type or select a category",
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            ItemTemplate = new FuncDataTemplate<CategorySuggestion>((suggestion, _) => CategorySuggestionRow(suggestion), true)
+            HorizontalAlignment = HorizontalAlignment.Stretch
         };
+        var suggestionRows = new StackPanel();
+        var suggestionPopupContent = new Border
+        {
+            MinWidth = 300,
+            Background = Brush.Parse("#E5E5E5"),
+            BorderBrush = Brush.Parse("#BFC7CB"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(8),
+            Child = new ScrollViewer
+            {
+                MaxHeight = 240,
+                Content = suggestionRows
+            }
+        };
+        var suggestionPopup = new Popup
+        {
+            PlacementTarget = category,
+            Placement = PlacementMode.Bottom,
+            IsLightDismissEnabled = true,
+            Child = suggestionPopupContent
+        };
+        var categoryInput = new Grid();
+        categoryInput.Children.Add(category);
+        categoryInput.Children.Add(suggestionPopup);
         var updatingCategorySuggestions = false;
         category.TextChanged += (_, _) =>
         {
@@ -137,17 +159,26 @@ public partial class MainWindow
                 return;
             }
 
+            var query = category.Text ?? string.Empty;
+            if (acceptedCategoryPath is not null &&
+                string.Equals(query, acceptedCategoryPath, StringComparison.Ordinal))
+            {
+                acceptedCategoryPath = null;
+                suggestionPopup.IsOpen = false;
+                return;
+            }
+
+            acceptedCategoryPath = null;
             updatingCategorySuggestions = true;
             try
             {
-                var query = category.Text ?? string.Empty;
                 IReadOnlyList<CategorySuggestion> matches = string.IsNullOrWhiteSpace(query)
                     ? []
                     : BuildCategorySuggestions(categoryPaths, recentCategoryPaths, query);
                 selectedCategorySuggestionIndex = matches.Count > 0 ? 0 : -1;
                 categorySuggestions = HighlightCategorySuggestion(matches, selectedCategorySuggestionIndex);
-                category.ItemsSource = categorySuggestions;
-                category.IsDropDownOpen = matches.Count > 0;
+                RenderCategorySuggestions();
+                suggestionPopup.IsOpen = matches.Count > 0;
             }
             finally
             {
@@ -169,29 +200,19 @@ public partial class MainWindow
                     0,
                     categorySuggestions.Count - 1);
                 categorySuggestions = HighlightCategorySuggestion(categorySuggestions, selectedCategorySuggestionIndex);
-                category.ItemsSource = categorySuggestions;
-                category.IsDropDownOpen = true;
+                RenderCategorySuggestions();
+                suggestionPopup.IsOpen = true;
                 eventArgs.Handled = true;
             }
             else if (eventArgs.Key == Key.Tab)
             {
-                var suggestion = categorySuggestions[Math.Clamp(selectedCategorySuggestionIndex, 0, categorySuggestions.Count - 1)];
-                acceptingCategorySuggestion = true;
-                try
-                {
-                    category.SelectedItem = suggestion;
-                    category.Text = suggestion.Path;
-                    category.IsDropDownOpen = false;
-                }
-                finally
-                {
-                    acceptingCategorySuggestion = false;
-                }
+                AcceptCategorySuggestion(categorySuggestions[
+                    Math.Clamp(selectedCategorySuggestionIndex, 0, categorySuggestions.Count - 1)]);
             }
         }, RoutingStrategies.Tunnel);
         var memo = Input(existing?.Memo ?? "");
         var toField = Field("Destination account", destination);
-        var categoryField = Field("Category / subcategory", category);
+        var categoryField = Field("Category / subcategory", categoryInput);
         kind.SelectionChanged += (_, _) => UpdateFields();
         UpdateFields();
         Action? continueAfterSave = null;
@@ -200,18 +221,6 @@ public partial class MainWindow
             continueAfterSave = () =>
             {
                 var path = category.Text?.Trim();
-                if (!string.IsNullOrEmpty(path) && !categoryPaths.Contains(path, StringComparer.OrdinalIgnoreCase))
-                {
-                    categoryPaths.Add(path);
-                    recentCategoryPaths.RemoveAll(recentPath => string.Equals(recentPath, path, StringComparison.OrdinalIgnoreCase));
-                    recentCategoryPaths.Insert(0, path);
-                    var suggestions = BuildCategorySuggestions(categoryPaths, recentCategoryPaths, path);
-                    selectedCategorySuggestionIndex = suggestions.Count > 0 ? 0 : -1;
-                    categorySuggestions = HighlightCategorySuggestion(suggestions, selectedCategorySuggestionIndex);
-                    category.ItemsSource = categorySuggestions;
-                    category.Text = path;
-                }
-
                 description.Text = "";
                 amount.Text = "";
                 memo.Text = "";
@@ -240,7 +249,7 @@ public partial class MainWindow
                     ((Choice<Account>)account.SelectedItem!).Value.Id,
                     type == TransactionKind.Transfer ? (destination.SelectedItem as Choice<Account>)?.Value.Id : null,
                     Memo: memo.Text ?? "");
-                var categoryPath = type == TransactionKind.Transfer ? null : category.Text;
+                var categoryPath = type == TransactionKind.Transfer ? null : ReadSelectedCategoryPath();
                 lastAccountId = draft.AccountId;
                 return () => store.SaveTransactionWithCategoryPath(entry?.Id, draft, categoryPath);
             }, initialFocus: category, onSaveAndContinue: continueAfterSave);
@@ -251,6 +260,59 @@ public partial class MainWindow
             var transfer = kind.SelectedItem is TransactionKind.Transfer;
             toField.IsVisible = transfer;
             categoryField.IsVisible = !transfer;
+        }
+
+        string? ReadSelectedCategoryPath()
+        {
+            var path = category.Text?.Trim();
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+
+            var matchingCategory = availableCategories.FirstOrDefault(candidate =>
+                string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase));
+            return matchingCategory?.Path ?? path;
+        }
+
+        void AcceptCategorySuggestion(CategorySuggestion suggestion)
+        {
+            acceptedCategoryPath = suggestion.Path;
+            acceptingCategorySuggestion = true;
+            try
+            {
+                category.Text = suggestion.Path;
+                suggestionPopup.IsOpen = false;
+            }
+            finally
+            {
+                acceptingCategorySuggestion = false;
+            }
+        }
+
+        void RenderCategorySuggestions()
+        {
+            suggestionRows.Children.Clear();
+            if (category.Bounds.Width > 0)
+            {
+                suggestionPopupContent.Width = category.Bounds.Width;
+            }
+
+            foreach (var suggestion in categorySuggestions)
+            {
+                var row = CategorySuggestionRow(suggestion);
+                var button = new Button
+                {
+                    Content = row,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                    Padding = new Thickness(0),
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0)
+                };
+                button.Click += (_, _) => AcceptCategorySuggestion(suggestion);
+                suggestionRows.Children.Add(button);
+            }
         }
     }
 

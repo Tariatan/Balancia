@@ -11,53 +11,54 @@ public partial class MainWindow
     private HistoryFilter analyticsFilter = new();
     private FlowChart? trendChart;
     private FlowChart? timelineChart;
-    private TextBlock? trendLegend;
-    private TextBlock? timelineRange;
     private FlowInterval trendInterval = FlowInterval.Month;
 
     private Border TrendPanel()
     {
         trendChart = new FlowChart();
-        trendLegend = QuietText(string.Empty, 11);
-        var interval = new ComboBox
-        {
-            ItemsSource = Enum.GetValues<FlowInterval>(),
-            SelectedItem = trendInterval,
-            MinWidth = 85,
-        };
-        interval.SelectionChanged += (_, _) =>
-        {
-            if (interval.SelectedItem is FlowInterval selected)
-            {
-                trendInterval = selected;
-                UpdateAnalyticsCharts();
-            }
-        };
-        var header = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-        };
-        AddColumn(header, Heading("TREND", 13), 0);
-        AddColumn(header, interval, 1);
-        return Panel(new StackPanel
+        var intervalLabel = QuietText(trendInterval.ToString(), 11);
+        intervalLabel.Height = 16;
+        intervalLabel.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
+        intervalLabel.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+        var panel = Panel(new StackPanel
         {
             Spacing = 7,
-            Children = { header, trendLegend, trendChart },
+            Children = { intervalLabel, trendChart },
         });
+        panel.PointerWheelChanged += (_, args) =>
+        {
+            var nextInterval = (trendInterval, args.Delta.Y > 0) switch
+            {
+                (FlowInterval.Day, true) => FlowInterval.Week,
+                (FlowInterval.Week, true) => FlowInterval.Month,
+                (FlowInterval.Month, false) => FlowInterval.Week,
+                (FlowInterval.Week, false) => FlowInterval.Day,
+                _ => trendInterval,
+            };
+            if (nextInterval != trendInterval)
+            {
+                trendInterval = nextInterval;
+                intervalLabel.Text = trendInterval.ToString();
+                UpdateAnalyticsCharts();
+            }
+
+            args.Handled = true;
+        };
+        return panel;
     }
 
     private Border TimelinePanel()
     {
         timelineChart = new FlowChart();
-        timelineRange = QuietText(string.Empty, 10);
-        timelineRange.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
-        var panel = Panel(new StackPanel
+        return Panel(new StackPanel
         {
             Spacing = 7,
-            Children = { Heading("TIMELINE", 13), timelineRange, timelineChart },
+            Children =
+            {
+                new Border { Height = 16 },
+                timelineChart,
+            },
         });
-        UpdateAnalyticsCharts();
-        return panel;
     }
 
     private void UpdateAnalyticsCharts()
@@ -68,11 +69,11 @@ public partial class MainWindow
         }
 
         var incomeOnly = analyticsFilter.Kind == TransactionKind.Income ||
-            analyticsFilter.Kind is null && analyticsFilter.CategoryId is not null &&
+            analyticsFilter.Kind is null && analyticsFilter.HasCategoryFilter &&
             data.Current.Concat(data.Previous).Any(day => day.Income != Money.Zero) &&
             !data.Current.Concat(data.Previous).Any(day => day.Expenses != Money.Zero);
         var expenseOnly = analyticsFilter.Kind == TransactionKind.Expense ||
-            analyticsFilter.Kind is null && analyticsFilter.CategoryId is not null &&
+            analyticsFilter.Kind is null && analyticsFilter.HasCategoryFilter &&
             !data.Current.Concat(data.Previous).Any(day => day.Income != Money.Zero);
         var empty = analyticsFilter.Kind == TransactionKind.Transfer ? "Transfers do not count as income or expenses." :
             data.Current.Count == 0 && data.Previous.Count == 0 ? "No matching transactions" : null;
@@ -90,14 +91,10 @@ public partial class MainWindow
                 bucket.From.ToString(trendInterval == FlowInterval.Month || data.To.DayNumber - data.From.DayNumber > 365
                     ? "MMM yy" : "dd MMM", CultureInfo.CurrentCulture), details, amounts);
         }).ToArray();
-        trendLegend!.Text = incomeOnly ? "Income" : expenseOnly ? "Expense" : "Income (green) · Expense (red) · Savings (blue)";
-        trendLegend.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
         trendChart.SetData(trendPoints, trendSeries, data.Current.Count == 0 ? empty ?? "No matching transactions in this period" : empty);
 
         // Compare expenses by default, or income when explicitly filtered to income.
         var metric = incomeOnly ? "Income" : "Expense";
-        timelineRange!.Text = $"{metric} · {data.From:dd MMM yyyy} – {data.To:dd MMM yyyy}" +
-            (data.PreviousFrom is null ? string.Empty : $"\nvs {data.PreviousFrom:dd MMM yyyy} – {data.PreviousTo:dd MMM yyyy}");
         var length = data.To.DayNumber - data.From.DayNumber;
         var offsets = length < 10000 ? Enumerable.Range(0, length + 1).ToArray() :
             data.Current.Select(day => day.Date.DayNumber - data.From.DayNumber)

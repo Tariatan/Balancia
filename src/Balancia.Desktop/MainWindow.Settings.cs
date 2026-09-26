@@ -1,8 +1,11 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.VisualTree;
 using Balancia.Core;
 using Balancia.Storage;
 
@@ -10,6 +13,60 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
+    private readonly Dictionary<string, CheckBox> categoryFilterChecks = [];
+    private Action? syncCategoryFilterChoice;
+
+    private void SyncCategoryFilterChecks()
+    {
+        var wasUpdating = updatingFilterControls;
+        updatingFilterControls = true;
+        try
+        {
+            foreach (var (id, check) in categoryFilterChecks)
+            {
+                check.IsChecked = overviewFilter.CategoryId == id || overviewFilter.CategoryIds?.Contains(id) == true;
+            }
+
+            syncCategoryFilterChoice?.Invoke();
+        }
+        finally
+        {
+            updatingFilterControls = wasUpdating;
+        }
+    }
+
+    private async Task ToggleCategoryFilter(string id, bool selected)
+    {
+        if (updatingFilterControls)
+        {
+            return;
+        }
+
+        var ids = new HashSet<string>(overviewFilter.CategoryIds ?? []);
+        if (overviewFilter.CategoryId is { } single)
+        {
+            ids.Add(single);
+        }
+
+        if (selected)
+        {
+            ids.Add(id);
+        }
+        else
+        {
+            ids.Remove(id);
+        }
+
+        overviewFilter = overviewFilter with
+        {
+            CategoryId = ids.Count == 1 ? ids.Single() : null,
+            CategoryIds = ids.Count > 1 ? ids.Order().ToArray() : null,
+        };
+        overviewOffset = 0;
+        SyncCategoryFilterChecks();
+        await RequestOverviewFilterRefresh();
+    }
+
     private Border CategoriesPanel(LedgerSnapshot ledgerSnapshot)
     {
         var body = new StackPanel
@@ -95,9 +152,50 @@ public partial class MainWindow
 
     private Border CategoryManagementPanel(LedgerSnapshot ledgerSnapshot)
     {
+        categoryFilterChecks.Clear();
         var categories = new ListBox
         {
             ItemsSource = ledgerSnapshot.Categories.Select(c => new Choice<Category>(c, c.Path + (c.Archived ? " (archived)" : ""))).ToArray(),
+            ItemTemplate = new FuncDataTemplate<Choice<Category>>((choice, _) =>
+            {
+                // Virtualized presenters can request a template with no item while scrolling.
+                if (choice is null)
+                {
+                    return null;
+                }
+
+                var category = choice.Value;
+                var check = new CheckBox
+                {
+                    IsChecked = overviewFilter.CategoryId == category.Id || overviewFilter.CategoryIds?.Contains(category.Id) == true,
+                };
+                AutomationProperties.SetName(check, category.Path);
+                ToolTip.SetTip(check, category.Path);
+                categoryFilterChecks[category.Id] = check;
+                check.IsCheckedChanged += async (_, _) =>
+                {
+                    if (!updatingFilterControls && check.FindAncestorOfType<ListBox>() is { } list)
+                    {
+                        list.SelectedItem = choice;
+                    }
+
+                    await ToggleCategoryFilter(category.Id, check.IsChecked == true);
+                };
+                var row = new Grid
+                {
+                    ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+                    ColumnSpacing = 7,
+                    Margin = new Thickness(category.ParentId is null ? 0 : 15, 0, 0, 0),
+                };
+                row.Children.Add(check);
+                var name = new TextBlock
+                {
+                    Text = category.Name + (category.Archived ? " (archived)" : string.Empty),
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                AddColumn(row, name, 1);
+                return row;
+            }),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
             Background = Brushes.Transparent,

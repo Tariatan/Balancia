@@ -44,7 +44,7 @@ public sealed partial class LedgerStore
             {
                 draft = draft with
                 {
-                    CategoryId = ResolveCategoryPath(c, tx, id, categoryParts)
+                    CategoryId = ResolveExistingCategoryPath(c, tx, id, categoryParts)
                 };
             }
 
@@ -104,4 +104,37 @@ public sealed partial class LedgerStore
 
     private static void AddMovement(SqliteConnection c, SqliteTransaction tx, string id, string account, long amount) =>
         Execute(c, tx, "INSERT INTO movements VALUES($id,$account,$amount)", ("$id", id), ("$account", account), ("$amount", amount));
+
+    private static string? ResolveExistingCategoryPath(SqliteConnection c, SqliteTransaction tx, string? transactionId, string[] parts)
+    {
+        if (parts.Length == 0)
+        {
+            return null;
+        }
+
+        string? parentId = null;
+        string? categoryId = null;
+        foreach (var part in parts)
+        {
+            categoryId = Scalar(c, tx,
+                "SELECT id FROM categories WHERE parent_id IS $parent AND name=$name COLLATE NOCASE",
+                ("$parent", parentId), ("$name", part)) as string;
+            if (categoryId is null)
+            {
+                throw new ArgumentException("Choose an existing category path.");
+            }
+
+            parentId = categoryId;
+        }
+
+        var archived = Convert.ToInt64(Scalar(c, tx, "SELECT archived FROM categories WHERE id=$id", ("$id", categoryId))) != 0;
+        var previousCategory = transactionId is null ? null :
+            Scalar(c, tx, "SELECT category_id FROM ledger WHERE id=$id", ("$id", transactionId)) as string;
+        if (archived && categoryId != previousCategory)
+        {
+            throw new ArgumentException("Restore the archived category before using it for another transaction.");
+        }
+
+        return categoryId;
+    }
 }

@@ -1,8 +1,21 @@
 # Balancia project memory
 
-Last updated: 2026-09-25. Scope: this repository only.
+Last updated: 2026-09-26. Scope: this repository only.
 
 ## Durable context
+
+- 2026-09-26 scrolling fix: the category template now returns no control for a
+  null item instead of dereferencing it. The owner supplied the exact exception
+  at choice.Value. Release Desktop build passed; a temporary synthetic Avalonia
+  harness verified both null and real category template builds. Manual scrolling
+  in the owner's rebuilt Debug instance remains to be confirmed.
+
+- 2026-09-26: Categories checkboxes share the Overview filter. Multiple checked
+  categories are combined, parent checks include children without duplicate sums,
+  and no checks means all. Child rows indent 5 pixels; names retain double-click
+  editing. Filter dropdown and Clear filters synchronize the checks. Locked
+  restore, Release solution build, 64 tests, targeted formatting, and synthetic
+  Windows interaction checks passed. Changes remain local for owner review.
 
 - Owner: Slava. Personal tool and learning project; enjoys C#.
 - Prior dashboard inspiration: net worth, calendar-month income/expenses, largest expense
@@ -259,6 +272,8 @@ contradictory entries. Do not copy the user's transaction details into this file
 - 2026-09-22 Overview refinement: Upcoming payments now fills the right-column space down to the transaction-history bottom edge. TOTAL NET sums all displayed reminder amounts; TOTAL UPCOMING MONTH sums displayed reminders due in the next local calendar month. The owner corrected the initial current-month interpretation after seeing zero for October items while in September. Release build passed with zero warnings/errors; manual resize and totals check remain pending.
 
 - 2026-09-25 Overview refinement: The local-save/error status is mirrored in the Overview header immediately left of the gear button; the former bottom status slot is hidden. Release build and 59 tests passed.
+
+- 2026-09-26 Analytics UI: Trend and Timeline headings/captions were removed. Trend interval is displayed as a compact label and changes on wheel input with Day/Month clamping. A later review caught and fixed an omitted initial chart data update; Release build passed, manual pointer-wheel and startup visual checks remain pending.
 
 - 2026-09-25: Trend and Timeline now aggregate all filtered income/expense
   transactions independently of history pagination. Trend has day/week/month

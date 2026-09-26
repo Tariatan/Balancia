@@ -43,6 +43,14 @@ no Apply action, and its header trash action clears all filters. Income, expense
 and the largest expense categories use the same description, account, type,
 category, date, and amount filters as history. Selecting a parent category shows
 its own expenses and each matching subcategory separately in the category card.
+The Categories panel provides a checkbox before each category name; child rows
+are indented by 5 pixels. Checked categories form one combined category filter:
+a parent includes its children, overlaps never double-count, and no checks means
+all categories. This selection combines with the other filters and updates Income,
+Expenses, Trend, Timeline, top expenditures, and history. The Filter dropdown
+mirrors one selection or displays the number selected; choosing a category there
+replaces the checkbox selection. Clear filters resets both. Double-clicking a
+category name still opens its editor.
 History amounts are bold; income is green, expense is red, and transfer is dark
 blue. The overview history follows the bottom edge as the window changes height.
 Overview history fills its available height without an outer page scrollbar.
@@ -99,7 +107,10 @@ Trend and Timeline use the same date, description, account, type, category
 (including children), and amount filters as the Overview totals and history.
 They aggregate all matching entries, independently of history pagination;
 opening balances and transfers are excluded from income/expense analysis.
-Trend defaults to calendar-month buckets, with Day and Monday-based Week choices.
+Trend defaults to calendar-month buckets. The interval is shown in the panel;
+mouse-wheel up changes Day to Week to Month, and wheel down reverses that order.
+Selection stops at Day and Month rather than cycling. Trend and Timeline omit
+their titles and descriptive captions.
 Without a type/category restriction it shows positive income, negative expenses,
 and a Savings line (income minus expenses, which may be negative). Income-only
 and expense-only type/category selections show a single positive series.
@@ -133,14 +144,15 @@ and overview period and history filters. A new transaction starts on Today;
 editing retains its stored date. The amount field
 accepts `+`, `-`, `*`, and `/` expressions, evaluates them when focus leaves the
 field and before saving, and rounds the result to CHF centimes.
-Category / subcategory is one free-text field with matching existing paths shown
-as suggestions only after typing starts; it is empty on a new transaction. The
-best match appears first and is highlighted without replacing the typed text; Tab accepts it;
-matching recently used paths follow in latest-use order, then the remaining
-matching paths appear alphabetically. A previously unused name creates a top-level
-category when the transaction saves; `Category / Subcategory` creates or reuses
-both levels. Empty text means Uncategorized. More than one slash or an empty
-side is invalid. Category creation and the transaction save commit together.
+Category / subcategory uses a searchable selection field and is empty on a new
+transaction. Matching existing paths appear only after typing starts. The best
+match appears first and is highlighted without replacing the typed text; Tab
+accepts it. Matching recently used paths follow in latest-use order, then the
+remaining matching paths appear alphabetically. Saving requires an exact
+case-insensitive match to an available category path; unknown typed text is
+rejected and never creates a category. Empty text means Uncategorized. Archived
+categories remain available only while editing a transaction already assigned
+to that category. More than one slash or an empty side cannot match a category.
 
 Defaults: enter a positive amount and let the type determine the sign. Reject
 zero amounts, fractional centimes, overflow, and same-account transfers. Accept
