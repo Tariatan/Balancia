@@ -1,8 +1,14 @@
 # Balancia project memory
 
-Last updated: 2026-09-26. Scope: this repository only.
+Last updated: 2026-09-27. Scope: this repository only.
 
 ## Durable context
+
+- 2026-09-27: Overview UI code is grouped into the main Overview, filter state,
+  filter controls, and history partial files; the Accounts card builder moved to
+  `MainWindow.Accounts.cs`. The same window and storage calls remain. Locked
+  restore, Release build, 66 tests, and a synthetic desktop period/account check
+  passed. M8 release polish remains next.
 
 - 2026-09-26 scrolling fix: the category template now returns no control for a
   null item instead of dereferencing it. The owner supplied the exact exception

@@ -1,6 +1,6 @@
 # Implementation plan and checkpoint
 
-Last updated: 2026-09-20.
+Last updated: 2026-09-27.
 
 ## Milestones
 
@@ -387,3 +387,12 @@ Year choose the unit; All and custom ranges use months. The first posted flow
 starts preset and All averages; custom From overrides that start. Release
 Desktop build and focused storage checks passed. Manual Windows card interaction
 remains to be checked.
+
+2026-09-27: Split the 772-line Overview partial into dashboard assembly,
+filter state, filter controls, and history files; moved the Accounts card builder
+beside account actions. The main Overview file is now about 200 lines. Locked
+restore, Release solution build (zero warnings/errors), all 66 tests, targeted
+format checks, and diff checks passed. A separate synthetic Windows ledger
+confirmed startup, Day period refresh, and account creation updating the card
+and net worth. Next: continue M8 release polish; this refactor needs no product
+follow-up.

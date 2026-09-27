@@ -143,6 +143,15 @@ refresh, navigation, and page selection. `MainWindow.Overview.cs`,
 `MainWindow.UiHelpers.cs` owns shared controls and dialogs. This is a source
 organization change; the same window and storage boundary remain in use.
 
+On 2026-09-27, Overview code was grouped further within the same partial
+`MainWindow`: `MainWindow.Overview.cs` assembles and refreshes the dashboard,
+`MainWindow.OverviewFilterState.cs` owns period and filter state,
+`MainWindow.OverviewFilters.cs` builds the filter controls, and
+`MainWindow.OverviewHistory.cs` builds the paged history card. The Accounts card
+builder lives with account actions in `MainWindow.Accounts.cs`. This keeps the
+existing in-place refresh and storage calls while reducing the size of each
+Overview source file.
+
 ## Storage model
 
 HistoryFilter accepts an optional category ID set alongside the existing single
