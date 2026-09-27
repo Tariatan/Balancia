@@ -165,6 +165,12 @@ builder lives with account actions in `MainWindow.Accounts.cs`. This keeps the
 existing in-place refresh and storage calls while reducing the size of each
 Overview source file.
 
+On 2026-09-27, category management and checkbox filtering stayed in
+`MainWindow.Categories.cs`, the expenditure card moved to
+`MainWindow.OverviewCategories.cs`, and the Settings dialog and folder choices
+moved to `MainWindow.Settings.cs`. These remain partials of the same window;
+category and Settings behavior still use the existing storage calls.
+
 ## Storage model
 
 HistoryFilter accepts an optional category ID set alongside the existing single

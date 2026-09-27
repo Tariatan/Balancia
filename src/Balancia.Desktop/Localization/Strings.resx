@@ -102,7 +102,9 @@
   <data name="TOTAL UPCOMING MONTH" xml:space="preserve"><value>TOTAL UPCOMING MONTH</value></data>
   <data name="OVERDUE · " xml:space="preserve"><value>OVERDUE · </value></data>
   <data name="every {0} month(s)" xml:space="preserve"><value>every {0} month(s)</value></data>
-  <data name="Change database location" xml:space="preserve"><value>Change database location</value></data>
+  <data name="Database folder" xml:space="preserve"><value>Database folder</value></data>
+  <data name="Backup folder" xml:space="preserve"><value>Backup folder</value></data>
+  <data name="Snapshot folder" xml:space="preserve"><value>Snapshot folder</value></data>
   <data name="Choose backup folder" xml:space="preserve"><value>Choose backup folder</value></data>
   <data name="Choose snapshot folder" xml:space="preserve"><value>Choose snapshot folder</value></data>
   <data name="Not configured" xml:space="preserve"><value>Not configured</value></data>

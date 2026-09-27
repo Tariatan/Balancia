@@ -4,10 +4,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using Balancia.Core;
-using Balancia.Storage;
 
 using static Balancia.Desktop.Localization.UiText;
 
@@ -17,6 +15,9 @@ public partial class MainWindow
 {
     private readonly Dictionary<string, CheckBox> categoryFilterChecks = [];
 
+    private bool IsCategorySelected(string id) =>
+        overviewFilter.CategoryId == id || overviewFilter.CategoryIds?.Contains(id) == true;
+
     private void SyncCategoryFilterChecks()
     {
         var wasUpdating = updatingFilterControls;
@@ -25,7 +26,7 @@ public partial class MainWindow
         {
             foreach (var (id, check) in categoryFilterChecks)
             {
-                check.IsChecked = overviewFilter.CategoryId == id || overviewFilter.CategoryIds?.Contains(id) == true;
+                check.IsChecked = IsCategorySelected(id);
             }
         }
         finally
@@ -66,96 +67,17 @@ public partial class MainWindow
         await RequestOverviewFilterRefresh();
     }
 
-    private Border CategoriesPanel(LedgerSnapshot ledgerSnapshot)
-    {
-        var body = new StackPanel
-        {
-            Spacing = 1
-        };
-        var header = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            Margin = new Thickness(0, 0, 0, 10)
-        };
-        header.Children.Add(Heading("Top expenditures", 13));
-        overviewCategoryHeading = (TextBlock)header.Children[0];
-        body.Children.Add(header);
-        var rows = new StackPanel { Spacing = 1 };
-        body.Children.Add(rows);
-        overviewCategoryBody = rows;
-        FillCategoriesPanel(rows, ledgerSnapshot);
-        return Panel(body);
-    }
-
-    private void FillCategoriesPanel(StackPanel body, LedgerSnapshot ledgerSnapshot)
-    {
-        body.Children.Clear();
-        renderedOverviewCategories = [.. ledgerSnapshot.LargestCategories];
-        renderedOverviewCategoryId = overviewFilter.CategoryId;
-        var selectedCategory = ledgerSnapshot.Categories.FirstOrDefault(c => c.Id == overviewFilter.CategoryId);
-        var hasSubcategories = selectedCategory is not null &&
-            ledgerSnapshot.Categories.Any(c => c.ParentId == selectedCategory.Id);
-        var title = hasSubcategories
-            ? Format("Top expenditures · {0}", selectedCategory!.Name)
-            : Get("Top expenditures");
-        overviewCategoryHeading!.Text = title;
-
-        if (ledgerSnapshot.LargestCategories.Count == 0)
-        {
-            body.Children.Add(QuietText("No matching expenses.", 12));
-        }
-
-        var maximum = ledgerSnapshot.LargestCategories.Count > 0 ? ledgerSnapshot.LargestCategories[0].Amount.Centimes : 1;
-
-        foreach (var category in ledgerSnapshot.LargestCategories)
-        {
-            var row = new Grid
-            {
-                ColumnDefinitions = new ColumnDefinitions("75,*,80"),
-                MinHeight = 20
-            };
-
-            row.Children.Add(new TextBlock
-            {
-                Text = category.Name,
-                FontSize = 11,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                VerticalAlignment = VerticalAlignment.Center
-            });
-
-            var bar = new ProgressBar
-            {
-                Minimum = 0,
-                Maximum = maximum,
-                Value = category.Amount.Centimes,
-                Height = 7,
-                Foreground = Brush.Parse("#3989A7"),
-                Background = Brush.Parse("#E7F2F6"),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            AddColumn(row, bar, 1);
-            var value = new TextBlock
-            {
-                Text = AmountText(category.Amount),
-                FontSize = 11,
-                TextAlignment = TextAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontWeight = FontWeight.SemiBold
-            };
-
-            AddColumn(row, value, 2);
-            body.Children.Add(row);
-        }
-    }
-
     private Border CategoryManagementPanel(LedgerSnapshot ledgerSnapshot)
     {
         categoryFilterChecks.Clear();
+
         var categories = new ListBox
         {
             Classes = { "compact-list" },
-            ItemsSource = ledgerSnapshot.Categories.Select(c => new Choice<Category>(c, c.Path + (c.Archived ? Get(" (archived)") : ""))).ToArray(),
+            ItemsSource = ledgerSnapshot.Categories
+                .Select(category => new Choice<Category>(category,
+                    category.Path + (category.Archived ? Get(" (archived)") : string.Empty)))
+                .ToArray(),
             ItemTemplate = new FuncDataTemplate<Choice<Category>>((choice, _) =>
             {
                 // Virtualized presenters can request a template with no item while scrolling.
@@ -167,7 +89,8 @@ public partial class MainWindow
                 var category = choice.Value;
                 var check = new CheckBox
                 {
-                    IsChecked = overviewFilter.CategoryId == category.Id || overviewFilter.CategoryIds?.Contains(category.Id) == true,
+                    Classes = { "compact-filter-checkbox" },
+                    IsChecked = IsCategorySelected(category.Id),
                 };
                 AutomationProperties.SetName(check, category.Path);
                 ToolTip.SetTip(check, category.Path);
@@ -230,168 +153,6 @@ public partial class MainWindow
             }
         };
         return Panel(categoryBody);
-    }
-
-    private async Task OpenSettingsDialog()
-    {
-        var dialog = new Window
-        {
-            Title = Get("Settings"),
-            Icon = Icon,
-            ShowInTaskbar = false,
-            Width = 600,
-            Height = 470,
-            MinWidth = 600,
-            MinHeight = 470,
-            MaxWidth = 600,
-            MaxHeight = 470,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-        };
-        var body = new StackPanel
-        {
-            Spacing = 12,
-            Margin = new Thickness(24)
-        };
-        body.Children.Add(new TextBlock
-        {
-            Text = Get("Settings"),
-            FontSize = 24,
-            FontWeight = FontWeight.SemiBold
-        });
-        var languageRow = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 12,
-            Children =
-            {
-                Text(Get("Language")),
-                LanguagePicker(dialog),
-            },
-        };
-        body.Children.Add(languageRow);
-
-        var locations = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto"),
-            RowSpacing = 7,
-            ColumnSpacing = 12
-        };
-        AddRow(locations, ActionButton("Change database location", ChangeDatabaseLocation), 0);
-        AddRow(locations, ActionButton("Choose backup folder", ChooseBackupLocation), 1);
-        AddRow(locations, ActionButton("Choose snapshot folder", ChooseSnapshotLocation), 2);
-        var databaseText = Text(databasePath);
-        var backupText = Text(backupPath ?? Get("Not configured"));
-        var snapshotText = Text(snapshotPath ?? Get("Not configured"));
-        foreach (var (text, row) in new[] { (databaseText, 0), (backupText, 1), (snapshotText, 2) })
-        {
-            text.VerticalAlignment = VerticalAlignment.Center;
-            AddColumn(locations, text, 1);
-            Grid.SetRow(text, row);
-        }
-        body.Children.Add(locations);
-        body.Children.Add(new Separator { Margin = new Thickness(0, 4) });
-        body.Children.Add(new TextBlock
-        {
-            Text = Get("Data transfer"),
-            FontWeight = FontWeight.SemiBold
-        });
-        var dataTransferActions = new StackPanel
-        {
-            Spacing = 0,
-            Children =
-            {
-                Row(
-                    ActionButton("Import CSV", ImportCsv),
-                    ActionButton("Export CSV", ExportCsv)),
-                Row(
-                    ActionButton("Restore snapshot", RestoreSnapshot),
-                    ActionButton("Export snapshot", ExportSnapshot)),
-            },
-        };
-        body.Children.Add(dataTransferActions);
-        var close = new Button
-        {
-            Content = Get("Close"),
-            IsCancel = true,
-            HorizontalAlignment = HorizontalAlignment.Left
-        };
-        body.Children.Add(close);
-
-        dialog.Content = new ScrollViewer { Content = body };
-        close.Click += (_, _) => dialog.Close();
-        await dialog.ShowDialog(this);
-    }
-
-    private async Task<string?> PickFolder(string title)
-    {
-        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = Get(title),
-            AllowMultiple = false
-        });
-        var directory = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
-        return directory is null ? null : Path.GetFullPath(directory);
-    }
-
-    private async Task ChangeDatabaseLocation()
-    {
-        var directory = await PickFolder("Choose Balancia database folder");
-        if (directory is null)
-        {
-            return;
-        }
-
-        var dbPath = Path.Combine(directory, "balancia.db");
-        if (string.Equals(dbPath, this.databasePath, StringComparison.OrdinalIgnoreCase))
-        {
-            SetStatus("This database folder is already active.");
-            return;
-        }
-
-        await Run(async () =>
-        {
-            var replacement = new LedgerStore(dbPath);
-            await Task.Run(replacement.Initialize);
-            await Task.Run(() => SaveApplicationSettings(dbPath));
-            store = replacement;
-            this.databasePath = dbPath;
-            windowSettingsPath = Path.Combine(Path.GetDirectoryName(dbPath)!, "window.json");
-            await Refresh();
-        });
-    }
-
-    private async Task ChooseBackupLocation()
-    {
-        var selected = await PickFolder("Choose backup folder");
-        if (selected is null)
-        {
-            return;
-        }
-
-        await Run(async () =>
-        {
-            await Task.Run(() => SaveApplicationSettings(databasePath, selected));
-            backupPath = selected;
-            await Refresh();
-        });
-    }
-
-    private async Task ChooseSnapshotLocation()
-    {
-        var selected = await PickFolder("Choose snapshot folder");
-        if (selected is null)
-        {
-            return;
-        }
-
-        await Run(async () =>
-        {
-            await Task.Run(() => SaveApplicationSettings(databasePath, backupPath, selected));
-            snapshotPath = selected;
-            await Refresh();
-        });
     }
 
     private async Task ArchiveSelectedCategory(ListBox categories)

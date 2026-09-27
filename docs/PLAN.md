@@ -445,3 +445,34 @@ formatting, and `git diff HEAD --check` passed. Runtime visual confirmation rema
 2026-09-27: Settings data transfer actions now use separate rows in Import/Export
 order: CSV first, then Snapshot. Desktop Release build, all 66 tests, targeted
 formatting, and diff checks passed; runtime visual confirmation remains.
+
+2026-09-27: Separated the Categories partial by responsibility: category
+management and checkbox filtering remain in `MainWindow.Categories.cs`, the
+Overview expenditure card is in `MainWindow.OverviewCategories.cs`, and the
+Settings dialog and folder choices are in `MainWindow.Settings.cs`. The same
+window methods and storage calls remain. Release solution build passed with zero
+warnings and all 66 tests passed. Targeted whitespace/style checks and a
+synthetic Windows interaction check covered category creation, checkbox
+selection, and Settings opening/closing. The expenditure card was visible in
+its empty state; populated expense rendering was not exercised.
+
+2026-09-27: Reduced the visible square and check glyph in Overview Accounts and
+Categories filters by 20% using render transforms; row layout and checkbox hit
+area remain unchanged. Locked solution restore, Release build, all 66 tests,
+the harness check, and `git diff --check` passed. Native visual confirmation
+remains pending.
+
+2026-09-27: Account names now inherit the same font as category entries; balance
+amount typography is unchanged. Desktop Release build and `git diff --check`
+passed. Native visual confirmation remains pending.
+
+2026-09-27: Russian and Ukrainian date cultures now capitalize full, abbreviated,
+and genitive month names, covering month labels, formatted dates, and the calendar
+popup. Release solution build (zero warnings/errors), all 66 tests, focused runtime
+culture checks, and `git diff --check` passed. Native popup visual confirmation
+remains pending.
+
+2026-09-27: Settings folder buttons now use concise Database folder, Backup
+folder, and Snapshot folder labels in English, German, Russian, and Ukrainian;
+folder picker titles are unchanged. Desktop Release build, resource-key parity,
+and `git diff --check` passed.

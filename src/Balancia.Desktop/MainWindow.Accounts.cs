@@ -53,6 +53,7 @@ public partial class MainWindow
 
                 var check = new CheckBox
                 {
+                    Classes = { "compact-filter-checkbox" },
                     IsChecked = overviewFilter.AccountId == choice.Value.Id || overviewFilter.AccountIds?.Contains(choice.Value.Id) == true,
                 };
                 AutomationProperties.SetName(check, choice.Value.Name);
@@ -77,7 +78,6 @@ public partial class MainWindow
                 AddColumn(row, new TextBlock
                 {
                     Text = choice.Value.Name,
-                    FontSize = 12,
                     VerticalAlignment = VerticalAlignment.Center,
                     TextTrimming = TextTrimming.CharacterEllipsis
                 }, 1);

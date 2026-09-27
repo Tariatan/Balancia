@@ -102,7 +102,9 @@
   <data name="TOTAL UPCOMING MONTH" xml:space="preserve"><value>СЛЕДУЮЩИЙ МЕСЯЦ</value></data>
   <data name="OVERDUE · " xml:space="preserve"><value>ПРОСРОЧЕНО · </value></data>
   <data name="every {0} month(s)" xml:space="preserve"><value>каждые {0} мес.</value></data>
-  <data name="Change database location" xml:space="preserve"><value>Изменить папку базы данных</value></data>
+  <data name="Database folder" xml:space="preserve"><value>Папка базы данных</value></data>
+  <data name="Backup folder" xml:space="preserve"><value>Папка резервных копий</value></data>
+  <data name="Snapshot folder" xml:space="preserve"><value>Папка снимков</value></data>
   <data name="Choose backup folder" xml:space="preserve"><value>Выбрать папку резервных копий</value></data>
   <data name="Choose snapshot folder" xml:space="preserve"><value>Выбрать папку снимков</value></data>
   <data name="Not configured" xml:space="preserve"><value>Не настроено</value></data>

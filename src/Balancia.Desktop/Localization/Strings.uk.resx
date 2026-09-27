@@ -102,7 +102,9 @@
   <data name="TOTAL UPCOMING MONTH" xml:space="preserve"><value>НАСТУПНИЙ МІСЯЦЬ</value></data>
   <data name="OVERDUE · " xml:space="preserve"><value>ПРОСТРОЧЕНО · </value></data>
   <data name="every {0} month(s)" xml:space="preserve"><value>кожні {0} міс.</value></data>
-  <data name="Change database location" xml:space="preserve"><value>Змінити теку бази даних</value></data>
+  <data name="Database folder" xml:space="preserve"><value>Тека бази даних</value></data>
+  <data name="Backup folder" xml:space="preserve"><value>Тека резервних копій</value></data>
+  <data name="Snapshot folder" xml:space="preserve"><value>Тека знімків</value></data>
   <data name="Choose backup folder" xml:space="preserve"><value>Вибрати теку резервних копій</value></data>
   <data name="Choose snapshot folder" xml:space="preserve"><value>Вибрати теку знімків</value></data>
   <data name="Not configured" xml:space="preserve"><value>Не налаштовано</value></data>

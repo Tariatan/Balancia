@@ -10,6 +10,12 @@
       <Setter Property="BorderBrush" Value="#DCE6EB" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
+    <Style Selector="CheckBox.compact-filter-checkbox /template/ Border#NormalRectangle">
+      <Setter Property="RenderTransform" Value="scale(0.8)" />
+    </Style>
+    <Style Selector="CheckBox.compact-filter-checkbox /template/ Viewbox">
+      <Setter Property="RenderTransform" Value="scale(0.8)" />
+    </Style>
     <Style Selector="ComboBox">
       <Setter Property="Foreground" Value="#71838D" />
       <Setter Property="BorderBrush" Value="#DCE6EB" />

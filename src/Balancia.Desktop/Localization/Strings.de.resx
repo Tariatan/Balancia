@@ -102,7 +102,9 @@
   <data name="TOTAL UPCOMING MONTH" xml:space="preserve"><value>NÄCHSTER MONAT</value></data>
   <data name="OVERDUE · " xml:space="preserve"><value>ÜBERFÄLLIG · </value></data>
   <data name="every {0} month(s)" xml:space="preserve"><value>alle {0} Monat(e)</value></data>
-  <data name="Change database location" xml:space="preserve"><value>Datenbankordner ändern</value></data>
+  <data name="Database folder" xml:space="preserve"><value>Datenbankordner</value></data>
+  <data name="Backup folder" xml:space="preserve"><value>Backup-Ordner</value></data>
+  <data name="Snapshot folder" xml:space="preserve"><value>Snapshot-Ordner</value></data>
   <data name="Choose backup folder" xml:space="preserve"><value>Backup-Ordner auswählen</value></data>
   <data name="Choose snapshot folder" xml:space="preserve"><value>Snapshot-Ordner auswählen</value></data>
   <data name="Not configured" xml:space="preserve"><value>Nicht eingerichtet</value></data>

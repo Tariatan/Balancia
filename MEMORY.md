@@ -4,6 +4,12 @@ Last updated: 2026-09-27. Scope: this repository only.
 
 ## Durable context
 
+- 2026-09-27: Category management/filtering, Overview expenditure rendering,
+  and Settings now occupy focused `MainWindow` partial files. The original
+  Categories file fell from 466 to about 220 lines. Release build and 66 tests
+  passed. Targeted formatting and synthetic desktop category/filter/Settings
+  interactions passed; the expenditure card was checked only in its empty state.
+
 - 2026-09-27: Overview UI code is grouped into the main Overview, filter state,
   filter controls, and history partial files; the Accounts card builder moved to
   `MainWindow.Accounts.cs`. The same window and storage calls remain. Locked
@@ -41,6 +47,23 @@ Last updated: 2026-09-27. Scope: this repository only.
 - 2026-09-27: Settings data transfer actions use separate CSV and Snapshot rows,
   each ordered Import then Export (Snapshot uses Restore snapshot). Release Desktop
   build, 66 tests, formatting, and diff checks passed; visual review remains.
+
+- 2026-09-27: Overview Accounts and Categories filter checkboxes render their
+  square and check glyph at 80% scale; row layout and click target are preserved.
+  Locked solution restore, Release build, all 66 tests, harness, and diff check
+  passed. Native visual confirmation remains pending.
+
+- 2026-09-27: Account names inherit the default font, matching category entries;
+  balance amount styling is unchanged. Desktop Release build and diff check
+  passed; native visual confirmation remains pending.
+
+- 2026-09-27: Russian and Ukrainian localized date cultures capitalize full,
+  abbreviated, and genitive month names. Release solution build, 66 tests, and
+  focused culture checks passed; native calendar popup review remains pending.
+
+- 2026-09-27: Settings now labels its path actions Database folder, Backup folder,
+  and Snapshot folder in all four desktop languages. Desktop Release build,
+  localization key parity, and diff check passed.
 
 - 2026-09-27: Accounts and Average dashboard columns widened for German,
   Ukrainian, and Russian labels; Timeline absorbs the width reduction. Build

@@ -21,19 +21,36 @@ internal static class UiText
     internal static void SetLanguage(string language)
     {
         Language = ResolveLanguage(language, CultureInfo.GetCultureInfo("en-US"));
-        var culture = CultureInfo.GetCultureInfo(Language switch
+        var cultureName = Language switch
         {
             "de" => "de-DE",
             "ru" => "ru-RU",
             "uk" => "uk-UA",
             _ => "en-US",
-        });
+        };
+        var culture = (CultureInfo)CultureInfo.GetCultureInfo(cultureName).Clone();
+        if (Language is "ru" or "uk")
+        {
+            var dateTimeFormat = (DateTimeFormatInfo)culture.DateTimeFormat.Clone();
+            dateTimeFormat.MonthNames = CapitalizeMonthNames(dateTimeFormat.MonthNames, culture);
+            dateTimeFormat.AbbreviatedMonthNames = CapitalizeMonthNames(dateTimeFormat.AbbreviatedMonthNames, culture);
+            dateTimeFormat.MonthGenitiveNames = CapitalizeMonthNames(dateTimeFormat.MonthGenitiveNames, culture);
+            dateTimeFormat.AbbreviatedMonthGenitiveNames = CapitalizeMonthNames(
+                dateTimeFormat.AbbreviatedMonthGenitiveNames, culture);
+            culture.DateTimeFormat = dateTimeFormat;
+        }
+
         Volatile.Write(ref resourceCulture, culture);
         CultureInfo.DefaultThreadCurrentUICulture = culture;
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.CurrentUICulture = culture;
         CultureInfo.CurrentCulture = culture;
     }
+
+    private static string[] CapitalizeMonthNames(string[] monthNames, CultureInfo culture) =>
+        monthNames.Select(month => string.IsNullOrEmpty(month)
+            ? month
+            : culture.TextInfo.ToUpper(month[..1]) + month[1..]).ToArray();
 
     internal static string Get(string english)
     {
