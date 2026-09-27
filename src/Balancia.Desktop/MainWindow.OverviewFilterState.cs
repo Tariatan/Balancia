@@ -1,7 +1,8 @@
-using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Balancia.Storage;
+
+using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
@@ -65,11 +66,11 @@ public partial class MainWindow
     private string OverviewPeriodLabel() => overviewPeriod switch
     {
         OverviewPeriod.All => "All dates",
-        OverviewPeriod.Day => displayDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture),
+        OverviewPeriod.Day => displayDate.ToString("dd MMM yyyy", Culture),
         OverviewPeriod.ThisWeek => "This week",
-        OverviewPeriod.ThisMonth => displayDate.ToString("MMMM yyyy", CultureInfo.CurrentCulture),
-        OverviewPeriod.ThisYear => displayDate.Year.ToString(CultureInfo.CurrentCulture),
-        _ => $"{customFrom:dd MMM yyyy} – {customTo:dd MMM yyyy}"
+        OverviewPeriod.ThisMonth => displayDate.ToString("MMMM yyyy", Culture),
+        OverviewPeriod.ThisYear => displayDate.Year.ToString(Culture),
+        _ => $"{customFrom?.ToString("dd MMM yyyy", Culture)} – {customTo?.ToString("dd MMM yyyy", Culture)}"
     };
 
     private string OverviewScopeLabel()
@@ -81,7 +82,7 @@ public partial class MainWindow
             overviewFilter.Maximum is not null ||
             (overviewFilter.From ?? range.From) != range.From ||
             (overviewFilter.To ?? range.To) != range.To;
-        return hasAdditionalFilter ? "Filtered transactions" : OverviewPeriodLabel();
+        return hasAdditionalFilter ? Get("Filtered transactions") : Get(OverviewPeriodLabel());
     }
 
     private string OverviewAverageScopeLabel() => overviewPeriod switch

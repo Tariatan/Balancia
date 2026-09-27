@@ -6,6 +6,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Balancia.Core;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -42,7 +44,7 @@ public partial class MainWindow
             {
                 var row = new Grid
                 {
-                    ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
+                    ColumnDefinitions = new ColumnDefinitions("50,*,Auto"),
                     ColumnSpacing = 10,
                     MinHeight = 20
                 };
@@ -50,7 +52,7 @@ public partial class MainWindow
 
                 AddColumn(row, new TextBlock
                 {
-                    Text = reminder.Occurrence.ToString("dd MMM", CultureInfo.CurrentCulture),
+                    Text = reminder.Occurrence.ToString("dd MMM", Culture),
                     FontSize = 12,
                     VerticalAlignment = VerticalAlignment.Center
                 }, 0);
@@ -146,14 +148,14 @@ public partial class MainWindow
 
         await EditDialog("Delete recurring payment",
             [
-                Text($"Delete '{choice.Value.Template.Description}'?")
+                Text(Format("Delete '{0}'?", choice.Value.Template.Description))
             ],
             () => () => store.DeleteRecurringTemplate(choice.Value.Template.Id),
             "Delete");
     }
 
     private static string ReminderText(RecurringReminder reminder) =>
-        $"{(reminder.Overdue ? "OVERDUE · " : "")}{reminder.Occurrence:yyyy-MM-dd} · {reminder.Template.Description} · {AmountText(reminder.Template.IndicativeAmount)} · every {reminder.Template.IntervalMonths} month(s)";
+        $"{(reminder.Overdue ? Get("OVERDUE · ") : "")}{reminder.Occurrence:yyyy-MM-dd} · {reminder.Template.Description} · {AmountText(reminder.Template.IndicativeAmount)} · {Format("every {0} month(s)", reminder.Template.IntervalMonths)}";
 
     private async Task EditRecurring(RecurringReminder? reminder)
     {

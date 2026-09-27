@@ -5,6 +5,8 @@ using Avalonia.Media;
 using Balancia.Core;
 using Balancia.Storage;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -74,7 +76,7 @@ public partial class MainWindow
         overviewAverageExpensesScope = averageExpensesScope;
         var dashboard = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("0.6*,0.4*,0.4*,1.45*,1.45*"),
+            ColumnDefinitions = new ColumnDefinitions("0.65*,0.44*,0.46*,1.4*,1.5*"),
             RowDefinitions = new RowDefinitions("Auto,*"),
             RowSpacing = 11,
             ColumnSpacing = 11
@@ -138,15 +140,15 @@ public partial class MainWindow
         }
 
         var label = OverviewScopeLabel();
-        overviewSummaryLabel!.Text = $"{label}";
+        overviewSummaryLabel!.Text = Get(label);
         overviewIncomeValue!.Text = AmountText(ledgerSnapshot.MonthlyIncome);
-        overviewIncomeScope!.Text = label;
+        overviewIncomeScope!.Text = Get(label);
         overviewExpensesValue!.Text = AmountText(ledgerSnapshot.MonthlyExpenses);
-        overviewExpensesScope!.Text = label;
+        overviewExpensesScope!.Text = Get(label);
         overviewAverageIncomeValue!.Text = AmountText(overviewAverages.Income);
-        overviewAverageIncomeScope!.Text = OverviewAverageScopeLabel();
+        overviewAverageIncomeScope!.Text = Get(OverviewAverageScopeLabel());
         overviewAverageExpensesValue!.Text = AmountText(overviewAverages.Expenses);
-        overviewAverageExpensesScope!.Text = OverviewAverageScopeLabel();
+        overviewAverageExpensesScope!.Text = Get(OverviewAverageScopeLabel());
         UpdateAnalyticsCharts();
         UpdateOverviewPeriodButtons();
         if (renderedOverviewCategoryId != overviewFilter.CategoryId ||
@@ -158,7 +160,7 @@ public partial class MainWindow
         var total = overviewHistory?.TotalCount ?? 0;
         var first = total == 0 ? 0 : overviewOffset + 1;
         var last = overviewOffset + (overviewHistory?.Hits.Count ?? 0);
-        overviewHistoryHeading!.Text = $"Transactions · {first:N0}-{last:N0} / {total:N0}";
+        overviewHistoryHeading!.Text = $"{Get("Transactions")} · {first:N0}-{last:N0} / {total:N0}";
         overviewHistoryEmpty!.IsVisible = total == 0;
         var currentItems = overviewHistoryList!.ItemsSource?.OfType<HistoryItem>().ToArray() ?? [];
         var nextItems = overviewHistory?.Hits.Select(hit => new HistoryItem(hit)).ToArray() ?? [];

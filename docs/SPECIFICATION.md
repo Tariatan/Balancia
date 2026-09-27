@@ -22,14 +22,15 @@ external notifications, hosted backend, and subscription billing.
 
 The Windows overview uses a top navigation bar. Its first dashboard row places
 Accounts, Income/Expenses, Average Income/Expenses, Trend, and
-Timeline from left to right. The Average panels show income and expense per
+Timeline from left to right. Accounts and Average columns reserve extra width
+for localized labels, taken from Timeline. The Average panels show income and expense per
 calendar day, week, month, or year, following the selected period button and
 other Overview filters. Every calendar period from the first recorded flow
 through the selected endpoint counts, including periods with zero matching
 transactions. All and custom date ranges use calendar months; custom ranges
 start at From. Amounts round to the nearest centime and empty results show zero.
-Trend and
-Timeline each use 90% of their former width. Below, Categories occupies the
+Trend keeps its width while Timeline gives up some width to Accounts and Average.
+Below, Categories occupies the
 combined Accounts and Income/Expenses width; transaction history fills the
 remaining left area, while largest expense categories and upcoming/overdue
 recurring payments stack on the right. Amounts omit the CHF label in the
@@ -79,13 +80,21 @@ start. An unavailable or malformed settings file does not prevent startup.
 
 The Overview period controls are All, Day, Week, Month, and Year. From/To date,
 description, and amount controls share the same compact filter row.
-The top navigation order is Overview, Settings. Account
-management is available from the Accounts card on Overview. The
+The top navigation order is Overview, Settings. Account management is available
+from the Accounts card on Overview. The
 Settings header contains Import CSV, Export CSV, Export snapshot, and Restore
 snapshot actions, plus a database-location picker. The active database path is
 shown on Settings and is restored automatically on the next startup. Accounts can be added, and
 deleted from the Accounts card; accounts with transaction history are archived
 instead of deleted.
+
+The Windows interface supports English, German, Russian, and Ukrainian. Settings
+offers a flag-marked language selector with each language named in its own
+language. If no language has been selected, the Windows UI language is used when
+supported; otherwise English is used. A selected language persists across
+restarts and updates the open Windows interface. The name `Balancia` remains
+unchanged. Android is outside this translation scope.
+
 Settings also shows an optional backup-folder picker. On a clean desktop close,
 Balancia writes a consistent `.balancia` snapshot there and retains the ten most
 recently written backups, deleting older files only after the new backup succeeds.

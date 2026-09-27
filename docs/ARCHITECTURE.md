@@ -107,6 +107,19 @@ is written beside the active `balancia.db` with an atomic replace on close and
 contains width, height, and screen position. Invalid settings are ignored so a
 damaged optional UI preference cannot block ledger startup.
 The selected database file is stored independently in `%LOCALAPPDATA%\Balancia\settings.json`.
+The Windows desktop also stores an optional language code (`en`, `de`, `ru`, or
+`uk`) in this application settings file. A missing code resolves from the
+process's Windows UI culture, with English fallback; unrelated settings writes
+keep the code missing until the user explicitly selects a language. Desktop
+resource files hold the four translations, and changing the selection rebuilds
+the current view without changing ledger data or Android resources. UI resource
+lookup uses the explicitly selected culture rather than an async callback's
+ambient thread culture, so later filter refreshes keep the same language.
+Date labels that include month names use the same selected culture.
+The desktop date picker refreshes its Avalonia calendar under that culture when
+opened and before calendar navigation, including month names and weekday headings.
+Settings data transfer actions are grouped by format: CSV Import then Export on
+the first row, followed by Snapshot Restore then Export on the second row.
 Settings can switch the active folder at runtime; the replacement store is
 initialized before it is assigned, and the selected path is written atomically.
 The same settings file optionally stores a backup folder. The desktop close

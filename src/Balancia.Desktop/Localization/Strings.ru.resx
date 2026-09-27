@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Settings" xml:space="preserve"><value>Настройки</value></data>
+  <data name="Language" xml:space="preserve"><value>Язык</value></data>
+  <data name="Overview" xml:space="preserve"><value>Обзор</value></data>
+  <data name="Close" xml:space="preserve"><value>Закрыть</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="Save" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="Delete" xml:space="preserve"><value>Удалить</value></data>
+  <data name="Remove" xml:space="preserve"><value>Удалить</value></data>
+  <data name="Archive" xml:space="preserve"><value>Архивировать</value></data>
+  <data name="Add transaction" xml:space="preserve"><value>Добавить операцию</value></data>
+  <data name="Edit transaction" xml:space="preserve"><value>Изменить операцию</value></data>
+  <data name="Remove transaction" xml:space="preserve"><value>Удалить операцию</value></data>
+  <data name="Delete selected transaction" xml:space="preserve"><value>Удалить выбранную операцию</value></data>
+  <data name="Add another transaction" xml:space="preserve"><value>Добавить ещё операцию</value></data>
+  <data name="Type" xml:space="preserve"><value>Тип</value></data>
+  <data name="Date" xml:space="preserve"><value>Дата</value></data>
+  <data name="Description" xml:space="preserve"><value>Описание</value></data>
+  <data name="Amount" xml:space="preserve"><value>Сумма</value></data>
+  <data name="Amount (positive)" xml:space="preserve"><value>Сумма (положительная)</value></data>
+  <data name="Account" xml:space="preserve"><value>Счёт</value></data>
+  <data name="Accounts" xml:space="preserve"><value>Счета</value></data>
+  <data name="Destination account" xml:space="preserve"><value>Счёт получателя</value></data>
+  <data name="Category" xml:space="preserve"><value>Категория</value></data>
+  <data name="Categories" xml:space="preserve"><value>Категории</value></data>
+  <data name="Category / subcategory" xml:space="preserve"><value>Категория / подкатегория</value></data>
+  <data name="Notes" xml:space="preserve"><value>Заметки</value></data>
+  <data name="Name" xml:space="preserve"><value>Название</value></data>
+  <data name="Parent category" xml:space="preserve"><value>Родительская категория</value></data>
+  <data name="No parent (top-level)" xml:space="preserve"><value>Без родительской категории</value></data>
+  <data name="Select a date" xml:space="preserve"><value>Выберите дату</value></data>
+  <data name="Type or select a category" xml:space="preserve"><value>Введите или выберите категорию</value></data>
+  <data name="Income" xml:space="preserve"><value>Доходы</value></data>
+  <data name="Expenses" xml:space="preserve"><value>Расходы</value></data>
+  <data name="Expense" xml:space="preserve"><value>Расход</value></data>
+  <data name="Transfer" xml:space="preserve"><value>Перевод</value></data>
+  <data name="Average" xml:space="preserve"><value>Среднее</value></data>
+  <data name="Savings" xml:space="preserve"><value>Сбережения</value></data>
+  <data name="Per calendar day" xml:space="preserve"><value>За календарный день</value></data>
+  <data name="Per calendar week" xml:space="preserve"><value>За календарную неделю</value></data>
+  <data name="Per calendar month" xml:space="preserve"><value>За календарный месяц</value></data>
+  <data name="Per calendar year" xml:space="preserve"><value>За календарный год</value></data>
+  <data name="All" xml:space="preserve"><value>Все</value></data>
+  <data name="Day" xml:space="preserve"><value>День</value></data>
+  <data name="Week" xml:space="preserve"><value>Неделя</value></data>
+  <data name="Month" xml:space="preserve"><value>Месяц</value></data>
+  <data name="Year" xml:space="preserve"><value>Год</value></data>
+  <data name="All dates" xml:space="preserve"><value>Все даты</value></data>
+  <data name="This week" xml:space="preserve"><value>Эта неделя</value></data>
+  <data name="Filtered transactions" xml:space="preserve"><value>Отфильтрованные операции</value></data>
+  <data name="Transactions" xml:space="preserve"><value>Операции</value></data>
+  <data name="No matching transactions." xml:space="preserve"><value>Нет подходящих операций.</value></data>
+  <data name="No matching transactions" xml:space="preserve"><value>Нет подходящих операций</value></data>
+  <data name="No matching transactions in this period" xml:space="preserve"><value>Нет подходящих операций за этот период</value></data>
+  <data name="Previous page" xml:space="preserve"><value>Предыдущая страница</value></data>
+  <data name="Next page" xml:space="preserve"><value>Следующая страница</value></data>
+  <data name="Min amount" xml:space="preserve"><value>Мин. сумма</value></data>
+  <data name="Max amount" xml:space="preserve"><value>Макс. сумма</value></data>
+  <data name="Clear search" xml:space="preserve"><value>Очистить поиск</value></data>
+  <data name="Clear filters" xml:space="preserve"><value>Сбросить фильтры</value></data>
+  <data name="Open settings" xml:space="preserve"><value>Открыть настройки</value></data>
+  <data name="Top expenditures" xml:space="preserve"><value>Крупнейшие расходы</value></data>
+  <data name="Top expenditures · {0}" xml:space="preserve"><value>Крупнейшие расходы · {0}</value></data>
+  <data name="No matching expenses." xml:space="preserve"><value>Нет подходящих расходов.</value></data>
+  <data name="Add category" xml:space="preserve"><value>Добавить категорию</value></data>
+  <data name="Edit category" xml:space="preserve"><value>Изменить категорию</value></data>
+  <data name="Archive category" xml:space="preserve"><value>Архивировать категорию</value></data>
+  <data name="Delete category" xml:space="preserve"><value>Удалить категорию</value></data>
+  <data name="Archive selected category" xml:space="preserve"><value>Архивировать выбранную категорию</value></data>
+  <data name="Delete selected category" xml:space="preserve"><value>Удалить выбранную категорию</value></data>
+  <data name="Subcategories will also be archived." xml:space="preserve"><value>Подкатегории также будут архивированы.</value></data>
+  <data name="Categories used by transactions or with subcategories must be archived instead." xml:space="preserve"><value>Категории с операциями или подкатегориями нужно архивировать.</value></data>
+  <data name="Archive {0}?" xml:space="preserve"><value>Архивировать {0}?</value></data>
+  <data name="Delete {0}?" xml:space="preserve"><value>Удалить {0}?</value></data>
+  <data name="No accounts yet" xml:space="preserve"><value>Пока нет счетов</value></data>
+  <data name="Total net worth" xml:space="preserve"><value>Общий капитал</value></data>
+  <data name="Add account" xml:space="preserve"><value>Добавить счёт</value></data>
+  <data name="Edit account" xml:space="preserve"><value>Изменить счёт</value></data>
+  <data name="Archive account" xml:space="preserve"><value>Архивировать счёт</value></data>
+  <data name="Delete account" xml:space="preserve"><value>Удалить счёт</value></data>
+  <data name="Archive selected account" xml:space="preserve"><value>Архивировать выбранный счёт</value></data>
+  <data name="Delete selected account" xml:space="preserve"><value>Удалить выбранный счёт</value></data>
+  <data name="Use as default account for new transactions" xml:space="preserve"><value>Использовать по умолчанию для новых операций</value></data>
+  <data name="Opening date" xml:space="preserve"><value>Дата открытия</value></data>
+  <data name="Opening amount" xml:space="preserve"><value>Начальная сумма</value></data>
+  <data name="Reminders" xml:space="preserve"><value>Напоминания</value></data>
+  <data name="No recurring payment templates." xml:space="preserve"><value>Нет шаблонов повторяющихся платежей.</value></data>
+  <data name="Add recurring payment" xml:space="preserve"><value>Добавить повторяющийся платёж</value></data>
+  <data name="Delete selected recurring payment" xml:space="preserve"><value>Удалить выбранный повторяющийся платёж</value></data>
+  <data name="Delete recurring payment" xml:space="preserve"><value>Удалить повторяющийся платёж</value></data>
+  <data name="Add recurring template" xml:space="preserve"><value>Добавить шаблон платежа</value></data>
+  <data name="Edit recurring template" xml:space="preserve"><value>Изменить шаблон платежа</value></data>
+  <data name="Description (exact match)" xml:space="preserve"><value>Описание (точное совпадение)</value></data>
+  <data name="Expected date" xml:space="preserve"><value>Ожидаемая дата</value></data>
+  <data name="Repeat every N months" xml:space="preserve"><value>Повторять каждые N месяцев</value></data>
+  <data name="TOTAL NET" xml:space="preserve"><value>ИТОГО</value></data>
+  <data name="TOTAL UPCOMING MONTH" xml:space="preserve"><value>СЛЕДУЮЩИЙ МЕСЯЦ</value></data>
+  <data name="OVERDUE · " xml:space="preserve"><value>ПРОСРОЧЕНО · </value></data>
+  <data name="every {0} month(s)" xml:space="preserve"><value>каждые {0} мес.</value></data>
+  <data name="Change database location" xml:space="preserve"><value>Изменить папку базы данных</value></data>
+  <data name="Choose backup folder" xml:space="preserve"><value>Выбрать папку резервных копий</value></data>
+  <data name="Choose snapshot folder" xml:space="preserve"><value>Выбрать папку снимков</value></data>
+  <data name="Not configured" xml:space="preserve"><value>Не настроено</value></data>
+  <data name="Data transfer" xml:space="preserve"><value>Передача данных</value></data>
+  <data name="Import CSV" xml:space="preserve"><value>Импортировать CSV</value></data>
+  <data name="Export CSV" xml:space="preserve"><value>Экспортировать CSV</value></data>
+  <data name="Export snapshot" xml:space="preserve"><value>Экспортировать снимок</value></data>
+  <data name="Restore snapshot" xml:space="preserve"><value>Восстановить снимок</value></data>
+  <data name="Choose Balancia database folder" xml:space="preserve"><value>Выбрать папку базы данных Balancia</value></data>
+  <data name="This database folder is already active." xml:space="preserve"><value>Эта папка базы данных уже используется.</value></data>
+  <data name="TOP MATCH" xml:space="preserve"><value>ЛУЧШЕЕ СОВПАДЕНИЕ</value></data>
+  <data name="RECENT" xml:space="preserve"><value>НЕДАВНИЕ</value></data>
+  <data name="Category suggestion header" xml:space="preserve"><value>КАТЕГОРИИ</value></data>
+  <data name="Add an active account before entering transactions." xml:space="preserve"><value>Добавьте активный счёт перед вводом операций.</value></data>
+  <data name="Remove this transaction? For a transfer, both account movements will be removed together." xml:space="preserve"><value>Удалить эту операцию? Для перевода будут удалены движения по обоим счетам.</value></data>
+  <data name="The operation could not be completed." xml:space="preserve"><value>Не удалось выполнить операцию.</value></data>
+  <data name="Select a row first." xml:space="preserve"><value>Сначала выберите строку.</value></data>
+  <data name="Saving…" xml:space="preserve"><value>Сохранение…</value></data>
+  <data name="Working…" xml:space="preserve"><value>Обработка…</value></data>
+  <data name="Saved locally" xml:space="preserve"><value>Сохранено локально</value></data>
+  <data name="The ledger could not be loaded. Check the message below and restart after resolving it." xml:space="preserve"><value>Не удалось загрузить журнал. Проверьте сообщение ниже и перезапустите приложение после устранения проблемы.</value></data>
+  <data name="Transfers do not count as income or expenses." xml:space="preserve"><value>Переводы не учитываются как доходы или расходы.</value></data>
+  <data name="Previous period" xml:space="preserve"><value>Предыдущий период</value></data>
+  <data name="Choose transactions CSV" xml:space="preserve"><value>Выбрать CSV с операциями</value></data>
+  <data name="Choose a local CSV file." xml:space="preserve"><value>Выберите локальный CSV-файл.</value></data>
+  <data name="CSV import preview" xml:space="preserve"><value>Предпросмотр импорта CSV</value></data>
+  <data name="Apply import" xml:space="preserve"><value>Применить импорт</value></data>
+  <data name="Export Balancia snapshot" xml:space="preserve"><value>Экспортировать снимок Balancia</value></data>
+  <data name="Choose Balancia snapshot" xml:space="preserve"><value>Выбрать снимок Balancia</value></data>
+  <data name="Balancia snapshot" xml:space="preserve"><value>Снимок Balancia</value></data>
+  <data name="Select a date." xml:space="preserve"><value>Выберите дату.</value></data>
+  <data name="The application settings folder is unavailable." xml:space="preserve"><value>Папка настроек приложения недоступна.</value></data>
+  <data name="This change conflicts with existing data. Check names and referenced accounts/categories." xml:space="preserve"><value>Это изменение конфликтует с существующими данными. Проверьте названия и связанные счета/категории.</value></data>
+  <data name="The database could not be read or saved. Close other Balancia windows and try again." xml:space="preserve"><value>Не удалось прочитать или сохранить базу данных. Закройте другие окна Balancia и повторите попытку.</value></data>
+  <data name="This amount or resulting total is outside the supported range." xml:space="preserve"><value>Эта сумма или итог выходит за допустимые пределы.</value></data>
+  <data name="Check the date (YYYY-MM-DD) and amount (for example 12.50)." xml:space="preserve"><value>Проверьте дату (ГГГГ-ММ-ДД) и сумму (например, 12.50).</value></data>
+  <data name="The local data folder is unavailable or not writable." xml:space="preserve"><value>Локальная папка данных недоступна или защищена от записи.</value></data>
+  <data name="The operation failed. Your entered values have been kept; try again." xml:space="preserve"><value>Операция не выполнена. Введённые значения сохранены; повторите попытку.</value></data>
+  <data name=" (archived)" xml:space="preserve"><value> (в архиве)</value></data>
+  <data name="Loading…" xml:space="preserve"><value>Загрузка…</value></data>
+  <data name="Separate data folder" xml:space="preserve"><value>Отдельная папка данных</value></data>
+  <data name="Delete '{0}'?" xml:space="preserve"><value>Удалить «{0}»?</value></data>
+  <data name="Archive '{0}'?" xml:space="preserve"><value>Архивировать «{0}»?</value></data>
+  <data name="{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} строк: {1} расходов, {2} доходов, {3} парных переводов, {4} начальных остатков.&#10;&#10;</value></data>
+  <data name="Resolved dates (first 10 rows, 2000–2099): " xml:space="preserve"><value>Распознанные даты (первые 10 строк, 2000–2099): </value></data>
+  <data name="Resolved date line {0}: {1}" xml:space="preserve"><value>строка {0}: {1}</value></data>
+  <data name="&#10;&#10;Accounts and source totals:&#10;" xml:space="preserve"><value>&#10;&#10;Счета и исходные суммы:&#10;</value></data>
+  <data name="&#10;&#10;Categories: " xml:space="preserve"><value>&#10;&#10;Категории: </value></data>
+  <data name="&#10;&#10;All rows are valid. Apply this batch?" xml:space="preserve"><value>&#10;&#10;Все строки допустимы. Применить этот набор?</value></data>
+  <data name="&#10;&#10;Errors (correct source file, then preview again):&#10;" xml:space="preserve"><value>&#10;&#10;Ошибки (исправьте исходный файл и откройте предпросмотр снова):&#10;</value></data>
+  <data name="Line {0}: {1}" xml:space="preserve"><value>Строка {0}: {1}</value></data>
+  <data name="Imported {0} entries; {1} unchanged." xml:space="preserve"><value>Импортировано {0} записей; {1} без изменений.</value></data>
+  <data name="Exported {0} rows to CSV." xml:space="preserve"><value>Экспортировано {0} строк в CSV.</value></data>
+  <data name="Snapshot exported · revision {0}" xml:space="preserve"><value>Снимок экспортирован · версия {0}</value></data>
+  <data name="Snapshot restored · revision {0} · backup {1}" xml:space="preserve"><value>Снимок восстановлен · версия {0} · копия {1}</value></data>
+  <data name="No snapshot loaded. Windows is the only writer." xml:space="preserve"><value>Снимок не загружен. Изменения возможны только в Windows.</value></data>
+  <data name="The selected category no longer exists." xml:space="preserve"><value>Выбранной категории больше нет.</value></data>
+  <data name="Choose an existing category path." xml:space="preserve"><value>Выберите существующую категорию.</value></data>
+  <data name="Choose an active category." xml:space="preserve"><value>Выберите активную категорию.</value></data>
+  <data name="Restore the archived category before using it for another transaction." xml:space="preserve"><value>Восстановите архивную категорию, прежде чем использовать её для другой операции.</value></data>
+  <data name="Enter an amount greater than zero." xml:space="preserve"><value>Введите сумму больше нуля.</value></data>
+  <data name="Choose two different accounts for a transfer." xml:space="preserve"><value>Для перевода выберите два разных счёта.</value></data>
+  <data name="Transactions cannot be dated in the future." xml:space="preserve"><value>Дата операции не может быть в будущем.</value></data>
+</root>

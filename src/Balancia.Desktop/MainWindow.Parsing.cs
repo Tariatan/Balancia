@@ -2,6 +2,8 @@ using System.Globalization;
 using Avalonia.Controls;
 using Balancia.Core;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow

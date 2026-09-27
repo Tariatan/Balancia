@@ -1,9 +1,10 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Balancia.Core;
+
+using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
@@ -52,7 +53,7 @@ internal sealed class FlowChart : Control
         var plot = Plot;
         if (emptyMessage is not null || points.Count == 0)
         {
-            DrawLabel(context, emptyMessage ?? "No matching transactions", new Point(8, 70));
+            DrawLabel(context, emptyMessage ?? Get("No matching transactions"), new Point(8, 70));
             return;
         }
 
@@ -88,7 +89,7 @@ internal sealed class FlowChart : Control
         {
             var y = Y(amount);
             context.DrawLine(new Pen(AxisBrush, 0.5), new Point(plot.Left, y), new Point(plot.Right, y));
-            DrawLabel(context, amount.ToString(step < 1 ? "N2" : "N0", CultureInfo.CurrentCulture), new Point(0, y - 7));
+            DrawLabel(context, amount.ToString(step < 1 ? "N2" : "N0", Culture), new Point(0, y - 7));
         }
 
         context.DrawLine(new Pen(LabelBrush, 1), new Point(plot.Left, Y(0)), new Point(plot.Right, Y(0)));
@@ -165,6 +166,6 @@ internal sealed class FlowChart : Control
     }
 
     private static void DrawLabel(DrawingContext context, string text, Point origin) => context.DrawText(
-        new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+        new FormattedText(text, Culture, FlowDirection.LeftToRight,
             new Typeface("Segoe UI"), 10, LabelBrush), origin);
 }

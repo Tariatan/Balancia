@@ -9,6 +9,8 @@ using Avalonia.VisualTree;
 using Balancia.Core;
 using Balancia.Storage;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -94,8 +96,8 @@ public partial class MainWindow
         var hasSubcategories = selectedCategory is not null &&
             ledgerSnapshot.Categories.Any(c => c.ParentId == selectedCategory.Id);
         var title = hasSubcategories
-            ? $"Top expenditures · {selectedCategory!.Name}"
-            : "Top expenditures";
+            ? Format("Top expenditures · {0}", selectedCategory!.Name)
+            : Get("Top expenditures");
         overviewCategoryHeading!.Text = title;
 
         if (ledgerSnapshot.LargestCategories.Count == 0)
@@ -153,7 +155,7 @@ public partial class MainWindow
         var categories = new ListBox
         {
             Classes = { "compact-list" },
-            ItemsSource = ledgerSnapshot.Categories.Select(c => new Choice<Category>(c, c.Path + (c.Archived ? " (archived)" : ""))).ToArray(),
+            ItemsSource = ledgerSnapshot.Categories.Select(c => new Choice<Category>(c, c.Path + (c.Archived ? Get(" (archived)") : ""))).ToArray(),
             ItemTemplate = new FuncDataTemplate<Choice<Category>>((choice, _) =>
             {
                 // Virtualized presenters can request a template with no item while scrolling.
@@ -188,7 +190,7 @@ public partial class MainWindow
                 row.Children.Add(check);
                 var name = new TextBlock
                 {
-                    Text = category.Name + (category.Archived ? " (archived)" : string.Empty),
+                    Text = category.Name + (category.Archived ? Get(" (archived)") : string.Empty),
                     VerticalAlignment = VerticalAlignment.Center,
                 };
                 AddColumn(row, name, 1);
@@ -232,6 +234,20 @@ public partial class MainWindow
 
     private async Task OpenSettingsDialog()
     {
+        var dialog = new Window
+        {
+            Title = Get("Settings"),
+            Icon = Icon,
+            ShowInTaskbar = false,
+            Width = 600,
+            Height = 470,
+            MinWidth = 600,
+            MinHeight = 470,
+            MaxWidth = 600,
+            MaxHeight = 470,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        };
         var body = new StackPanel
         {
             Spacing = 12,
@@ -239,10 +255,21 @@ public partial class MainWindow
         };
         body.Children.Add(new TextBlock
         {
-            Text = "Settings",
+            Text = Get("Settings"),
             FontSize = 24,
             FontWeight = FontWeight.SemiBold
         });
+        var languageRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 12,
+            Children =
+            {
+                Text(Get("Language")),
+                LanguagePicker(dialog),
+            },
+        };
+        body.Children.Add(languageRow);
 
         var locations = new Grid
         {
@@ -255,8 +282,8 @@ public partial class MainWindow
         AddRow(locations, ActionButton("Choose backup folder", ChooseBackupLocation), 1);
         AddRow(locations, ActionButton("Choose snapshot folder", ChooseSnapshotLocation), 2);
         var databaseText = Text(databasePath);
-        var backupText = Text(backupPath ?? "Not configured");
-        var snapshotText = Text(snapshotPath ?? "Not configured");
+        var backupText = Text(backupPath ?? Get("Not configured"));
+        var snapshotText = Text(snapshotPath ?? Get("Not configured"));
         foreach (var (text, row) in new[] { (databaseText, 0), (backupText, 1), (snapshotText, 2) })
         {
             text.VerticalAlignment = VerticalAlignment.Center;
@@ -267,37 +294,32 @@ public partial class MainWindow
         body.Children.Add(new Separator { Margin = new Thickness(0, 4) });
         body.Children.Add(new TextBlock
         {
-            Text = "Data transfer",
+            Text = Get("Data transfer"),
             FontWeight = FontWeight.SemiBold
         });
-        body.Children.Add(Row(
-            ActionButton("Import CSV", ImportCsv),
-            ActionButton("Export CSV", ExportCsv),
-            ActionButton("Export snapshot", ExportSnapshot),
-            ActionButton("Restore snapshot", RestoreSnapshot)));
+        var dataTransferActions = new StackPanel
+        {
+            Spacing = 0,
+            Children =
+            {
+                Row(
+                    ActionButton("Import CSV", ImportCsv),
+                    ActionButton("Export CSV", ExportCsv)),
+                Row(
+                    ActionButton("Restore snapshot", RestoreSnapshot),
+                    ActionButton("Export snapshot", ExportSnapshot)),
+            },
+        };
+        body.Children.Add(dataTransferActions);
         var close = new Button
         {
-            Content = "Close",
+            Content = Get("Close"),
             IsCancel = true,
             HorizontalAlignment = HorizontalAlignment.Left
         };
         body.Children.Add(close);
 
-        var dialog = new Window
-        {
-            Title = "Settings",
-            Icon = Icon,
-            ShowInTaskbar = false,
-            Width = 600,
-            Height = 400,
-            MinWidth = 600,
-            MinHeight = 400,
-            MaxWidth = 600,
-            MaxHeight = 400,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Content = new ScrollViewer { Content = body }
-        };
+        dialog.Content = new ScrollViewer { Content = body };
         close.Click += (_, _) => dialog.Close();
         await dialog.ShowDialog(this);
     }
@@ -306,7 +328,7 @@ public partial class MainWindow
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = title,
+            Title = Get(title),
             AllowMultiple = false
         });
         var directory = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
@@ -383,7 +405,7 @@ public partial class MainWindow
 
         await EditDialog("Archive category",
             [
-                Text($"Archive {category.Path}?"),
+                Text(Format("Archive {0}?", category.Path)),
                 Text("Subcategories will also be archived.")
             ],
             () => () => store.SaveCategory(category.Id, category.Name, category.ParentId, true),
@@ -401,7 +423,7 @@ public partial class MainWindow
 
         await EditDialog("Delete category",
             [
-                Text($"Delete {category.Path}?"),
+                Text(Format("Delete {0}?", category.Path)),
                 Text("Categories used by transactions or with subcategories must be archived instead.")
             ],
             () => () => store.DeleteCategory(category.Id),
@@ -411,7 +433,7 @@ public partial class MainWindow
     private async Task EditCategory(Category? category)
     {
         var name = Input(category?.Name ?? "");
-        var options = new List<Choice<string?>> { new(null, "No parent (top-level)") };
+        var options = new List<Choice<string?>> { new(null, Get("No parent (top-level)")) };
         options.AddRange(snapshot!.Categories.
             Where(c => c.ParentId is null && !c.Archived && c.Id != category?.Id).
             Select(c => new Choice<string?>(c.Id, c.Path)));
@@ -419,7 +441,7 @@ public partial class MainWindow
         if (category?.ParentId is { } current && options.All(c => c.Value != current))
         {
             var archivedParent = snapshot.Categories.Single(c => c.Id == current);
-            options.Add(new Choice<string?>(current, archivedParent.Path + (archivedParent.Archived ? " (archived)" : "")));
+            options.Add(new Choice<string?>(current, archivedParent.Path + (archivedParent.Archived ? Get(" (archived)") : "")));
         }
 
         var parent = new ComboBox

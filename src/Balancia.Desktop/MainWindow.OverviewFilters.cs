@@ -7,6 +7,8 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Balancia.Storage;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -19,7 +21,7 @@ public partial class MainWindow
             To = overviewFilter.To ?? OverviewRange().To
         };
         var search = Input(activeFilter.Description ?? "");
-        search.PlaceholderText = "Description";
+        search.PlaceholderText = Get("Description");
         search.Width = 230;
         var from = DateInput(activeFilter.From);
         from.Width = 150;
@@ -28,10 +30,10 @@ public partial class MainWindow
         overviewFilterFrom = from;
         overviewFilterTo = to;
         var minimum = Input(activeFilter.Minimum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
-        minimum.PlaceholderText = "Min amount";
+        minimum.PlaceholderText = Get("Min amount");
         minimum.Width = 115;
         var maximum = Input(activeFilter.Maximum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
-        maximum.PlaceholderText = "Max amount";
+        maximum.PlaceholderText = Get("Max amount");
         maximum.Width = 115;
 
         from.CalendarClosed += (_, _) => ApplyAfterCalendarClosed();
@@ -106,7 +108,7 @@ public partial class MainWindow
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 2, 7, 2)
         };
-        ToolTip.SetTip(clearSearch, "Clear search");
+        ToolTip.SetTip(clearSearch, Get("Clear search"));
         clearSearch.Click += async (_, _) =>
         {
             search.Text = string.Empty;
@@ -154,7 +156,7 @@ public partial class MainWindow
         clear.Padding = new Thickness(0);
         clear.FontSize = 16;
         clear.HorizontalContentAlignment = HorizontalAlignment.Center;
-        ToolTip.SetTip(clear, "Clear filters");
+        ToolTip.SetTip(clear, Get("Clear filters"));
         clear.VerticalAlignment = VerticalAlignment.Center;
         var filterRow = new Grid
         {

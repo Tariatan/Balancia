@@ -1,7 +1,8 @@
-using System.Globalization;
 using Avalonia.Controls;
 using Balancia.Core;
 using Balancia.Storage;
+
+using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
@@ -41,7 +42,7 @@ public partial class MainWindow
             if (nextInterval != trendInterval)
             {
                 trendInterval = nextInterval;
-                intervalLabel.Text = trendInterval.ToString();
+                intervalLabel.Text = Get(trendInterval.ToString());
                 UpdateAnalyticsCharts();
             }
 
@@ -69,7 +70,7 @@ public partial class MainWindow
         trendInterval = interval;
         if (trendIntervalLabel is not null)
         {
-            trendIntervalLabel.Text = trendInterval.ToString();
+            trendIntervalLabel.Text = Get(trendInterval.ToString());
         }
     }
 
@@ -103,26 +104,26 @@ public partial class MainWindow
         var expenseOnly = analyticsFilter.Kind == TransactionKind.Expense ||
             analyticsFilter.Kind is null && analyticsFilter.HasCategoryFilter &&
             !data.Current.Concat(data.Previous).Any(day => day.Income != Money.Zero);
-        var empty = analyticsFilter.Kind == TransactionKind.Transfer ? "Transfers do not count as income or expenses." :
-            data.Current.Count == 0 && data.Previous.Count == 0 ? "No matching transactions" : null;
+        var empty = analyticsFilter.Kind == TransactionKind.Transfer ? Get("Transfers do not count as income or expenses.") :
+            data.Current.Count == 0 && data.Previous.Count == 0 ? Get("No matching transactions") : null;
         var buckets = data.Trend(trendInterval);
-        IReadOnlyList<FlowChartSeries> trendSeries = incomeOnly ? [new("Income", "#2C8B6D", true)] :
-            expenseOnly ? [new("Expense", "#EF8072", true)] :
-            [new("Income", "#2C8B6D", true), new("Expense", "#EF8072", true), new("Savings", "#289FCC")];
+        IReadOnlyList<FlowChartSeries> trendSeries = incomeOnly ? [new(Get("Income"), "#2C8B6D", true)] :
+            expenseOnly ? [new(Get("Expense"), "#EF8072", true)] :
+            [new(Get("Income"), "#2C8B6D", true), new(Get("Expense"), "#EF8072", true), new(Get("Savings"), "#289FCC")];
         var trendPoints = buckets.Select((bucket, index) =>
         {
             Money[] amounts = incomeOnly ? [bucket.Income] : expenseOnly ? [bucket.Expenses] :
                 [bucket.Income, -bucket.Expenses, bucket.Savings];
-            var details = $"{bucket.From:dd MMM yyyy} – {bucket.To:dd MMM yyyy}" + Environment.NewLine +
+            var details = $"{bucket.From.ToString("dd MMM yyyy", Culture)} – {bucket.To.ToString("dd MMM yyyy", Culture)}" + Environment.NewLine +
                 string.Join(Environment.NewLine, trendSeries.Select((series, seriesIndex) => $"{series.Name}: {AmountText(amounts[seriesIndex])}"));
             return new FlowChartPoint((index + 0.5) / buckets.Count,
                 bucket.From.ToString(trendInterval == FlowInterval.Month || data.To.DayNumber - data.From.DayNumber > 365
-                    ? "MMM yy" : "dd MMM", CultureInfo.CurrentCulture), details, amounts);
+                    ? "MMM yy" : "dd MMM", Culture), details, amounts);
         }).ToArray();
-        trendChart.SetData(trendPoints, trendSeries, data.Current.Count == 0 ? empty ?? "No matching transactions in this period" : empty);
+        trendChart.SetData(trendPoints, trendSeries, data.Current.Count == 0 ? empty ?? Get("No matching transactions in this period") : empty);
 
         // Compare expenses by default, or income when explicitly filtered to income.
-        var metric = incomeOnly ? "Income" : "Expense";
+        var metric = incomeOnly ? Get("Income") : Get("Expense");
         var length = data.To.DayNumber - data.From.DayNumber;
         var offsets = length < 10000 ? Enumerable.Range(0, length + 1).ToArray() :
             data.Current.Select(day => day.Date.DayNumber - data.From.DayNumber)
@@ -149,13 +150,13 @@ public partial class MainWindow
                 previousTotal += incomeOnly ? day.Income : day.Expenses;
             }
 
-            var details = $"{metric} · {date:dd MMM yyyy}: {AmountText(currentTotal)}" +
-                (previousDate is null ? string.Empty : $"\nPrevious · {previousDate:dd MMM yyyy}: {AmountText(previousTotal)}");
+            var details = $"{metric} · {date.ToString("dd MMM yyyy", Culture)}: {AmountText(currentTotal)}" +
+                (previousDate is null ? string.Empty : $"\n{Get("Previous period")} · {previousDate.Value.ToString("dd MMM yyyy", Culture)}: {AmountText(previousTotal)}");
             timelinePoints.Add(new FlowChartPoint(length == 0 ? 0.5 : offset / (double)length,
-                date.ToString(length > 365 ? "MMM yy" : "dd MMM", CultureInfo.CurrentCulture), details, [currentTotal, previousTotal]));
+                date.ToString(length > 365 ? "MMM yy" : "dd MMM", Culture), details, [currentTotal, previousTotal]));
         }
 
         timelineChart.SetData(timelinePoints,
-            [new(metric, incomeOnly ? "#2C8B6D" : "#EF8072", Steps: true), new("Previous period", "#B8C2CC", Steps: true)], empty);
+            [new(metric, incomeOnly ? "#2C8B6D" : "#EF8072", Steps: true), new(Get("Previous period"), "#B8C2CC", Steps: true)], empty);
     }
 }

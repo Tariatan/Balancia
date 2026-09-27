@@ -1,9 +1,13 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using System.Globalization;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Balancia.Core;
 using Balancia.Storage;
+using Balancia.Desktop.Localization;
+
+using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
@@ -16,6 +20,8 @@ public partial class MainWindow : Window
     private string? backupPath;
     private string? snapshotPath;
     private string? defaultAccountId;
+    private string languageCode;
+    private string? languagePreference;
     private LedgerSnapshot? snapshot;
     private FlowAverages overviewAverages = new(Money.Zero, Money.Zero);
     private IReadOnlyList<RecurringReminder> reminders = [];
@@ -27,10 +33,10 @@ public partial class MainWindow : Window
 
     private void SetStatus(string text)
     {
-        Status.Text = text;
+        Status.Text = Get(text);
         if (overviewStatus is not null)
         {
-            overviewStatus.Text = text;
+            overviewStatus.Text = Get(text);
         }
     }
 
@@ -41,6 +47,10 @@ public partial class MainWindow : Window
         var directoryArg = Array.IndexOf(args, "--data-dir");
         applicationSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia", "settings.json");
         var savedSettings = LoadApplicationSettings(applicationSettingsPath);
+        languagePreference = savedSettings?.Language;
+        languageCode = UiText.ResolveLanguage(savedSettings?.Language, CultureInfo.CurrentUICulture);
+        UiText.SetLanguage(languageCode);
+        Status.Text = Get("Loading…");
         backupPath = ResolveFullPath(savedSettings?.BackupPath);
         snapshotPath = ResolveFullPath(savedSettings?.SnapshotPath);
         defaultAccountId = savedSettings?.DefaultAccountId;
@@ -55,7 +65,7 @@ public partial class MainWindow : Window
         PositionChanged += (_, _) => windowPositionForPersistence = Position;
         if (directoryArg >= 0)
         {
-            Title = "Balancia — Separate data folder";
+            Title = $"Balancia — {Get("Separate data folder")}";
         }
 
         Opened += (_, _) => ApplyLoadedWindowPosition();

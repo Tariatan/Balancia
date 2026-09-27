@@ -4,27 +4,32 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Microsoft.Data.Sqlite;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private static string FriendlyError(Exception ex) => ex switch
+    private static string FriendlyError(Exception ex)
     {
-        SqliteException { SqliteErrorCode: 19 } => "This change conflicts with existing data. Check names and referenced accounts/categories.",
-        SqliteException => "The database could not be read or saved. Close other Balancia windows and try again.",
-        OverflowException => "This amount or resulting total is outside the supported range.",
-        FormatException => "Check the date (YYYY-MM-DD) and amount (for example 12.50).",
-        IOException or UnauthorizedAccessException => "The local data folder is unavailable or not writable.",
-        InvalidDataException => ex.Message,
-        ArgumentException or InvalidOperationException => ex.Message,
-        _ => "The operation failed. Your entered values have been kept; try again."
-    };
+        var english = ex switch
+        {
+            SqliteException { SqliteErrorCode: 19 } => "This change conflicts with existing data. Check names and referenced accounts/categories.",
+            SqliteException => "The database could not be read or saved. Close other Balancia windows and try again.",
+            OverflowException => "This amount or resulting total is outside the supported range.",
+            FormatException => "Check the date (YYYY-MM-DD) and amount (for example 12.50).",
+            IOException or UnauthorizedAccessException => "The local data folder is unavailable or not writable.",
+            InvalidDataException or ArgumentException or InvalidOperationException => ex.Message.Split('\n')[0].TrimEnd('\r'),
+            _ => "The operation failed. Your entered values have been kept; try again.",
+        };
+        return Get(english);
+    }
 
     private async Task ShowErrorDialog(string title, string message)
     {
         var dialog = new Window
         {
-            Title = title,
+            Title = Get(title),
             Icon = Icon,
             ShowInTaskbar = false,
             Width = 520,
@@ -33,7 +38,7 @@ public partial class MainWindow
         };
         var close = new Button
         {
-            Content = "Close",
+            Content = Get("Close"),
             IsDefault = true,
             IsCancel = true
         };
@@ -46,7 +51,7 @@ public partial class MainWindow
             {
                 new TextBlock
                 {
-                    Text = "The operation could not be completed.",
+                    Text = Get("The operation could not be completed."),
                     FontSize = 20,
                     FontWeight = FontWeight.SemiBold
                 },
@@ -74,7 +79,7 @@ public partial class MainWindow
         var isRemoval = saveLabel == "Remove";
         var dialog = new Window
         {
-            Title = title,
+            Title = Get(title),
             Icon = Icon,
             ShowInTaskbar = false,
             Width = 530,
@@ -91,7 +96,7 @@ public partial class MainWindow
         };
         body.Children.Add(new TextBlock
         {
-            Text = title,
+            Text = Get(title),
             FontSize = 24,
             FontWeight = FontWeight.SemiBold
         });
@@ -105,7 +110,7 @@ public partial class MainWindow
         body.Children.Add(error);
         var save = new Button
         {
-            Content = saveLabel,
+            Content = Get(saveLabel),
             IsDefault = saveLabel == "Save" && onSaveAndContinue is null
         };
         Button? saveAndContinue = null;
@@ -113,14 +118,14 @@ public partial class MainWindow
         {
             saveAndContinue = new Button
             {
-                Content = "Add another transaction",
+                Content = Get("Add another transaction"),
                 IsDefault = true
             };
         }
 
         var cancel = new Button
         {
-            Content = "Cancel",
+            Content = Get("Cancel"),
             IsCancel = true
         };
         body.Children.Add(saveAndContinue is null ? Row(save, cancel) : Row(save, saveAndContinue, cancel));
@@ -181,7 +186,7 @@ public partial class MainWindow
                 var action = prepareSave();
                 saving = true;
                 body.IsEnabled = false;
-                error.Text = "Saving…";
+                error.Text = Get("Saving…");
                 await Task.Run(action);
                 saving = false;
                 if (continueEditing)

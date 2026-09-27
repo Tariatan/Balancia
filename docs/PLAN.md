@@ -381,6 +381,10 @@ Desktop Release build and diff check passed; runtime review is pending.
 2026-09-26: Reminder rows now align dates, descriptions, and amounts in separate
 columns. Release Desktop build and diff check passed; runtime review is pending.
 
+2026-09-27: Expanded Accounts and Average dashboard columns for German,
+Ukrainian, and Russian localized labels, taking the added width from Timeline.
+Release Desktop build and diff check passed; visual confirmation remains pending.
+
 2026-09-26: AVG INCOME and AVG EXPENSES now read filtered historical flow sums
 and divide by calendar periods, including zero periods. Day, Week, Month, and
 Year choose the unit; All and custom ranges use months. The first posted flow
@@ -396,3 +400,48 @@ format checks, and diff checks passed. A separate synthetic Windows ledger
 confirmed startup, Day period refresh, and account creation updating the card
 and net worth. Next: continue M8 release polish; this refactor needs no product
 follow-up.
+
+2026-09-27: Windows-only localization adds English, German, Russian, and
+Ukrainian desktop resources and a flag-marked selector in Settings. A missing
+language preference follows the Windows UI language with English fallback;
+explicit selection persists in application settings. `Balancia`, ledger data,
+and Android resources remain unchanged. Locked desktop restore, Release solution
+build (zero warnings/errors), all 66 existing tests, resource parity, resolver
+checks, and diff checks passed. Native visual interaction remains for owner review.
+
+2026-09-27: Resource lookup now uses the explicitly selected UI culture instead
+of ambient async thread culture, preventing Settings, dashboard metrics, Trend
+labels, empty states, and chart tooltips from reverting after filters refresh.
+Locked restore, Release solution build (zero warnings/errors), all 66 tests, a
+focused stale-culture resource lookup check, and working-tree diff checks passed.
+Native language-switch/filter interaction remains for owner review.
+
+2026-09-27: All date pickers now refresh Avalonia's month and weekday labels
+using the selected UI culture on open and navigation. Desktop Release build
+passed with zero warnings/errors, all 66 tests passed, and `git diff HEAD --check`
+passed. A temporary-data app launch succeeded, but native window inventory was
+unavailable, so popup interaction remains for owner review.
+
+2026-09-27: Transactions and Reminders dates, Overview period labels, and chart
+axis/tooltip dates now format month names with the selected UI culture,
+independent of ambient thread culture. Desktop Release build passed with zero
+warnings/errors, all 66 tests passed, and a focused check produced a Ukrainian
+month label under English ambient culture. Native UI review remains pending.
+
+2026-09-27 follow-up: the owner found that a transaction calendar still showed
+the previously selected language. The shared date-input builder had remained
+connected to Avalonia's standard control, so the localization subclass was unused.
+It now instantiates the subclass, which retains the base CalendarDatePicker style
+and forces its calendar captions to rebuild under the selected culture when opened,
+including when both locales start the week on Monday. Desktop Release build,
+66 tests, targeted formatting, and `git diff HEAD --check` passed. Native window
+access was unavailable for visual confirmation; relaunch the app before reviewing.
+
+2026-09-27: Fixed reminder description alignment by giving every row a shared
+76-unit date column; the previous per-row Auto date column made titles shift with
+localized month abbreviation widths. Desktop Release build, all 66 tests, targeted
+formatting, and `git diff HEAD --check` passed. Runtime visual confirmation remains.
+
+2026-09-27: Settings data transfer actions now use separate rows in Import/Export
+order: CSV first, then Snapshot. Desktop Release build, all 66 tests, targeted
+formatting, and diff checks passed; runtime visual confirmation remains.

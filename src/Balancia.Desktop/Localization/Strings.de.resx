@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Settings" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="Language" xml:space="preserve"><value>Sprache</value></data>
+  <data name="Overview" xml:space="preserve"><value>Übersicht</value></data>
+  <data name="Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="Save" xml:space="preserve"><value>Speichern</value></data>
+  <data name="Delete" xml:space="preserve"><value>Löschen</value></data>
+  <data name="Remove" xml:space="preserve"><value>Entfernen</value></data>
+  <data name="Archive" xml:space="preserve"><value>Archivieren</value></data>
+  <data name="Add transaction" xml:space="preserve"><value>Buchung hinzufügen</value></data>
+  <data name="Edit transaction" xml:space="preserve"><value>Buchung bearbeiten</value></data>
+  <data name="Remove transaction" xml:space="preserve"><value>Buchung entfernen</value></data>
+  <data name="Delete selected transaction" xml:space="preserve"><value>Ausgewählte Buchung löschen</value></data>
+  <data name="Add another transaction" xml:space="preserve"><value>Weitere Buchung hinzufügen</value></data>
+  <data name="Type" xml:space="preserve"><value>Typ</value></data>
+  <data name="Date" xml:space="preserve"><value>Datum</value></data>
+  <data name="Description" xml:space="preserve"><value>Beschreibung</value></data>
+  <data name="Amount" xml:space="preserve"><value>Betrag</value></data>
+  <data name="Amount (positive)" xml:space="preserve"><value>Betrag (positiv)</value></data>
+  <data name="Account" xml:space="preserve"><value>Konto</value></data>
+  <data name="Accounts" xml:space="preserve"><value>Konten</value></data>
+  <data name="Destination account" xml:space="preserve"><value>Zielkonto</value></data>
+  <data name="Category" xml:space="preserve"><value>Kategorie</value></data>
+  <data name="Categories" xml:space="preserve"><value>Kategorien</value></data>
+  <data name="Category / subcategory" xml:space="preserve"><value>Kategorie / Unterkategorie</value></data>
+  <data name="Notes" xml:space="preserve"><value>Notizen</value></data>
+  <data name="Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Parent category" xml:space="preserve"><value>Übergeordnete Kategorie</value></data>
+  <data name="No parent (top-level)" xml:space="preserve"><value>Keine übergeordnete Kategorie</value></data>
+  <data name="Select a date" xml:space="preserve"><value>Datum auswählen</value></data>
+  <data name="Type or select a category" xml:space="preserve"><value>Kategorie eingeben oder auswählen</value></data>
+  <data name="Income" xml:space="preserve"><value>Einnahmen</value></data>
+  <data name="Expenses" xml:space="preserve"><value>Ausgaben</value></data>
+  <data name="Expense" xml:space="preserve"><value>Ausgabe</value></data>
+  <data name="Transfer" xml:space="preserve"><value>Umbuchung</value></data>
+  <data name="Average" xml:space="preserve"><value>Durchschnitt</value></data>
+  <data name="Savings" xml:space="preserve"><value>Ersparnisse</value></data>
+  <data name="Per calendar day" xml:space="preserve"><value>Pro Kalendertag</value></data>
+  <data name="Per calendar week" xml:space="preserve"><value>Pro Kalenderwoche</value></data>
+  <data name="Per calendar month" xml:space="preserve"><value>Pro Kalendermonat</value></data>
+  <data name="Per calendar year" xml:space="preserve"><value>Pro Kalenderjahr</value></data>
+  <data name="All" xml:space="preserve"><value>Alle</value></data>
+  <data name="Day" xml:space="preserve"><value>Tag</value></data>
+  <data name="Week" xml:space="preserve"><value>Woche</value></data>
+  <data name="Month" xml:space="preserve"><value>Monat</value></data>
+  <data name="Year" xml:space="preserve"><value>Jahr</value></data>
+  <data name="All dates" xml:space="preserve"><value>Alle Daten</value></data>
+  <data name="This week" xml:space="preserve"><value>Diese Woche</value></data>
+  <data name="Filtered transactions" xml:space="preserve"><value>Gefilterte Buchungen</value></data>
+  <data name="Transactions" xml:space="preserve"><value>Buchungen</value></data>
+  <data name="No matching transactions." xml:space="preserve"><value>Keine passenden Buchungen.</value></data>
+  <data name="No matching transactions" xml:space="preserve"><value>Keine passenden Buchungen</value></data>
+  <data name="No matching transactions in this period" xml:space="preserve"><value>Keine passenden Buchungen in diesem Zeitraum</value></data>
+  <data name="Previous page" xml:space="preserve"><value>Vorherige Seite</value></data>
+  <data name="Next page" xml:space="preserve"><value>Nächste Seite</value></data>
+  <data name="Min amount" xml:space="preserve"><value>Mindestbetrag</value></data>
+  <data name="Max amount" xml:space="preserve"><value>Höchstbetrag</value></data>
+  <data name="Clear search" xml:space="preserve"><value>Suche löschen</value></data>
+  <data name="Clear filters" xml:space="preserve"><value>Filter löschen</value></data>
+  <data name="Open settings" xml:space="preserve"><value>Einstellungen öffnen</value></data>
+  <data name="Top expenditures" xml:space="preserve"><value>Größte Ausgaben</value></data>
+  <data name="Top expenditures · {0}" xml:space="preserve"><value>Größte Ausgaben · {0}</value></data>
+  <data name="No matching expenses." xml:space="preserve"><value>Keine passenden Ausgaben.</value></data>
+  <data name="Add category" xml:space="preserve"><value>Kategorie hinzufügen</value></data>
+  <data name="Edit category" xml:space="preserve"><value>Kategorie bearbeiten</value></data>
+  <data name="Archive category" xml:space="preserve"><value>Kategorie archivieren</value></data>
+  <data name="Delete category" xml:space="preserve"><value>Kategorie löschen</value></data>
+  <data name="Archive selected category" xml:space="preserve"><value>Ausgewählte Kategorie archivieren</value></data>
+  <data name="Delete selected category" xml:space="preserve"><value>Ausgewählte Kategorie löschen</value></data>
+  <data name="Subcategories will also be archived." xml:space="preserve"><value>Unterkategorien werden ebenfalls archiviert.</value></data>
+  <data name="Categories used by transactions or with subcategories must be archived instead." xml:space="preserve"><value>Kategorien mit Buchungen oder Unterkategorien müssen stattdessen archiviert werden.</value></data>
+  <data name="Archive {0}?" xml:space="preserve"><value>{0} archivieren?</value></data>
+  <data name="Delete {0}?" xml:space="preserve"><value>{0} löschen?</value></data>
+  <data name="No accounts yet" xml:space="preserve"><value>Noch keine Konten</value></data>
+  <data name="Total net worth" xml:space="preserve"><value>Gesamtvermögen</value></data>
+  <data name="Add account" xml:space="preserve"><value>Konto hinzufügen</value></data>
+  <data name="Edit account" xml:space="preserve"><value>Konto bearbeiten</value></data>
+  <data name="Archive account" xml:space="preserve"><value>Konto archivieren</value></data>
+  <data name="Delete account" xml:space="preserve"><value>Konto löschen</value></data>
+  <data name="Archive selected account" xml:space="preserve"><value>Ausgewähltes Konto archivieren</value></data>
+  <data name="Delete selected account" xml:space="preserve"><value>Ausgewähltes Konto löschen</value></data>
+  <data name="Use as default account for new transactions" xml:space="preserve"><value>Als Standardkonto für neue Buchungen verwenden</value></data>
+  <data name="Opening date" xml:space="preserve"><value>Eröffnungsdatum</value></data>
+  <data name="Opening amount" xml:space="preserve"><value>Anfangsbetrag</value></data>
+  <data name="Reminders" xml:space="preserve"><value>Erinnerungen</value></data>
+  <data name="No recurring payment templates." xml:space="preserve"><value>Keine wiederkehrenden Zahlungen.</value></data>
+  <data name="Add recurring payment" xml:space="preserve"><value>Wiederkehrende Zahlung hinzufügen</value></data>
+  <data name="Delete selected recurring payment" xml:space="preserve"><value>Ausgewählte wiederkehrende Zahlung löschen</value></data>
+  <data name="Delete recurring payment" xml:space="preserve"><value>Wiederkehrende Zahlung löschen</value></data>
+  <data name="Add recurring template" xml:space="preserve"><value>Wiederkehrende Zahlung hinzufügen</value></data>
+  <data name="Edit recurring template" xml:space="preserve"><value>Wiederkehrende Zahlung bearbeiten</value></data>
+  <data name="Description (exact match)" xml:space="preserve"><value>Beschreibung (exakte Übereinstimmung)</value></data>
+  <data name="Expected date" xml:space="preserve"><value>Erwartetes Datum</value></data>
+  <data name="Repeat every N months" xml:space="preserve"><value>Alle N Monate wiederholen</value></data>
+  <data name="TOTAL NET" xml:space="preserve"><value>GESAMT</value></data>
+  <data name="TOTAL UPCOMING MONTH" xml:space="preserve"><value>NÄCHSTER MONAT</value></data>
+  <data name="OVERDUE · " xml:space="preserve"><value>ÜBERFÄLLIG · </value></data>
+  <data name="every {0} month(s)" xml:space="preserve"><value>alle {0} Monat(e)</value></data>
+  <data name="Change database location" xml:space="preserve"><value>Datenbankordner ändern</value></data>
+  <data name="Choose backup folder" xml:space="preserve"><value>Backup-Ordner auswählen</value></data>
+  <data name="Choose snapshot folder" xml:space="preserve"><value>Snapshot-Ordner auswählen</value></data>
+  <data name="Not configured" xml:space="preserve"><value>Nicht eingerichtet</value></data>
+  <data name="Data transfer" xml:space="preserve"><value>Datenübertragung</value></data>
+  <data name="Import CSV" xml:space="preserve"><value>CSV importieren</value></data>
+  <data name="Export CSV" xml:space="preserve"><value>CSV exportieren</value></data>
+  <data name="Export snapshot" xml:space="preserve"><value>Snapshot exportieren</value></data>
+  <data name="Restore snapshot" xml:space="preserve"><value>Snapshot wiederherstellen</value></data>
+  <data name="Choose Balancia database folder" xml:space="preserve"><value>Balancia-Datenbankordner auswählen</value></data>
+  <data name="This database folder is already active." xml:space="preserve"><value>Dieser Datenbankordner ist bereits aktiv.</value></data>
+  <data name="TOP MATCH" xml:space="preserve"><value>BESTE ÜBEREINSTIMMUNG</value></data>
+  <data name="RECENT" xml:space="preserve"><value>ZULETZT VERWENDET</value></data>
+  <data name="Category suggestion header" xml:space="preserve"><value>KATEGORIEN</value></data>
+  <data name="Add an active account before entering transactions." xml:space="preserve"><value>Fügen Sie vor dem Erfassen von Buchungen ein aktives Konto hinzu.</value></data>
+  <data name="Remove this transaction? For a transfer, both account movements will be removed together." xml:space="preserve"><value>Diese Buchung entfernen? Bei einer Umbuchung werden beide Kontobewegungen entfernt.</value></data>
+  <data name="The operation could not be completed." xml:space="preserve"><value>Der Vorgang konnte nicht abgeschlossen werden.</value></data>
+  <data name="Select a row first." xml:space="preserve"><value>Wählen Sie zuerst eine Zeile aus.</value></data>
+  <data name="Saving…" xml:space="preserve"><value>Speichern…</value></data>
+  <data name="Working…" xml:space="preserve"><value>Wird verarbeitet…</value></data>
+  <data name="Saved locally" xml:space="preserve"><value>Lokal gespeichert</value></data>
+  <data name="The ledger could not be loaded. Check the message below and restart after resolving it." xml:space="preserve"><value>Das Kassenbuch konnte nicht geladen werden. Prüfen Sie die Meldung unten und starten Sie danach neu.</value></data>
+  <data name="Transfers do not count as income or expenses." xml:space="preserve"><value>Umbuchungen zählen weder als Einnahmen noch als Ausgaben.</value></data>
+  <data name="Previous period" xml:space="preserve"><value>Vorheriger Zeitraum</value></data>
+  <data name="Choose transactions CSV" xml:space="preserve"><value>Transaktions-CSV auswählen</value></data>
+  <data name="Choose a local CSV file." xml:space="preserve"><value>Wählen Sie eine lokale CSV-Datei aus.</value></data>
+  <data name="CSV import preview" xml:space="preserve"><value>CSV-Importvorschau</value></data>
+  <data name="Apply import" xml:space="preserve"><value>Import anwenden</value></data>
+  <data name="Export Balancia snapshot" xml:space="preserve"><value>Balancia-Snapshot exportieren</value></data>
+  <data name="Choose Balancia snapshot" xml:space="preserve"><value>Balancia-Snapshot auswählen</value></data>
+  <data name="Balancia snapshot" xml:space="preserve"><value>Balancia-Snapshot</value></data>
+  <data name="Select a date." xml:space="preserve"><value>Wählen Sie ein Datum aus.</value></data>
+  <data name="The application settings folder is unavailable." xml:space="preserve"><value>Der Ordner für Anwendungseinstellungen ist nicht verfügbar.</value></data>
+  <data name="This change conflicts with existing data. Check names and referenced accounts/categories." xml:space="preserve"><value>Diese Änderung steht im Konflikt mit vorhandenen Daten. Prüfen Sie Namen und verknüpfte Konten/Kategorien.</value></data>
+  <data name="The database could not be read or saved. Close other Balancia windows and try again." xml:space="preserve"><value>Die Datenbank konnte nicht gelesen oder gespeichert werden. Schließen Sie andere Balancia-Fenster und versuchen Sie es erneut.</value></data>
+  <data name="This amount or resulting total is outside the supported range." xml:space="preserve"><value>Dieser Betrag oder die resultierende Summe liegt außerhalb des unterstützten Bereichs.</value></data>
+  <data name="Check the date (YYYY-MM-DD) and amount (for example 12.50)." xml:space="preserve"><value>Prüfen Sie Datum (JJJJ-MM-TT) und Betrag (z. B. 12.50).</value></data>
+  <data name="The local data folder is unavailable or not writable." xml:space="preserve"><value>Der lokale Datenordner ist nicht verfügbar oder schreibgeschützt.</value></data>
+  <data name="The operation failed. Your entered values have been kept; try again." xml:space="preserve"><value>Der Vorgang ist fehlgeschlagen. Ihre Eingaben bleiben erhalten; versuchen Sie es erneut.</value></data>
+  <data name=" (archived)" xml:space="preserve"><value> (archiviert)</value></data>
+  <data name="Loading…" xml:space="preserve"><value>Wird geladen…</value></data>
+  <data name="Separate data folder" xml:space="preserve"><value>Separater Datenordner</value></data>
+  <data name="Delete '{0}'?" xml:space="preserve"><value>„{0}“ löschen?</value></data>
+  <data name="Archive '{0}'?" xml:space="preserve"><value>„{0}“ archivieren?</value></data>
+  <data name="{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} Zeilen: {1} Ausgaben, {2} Einnahmen, {3} zugeordnete Umbuchungen, {4} Anfangsbestände.&#10;&#10;</value></data>
+  <data name="Resolved dates (first 10 rows, 2000–2099): " xml:space="preserve"><value>Erkannte Daten (erste 10 Zeilen, 2000–2099): </value></data>
+  <data name="Resolved date line {0}: {1}" xml:space="preserve"><value>Zeile {0}: {1}</value></data>
+  <data name="&#10;&#10;Accounts and source totals:&#10;" xml:space="preserve"><value>&#10;&#10;Konten und Quellsummen:&#10;</value></data>
+  <data name="&#10;&#10;Categories: " xml:space="preserve"><value>&#10;&#10;Kategorien: </value></data>
+  <data name="&#10;&#10;All rows are valid. Apply this batch?" xml:space="preserve"><value>&#10;&#10;Alle Zeilen sind gültig. Diesen Stapel anwenden?</value></data>
+  <data name="&#10;&#10;Errors (correct source file, then preview again):&#10;" xml:space="preserve"><value>&#10;&#10;Fehler (Quelldatei korrigieren und Vorschau erneut öffnen):&#10;</value></data>
+  <data name="Line {0}: {1}" xml:space="preserve"><value>Zeile {0}: {1}</value></data>
+  <data name="Imported {0} entries; {1} unchanged." xml:space="preserve"><value>{0} Einträge importiert; {1} unverändert.</value></data>
+  <data name="Exported {0} rows to CSV." xml:space="preserve"><value>{0} Zeilen als CSV exportiert.</value></data>
+  <data name="Snapshot exported · revision {0}" xml:space="preserve"><value>Snapshot exportiert · Revision {0}</value></data>
+  <data name="Snapshot restored · revision {0} · backup {1}" xml:space="preserve"><value>Snapshot wiederhergestellt · Revision {0} · Backup {1}</value></data>
+  <data name="No snapshot loaded. Windows is the only writer." xml:space="preserve"><value>Kein Snapshot geladen. Nur Windows kann Daten ändern.</value></data>
+  <data name="The selected category no longer exists." xml:space="preserve"><value>Die ausgewählte Kategorie ist nicht mehr vorhanden.</value></data>
+  <data name="Choose an existing category path." xml:space="preserve"><value>Wählen Sie eine vorhandene Kategorie aus.</value></data>
+  <data name="Choose an active category." xml:space="preserve"><value>Wählen Sie eine aktive Kategorie aus.</value></data>
+  <data name="Restore the archived category before using it for another transaction." xml:space="preserve"><value>Stellen Sie die archivierte Kategorie wieder her, bevor Sie sie für eine weitere Transaktion verwenden.</value></data>
+  <data name="Enter an amount greater than zero." xml:space="preserve"><value>Geben Sie einen Betrag größer als null ein.</value></data>
+  <data name="Choose two different accounts for a transfer." xml:space="preserve"><value>Wählen Sie für die Überweisung zwei verschiedene Konten aus.</value></data>
+  <data name="Transactions cannot be dated in the future." xml:space="preserve"><value>Transaktionen dürfen nicht in der Zukunft liegen.</value></data>
+</root>

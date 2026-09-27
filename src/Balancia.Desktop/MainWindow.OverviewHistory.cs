@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Balancia.Storage;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -34,7 +36,7 @@ public partial class MainWindow
         var total = overviewHistory?.TotalCount ?? 0;
         var first = total == 0 ? 0 : overviewOffset + 1;
         var last = overviewOffset + (overviewHistory?.Hits.Count ?? 0);
-        overviewHistoryHeading = Heading($"Transactions · {first:N0}-{last:N0} / {total:N0}", 13);
+        overviewHistoryHeading = Heading($"{Get("Transactions")} · {first:N0}-{last:N0} / {total:N0}", 13);
         header.Children.Add(overviewHistoryHeading);
         var actions = new StackPanel
         {
@@ -59,8 +61,8 @@ public partial class MainWindow
         remove.FontSize = 18;
         remove.HorizontalContentAlignment = HorizontalAlignment.Center;
 
-        ToolTip.SetTip(add, "Add transaction");
-        ToolTip.SetTip(remove, "Delete selected transaction");
+        ToolTip.SetTip(add, Get("Add transaction"));
+        ToolTip.SetTip(remove, Get("Delete selected transaction"));
         actions.Children.Add(add);
         actions.Children.Add(remove);
         AddColumn(header, actions, 1);

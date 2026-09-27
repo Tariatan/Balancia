@@ -1,10 +1,13 @@
 using System.Text.Json;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private sealed record ApplicationSettings(string DatabasePath, string? BackupPath = null, string? SnapshotPath = null, string? DefaultAccountId = null);
+    private sealed record ApplicationSettings(string DatabasePath, string? BackupPath = null, string? SnapshotPath = null,
+        string? DefaultAccountId = null, string? Language = null);
 
     private static ApplicationSettings? LoadApplicationSettings(string path)
     {
@@ -45,7 +48,8 @@ public partial class MainWindow
         }
     }
 
-    private void SaveApplicationSettings(string dbPath, string? selectedBackupPath = null, string? selectedSnapshotPath = null, string? selectedDefaultAccountId = null)
+    private void SaveApplicationSettings(string dbPath, string? selectedBackupPath = null, string? selectedSnapshotPath = null,
+        string? selectedDefaultAccountId = null, string? selectedLanguage = null)
     {
         var directory = Path.GetDirectoryName(applicationSettingsPath);
         if (string.IsNullOrWhiteSpace(directory))
@@ -59,7 +63,8 @@ public partial class MainWindow
             dbPath,
             selectedBackupPath ?? backupPath,
             selectedSnapshotPath ?? snapshotPath,
-            selectedDefaultAccountId ?? defaultAccountId));
+            selectedDefaultAccountId ?? defaultAccountId,
+            selectedLanguage ?? languagePreference));
         File.WriteAllText(temporaryPath, json);
         File.Move(temporaryPath, applicationSettingsPath, true);
     }

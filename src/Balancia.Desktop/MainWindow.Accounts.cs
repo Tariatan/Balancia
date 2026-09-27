@@ -9,6 +9,8 @@ using Avalonia.VisualTree;
 using Balancia.Core;
 using Balancia.Storage;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -115,9 +117,9 @@ public partial class MainWindow
         archiveAccount.FontSize = 18;
         archiveAccount.HorizontalContentAlignment = HorizontalAlignment.Center;
 
-        ToolTip.SetTip(addAccount, "Add account");
-        ToolTip.SetTip(archiveAccount, "Archive selected account");
-        ToolTip.SetTip(removeAccount, "Delete selected account");
+        ToolTip.SetTip(addAccount, Get("Add account"));
+        ToolTip.SetTip(archiveAccount, Get("Archive selected account"));
+        ToolTip.SetTip(removeAccount, Get("Delete selected account"));
         accountActions.Children.Add(addAccount);
         accountActions.Children.Add(archiveAccount);
         accountActions.Children.Add(removeAccount);
@@ -202,7 +204,7 @@ public partial class MainWindow
 
         await EditDialog("Archive account",
             [
-                Text($"Archive '{choice.Value.Name}'?")
+                Text(Format("Archive '{0}'?", choice.Value.Name))
             ],
             () => () => store.SaveAccount(choice.Value.Id, choice.Value.Name, choice.Value.OpeningDate, choice.Value.OpeningAmount, true),
             "Archive");
@@ -218,7 +220,7 @@ public partial class MainWindow
 
         await EditDialog("Delete account",
             [
-                Text($"Delete '{choice.Value.Name}'?")
+                Text(Format("Delete '{0}'?", choice.Value.Name))
             ],
             () => () => store.DeleteAccount(choice.Value.Id), "Delete");
     }
@@ -230,7 +232,7 @@ public partial class MainWindow
         var amount = Input((account?.OpeningAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
         var defaultAccount = new CheckBox
         {
-            Content = "Use as default account for new transactions",
+            Content = Get("Use as default account for new transactions"),
             IsChecked = account is not null && account.Id == defaultAccountId
         };
 

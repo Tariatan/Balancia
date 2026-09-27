@@ -5,6 +5,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Balancia.Core;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -33,7 +35,7 @@ public partial class MainWindow
 
     private static TextBlock QuietText(string content, double size) => new()
     {
-        Text = content,
+        Text = Get(content),
         FontSize = size,
         Foreground = Brush.Parse("#71838D"),
         VerticalAlignment = VerticalAlignment.Center
@@ -41,7 +43,7 @@ public partial class MainWindow
 
     private static TextBlock Heading(string content, double size) => new()
     {
-        Text = content,
+        Text = Get(content),
         FontSize = size,
         FontWeight = FontWeight.SemiBold,
         Foreground = Brush.Parse("#263C48"),
@@ -59,7 +61,7 @@ public partial class MainWindow
         };
         row.Children.Add(new TextBlock
         {
-            Text = left,
+            Text = Get(left),
             FontSize = size,
             TextTrimming = TextTrimming.CharacterEllipsis
         });
@@ -75,12 +77,12 @@ public partial class MainWindow
         return row;
     }
 
-    private static CalendarDatePicker DateInput(DateOnly? date) => new()
+    private static CalendarDatePicker DateInput(DateOnly? date) => new LocalizedCalendarDatePicker
     {
         SelectedDate = date?.ToDateTime(TimeOnly.MinValue),
         SelectedDateFormat = CalendarDatePickerFormat.Custom,
         CustomDateFormatString = "yyyy-MM-dd",
-        PlaceholderText = "Select a date",
+        PlaceholderText = Get("Select a date"),
         FontSize = 13,
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
@@ -91,14 +93,14 @@ public partial class MainWindow
     };
     private static TextBlock Text(string text) => new()
     {
-        Text = text,
+        Text = Get(text),
         TextWrapping = TextWrapping.Wrap,
         Foreground = Brush.Parse("#344D44")
     };
 
     private static StackPanel Field(string label, Control input)
     {
-        AutomationProperties.SetName(input, label);
+        AutomationProperties.SetName(input, Get(label));
         return new StackPanel
         {
             Spacing = 5,
@@ -118,7 +120,7 @@ public partial class MainWindow
 
     private static Button ActionButton(string title, Func<Task> action)
     {
-        var button = new Button { Content = title };
+        var button = new Button { Content = Get(title) };
         button.Click += async (_, _) => await action();
         return button;
     }
@@ -130,7 +132,7 @@ public partial class MainWindow
         button.Padding = new Thickness(0);
         button.FontSize = 18;
         button.HorizontalContentAlignment = HorizontalAlignment.Center;
-        ToolTip.SetTip(button, tooltip);
+        ToolTip.SetTip(button, Get(tooltip));
         return button;
     }
     private sealed record Choice<T>(T Value, string Label)

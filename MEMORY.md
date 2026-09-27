@@ -33,9 +33,18 @@ Last updated: 2026-09-27. Scope: this repository only.
   ranges. Wheel selection still changes the granularity manually. Build passed;
   runtime UI review remains pending.
 
-- 2026-09-26: Upcoming reminder rows split dates, descriptions, and amounts into
-  aligned columns. Release Desktop build and diff check passed; runtime review
-  remains pending.
+- 2026-09-26/27: Upcoming reminder rows split dates, descriptions, and amounts.
+  The date column now has a shared fixed width because per-row Auto sizing shifted
+  descriptions for different localized month abbreviations. Release Desktop build,
+  all 66 tests, formatting, and diff checks pass; runtime visual review remains.
+
+- 2026-09-27: Settings data transfer actions use separate CSV and Snapshot rows,
+  each ordered Import then Export (Snapshot uses Restore snapshot). Release Desktop
+  build, 66 tests, formatting, and diff checks passed; visual review remains.
+
+- 2026-09-27: Accounts and Average dashboard columns widened for German,
+  Ukrainian, and Russian labels; Timeline absorbs the width reduction. Build
+  passed; live UI confirmation remains pending.
 
 - Owner: Slava. Personal tool and learning project; enjoys C#.
 - Prior dashboard inspiration: net worth, calendar-month income/expenses, largest expense
@@ -319,3 +328,32 @@ contradictory entries. Do not copy the user's transaction details into this file
   ranges use months. The owner explicitly corrected an initial transaction-count
   interpretation and chose to include zero periods. Release Desktop build and
   focused storage checks passed; direct Windows card interaction is pending.
+
+- 2026-09-27: Windows desktop localization is implemented for English, German,
+  Russian, and Ukrainian with a flag-marked Settings selector. Until a user
+  explicitly selects a language, startup resolves the Windows UI language and
+  falls back to English. An explicit code is stored in local application
+  settings; database and snapshot formats are unchanged. Android is excluded.
+  Locked desktop restore, Release solution build (zero warnings/errors), all 66
+  existing tests, resource key/placeholder parity, OS-language resolution cases,
+  and diff checks passed. Native visual interaction was not available in this
+  session; owner should inspect the dropdown and language switching in Windows.
+
+- 2026-09-27 localization fix: resource lookup now reads the explicitly selected
+  UI culture, not ambient async thread culture. Focused reflection check confirmed
+  German Settings text stays German under a stale English thread culture; locked
+  restore, Release solution build, 66 tests, and working-tree diff checks passed.
+  Native language-switch/filter interaction remains for owner review.
+
+- 2026-09-27: Transactions and Reminders dates, Overview period labels, and chart
+  axis/tooltip dates use the selected UI culture for month names. Desktop Release
+  build and 66 tests passed; a focused check returned a Ukrainian month under
+  English ambient culture. Native UI review remains pending.
+
+- 2026-09-27: The shared date-input builder must instantiate
+  `LocalizedCalendarDatePicker`, and that subclass must keep the base
+  `CalendarDatePicker` style key. On popup open it sets the selected culture and
+  changes `FirstDayOfWeek` through a temporary value to force Avalonia to rebuild
+  month and weekday captions even when locales share the same first weekday.
+  Desktop Release build, 66 tests, targeted formatting, and diff checks passed;
+  native popup language still needs visual confirmation after relaunch.

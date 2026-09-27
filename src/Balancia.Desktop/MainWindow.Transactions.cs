@@ -10,6 +10,8 @@ using Avalonia.Media;
 using Balancia.Core;
 using Balancia.Storage;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -36,7 +38,7 @@ public partial class MainWindow
                 _ => "↔ "
             };
 
-        return HistoryRow(entry.Draft.Date.ToString("dd MMM yyyy", CultureInfo.CurrentCulture),
+        return HistoryRow(entry.Draft.Date.ToString("dd MMM yyyy", Culture),
             string.IsNullOrWhiteSpace(entry.Draft.Description) ? emptyDescriptionText : entry.Draft.Description,
             entry.CategoryPath ?? "—",
             entry.DestinationName is null ? entry.AccountName : $"{entry.AccountName} → {entry.DestinationName}",
@@ -64,7 +66,7 @@ public partial class MainWindow
         {
             var cell = new TextBlock
             {
-                Text = values[i],
+                Text = header ? Get(values[i]) : values[i],
                 FontSize = header ? 12 : 13,
                 FontWeight = !header && i == 1 ? FontWeight.Bold : FontWeight.Normal,
                 Foreground = Brush.Parse(header ? "#71838D" : i == 1 ? amountColor : "#263C48"),
@@ -82,17 +84,20 @@ public partial class MainWindow
     {
         var existing = entry?.Draft;
         var accounts = snapshot!.Accounts.Where(a => !a.Archived || a.Id == existing?.AccountId || a.Id == existing?.DestinationId)
-            .Select(a => new Choice<Account>(a, a.Name + (a.Archived ? " (archived)" : "")))
+            .Select(a => new Choice<Account>(a, a.Name + (a.Archived ? Get(" (archived)") : "")))
             .ToArray();
         if (accounts.Length == 0)
         {
             SetStatus("Add an active account before entering transactions.");
             return;
         }
+        var kinds = Enum.GetValues<TransactionKind>()
+            .Select(value => new Choice<TransactionKind>(value, Get(value.ToString())))
+            .ToArray();
         var kind = new ComboBox
         {
-            ItemsSource = Enum.GetValues<TransactionKind>(),
-            SelectedItem = existing?.Kind ?? TransactionKind.Expense,
+            ItemsSource = kinds,
+            SelectedItem = kinds.Single(choice => choice.Value == (existing?.Kind ?? TransactionKind.Expense)),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         var date = DateInput(existing?.Date ?? DateOnly.FromDateTime(DateTime.Today));
@@ -123,7 +128,7 @@ public partial class MainWindow
         var category = new TextBox
         {
             Text = snapshot.Categories.FirstOrDefault(c => c.Id == existing?.CategoryId)?.Path ?? "",
-            PlaceholderText = "Type or select a category",
+            PlaceholderText = Get("Type or select a category"),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         var suggestionRows = new StackPanel();
@@ -240,7 +245,7 @@ public partial class MainWindow
             () =>
             {
                 NormalizeAmount(amount);
-                var type = (TransactionKind)kind.SelectedItem!;
+                var type = ((Choice<TransactionKind>)kind.SelectedItem!).Value;
                 var draft = new TransactionDraft(
                     type,
                     ParseDate(date),
@@ -257,7 +262,7 @@ public partial class MainWindow
 
         void UpdateFields()
         {
-            var transfer = kind.SelectedItem is TransactionKind.Transfer;
+            var transfer = (kind.SelectedItem as Choice<TransactionKind>)?.Value == TransactionKind.Transfer;
             toField.IsVisible = transfer;
             categoryField.IsVisible = !transfer;
         }
@@ -376,7 +381,7 @@ public partial class MainWindow
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToArray();
         suggestions.AddRange(remaining.Select((path, index) =>
-            new CategorySuggestion(path, index == 0 ? "CATEGORIES" : null, false)));
+            new CategorySuggestion(path, index == 0 ? "Category suggestion header" : null, false)));
         return suggestions;
     }
 
@@ -408,7 +413,7 @@ public partial class MainWindow
         {
             body.Children.Add(new TextBlock
             {
-                Text = suggestion.Section,
+                Text = Get(suggestion.Section),
                 FontSize = 10,
                 FontWeight = FontWeight.SemiBold,
                 Foreground = Brush.Parse(suggestion.IsTopMatch ? "#52636C" : "#71838D"),

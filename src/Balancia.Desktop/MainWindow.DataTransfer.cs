@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 
+using static Balancia.Desktop.Localization.UiText;
+
 namespace Balancia.Desktop;
 
 public partial class MainWindow
@@ -11,7 +13,7 @@ public partial class MainWindow
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Choose transactions CSV",
+            Title = Get("Choose transactions CSV"),
             AllowMultiple = false,
             FileTypeFilter = [new FilePickerFileType("CSV") { Patterns = ["*.csv"] }]
         });
@@ -30,18 +32,19 @@ public partial class MainWindow
         {
             var preview = await Task.Run(() => store.PreviewCsvImport(path));
             var summary = preview.Summary;
-            var message = $"{summary.Rows} rows: {summary.Expenses} expenses, {summary.Incomes} income, {summary.Transfers} paired transfers, {summary.Openings} openings.\n\n" +
-                "Resolved dates (first 10 rows, 2000–2099): " +
-                string.Join(", ", preview.ResolvedDates.Select(d => $"line {d.Line}: {d.Date:yyyy-MM-dd}")) +
-                "\n\nAccounts and source totals:\n" +
+            var message = Format("{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.\n\n",
+                    summary.Rows, summary.Expenses, summary.Incomes, summary.Transfers, summary.Openings) +
+                Get("Resolved dates (first 10 rows, 2000–2099): ") +
+                string.Join(", ", preview.ResolvedDates.Select(d => Format("Resolved date line {0}: {1}", d.Line, d.Date.ToString("yyyy-MM-dd")))) +
+                Get("\n\nAccounts and source totals:\n") +
                 string.Join("\n", summary.AccountTotals.Select(a => $"{a.Account}: {a.Centimes / 100m:N2}")) +
-                "\n\nCategories: " + string.Join(", ", summary.Categories) +
-                (preview.Issues.Count == 0 ? "\n\nAll rows are valid. Apply this batch?" :
-                    "\n\nErrors (correct source file, then preview again):\n" +
-                    string.Join("\n", preview.Issues.Take(30).Select(i => $"Line {i.Line}: {i.Message}")));
+                Get("\n\nCategories: ") + string.Join(", ", summary.Categories) +
+                (preview.Issues.Count == 0 ? Get("\n\nAll rows are valid. Apply this batch?") :
+                    Get("\n\nErrors (correct source file, then preview again):\n") +
+                    string.Join("\n", preview.Issues.Take(30).Select(i => Format("Line {0}: {1}", i.Line, Get(i.Message)))));
             var dialog = new Window
             {
-                Title = "CSV import preview",
+                Title = Get("CSV import preview"),
                 Icon = Icon,
                 ShowInTaskbar = false,
                 Width = 700,
@@ -58,12 +61,12 @@ public partial class MainWindow
             body.Children.Add(Text(message));
             var apply = new Button
             {
-                Content = "Apply import",
+                Content = Get("Apply import"),
                 IsEnabled = preview.CanApply
             };
             var cancel = new Button
             {
-                Content = "Cancel",
+                Content = Get("Cancel"),
                 IsCancel = true
             };
             var error = Text("");
@@ -80,7 +83,7 @@ public partial class MainWindow
                     var result = await Task.Run(() => store.ApplyCsvImport(preview));
                     dialog.Close();
                     await Refresh();
-                    SetStatus($"Imported {result.Added} entries; {result.Unchanged} unchanged.");
+                    SetStatus(Format("Imported {0} entries; {1} unchanged.", result.Added, result.Unchanged));
                 }
                 catch (Exception ex)
                 {
@@ -96,7 +99,7 @@ public partial class MainWindow
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export CSV",
+            Title = Get("Export CSV"),
             SuggestedFileName = $"balancia-{DateTime.Today:yyyyMMdd}.csv",
             FileTypeChoices = [new FilePickerFileType("CSV") { Patterns = ["*.csv"] }]
         });
@@ -109,7 +112,7 @@ public partial class MainWindow
         await Run(async () =>
         {
             var count = await Task.Run(() => store.ExportCsv(path));
-            SetStatus($"Exported {count} rows to CSV.");
+            SetStatus(Format("Exported {0} rows to CSV.", count));
         });
     }
 
@@ -117,9 +120,9 @@ public partial class MainWindow
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export Balancia snapshot",
+            Title = Get("Export Balancia snapshot"),
             SuggestedFileName = $"balancia-{DateTime.Today:yyyyMMdd}.balancia",
-            FileTypeChoices = [new FilePickerFileType("Balancia snapshot") { Patterns = ["*.balancia"] }]
+            FileTypeChoices = [new FilePickerFileType(Get("Balancia snapshot")) { Patterns = ["*.balancia"] }]
         });
         var path = file?.TryGetLocalPath();
         if (path is null)
@@ -130,7 +133,7 @@ public partial class MainWindow
         await Run(async () =>
         {
             var manifest = await Task.Run(() => store.ExportSnapshot(path));
-            SetStatus($"Snapshot exported · revision {manifest.Revision}");
+            SetStatus(Format("Snapshot exported · revision {0}", manifest.Revision));
         });
     }
 
@@ -138,9 +141,9 @@ public partial class MainWindow
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Choose Balancia snapshot",
+            Title = Get("Choose Balancia snapshot"),
             AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("Balancia snapshot") { Patterns = ["*.balancia"] }]
+            FileTypeFilter = [new FilePickerFileType(Get("Balancia snapshot")) { Patterns = ["*.balancia"] }]
         });
         var path = (files.Count > 0 ? files[0] : null)?.TryGetLocalPath();
         if (path is null)
@@ -151,7 +154,7 @@ public partial class MainWindow
         await Run(async () =>
         {
             var result = await Task.Run(() => store.RestoreSnapshot(path));
-            SetStatus($"Snapshot restored · revision {result.Manifest.Revision} · backup {Path.GetFileName(result.BackupPath)}");
+            SetStatus(Format("Snapshot restored · revision {0} · backup {1}", result.Manifest.Revision, Path.GetFileName(result.BackupPath)));
             await Refresh();
         });
     }
