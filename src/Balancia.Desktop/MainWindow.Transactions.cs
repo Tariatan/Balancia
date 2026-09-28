@@ -177,7 +177,7 @@ public partial class MainWindow
             updatingCategorySuggestions = true;
             try
             {
-                IReadOnlyList<CategorySuggestion> matches = string.IsNullOrWhiteSpace(query)
+                var matches = string.IsNullOrWhiteSpace(query)
                     ? []
                     : CategorySuggestionRanking.Build(categoryPaths, recentCategoryPaths, query);
                 selectedCategorySuggestionIndex = matches.Count > 0 ? 0 : -1;
@@ -197,22 +197,25 @@ public partial class MainWindow
                 return;
             }
 
-            if (eventArgs.Key is Key.Down or Key.Up)
+            switch (eventArgs.Key)
             {
-                var direction = eventArgs.Key == Key.Down ? 1 : -1;
-                selectedCategorySuggestionIndex = Math.Clamp(
-                    selectedCategorySuggestionIndex + direction,
-                    0,
-                    categorySuggestions.Count - 1);
-                categorySuggestions = CategorySuggestionRanking.Highlight(categorySuggestions, selectedCategorySuggestionIndex);
-                RenderCategorySuggestions();
-                suggestionPopup.IsOpen = true;
-                eventArgs.Handled = true;
-            }
-            else if (eventArgs.Key == Key.Tab)
-            {
-                AcceptCategorySuggestion(categorySuggestions[
-                    Math.Clamp(selectedCategorySuggestionIndex, 0, categorySuggestions.Count - 1)]);
+                case Key.Down or Key.Up:
+                {
+                    var direction = eventArgs.Key == Key.Down ? 1 : -1;
+                    selectedCategorySuggestionIndex = Math.Clamp(
+                        selectedCategorySuggestionIndex + direction,
+                        0,
+                        categorySuggestions.Count - 1);
+                    categorySuggestions = CategorySuggestionRanking.Highlight(categorySuggestions, selectedCategorySuggestionIndex);
+                    RenderCategorySuggestions();
+                    suggestionPopup.IsOpen = true;
+                    eventArgs.Handled = true;
+                    break;
+                }
+                case Key.Tab:
+                    AcceptCategorySuggestion(categorySuggestions[
+                        Math.Clamp(selectedCategorySuggestionIndex, 0, categorySuggestions.Count - 1)]);
+                    break;
             }
         }, RoutingStrategies.Tunnel);
         var memo = Input(existing?.Memo ?? "");
@@ -225,7 +228,6 @@ public partial class MainWindow
         {
             continueAfterSave = () =>
             {
-                var path = category.Text?.Trim();
                 description.Text = "";
                 amount.Text = "";
                 memo.Text = "";

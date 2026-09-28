@@ -55,7 +55,7 @@ public static class CategorySuggestionRanking
     }
 
     public static IReadOnlyList<CategorySuggestion> Highlight(IReadOnlyList<CategorySuggestion> suggestions, int selectedIndex) =>
-        suggestions.Select((suggestion, index) => suggestion with { IsKeyboardSelected = index == selectedIndex }).ToArray();
+        [.. suggestions.Select((suggestion, index) => suggestion with { IsKeyboardSelected = index == selectedIndex })];
 
     private static int MatchRank(string path, string query)
     {

@@ -26,7 +26,7 @@ public sealed partial class LedgerStore
         transaction.Commit();
         return new FlowAnalytics(from, to, previousFrom, previousTo, current, previous);
 
-        IReadOnlyList<DailyFlow> ReadDays(DateOnly first, DateOnly last)
+        IReadOnlyList<DailyFlow> ReadDays(DateOnly begin, DateOnly end)
         {
             var days = new List<DailyFlow>();
             using var command = Command(connection, transaction,
@@ -35,8 +35,8 @@ public sealed partial class LedgerStore
                 " AND l.kind IN ('Income','Expense') GROUP BY l.date ORDER BY l.date",
                 FilterParameters(filter with
                 {
-                    From = first,
-                    To = last,
+                    From = begin,
+                    To = end,
                 }));
             using var reader = command.ExecuteReader();
             while (reader.Read())

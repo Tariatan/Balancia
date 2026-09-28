@@ -68,10 +68,7 @@ public partial class MainWindow
         }
 
         trendInterval = interval;
-        if (trendIntervalLabel is not null)
-        {
-            trendIntervalLabel.Text = Get(trendInterval.ToString());
-        }
+        trendIntervalLabel?.Text = Get(trendInterval.ToString());
     }
 
     private Border TimelinePanel()
@@ -99,17 +96,22 @@ public partial class MainWindow
 
         var incomeOnly = analyticsFilter.Kind == TransactionKind.Income ||
             analyticsFilter.Kind is null && analyticsFilter.HasCategoryFilter &&
-            data.Current.Concat(data.Previous).Any(day => day.Income != Money.Zero) &&
-            !data.Current.Concat(data.Previous).Any(day => day.Expenses != Money.Zero);
+            data.Current.Concat(data.Previous).Any(day => day.Income != Money.Zero)
+            && data.Current.Concat(data.Previous).All(day => day.Expenses == Money.Zero);
         var expenseOnly = analyticsFilter.Kind == TransactionKind.Expense ||
-            analyticsFilter.Kind is null && analyticsFilter.HasCategoryFilter &&
-            !data.Current.Concat(data.Previous).Any(day => day.Income != Money.Zero);
+            analyticsFilter.Kind is null
+            && analyticsFilter.HasCategoryFilter
+            && data.Current.Concat(data.Previous).All(day => day.Income == Money.Zero);
         var empty = analyticsFilter.Kind == TransactionKind.Transfer ? Get("Transfers do not count as income or expenses.") :
             data.Current.Count == 0 && data.Previous.Count == 0 ? Get("No matching transactions") : null;
         var buckets = data.Trend(trendInterval);
-        IReadOnlyList<FlowChartSeries> trendSeries = incomeOnly ? [new(Get("Income"), "#2C8B6D", true)] :
-            expenseOnly ? [new(Get("Expense"), "#EF8072", true)] :
-            [new(Get("Income"), "#2C8B6D", true), new(Get("Expense"), "#EF8072", true), new(Get("Savings"), "#289FCC")];
+        IReadOnlyList<FlowChartSeries> trendSeries = incomeOnly
+            ? [new FlowChartSeries(Get("Income"), "#2C8B6D", true)]
+            : expenseOnly
+                ? [new FlowChartSeries(Get("Expense"), "#EF8072", true)]
+                : [new FlowChartSeries(Get("Income"), "#2C8B6D", true),
+                    new FlowChartSeries(Get("Expense"), "#EF8072", true),
+                    new FlowChartSeries(Get("Savings"), "#289FCC")];
         var trendPoints = buckets.Select((bucket, index) =>
         {
             Money[] amounts = incomeOnly ? [bucket.Income] : expenseOnly ? [bucket.Expenses] :
@@ -157,6 +159,7 @@ public partial class MainWindow
         }
 
         timelineChart.SetData(timelinePoints,
-            [new(metric, incomeOnly ? "#2C8B6D" : "#EF8072", Steps: true), new(Get("Previous period"), "#B8C2CC", Steps: true)], empty);
+            [new FlowChartSeries(metric, incomeOnly ? "#2C8B6D" : "#EF8072", Steps: true),
+                new FlowChartSeries(Get("Previous period"), "#B8C2CC", Steps: true)], empty);
     }
 }

@@ -3,8 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Balancia.Core;
-using Balancia.Storage;
-
 using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;

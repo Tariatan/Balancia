@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Controls.Templates;
@@ -6,7 +5,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Balancia.Desktop.Localization;
-using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
@@ -31,19 +29,25 @@ public partial class MainWindow
         {
             ItemsSource = Languages,
             SelectedItem = Languages.Single(option => option.Code == languageCode),
-            ItemTemplate = new FuncDataTemplate<LanguageOption>((option, _) => option is null ? null : new StackPanel
+            ItemTemplate = new FuncDataTemplate<LanguageOption>((option, _) =>
             {
-                Orientation = Orientation.Horizontal,
-                Spacing = 9,
-                Children =
-                {
-                    FlagIcon(option.Code),
-                    new TextBlock
+                return
+                    // Virtualized presenters can request a template with no item while scrolling.
+                    option is null
+                    ? null
+                    : new StackPanel
                     {
-                        Text = option.NativeName,
-                        VerticalAlignment = VerticalAlignment.Center,
-                    },
-                },
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 9,
+                        Children =
+                        {
+                            FlagIcon(option.Code),
+                            new TextBlock
+                            {
+                                Text = option.NativeName, VerticalAlignment = VerticalAlignment.Center,
+                            },
+                        },
+                    };
             }),
             Width = 170,
         };

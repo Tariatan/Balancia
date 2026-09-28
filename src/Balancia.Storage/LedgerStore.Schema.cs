@@ -20,42 +20,38 @@ public sealed partial class LedgerStore
         }
         using var tx = c.BeginTransaction();
         var version = Convert.ToInt64(Scalar(c, tx, "PRAGMA user_version"));
-        if (version > 3)
+        switch (version)
         {
-            throw new InvalidOperationException("This database version is not supported. Use a compatible Balancia version.");
-        }
-
-        if (version == 0)
-        {
-            if (Convert.ToInt64(Scalar(c, tx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")) != 0)
-            {
+            case > 3:
+                throw new InvalidOperationException("This database version is not supported. Use a compatible Balancia version.");
+            case 0 when Convert.ToInt64(Scalar(c, tx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")) != 0:
                 throw new InvalidOperationException("The selected file is not an empty Balancia database.");
-            }
-
-            Execute(c, tx, """
-                CREATE TABLE accounts (
-                    id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE CHECK(length(trim(name))>0),
-                    opening_date TEXT NOT NULL, archived INTEGER NOT NULL CHECK(archived IN (0,1)));
-                CREATE TABLE categories (
-                    id TEXT PRIMARY KEY, name TEXT NOT NULL CHECK(length(trim(name))>0),
-                    parent_id TEXT REFERENCES categories(id), archived INTEGER NOT NULL CHECK(archived IN (0,1)),
-                    CHECK(parent_id IS NULL OR parent_id <> id));
-                CREATE UNIQUE INDEX category_names ON categories(COALESCE(parent_id,''), name COLLATE NOCASE);
-                CREATE TABLE ledger (
-                    id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK(kind IN ('Expense','Income','Transfer','OpeningBalance')),
-                    date TEXT NOT NULL, description TEXT NOT NULL, category_id TEXT REFERENCES categories(id), memo TEXT NOT NULL);
-                CREATE TABLE movements (
-                    transaction_id TEXT NOT NULL REFERENCES ledger(id) ON DELETE CASCADE,
-                    account_id TEXT NOT NULL REFERENCES accounts(id), amount INTEGER NOT NULL CHECK(typeof(amount)='integer'),
-                    PRIMARY KEY(transaction_id,account_id));
-                CREATE INDEX ledger_dates ON ledger(date DESC,id);
-                CREATE INDEX movement_accounts ON movements(account_id,transaction_id);
-                CREATE TABLE metadata (id INTEGER PRIMARY KEY CHECK(id=1), dataset_id TEXT NOT NULL,
-                    revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>=0));
-                INSERT INTO metadata VALUES(1, $dataset, 0);
-                PRAGMA user_version=2;
-                """, ("$dataset", Guid.NewGuid().ToString("N")));
-            version = 1;
+            case 0:
+                Execute(c, tx, """
+                               CREATE TABLE accounts (
+                                   id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE CHECK(length(trim(name))>0),
+                                   opening_date TEXT NOT NULL, archived INTEGER NOT NULL CHECK(archived IN (0,1)));
+                               CREATE TABLE categories (
+                                   id TEXT PRIMARY KEY, name TEXT NOT NULL CHECK(length(trim(name))>0),
+                                   parent_id TEXT REFERENCES categories(id), archived INTEGER NOT NULL CHECK(archived IN (0,1)),
+                                   CHECK(parent_id IS NULL OR parent_id <> id));
+                               CREATE UNIQUE INDEX category_names ON categories(COALESCE(parent_id,''), name COLLATE NOCASE);
+                               CREATE TABLE ledger (
+                                   id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK(kind IN ('Expense','Income','Transfer','OpeningBalance')),
+                                   date TEXT NOT NULL, description TEXT NOT NULL, category_id TEXT REFERENCES categories(id), memo TEXT NOT NULL);
+                               CREATE TABLE movements (
+                                   transaction_id TEXT NOT NULL REFERENCES ledger(id) ON DELETE CASCADE,
+                                   account_id TEXT NOT NULL REFERENCES accounts(id), amount INTEGER NOT NULL CHECK(typeof(amount)='integer'),
+                                   PRIMARY KEY(transaction_id,account_id));
+                               CREATE INDEX ledger_dates ON ledger(date DESC,id);
+                               CREATE INDEX movement_accounts ON movements(account_id,transaction_id);
+                               CREATE TABLE metadata (id INTEGER PRIMARY KEY CHECK(id=1), dataset_id TEXT NOT NULL,
+                                   revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>=0));
+                               INSERT INTO metadata VALUES(1, $dataset, 0);
+                               PRAGMA user_version=2;
+                               """, ("$dataset", Guid.NewGuid().ToString("N")));
+                version = 1;
+                break;
         }
 
         if (version == 1)

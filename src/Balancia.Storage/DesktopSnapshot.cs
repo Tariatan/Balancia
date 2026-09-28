@@ -50,8 +50,6 @@ public sealed partial class LedgerStore
         tx.Commit();
         return result;
 
-        long PeriodTotal(string kind) => Convert.ToInt64(Scalar(c, tx,
-            "SELECT COALESCE(SUM(abs(m.amount)),0) " + HistoryFrom + " AND l.kind=$flowKind",
-            [.. values, ("$flowKind", kind)]));
+        long PeriodTotal(string kind) => Convert.ToInt64(ReadAbsoluteFlowTotal(c, tx, values, kind));
     }
 }

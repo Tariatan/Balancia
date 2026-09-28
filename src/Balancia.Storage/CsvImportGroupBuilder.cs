@@ -30,15 +30,15 @@ internal static class CsvImportGroupBuilder
                 issues.Add(new ImportIssue(first.Line, "Duplicate ID or ambiguous opening balance."));
             }
 
-            if (kind == "OpeningBalance" && (first.Tags.Length > 0 ||
-                rows.Count(r => r is { Type: "Transfer", Description: "Opening balance" } && r.Account == first.Account) != 1))
+            switch (kind)
             {
-                issues.Add(new ImportIssue(first.Line, "Ambiguous opening balance; one untagged singleton is required per account."));
-            }
-
-            if (kind == "Transfer" && members.Any(r => r.Tags.Length > 0))
-            {
-                issues.Add(new ImportIssue(first.Line, "Tagged transfers require manual review."));
+                case "OpeningBalance" when (first.Tags.Length > 0 ||
+                                            rows.Count(r => r is { Type: "Transfer", Description: "Opening balance" } && r.Account == first.Account) != 1):
+                    issues.Add(new ImportIssue(first.Line, "Ambiguous opening balance; one untagged singleton is required per account."));
+                    break;
+                case "Transfer" when members.Any(r => r.Tags.Length > 0):
+                    issues.Add(new ImportIssue(first.Line, "Tagged transfers require manual review."));
+                    break;
             }
 
             var canonical = members

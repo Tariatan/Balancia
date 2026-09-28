@@ -4,6 +4,37 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Durable context
 
+- 2026-09-28: A second class-optimizer/SRP pass covered Core, Storage, and
+  Desktop together. Storage: deleted the dead, zero-call-site `ResolveCategoryPath`
+  from `LedgerStore.Categories.cs`; deduplicated the identical flow-total SQL that
+  `DesktopSnapshot` and `FlowAverages` each built independently into one shared
+  `HistoryQueries.ReadAbsoluteFlowTotal` helper; removed a redundant `IsSatisfied`
+  DB round-trip in `ReadRecurringReminders`. Desktop: deleted the fully dead
+  `page`/`Navigate` single-page-app scaffolding from `MainWindow.axaml.cs` (verified
+  zero call sites; `Navigation`/`PageBody` were never populated) and one unused
+  local variable in `MainWindow.Transactions.cs`; no other Desktop file needed a
+  change. The recurring-schedule month-advance/day-clamp math (`AddMonthsClamped`,
+  previously private in Storage's `LedgerStore.RecurringTemplates.cs`) moved to
+  Core as `RecurringSchedule.AddMonthsClamped`, matching docs/ACCEPTANCE.md's own
+  verification-layer guidance that recurring schedule math is a Core unit-test
+  target, not just an indirect SQLite round-trip check.
+  Test coverage grew by filling gaps where real functionality had no direct test:
+  `RecurringSchedule` (8 new Core tests, including the leap-year Feb 29 clamp/
+  restore case R09 only implied, never directly asserted, before); `SnapshotImporter`
+  (previously zero coverage anywhere despite being Android's snapshot-read entry
+  point — 3 new tests: valid import, re-import replacing an existing target,
+  corrupt-archive rejection leaving no target file); `LedgerStore.DeleteAccount`
+  (previously zero coverage for a data-safety guard — 4 new tests: no-transactions
+  delete, own-transaction guard, transfer-destination guard, unknown-ID guard);
+  and 13 new CSV-import validation branches that existing tests never exercised
+  (missing ID, zero amount, non-Cleared status, IOU present, malformed tag format,
+  tagged opening balance, tagged transfer, bad header, wrong column count, malformed
+  quoting, and the import summary's distinct/sorted category list). Locked restore,
+  Debug and Release solution builds (zero warnings/errors), and all 157 tests
+  (79 Core, 78 Storage) passed. No product behavior changed; this was a
+  source-boundary, dead-code, and test-coverage pass only, not a UI/runtime check.
+  Changes remain local and uncommitted for owner review.
+
 - 2026-09-28: Moved three pure-logic pieces out of Balancia.Desktop into
   Balancia.Core, where architecture says domain rules belong: the category
   autocomplete ranking algorithm (`CategorySuggestionRanking`/`CategorySuggestion`,

@@ -57,7 +57,7 @@ internal sealed class FlowChart : Control
             return;
         }
 
-        var values = points.SelectMany(point => point.Values).Select(value => value.Francs);
+        var values = points.SelectMany(point => point.Values).Select(value => value.Francs).ToArray();
         var min = Math.Min(0m, values.Min());
         var max = Math.Max(0m, values.Max());
         if (min == max)
@@ -92,7 +92,7 @@ internal sealed class FlowChart : Control
             DrawLabel(context, amount.ToString(step < 1 ? "N2" : "N0", Culture), new Point(0, y - 7));
         }
 
-        context.DrawLine(new Pen(LabelBrush, 1), new Point(plot.Left, Y(0)), new Point(plot.Right, Y(0)));
+        context.DrawLine(new Pen(LabelBrush), new Point(plot.Left, Y(0)), new Point(plot.Right, Y(0)));
         for (var index = 0; index < series.Count; index++)
         {
             var brush = Brush.Parse(series[index].Color);
@@ -141,7 +141,7 @@ internal sealed class FlowChart : Control
         if (hovered >= 0 && hovered < points.Count)
         {
             var x = X(points[hovered]);
-            context.DrawLine(new Pen(LabelBrush, 1), new Point(x, plot.Top), new Point(x, plot.Bottom));
+            context.DrawLine(new Pen(LabelBrush), new Point(x, plot.Top), new Point(x, plot.Bottom));
         }
     }
 

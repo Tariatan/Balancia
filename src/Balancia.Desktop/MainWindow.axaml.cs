@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using System.Globalization;
-using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Balancia.Core;
 using Balancia.Storage;
@@ -25,7 +24,6 @@ public partial class MainWindow : Window
     private LedgerSnapshot? snapshot;
     private FlowAverages overviewAverages = new(Money.Zero, Money.Zero);
     private IReadOnlyList<RecurringReminder> reminders = [];
-    private string page = "Overview";
     private bool busy;
     private DateOnly displayDate = DateOnly.FromDateTime(DateTime.Today);
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
@@ -34,10 +32,7 @@ public partial class MainWindow : Window
     private void SetStatus(string text)
     {
         Status.Text = Get(text);
-        if (overviewStatus is not null)
-        {
-            overviewStatus.Text = Get(text);
-        }
+        overviewStatus?.Text = Get(text);
     }
 
     public MainWindow()
@@ -100,15 +95,16 @@ public partial class MainWindow : Window
                 return;
             }
 
-            if (e.Key is Key.OemPlus or Key.Add)
+            switch (e.Key)
             {
-                e.Handled = true;
-                await EditTransaction(null);
-            }
-            else if (e.Key == Key.Delete && page == "Overview" && overviewHistoryList?.SelectedItem is HistoryItem item)
-            {
-                e.Handled = true;
-                await RemoveTransaction(item.Hit.Entry);
+                case Key.OemPlus or Key.Add:
+                    e.Handled = true;
+                    await EditTransaction(null);
+                    break;
+                case Key.Delete when (overviewHistoryList?.SelectedItem is HistoryItem item):
+                    e.Handled = true;
+                    await RemoveTransaction(item.Hit.Entry);
+                    break;
             }
         };
     }
@@ -124,28 +120,25 @@ public partial class MainWindow : Window
             From = overviewFilter.From ?? from,
             To = overviewFilter.To ?? to
         };
-        snapshot = await Task.Run(() => page == "Overview" ? store.ReadDesktopSnapshotForFilter(filter) : store.ReadDesktopSnapshot());
+        snapshot = await Task.Run(() => store.ReadDesktopSnapshotForFilter(filter));
         reminders = await Task.Run(() => store.ReadRecurringReminders());
-        if (page == "Overview")
+        overviewHistory = await Task.Run(() => store.ReadHistory(filter, overviewOffset));
+        overviewAnalytics = await Task.Run(() => store.ReadFlowAnalytics(filter));
+        var averageInterval = overviewPeriod switch
         {
-            overviewHistory = await Task.Run(() => store.ReadHistory(filter, overviewOffset));
-            overviewAnalytics = await Task.Run(() => store.ReadFlowAnalytics(filter));
-            var averageInterval = overviewPeriod switch
-            {
-                OverviewPeriod.Day => AverageInterval.Day,
-                OverviewPeriod.ThisWeek => AverageInterval.Week,
-                OverviewPeriod.ThisYear => AverageInterval.Year,
-                _ => AverageInterval.Month,
-            };
-            var averageFilter = filter with
-            {
-                From = overviewPeriod == OverviewPeriod.Custom ? filter.From : null,
-            };
-            overviewAverages = await Task.Run(() => store.ReadFlowAverages(averageFilter, averageInterval));
-            analyticsFilter = filter;
-        }
+            OverviewPeriod.Day => AverageInterval.Day,
+            OverviewPeriod.ThisWeek => AverageInterval.Week,
+            OverviewPeriod.ThisYear => AverageInterval.Year,
+            _ => AverageInterval.Month,
+        };
+        var averageFilter = filter with
+        {
+            From = overviewPeriod == OverviewPeriod.Custom ? filter.From : null,
+        };
+        overviewAverages = await Task.Run(() => store.ReadFlowAverages(averageFilter, averageInterval));
+        analyticsFilter = filter;
 
-        if (updateOverviewInPlace && page == "Overview" && overviewLayout is not null)
+        if (updateOverviewInPlace && overviewLayout is not null)
         {
             UpdateOverviewInPlace();
         }
@@ -198,65 +191,30 @@ public partial class MainWindow : Window
             if (pendingOverviewFilterRefresh)
             {
                 pendingOverviewFilterRefresh = false;
-                if (page == "Overview")
-                {
-                    Dispatcher.UIThread.Post(() => _ = RequestOverviewFilterRefresh());
-                }
+                Dispatcher.UIThread.Post(() => _ = RequestOverviewFilterRefresh());
             }
         }
-    }
-
-    private async Task Navigate(string page)
-    {
-        if (this.page == page)
-        {
-            return;
-        }
-        this.page = page;
-        await Run(Refresh);
     }
 
     private void Render()
     {
         PageTitle.IsVisible = false;
         HeaderActions.IsVisible = false;
-
-        foreach (var child in Navigation.Children.OfType<Button>())
-        {
-            child.Classes.Set("selected", Equals(child.Content, page));
-        }
         HeaderActions.Children.Clear();
 
-        var responsive = page == "Overview";
-        PageScrollViewer.IsVisible = !responsive;
-        ResponsiveBody.IsVisible = responsive;
+        PageScrollViewer.IsVisible = false;
+        ResponsiveBody.IsVisible = true;
         overviewFilterFrom = null;
         overviewFilterTo = null;
         ResponsiveBody.Content = null;
         overviewLayout = null;
-        PageBody.Spacing = 18;
-        PageBody.Children.Clear();
 
         if (snapshot is not { } s)
         {
-            var message = Text("The ledger could not be loaded. Check the message below and restart after resolving it.");
-            if (responsive)
-            {
-                ResponsiveBody.Content = message;
-            }
-            else
-            {
-                PageBody.Children.Add(message);
-            }
-
+            ResponsiveBody.Content = Text("The ledger could not be loaded. Check the message below and restart after resolving it.");
             return;
         }
 
-        switch (page)
-        {
-            case "Overview":
-                RenderOverview(s);
-                break;
-        }
+        RenderOverview(s);
     }
 }

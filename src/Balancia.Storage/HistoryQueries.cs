@@ -1,4 +1,5 @@
 using Balancia.Core;
+using Microsoft.Data.Sqlite;
 using System.Text.Json;
 
 namespace Balancia.Storage;
@@ -136,6 +137,12 @@ public sealed partial class LedgerStore
         tx.Commit();
         return new HistoryPage(hits, count, offset, pageSize ?? hits.Count, revision);
     }
+
+    // Shared by DesktopSnapshot.ReadDesktopSnapshotForFilter and FlowAverages.ReadFlowAverages, which both
+    // need the absolute Income/Expense total for the same filtered period.
+    private static object? ReadAbsoluteFlowTotal(SqliteConnection c, SqliteTransaction tx, (string, object?)[] filterValues, string kind) =>
+        Scalar(c, tx, "SELECT COALESCE(SUM(abs(m.amount)),0) " + HistoryFrom + " AND l.kind=$flowKind",
+            [.. filterValues, ("$flowKind", kind)]);
 
     private static (string, object?)[] FilterParameters(HistoryFilter filter) =>
     [

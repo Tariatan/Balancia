@@ -60,6 +60,13 @@ public sealed class CsvImportTests : IDisposable
     [InlineData("x1,02-09-26,X,CHF,-1.001,Expense,,A,Cleared,,\n")]
     [InlineData("x1,31-02-26,X,CHF,-1.00,Expense,,A,Cleared,,\n")]
     [InlineData("x1,02-09-26,X,CHF,-1.00,Refund,,A,Cleared,,\n")]
+    [InlineData(",02-09-26,X,CHF,-1.00,Expense,,A,Cleared,,\n")]
+    [InlineData("x1,02-09-26,X,CHF,0.00,Expense,,A,Cleared,,\n")]
+    [InlineData("x1,02-09-26,X,CHF,-1.00,Expense,,,Cleared,,\n")]
+    [InlineData("x1,02-09-26,X,CHF,-1.00,Expense,,A,Pending,,\n")]
+    [InlineData("x1,02-09-26,X,CHF,-1.00,Expense,,A,Cleared,,Owed\n")]
+    [InlineData("x1,02-09-26,X,CHF,-1.00,Expense,A/B/C,A,Cleared,,\n")]
+    [InlineData("x1,02-09-26,X,CHF,-1.00,Expense,A/,A,Cleared,,\n")]
     public void I04_InvalidRowsBlockImport(string row)
     {
         Csv(row);
@@ -67,6 +74,64 @@ public sealed class CsvImportTests : IDisposable
         Assert.False(preview.CanApply);
         Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(preview));
         Assert.Empty(store.ReadSnapshot().Accounts);
+    }
+
+    [Fact]
+    public void UnexpectedHeaderBlocksImport()
+    {
+        File.WriteAllText(csv, "ID,Date,Description\nx1,02-09-26,X\n");
+        var preview = store.PreviewCsvImport(csv);
+        Assert.False(preview.CanApply);
+        Assert.Contains(preview.Issues, i => i.Line == 1 && i.Message.Contains("11 import columns"));
+    }
+
+    [Fact]
+    public void WrongColumnCountBlocksImport()
+    {
+        Csv("x1,02-09-26,X,CHF,-1.00,Expense,,A,Cleared,\n");
+        var preview = store.PreviewCsvImport(csv);
+        Assert.False(preview.CanApply);
+        Assert.Contains(preview.Issues, i => i.Message.Contains("Expected 11 columns"));
+    }
+
+    [Fact]
+    public void MalformedQuotingBlocksImport()
+    {
+        Csv("x1,02-09-26,\"unterminated,CHF,-1.00,Expense,,A,Cleared,,\n");
+        var preview = store.PreviewCsvImport(csv);
+        Assert.False(preview.CanApply);
+        Assert.Contains(preview.Issues, i => i.Message.Contains("Malformed CSV quoting"));
+    }
+
+    [Fact]
+    public void TaggedOpeningBalanceIsAmbiguous()
+    {
+        Csv("o1,01-09-26,Opening balance,CHF,100.00,Transfer,Cash,A,Cleared,,\n");
+        var preview = store.PreviewCsvImport(csv);
+        Assert.False(preview.CanApply);
+        Assert.Contains(preview.Issues, i => i.Message.Contains("Ambiguous opening balance"));
+    }
+
+    [Fact]
+    public void TaggedTransferRequiresManualReview()
+    {
+        Csv("t1,04-09-26,Transfer,CHF,-5.00,Transfer,Cash,A,Cleared,,\n" +
+            "t1,04-09-26,Transfer,CHF,5.00,Transfer,,B,Cleared,,\n");
+        var preview = store.PreviewCsvImport(csv);
+        Assert.False(preview.CanApply);
+        Assert.Contains(preview.Issues, i => i.Message.Contains("manual review"));
+    }
+
+    [Fact]
+    public void SummaryListsDistinctSortedTopLevelCategoryTags()
+    {
+        Csv("o1,01-09-26,Opening balance,CHF,100.00,Transfer,,A,Cleared,,\n" +
+            "x1,02-09-26,X,CHF,-1.00,Expense,Food / Lunch,A,Cleared,,\n" +
+            "x2,03-09-26,Y,CHF,-2.00,Expense,food / dinner,A,Cleared,,\n" +
+            "x3,04-09-26,Z,CHF,-3.00,Expense,Transport,A,Cleared,,\n");
+        var preview = store.PreviewCsvImport(csv);
+        Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Select(x => x.Message)));
+        Assert.Equal(["food / dinner", "Food / Lunch", "Transport"], preview.Summary.Categories);
     }
 
     [Fact]

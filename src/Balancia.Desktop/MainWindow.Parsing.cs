@@ -2,13 +2,18 @@ using System.Globalization;
 using Avalonia.Controls;
 using Balancia.Core;
 
-using static Balancia.Desktop.Localization.UiText;
-
 namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private static Money ParseMoney(TextBox input) => Money.FromFrancs(decimal.Parse(input.Text ?? "", NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture));
+    private static Money ParseMoney(TextBox input)
+        => Money.FromFrancs(
+            decimal.Parse(input.Text ?? "",
+                NumberStyles.AllowLeadingSign
+                | NumberStyles.AllowDecimalPoint
+                | NumberStyles.AllowLeadingWhite
+                | NumberStyles.AllowTrailingWhite,
+                CultureInfo.InvariantCulture));
     private static Money? OptionalMoney(TextBox input) => string.IsNullOrWhiteSpace(input.Text) ? null : ParseMoney(input);
     private static void NormalizeAmount(TextBox input)
     {

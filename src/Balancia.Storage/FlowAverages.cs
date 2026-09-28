@@ -20,9 +20,8 @@ public sealed partial class LedgerStore
 
         using var connection = connections.Open();
         using var transaction = connection.BeginTransaction(deferred: true);
-        var earliest = Scalar(connection, transaction,
-            "SELECT MIN(date) FROM ledger WHERE kind IN ('Income','Expense')") as string;
-        if (earliest is null)
+        if (Scalar(connection, transaction,
+                "SELECT MIN(date) FROM ledger WHERE kind IN ('Income','Expense')") is not string earliest)
         {
             return new FlowAverages(Money.Zero, Money.Zero);
         }
@@ -47,9 +46,7 @@ public sealed partial class LedgerStore
 
         Money Average(string kind)
         {
-            var total = Convert.ToDecimal(Scalar(connection, transaction,
-                "SELECT COALESCE(SUM(abs(m.amount)),0) " + HistoryFrom + " AND l.kind=$flowKind",
-                [.. values, ("$flowKind", kind)]));
+            var total = Convert.ToDecimal(ReadAbsoluteFlowTotal(connection, transaction, values, kind));
             return new Money(checked((long)decimal.Round(total / periodCount, 0, MidpointRounding.AwayFromZero)));
         }
     }

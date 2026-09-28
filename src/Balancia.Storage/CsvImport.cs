@@ -67,7 +67,7 @@ public sealed partial class LedgerStore
         var bytes = File.ReadAllBytes(fullPath);
         var hash = Convert.ToHexString(SHA256.HashData(bytes));
         var (groups, issues, summary) = CsvImportParser.Parse(bytes);
-        return new CsvImportPreview(fullPath, hash, ReadSnapshot().Revision, groups.ToArray(), issues.ToArray(), summary);
+        return new CsvImportPreview(fullPath, hash, ReadSnapshot().Revision, [.. groups], [.. issues], summary);
     }
 
     public ImportResult ApplyCsvImport(CsvImportPreview preview)

@@ -18,15 +18,17 @@ public sealed partial class LedgerStore
         {
             var template = new RecurringTemplate(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new Money(r.GetInt64(3)), r.GetInt32(4), r.GetBoolean(5));
             var occurrence = template.ExpectedDate;
-            while (occurrence < today && IsSatisfied(c, tx, template.Description, occurrence))
+            var satisfied = IsSatisfied(c, tx, template.Description, occurrence);
+            while (occurrence < today && satisfied)
             {
-                occurrence = AddMonthsClamped(occurrence, template.IntervalMonths, template.ExpectedDate.Day);
+                occurrence = RecurringSchedule.AddMonthsClamped(occurrence, template.IntervalMonths, template.ExpectedDate.Day);
+                satisfied = IsSatisfied(c, tx, template.Description, occurrence);
             }
 
-            result.Add(new RecurringReminder(template, occurrence, occurrence < today, IsSatisfied(c, tx, template.Description, occurrence)));
+            result.Add(new RecurringReminder(template, occurrence, occurrence < today, satisfied));
         }
         tx.Commit();
-        return result.OrderBy(x => x.Satisfied ? 1 : 0).ThenBy(x => x.Occurrence).ToArray();
+        return [.. result.OrderBy(x => x.Satisfied ? 1 : 0).ThenBy(x => x.Occurrence)];
     }
 
     public string SaveRecurringTemplate(string? id, string description, DateOnly expectedDate, Money indicativeAmount, int intervalMonths, bool archived = false)
@@ -65,10 +67,4 @@ public sealed partial class LedgerStore
 
     private static bool IsSatisfied(SqliteConnection c, SqliteTransaction tx, string description, DateOnly occurrence) =>
         Scalar(c, tx, "SELECT 1 FROM ledger WHERE kind<>'OpeningBalance' AND description=$description AND substr(date,1,7)=$month LIMIT 1", ("$description", description), ("$month", occurrence.ToString("yyyy-MM", CultureInfo.InvariantCulture))) is not null;
-
-    private static DateOnly AddMonthsClamped(DateOnly date, int months, int desiredDay)
-    {
-        var first = new DateOnly(date.Year, date.Month, 1).AddMonths(months);
-        return new DateOnly(first.Year, first.Month, Math.Min(desiredDay, DateTime.DaysInMonth(first.Year, first.Month)));
-    }
 }

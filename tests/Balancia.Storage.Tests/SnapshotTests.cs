@@ -1,7 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Balancia.Core;
-using Microsoft.Data.Sqlite;
 using Xunit;
 
 namespace Balancia.Storage.Tests;

@@ -1,7 +1,5 @@
 using System.Text.Json;
 
-using static Balancia.Desktop.Localization.UiText;
-
 namespace Balancia.Desktop;
 
 public partial class MainWindow

@@ -7,8 +7,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Balancia.Core;
-using Balancia.Storage;
-
 using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
@@ -46,6 +44,7 @@ public partial class MainWindow
             BorderThickness = new Thickness(0),
             ItemTemplate = new FuncDataTemplate<Choice<Account>>((choice, _) =>
             {
+                // Virtualized presenters can request a template with no item while scrolling.
                 if (choice is null)
                 {
                     return null;

@@ -117,53 +117,6 @@ public sealed partial class LedgerStore
         return parts;
     }
 
-    private static string? ResolveCategoryPath(SqliteConnection c, SqliteTransaction tx, string? transactionId, string[] parts)
-    {
-        if (parts.Length == 0)
-        {
-            return null;
-        }
-
-        var previousCategory = transactionId is null
-            ? null
-            : Scalar(c, tx, "SELECT category_id FROM ledger WHERE id=$id", ("$id", transactionId)) as string;
-        string? parentId = null;
-        var archivedParent = false;
-        for (var index = 0; index < parts.Length; index++)
-        {
-            var id = Scalar(c, tx,
-                "SELECT id FROM categories WHERE parent_id IS $parent AND name=$name COLLATE NOCASE",
-                ("$parent", parentId), ("$name", parts[index])) as string;
-            if (id is null)
-            {
-                id = Guid.NewGuid().ToString("N");
-                Execute(c, tx, "INSERT INTO categories VALUES($id,$name,$parent,0)",
-                    ("$id", id), ("$name", parts[index]), ("$parent", parentId));
-            }
-            else
-            {
-                var archived = Convert.ToInt64(Scalar(c, tx, "SELECT archived FROM categories WHERE id=$id", ("$id", id))) != 0;
-                if (archived && index == 0 && parts.Length == 2)
-                {
-                    archivedParent = true;
-                }
-                else if (archived && id != previousCategory)
-                {
-                    throw new ArgumentException("Restore the archived category before using it for another transaction.");
-                }
-            }
-
-            parentId = id;
-        }
-
-        if (archivedParent && parentId != previousCategory)
-        {
-            throw new ArgumentException("Restore the archived category before using it for another transaction.");
-        }
-
-        return parentId;
-    }
-
     private static List<Category> ReadCategories(SqliteConnection c, SqliteTransaction tx)
     {
         var categories = new List<Category>();

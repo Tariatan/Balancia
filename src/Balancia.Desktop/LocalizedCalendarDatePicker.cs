@@ -33,11 +33,11 @@ internal sealed class LocalizedCalendarDatePicker : CalendarDatePicker
         calendar?.AddHandler(InputElement.PointerWheelChangedEvent, OnCalendarPointerWheelChanged, RoutingStrategies.Tunnel);
     }
 
-    private void OnCalendarPointerPressed(object? sender, PointerPressedEventArgs e) => ApplySelectedCulture();
+    private static void OnCalendarPointerPressed(object? sender, PointerPressedEventArgs e) => ApplySelectedCulture();
 
-    private void OnCalendarKeyDown(object? sender, KeyEventArgs e) => ApplySelectedCulture();
+    private static void OnCalendarKeyDown(object? sender, KeyEventArgs e) => ApplySelectedCulture();
 
-    private void OnCalendarPointerWheelChanged(object? sender, PointerWheelEventArgs e) => ApplySelectedCulture();
+    private static void OnCalendarPointerWheelChanged(object? sender, PointerWheelEventArgs e) => ApplySelectedCulture();
 
     private void RefreshCalendarCulture()
     {

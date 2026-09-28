@@ -1,4 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.1.0</Version>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Balancia.Core/Balancia.Core.csproj" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />

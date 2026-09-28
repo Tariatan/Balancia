@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Resources;
-using System.Threading;
 
 namespace Balancia.Desktop.Localization;
 
@@ -9,7 +8,7 @@ internal static class UiText
     private static readonly ResourceManager Resources = new("Balancia.Desktop.Localization.Strings", typeof(UiText).Assembly);
     private static CultureInfo resourceCulture = CultureInfo.GetCultureInfo("en-US");
 
-    internal static string Language { get; private set; } = "en";
+    private static string Language { get; set; } = "en";
     internal static CultureInfo Culture => Volatile.Read(ref resourceCulture);
 
     internal static string ResolveLanguage(string? savedLanguage, CultureInfo operatingSystemCulture)
@@ -48,9 +47,11 @@ internal static class UiText
     }
 
     private static string[] CapitalizeMonthNames(string[] monthNames, CultureInfo culture) =>
-        monthNames.Select(month => string.IsNullOrEmpty(month)
+    [
+        .. monthNames.Select(month => string.IsNullOrEmpty(month)
             ? month
-            : culture.TextInfo.ToUpper(month[..1]) + month[1..]).ToArray();
+            : culture.TextInfo.ToUpper(month[..1]) + month[1..])
+    ];
 
     internal static string Get(string english)
     {

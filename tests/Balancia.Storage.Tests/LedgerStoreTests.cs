@@ -232,6 +232,45 @@ public sealed class LedgerStoreTests : IDisposable
     }
 
     [Fact]
+    public void DeleteAccount_NoTransactions_RemovesAccountAndOpeningBalance()
+    {
+        var a = Account("A", 100);
+        store.DeleteAccount(a);
+        Assert.Empty(store.ReadSnapshot().Accounts);
+    }
+
+    [Fact]
+    public void DeleteAccount_HasOwnTransaction_ThrowsAndKeepsAccountAndTransaction()
+    {
+        var a = Account("A", 100);
+        store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 10));
+        var error = Assert.Throws<InvalidOperationException>(() => store.DeleteAccount(a));
+        Assert.Contains("cannot be deleted", error.Message);
+        var snapshot = store.ReadSnapshot();
+        Assert.Single(snapshot.Accounts);
+        Assert.Single(snapshot.Entries);
+    }
+
+    [Fact]
+    public void DeleteAccount_UsedAsTransferDestination_ThrowsAndKeepsBothAccounts()
+    {
+        var a = Account("A", 100);
+        var b = Account("B", 0);
+        store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 20, b));
+        var error = Assert.Throws<InvalidOperationException>(() => store.DeleteAccount(b));
+        Assert.Contains("cannot be deleted", error.Message);
+        Assert.Equal(2, store.ReadSnapshot().Accounts.Count);
+    }
+
+    [Fact]
+    public void DeleteAccount_UnknownId_ThrowsWithoutChangingLedger()
+    {
+        var before = store.ReadSnapshot();
+        Assert.Throws<ArgumentException>(() => store.DeleteAccount(Guid.NewGuid().ToString("N")));
+        Assert.Equal(before.Revision, store.ReadSnapshot().Revision);
+    }
+
+    [Fact]
     public void ReadRecentCategoryPaths_MultipleTransactions_ReturnsDistinctPathsByLatestTransactionDate()
     {
         // Arrange
