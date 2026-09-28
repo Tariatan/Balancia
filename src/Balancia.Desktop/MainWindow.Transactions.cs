@@ -179,9 +179,9 @@ public partial class MainWindow
             {
                 IReadOnlyList<CategorySuggestion> matches = string.IsNullOrWhiteSpace(query)
                     ? []
-                    : BuildCategorySuggestions(categoryPaths, recentCategoryPaths, query);
+                    : CategorySuggestionRanking.Build(categoryPaths, recentCategoryPaths, query);
                 selectedCategorySuggestionIndex = matches.Count > 0 ? 0 : -1;
-                categorySuggestions = HighlightCategorySuggestion(matches, selectedCategorySuggestionIndex);
+                categorySuggestions = CategorySuggestionRanking.Highlight(matches, selectedCategorySuggestionIndex);
                 RenderCategorySuggestions();
                 suggestionPopup.IsOpen = matches.Count > 0;
             }
@@ -204,7 +204,7 @@ public partial class MainWindow
                     selectedCategorySuggestionIndex + direction,
                     0,
                     categorySuggestions.Count - 1);
-                categorySuggestions = HighlightCategorySuggestion(categorySuggestions, selectedCategorySuggestionIndex);
+                categorySuggestions = CategorySuggestionRanking.Highlight(categorySuggestions, selectedCategorySuggestionIndex);
                 RenderCategorySuggestions();
                 suggestionPopup.IsOpen = true;
                 eventArgs.Handled = true;
@@ -337,86 +337,23 @@ public partial class MainWindow
         }
     }
 
-    private sealed record CategorySuggestion(string Path, string? Section, bool IsTopMatch, bool IsKeyboardSelected = false)
-    {
-        public override string ToString() => Path;
-    }
-
-    private static IReadOnlyList<CategorySuggestion> BuildCategorySuggestions(
-        IEnumerable<string> categoryPaths,
-        IEnumerable<string> recentCategoryPaths,
-        string query)
-    {
-        var normalizedQuery = query.Trim();
-        var matches = categoryPaths
-            .Where(path => normalizedQuery.Length == 0 || path.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        var suggestions = new List<CategorySuggestion>();
-        string? topMatch = null;
-
-        if (normalizedQuery.Length > 0)
-        {
-            topMatch = matches
-                .OrderBy(path => CategoryMatchRank(path, normalizedQuery))
-                .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
-                .FirstOrDefault();
-            if (topMatch is not null)
-            {
-                suggestions.Add(new CategorySuggestion(topMatch, "TOP MATCH", true));
-            }
-        }
-
-        var recentMatches = recentCategoryPaths
-            .Where(path => matches.Contains(path, StringComparer.OrdinalIgnoreCase))
-            .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        suggestions.AddRange(recentMatches.Select((path, index) =>
-            new CategorySuggestion(path, index == 0 ? "RECENT" : null, false)));
-
-        var recentSet = recentMatches.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var remaining = matches
-            .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase) && !recentSet.Contains(path))
-            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        suggestions.AddRange(remaining.Select((path, index) =>
-            new CategorySuggestion(path, index == 0 ? "Category suggestion header" : null, false)));
-        return suggestions;
-    }
-
-    private static IReadOnlyList<CategorySuggestion> HighlightCategorySuggestion(
-        IReadOnlyList<CategorySuggestion> suggestions,
-        int selectedIndex) => suggestions
-        .Select((suggestion, index) => suggestion with { IsKeyboardSelected = index == selectedIndex })
-        .ToArray();
-
-    private static int CategoryMatchRank(string path, string query)
-    {
-        if (string.Equals(path, query, StringComparison.OrdinalIgnoreCase))
-        {
-            return 0;
-        }
-
-        if (path.StartsWith(query, StringComparison.OrdinalIgnoreCase))
-        {
-            return 1;
-        }
-
-        return path.Split('/').Any(part => part.TrimStart().StartsWith(query, StringComparison.OrdinalIgnoreCase)) ? 2 : 3;
-    }
-
     private static Control CategorySuggestionRow(CategorySuggestion suggestion)
     {
         var body = new StackPanel();
-        if (suggestion.Section is not null)
+        if (suggestion.Section is { } section)
         {
+            var label = section switch
+            {
+                CategorySuggestionSection.TopMatch => "TOP MATCH",
+                CategorySuggestionSection.Recent => "RECENT",
+                _ => "Category suggestion header",
+            };
             body.Children.Add(new TextBlock
             {
-                Text = Get(suggestion.Section),
+                Text = Get(label),
                 FontSize = 10,
                 FontWeight = FontWeight.SemiBold,
-                Foreground = Brush.Parse(suggestion.IsTopMatch ? "#52636C" : "#71838D"),
+                Foreground = Brush.Parse(section == CategorySuggestionSection.TopMatch ? "#52636C" : "#71838D"),
                 Margin = new Thickness(2, 4, 2, 2)
             });
         }

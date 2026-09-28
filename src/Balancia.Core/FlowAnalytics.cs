@@ -27,7 +27,7 @@ public sealed record FlowAnalytics(DateOnly From, DateOnly To, DateOnly? Previou
             var length = interval switch
             {
                 FlowInterval.Day => 1,
-                FlowInterval.Week => 7 - ((int)start.DayOfWeek + 6) % 7,
+                FlowInterval.Week => CalendarWeek.EndOfWeek(start).DayNumber - start.DayNumber + 1,
                 _ => DateTime.DaysInMonth(start.Year, start.Month) - start.Day + 1,
             };
             var end = DateOnly.FromDayNumber(Math.Min(To.DayNumber, start.DayNumber + length - 1));

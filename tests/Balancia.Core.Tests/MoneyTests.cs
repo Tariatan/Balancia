@@ -31,4 +31,40 @@ public class MoneyTests
         Assert.Throws<OverflowException>(() => new Money(long.MaxValue) + new Money(1));
         Assert.Throws<OverflowException>(() => new Money(long.MinValue) - new Money(1));
     }
+
+    [Fact]
+    public void UnaryMinusNegatesCentimes() => Assert.Equal(new Money(-30), -new Money(30));
+
+    [Fact]
+    public void UnaryMinusOverflowIsRejected() =>
+        Assert.Throws<OverflowException>(() => -new Money(long.MinValue));
+
+    [Theory]
+    [InlineData(30, 30)]
+    [InlineData(-30, 30)]
+    [InlineData(0, 0)]
+    public void AbsReturnsMagnitude(long centimes, long expected) => Assert.Equal(new Money(expected), new Money(centimes).Abs());
+
+    [Fact]
+    public void ComparisonOperatorsOrderByCentimes()
+    {
+        var small = new Money(10);
+        var sameAsSmall = new Money(10);
+        var large = new Money(20);
+
+        Assert.True(small < large);
+        Assert.True(large > small);
+        Assert.True(small <= sameAsSmall);
+        Assert.True(small >= sameAsSmall);
+        Assert.False(large < small);
+        Assert.False(small > large);
+    }
+
+    [Fact]
+    public void CompareToOrdersByCentimes()
+    {
+        Assert.True(new Money(10).CompareTo(new Money(20)) < 0);
+        Assert.True(new Money(20).CompareTo(new Money(10)) > 0);
+        Assert.Equal(0, new Money(10).CompareTo(new Money(10)));
+    }
 }

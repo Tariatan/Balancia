@@ -57,11 +57,9 @@ public sealed partial class LedgerStore
     private static long PeriodCount(DateOnly from, DateOnly to, AverageInterval interval) => interval switch
     {
         AverageInterval.Day => (long)to.DayNumber - from.DayNumber + 1,
-        AverageInterval.Week => ((long)Monday(to).DayNumber - Monday(from).DayNumber) / 7 + 1,
+        AverageInterval.Week => ((long)CalendarWeek.StartOfWeek(to).DayNumber - CalendarWeek.StartOfWeek(from).DayNumber) / 7 + 1,
         AverageInterval.Month => ((long)to.Year - from.Year) * 12 + to.Month - from.Month + 1,
         AverageInterval.Year => (long)to.Year - from.Year + 1,
         _ => throw new ArgumentOutOfRangeException(nameof(interval)),
     };
-
-    private static DateOnly Monday(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 }

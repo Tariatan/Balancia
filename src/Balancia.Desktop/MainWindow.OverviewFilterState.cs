@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Media;
+using Balancia.Core;
 using Balancia.Storage;
 
 using static Balancia.Desktop.Localization.UiText;
@@ -49,19 +50,12 @@ public partial class MainWindow
     {
         OverviewPeriod.All => (null, null),
         OverviewPeriod.Day => (displayDate, displayDate),
-        OverviewPeriod.ThisWeek => WeekRange(displayDate),
+        OverviewPeriod.ThisWeek => (CalendarWeek.StartOfWeek(displayDate), CalendarWeek.EndOfWeek(displayDate)),
         OverviewPeriod.ThisMonth => (new DateOnly(displayDate.Year, displayDate.Month, 1),
             new DateOnly(displayDate.Year, displayDate.Month, 1).AddMonths(1).AddDays(-1)),
         OverviewPeriod.ThisYear => (new DateOnly(displayDate.Year, 1, 1), new DateOnly(displayDate.Year, 12, 31)),
         _ => (_customFrom: customFrom, _customTo: customTo)
     };
-
-    private static (DateOnly From, DateOnly To) WeekRange(DateOnly date)
-    {
-        var daysSinceMonday = ((int)date.DayOfWeek + 6) % 7;
-        var monday = date.AddDays(-daysSinceMonday);
-        return (monday, monday.AddDays(6));
-    }
 
     private string OverviewPeriodLabel() => overviewPeriod switch
     {

@@ -10,7 +10,8 @@ public partial class MainWindow
         {
             return;
         }
-        try
+
+        TrySilently(() =>
         {
             Directory.CreateDirectory(backupPath);
             var fileName = $"backup-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.balancia";
@@ -22,11 +23,7 @@ public partial class MainWindow
             {
                 File.Delete(oldBackup);
             }
-        }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
-        catch (InvalidOperationException) { }
-        catch (SqliteException) { }
+        });
     }
 
     private void SaveSnapshotOnClose()
@@ -36,10 +33,19 @@ public partial class MainWindow
             return;
         }
 
-        try
+        TrySilently(() =>
         {
             Directory.CreateDirectory(snapshotPath);
             store.ExportSnapshot(Path.Combine(snapshotPath, "Snapshot.balancia"));
+        });
+    }
+
+    // Best-effort shutdown writes must never block the application from closing.
+    private static void TrySilently(Action action)
+    {
+        try
+        {
+            action();
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }

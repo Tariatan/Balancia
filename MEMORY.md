@@ -1,8 +1,27 @@
 # Balancia project memory
 
-Last updated: 2026-09-27. Scope: this repository only.
+Last updated: 2026-09-28. Scope: this repository only.
 
 ## Durable context
+
+- 2026-09-28: Moved three pure-logic pieces out of Balancia.Desktop into
+  Balancia.Core, where architecture says domain rules belong: the category
+  autocomplete ranking algorithm (`CategorySuggestionRanking`/`CategorySuggestion`,
+  previously private in `MainWindow.Transactions.cs`), amount-expression
+  evaluation with rounding (`AmountExpressionParser.TryEvaluate`, previously
+  `TryEvaluateAmount` in `MainWindow.Parsing.cs`), and Monday-based calendar-week
+  boundaries (`CalendarWeek.StartOfWeek`/`EndOfWeek`, previously duplicated across
+  Core's `FlowAnalytics`, Storage's `FlowAverages.Monday`, and Desktop's
+  `WeekRange`). Desktop now calls these instead of reimplementing them; UI-only
+  concerns (row rendering, localized section labels) stayed in Desktop. Core test
+  coverage grew from 8 to 71 tests, adding direct unit tests for
+  `AmountExpressionParser` (previously untested anywhere), `TransactionDraft.Validate`
+  (previously only exercised indirectly through Storage integration tests),
+  `FlowAnalytics.Trend(FlowInterval.Week)`, `CalendarWeek`, and
+  `CategorySuggestionRanking`. Locked restore, Release solution build (zero
+  warnings/errors), all 129 tests (71 Core, 58 Storage), and `dotnet format
+  --verify-no-changes` on the changed files passed. No product behavior changed;
+  this was a source-boundary and test-coverage pass only, not a UI/runtime check.
 
 - 2026-09-27: Category management/filtering, Overview expenditure rendering,
   and Settings now occupy focused `MainWindow` partial files. The original

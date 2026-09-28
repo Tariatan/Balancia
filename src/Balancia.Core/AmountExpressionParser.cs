@@ -13,6 +13,33 @@ public sealed class AmountExpressionParser(string text)
         return index == text.Length ? value : throw new FormatException();
     }
 
+    public static bool TryEvaluate(string? text, out decimal value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        try
+        {
+            value = decimal.Round(new AmountExpressionParser(text).Parse(), 2, MidpointRounding.AwayFromZero);
+            return true;
+        }
+        catch (DivideByZeroException)
+        {
+            return false;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+    }
+
     private decimal ParseExpression()
     {
         var value = ParseTerm();

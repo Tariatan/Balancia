@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Balancia.Desktop.MainWindow"
-        Title="Balancia" Width="1440" Height="1280" MinWidth="1280" MinHeight="1280"
+        Title="Balancia" Width="1440" Height="1280" MinWidth="1280" MinHeight="800"
         Background="#F6F8FA" WindowStartupLocation="CenterScreen"
         Icon="avares://Balancia.Desktop/Balancia.ico">
   <Window.Styles>
