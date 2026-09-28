@@ -1,8 +1,6 @@
 using System.Globalization;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Balancia.Storage;
@@ -13,227 +11,198 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private Border OverviewFilterPanel()
-    {
-        var activeFilter = overviewFilter with
-        {
-            From = overviewFilter.From ?? OverviewRange().From,
-            To = overviewFilter.To ?? OverviewRange().To
-        };
-        var search = Input(activeFilter.Description ?? "");
-        search.PlaceholderText = Get("Description");
-        search.Width = 230;
-        var from = DateInput(activeFilter.From);
-        from.Width = 150;
-        var to = DateInput(activeFilter.To);
-        to.Width = 150;
-        overviewFilterFrom = from;
-        overviewFilterTo = to;
-        var minimum = Input(activeFilter.Minimum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
-        minimum.PlaceholderText = Get("Min amount");
-        minimum.Width = 115;
-        var maximum = Input(activeFilter.Maximum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
-        maximum.PlaceholderText = Get("Max amount");
-        maximum.Width = 115;
+    private static readonly (OverviewPeriod Period, string TitleKey)[] OverviewPeriods =
+    [
+        (OverviewPeriod.All, "All"),
+        (OverviewPeriod.Day, "Day"),
+        (OverviewPeriod.ThisWeek, "Week"),
+        (OverviewPeriod.ThisMonth, "Month"),
+        (OverviewPeriod.ThisYear, "Year"),
+    ];
 
-        from.CalendarClosed += (_, _) => ApplyAfterCalendarClosed();
-        to.CalendarClosed += (_, _) => ApplyAfterCalendarClosed();
-        from.LostFocus += async (_, _) => await ApplyValues();
-        to.LostFocus += async (_, _) => await ApplyValues();
-        search.LostFocus += async (_, _) => await ApplyValues();
-        minimum.LostFocus += async (_, _) => await ApplyValues();
-        maximum.LostFocus += async (_, _) => await ApplyValues();
-        search.KeyDown += async (_, e) =>
+    private void InitializeOverviewFilters()
+    {
+        overviewFiltersVisible = true;
+        overviewPeriodButtons.Clear();
+        var buttons = new[]
+        {
+            overviewPeriodButtonAll, overviewPeriodButtonDay, overviewPeriodButtonWeek,
+            overviewPeriodButtonMonth, overviewPeriodButtonYear
+        };
+        for (var i = 0; i < OverviewPeriods.Length; i++)
+        {
+            var period = OverviewPeriods[i].Period;
+            var button = buttons[i];
+            overviewPeriodButtons.Add(period, button);
+            button.Click += async (_, _) => await SelectOverviewPeriod(period);
+        }
+
+        overviewFilterFrom.CalendarClosed += (_, _) => ApplyOverviewFilterValuesAfterCalendarClosed();
+        overviewFilterTo.CalendarClosed += (_, _) => ApplyOverviewFilterValuesAfterCalendarClosed();
+        overviewFilterFrom.LostFocus += async (_, _) => await ApplyOverviewFilterValues();
+        overviewFilterTo.LostFocus += async (_, _) => await ApplyOverviewFilterValues();
+        overviewFilterSearch.LostFocus += async (_, _) => await ApplyOverviewFilterValues();
+        overviewFilterMinimum.LostFocus += async (_, _) => await ApplyOverviewFilterValues();
+        overviewFilterMaximum.LostFocus += async (_, _) => await ApplyOverviewFilterValues();
+        overviewFilterSearch.KeyDown += async (_, e) =>
         {
             if (e.Key == Key.Enter)
             {
                 e.Handled = true;
-                await ApplyValues();
+                await ApplyOverviewFilterValues();
             }
         };
-        search.TextChanged += (_, _) => UpdateFilterTone(search, !string.IsNullOrWhiteSpace(search.Text));
-        minimum.TextChanged += (_, _) => UpdateFilterTone(minimum, !string.IsNullOrWhiteSpace(minimum.Text));
-        maximum.TextChanged += (_, _) => UpdateFilterTone(maximum, !string.IsNullOrWhiteSpace(maximum.Text));
-        from.SelectedDateChanged += (_, _) => UpdateFilterTone(from, from.SelectedDate is not null);
-        to.SelectedDateChanged += (_, _) => UpdateFilterTone(to, to.SelectedDate is not null);
+        overviewFilterSearch.TextChanged += (_, _) =>
+            UpdateFilterTone(overviewFilterSearch, !string.IsNullOrWhiteSpace(overviewFilterSearch.Text));
+        overviewFilterMinimum.TextChanged += (_, _) =>
+            UpdateFilterTone(overviewFilterMinimum, !string.IsNullOrWhiteSpace(overviewFilterMinimum.Text));
+        overviewFilterMaximum.TextChanged += (_, _) =>
+            UpdateFilterTone(overviewFilterMaximum, !string.IsNullOrWhiteSpace(overviewFilterMaximum.Text));
+        overviewFilterFrom.SelectedDateChanged += (_, _) =>
+            UpdateFilterTone(overviewFilterFrom, overviewFilterFrom.SelectedDate is not null);
+        overviewFilterTo.SelectedDateChanged += (_, _) =>
+            UpdateFilterTone(overviewFilterTo, overviewFilterTo.SelectedDate is not null);
 
-        var mainRow = new WrapPanel { Orientation = Orientation.Horizontal };
-        overviewPeriodButtons.Clear();
-        foreach (var (period, periodTitle) in new[]
+        overviewFilterClearSearch.Click += async (_, _) =>
         {
-            (OverviewPeriod.All, "All"),
-            (OverviewPeriod.Day, "Day"),
-            (OverviewPeriod.ThisWeek, "Week"),
-            (OverviewPeriod.ThisMonth, "Month"),
-            (OverviewPeriod.ThisYear, "Year")
-        })
-        {
-            var periodButton = ActionButton(periodTitle, async () =>
-            {
-                overviewPeriod = period;
-                overviewOffset = 0;
-                var range = OverviewRange();
-                overviewFilter = overviewFilter with
-                {
-                    From = range.From,
-                    To = range.To
-                };
-                SetDefaultTrendInterval(period, range.From, range.To);
-                SyncOverviewFilterDates();
-                UpdateOverviewPeriodButtons();
-                await RequestOverviewFilterRefresh();
-            });
-            periodButton.MinWidth = 70;
-            periodButton.HorizontalContentAlignment = HorizontalAlignment.Center;
-            periodButton.Margin = new Thickness(0, 2, 7, 2);
-            mainRow.Children.Add(periodButton);
-            overviewPeriodButtons.Add(period, periodButton);
-        }
-
-        from.Margin = new Thickness(0, 2, 7, 2);
-        to.Margin = new Thickness(0, 2, 7, 2);
-        search.Width = 230;
-        search.Margin = new Thickness(0, 2, 0, 2);
-        var clearSearch = new Button
-        {
-            Content = "×",
-            Width = 28,
-            Height = 34,
-            Padding = new Thickness(0),
-            FontSize = 17,
-            Background = Brushes.Transparent,
-            Foreground = Brush.Parse("#71838D"),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 2, 7, 2)
+            overviewFilterSearch.Text = string.Empty;
+            await ApplyOverviewFilterValues();
         };
-        ToolTip.SetTip(clearSearch, Get("Clear search"));
-        clearSearch.Click += async (_, _) =>
+        overviewFilterClearAll.Click += async (_, _) => await ClearOverviewFilters();
+
+        SyncOverviewFilterInputs();
+        SyncOverviewFilterDates();
+        UpdateFilterTone(overviewFilterSearch, !string.IsNullOrWhiteSpace(overviewFilterSearch.Text));
+        UpdateFilterTone(overviewFilterMinimum, !string.IsNullOrWhiteSpace(overviewFilterMinimum.Text));
+        UpdateFilterTone(overviewFilterMaximum, !string.IsNullOrWhiteSpace(overviewFilterMaximum.Text));
+        UpdateFilterTone(overviewFilterFrom, overviewFilterFrom.SelectedDate is not null);
+        UpdateFilterTone(overviewFilterTo, overviewFilterTo.SelectedDate is not null);
+    }
+
+    private void LocalizeOverviewFilters()
+    {
+        overviewPeriodButtonAll.Content = Get("All");
+        overviewPeriodButtonDay.Content = Get("Day");
+        overviewPeriodButtonWeek.Content = Get("Week");
+        overviewPeriodButtonMonth.Content = Get("Month");
+        overviewPeriodButtonYear.Content = Get("Year");
+        overviewFilterFrom.PlaceholderText = Get("Select a date");
+        overviewFilterTo.PlaceholderText = Get("Select a date");
+        overviewFilterSearch.PlaceholderText = Get("Description");
+        overviewFilterMinimum.PlaceholderText = Get("Min amount");
+        overviewFilterMaximum.PlaceholderText = Get("Max amount");
+        ToolTip.SetTip(overviewFilterClearSearch, Get("Clear search"));
+        ToolTip.SetTip(overviewFilterClearAll, Get("Clear filters"));
+    }
+
+    private static void UpdateFilterTone(Control control, bool hasValue)
+    {
+        var foreground = Brush.Parse(hasValue ? "#263C48" : "#71838D");
+        switch (control)
         {
-            search.Text = string.Empty;
-            await ApplyValues();
+            case TextBox textBox:
+                textBox.Foreground = foreground;
+                break;
+            case ComboBox comboBox:
+                comboBox.Foreground = foreground;
+                break;
+            case CalendarDatePicker datePicker:
+                datePicker.Foreground = foreground;
+                break;
+        }
+    }
+
+    private void SyncOverviewFilterInputs()
+    {
+        updatingFilterControls = true;
+        try
+        {
+            overviewFilterSearch.Text = overviewFilter.Description ?? "";
+            overviewFilterMinimum.Text = overviewFilter.Minimum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "";
+            overviewFilterMaximum.Text = overviewFilter.Maximum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "";
+        }
+        finally
+        {
+            updatingFilterControls = false;
+        }
+    }
+
+    private async Task SelectOverviewPeriod(OverviewPeriod period)
+    {
+        overviewPeriod = period;
+        overviewOffset = 0;
+        var range = OverviewRange();
+        overviewFilter = overviewFilter with
+        {
+            From = range.From,
+            To = range.To
         };
-        mainRow.Children.Add(from);
-        mainRow.Children.Add(to);
-        mainRow.Children.Add(search);
-        mainRow.Children.Add(clearSearch);
-        minimum.Margin = new Thickness(0, 2, 7, 2);
-        maximum.Margin = new Thickness(0, 2, 7, 2);
-        mainRow.Children.Add(minimum);
-        mainRow.Children.Add(maximum);
+        SetDefaultTrendInterval(period, range.From, range.To);
+        SyncOverviewFilterDates();
+        UpdateOverviewPeriodButtons();
+        await RequestOverviewFilterRefresh();
+    }
 
-        var clear = ActionButton("🗑", async () =>
+    private async Task ClearOverviewFilters()
+    {
+        overviewFilter = new HistoryFilter();
+        overviewOffset = 0;
+        if (overviewPeriod == OverviewPeriod.Custom)
         {
-            overviewFilter = new HistoryFilter();
-            overviewOffset = 0;
-            if (overviewPeriod == OverviewPeriod.Custom)
-            {
-                overviewPeriod = OverviewPeriod.ThisMonth;
-                customFrom = null;
-                customTo = null;
-                UpdateOverviewPeriodButtons();
-            }
+            overviewPeriod = OverviewPeriod.ThisMonth;
+            customFrom = null;
+            customTo = null;
+            UpdateOverviewPeriodButtons();
+        }
 
-            updatingFilterControls = true;
-            try
-            {
-                search.Text = string.Empty;
-                minimum.Text = string.Empty;
-                maximum.Text = string.Empty;
-                SyncOverviewFilterDates();
-            }
-            finally
-            {
-                updatingFilterControls = false;
-            }
+        SyncOverviewFilterInputs();
+        SyncOverviewFilterDates();
+        SyncCategoryFilterChecks();
+        SyncAccountFilterChecks();
+        await RequestOverviewFilterRefresh();
+    }
 
-            SyncCategoryFilterChecks();
-            SyncAccountFilterChecks();
-            await RequestOverviewFilterRefresh();
-        });
-        clear.Width = 30;
-        clear.Padding = new Thickness(0);
-        clear.FontSize = 16;
-        clear.HorizontalContentAlignment = HorizontalAlignment.Center;
-        ToolTip.SetTip(clear, Get("Clear filters"));
-        clear.VerticalAlignment = VerticalAlignment.Center;
-        var filterRow = new Grid
+    private async Task ApplyOverviewFilterValues()
+    {
+        if (updatingFilterControls)
         {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto")
+            return;
+        }
+
+        var periodRange = OverviewRange();
+        var nextFilter = overviewFilter with
+        {
+            Description = string.IsNullOrWhiteSpace(overviewFilterSearch.Text) ? null : overviewFilterSearch.Text,
+            From = overviewFilterFrom.SelectedDate is not null ? ParseDate(overviewFilterFrom) : null,
+            To = overviewFilterTo.SelectedDate is not null ? ParseDate(overviewFilterTo) : null,
+            Minimum = OptionalMoney(overviewFilterMinimum),
+            Maximum = OptionalMoney(overviewFilterMaximum)
         };
-        AddColumn(filterRow, mainRow, 0);
-        AddColumn(filterRow, clear, 1);
-
-        UpdateFilterTone(search, !string.IsNullOrWhiteSpace(search.Text));
-        UpdateFilterTone(minimum, !string.IsNullOrWhiteSpace(minimum.Text));
-        UpdateFilterTone(maximum, !string.IsNullOrWhiteSpace(maximum.Text));
-        UpdateFilterTone(from, from.SelectedDate is not null);
-        UpdateFilterTone(to, to.SelectedDate is not null);
-
-        var panel = Panel(filterRow);
-        panel.Padding = new Thickness(10);
-        return panel;
-
-        static void UpdateFilterTone(Control control, bool hasValue)
+        if (nextFilter == overviewFilter)
         {
-            var foreground = Brush.Parse(hasValue ? "#263C48" : "#71838D");
-            switch (control)
-            {
-                case TextBox textBox:
-                    textBox.Foreground = foreground;
-                    break;
-                case ComboBox comboBox:
-                    comboBox.Foreground = foreground;
-                    break;
-                case CalendarDatePicker datePicker:
-                    datePicker.Foreground = foreground;
-                    break;
-            }
+            return;
         }
 
-        async Task ApplyValues()
+        if (nextFilter.From != periodRange.From || nextFilter.To != periodRange.To)
         {
-            if (updatingFilterControls || overviewFilterFrom != from)
-            {
-                return;
-            }
-
-            var periodRange = OverviewRange();
-            var nextFilter = overviewFilter with
-            {
-                Description = string.IsNullOrWhiteSpace(search.Text) ? null : search.Text,
-                From = from.SelectedDate is not null ? ParseDate(from) : null,
-                To = to.SelectedDate is not null ? ParseDate(to) : null,
-                Minimum = OptionalMoney(minimum),
-                Maximum = OptionalMoney(maximum)
-            };
-            if (nextFilter == overviewFilter)
-            {
-                return;
-            }
-
-            if (nextFilter.From != periodRange.From || nextFilter.To != periodRange.To)
-            {
-                customFrom = nextFilter.From;
-                customTo = nextFilter.To;
-                overviewPeriod = OverviewPeriod.Custom;
-                SetDefaultTrendInterval(overviewPeriod, nextFilter.From, nextFilter.To);
-                UpdateOverviewPeriodButtons();
-            }
-
-            overviewFilter = nextFilter;
-            overviewOffset = 0;
-            SyncCategoryFilterChecks();
-            SyncAccountFilterChecks();
-            await RequestOverviewFilterRefresh();
+            customFrom = nextFilter.From;
+            customTo = nextFilter.To;
+            overviewPeriod = OverviewPeriod.Custom;
+            SetDefaultTrendInterval(overviewPeriod, nextFilter.From, nextFilter.To);
+            UpdateOverviewPeriodButtons();
         }
 
-        void ApplyAfterCalendarClosed()
-        {
-            // CalendarClosed can precede the control's final SelectedDate
-            // property update on the first click. Run after that UI event turn.
-            Dispatcher.UIThread.Post(() => _ = ApplyValues());
-        }
+        overviewFilter = nextFilter;
+        overviewOffset = 0;
+        SyncCategoryFilterChecks();
+        SyncAccountFilterChecks();
+        await RequestOverviewFilterRefresh();
+    }
+
+    private void ApplyOverviewFilterValuesAfterCalendarClosed()
+    {
+        // CalendarClosed can precede the control's final SelectedDate
+        // property update on the first click. Run after that UI event turn.
+        Dispatcher.UIThread.Post(() => _ = ApplyOverviewFilterValues());
     }
 }

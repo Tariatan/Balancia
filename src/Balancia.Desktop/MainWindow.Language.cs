@@ -1,89 +1,41 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
-using Avalonia.Controls.Templates;
-using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Balancia.Desktop.Localization;
 
 namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private sealed record LanguageOption(string Code, string NativeName)
+    internal sealed record LanguageOption(string Code, string NativeName)
     {
         public override string ToString() => NativeName;
     }
 
-    private static readonly LanguageOption[] Languages =
+    internal static readonly LanguageOption[] Languages =
     [
         new("en", "English"),
         new("de", "Deutsch"),
         new("ru", "Русский"),
-        new("uk", "Українська"),
+        new("uk", "Українська")
     ];
 
-    private ComboBox LanguagePicker(Window dialog)
+    internal async Task ApplyLanguageChange(string code)
     {
-        var picker = new ComboBox
-        {
-            ItemsSource = Languages,
-            SelectedItem = Languages.Single(option => option.Code == languageCode),
-            ItemTemplate = new FuncDataTemplate<LanguageOption>((option, _) =>
-            {
-                return
-                    // Virtualized presenters can request a template with no item while scrolling.
-                    option is null
-                    ? null
-                    : new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Spacing = 9,
-                        Children =
-                        {
-                            FlagIcon(option.Code),
-                            new TextBlock
-                            {
-                                Text = option.NativeName, VerticalAlignment = VerticalAlignment.Center,
-                            },
-                        },
-                    };
-            }),
-            Width = 170,
-        };
-        picker.SelectionChanged += async (_, _) =>
-        {
-            if (picker.SelectedItem is not LanguageOption selected || selected.Code == languageCode)
-            {
-                return;
-            }
-
-            try
-            {
-                SaveApplicationSettings(databasePath, backupPath, snapshotPath, defaultAccountId, selected.Code);
-                languagePreference = selected.Code;
-                languageCode = selected.Code;
-                UiText.SetLanguage(languageCode);
-                dialog.Close();
-                await Refresh();
-                Dispatcher.UIThread.Post(() => _ = OpenSettingsDialog());
-            }
-            catch (Exception ex)
-            {
-                picker.SelectedItem = Languages.Single(option => option.Code == languageCode);
-                await ShowErrorDialog("Balancia", FriendlyError(ex));
-            }
-        };
-        return picker;
+        SaveApplicationSettings(databasePath, backupPath, snapshotPath, defaultAccountId, code);
+        languagePreference = code;
+        languageCode = code;
+        UiText.SetLanguage(code);
+        await Refresh();
     }
 
-    private static Canvas FlagIcon(string language)
+    internal static Canvas FlagIcon(string language)
     {
         var flag = new Canvas
         {
             Width = 24,
             Height = 16,
-            ClipToBounds = true,
+            ClipToBounds = true
         };
         switch (language)
         {
@@ -112,7 +64,7 @@ public partial class MainWindow
                 {
                     Width = 10,
                     Height = 8.6,
-                    Fill = Brush.Parse("#3C3B6E"),
+                    Fill = Brush.Parse("#3C3B6E")
                 };
                 flag.Children.Add(canton);
                 for (var row = 0; row < 3; row++)
@@ -123,7 +75,7 @@ public partial class MainWindow
                         {
                             Width = 1,
                             Height = 1,
-                            Fill = Brushes.White,
+                            Fill = Brushes.White
                         };
                         Canvas.SetLeft(star, 1.3 + column * 2.3);
                         Canvas.SetTop(star, 1.1 + row * 2.7);
@@ -142,7 +94,7 @@ public partial class MainWindow
             {
                 Width = 24,
                 Height = height,
-                Fill = Brush.Parse(color),
+                Fill = Brush.Parse(color)
             };
             Canvas.SetTop(band, top);
             flag.Children.Add(band);

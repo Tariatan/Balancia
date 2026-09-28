@@ -7,8 +7,9 @@
   </Folder>
   <Folder Name="/Solution items/docs/">
     <File Path="docs\ANDROID.md" />
-    <File Path="docs\ARCHITECTURE.md" />
     <File Path="docs\Coding Guidelines.md" />
+    <File Path="docs\PLAN.md" />
+    <File Path="docs\Technical_Design_Description.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Balancia.Android/Balancia.Android.csproj" />

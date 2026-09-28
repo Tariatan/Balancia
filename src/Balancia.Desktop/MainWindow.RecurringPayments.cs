@@ -1,5 +1,4 @@
 using System.Globalization;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Layout;
@@ -12,95 +11,65 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private Border RemindersPanel()
+    private void InitializeRemindersPanel()
     {
-        var body = new Grid
+        RemindersList.ItemTemplate = new FuncDataTemplate<Choice<RecurringReminder>>((choice, _) =>
         {
-            RowDefinitions = new RowDefinitions("Auto,*,Auto"),
-            RowSpacing = 5
-        };
-
-        var header = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            Margin = new Thickness(0, 0, 0, 7)
-        };
-
-        header.Children.Add(Heading("Reminders", 13));
-
-        var actions = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 3
-        };
-
-        var recurring = new ListBox
-        {
-            ItemsSource = reminders.Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray(),
-            MinHeight = 45,
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            ItemTemplate = new FuncDataTemplate<Choice<RecurringReminder>>((choice, _) =>
+            var row = new Grid
             {
-                var row = new Grid
-                {
-                    ColumnDefinitions = new ColumnDefinitions("50,*,Auto"),
-                    ColumnSpacing = 10,
-                    MinHeight = 20
-                };
-                var reminder = choice.Value;
+                ColumnDefinitions = new ColumnDefinitions("50,*,Auto"),
+                ColumnSpacing = 10,
+                MinHeight = 20
+            };
+            var reminder = choice.Value;
 
-                AddColumn(row, new TextBlock
-                {
-                    Text = reminder.Occurrence.ToString("dd MMM", Culture),
-                    FontSize = 12,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, 0);
-                AddColumn(row, new TextBlock
-                {
-                    Text = reminder.Template.Description,
-                    FontSize = 12,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    TextTrimming = TextTrimming.CharacterEllipsis
-                }, 1);
+            AddColumn(row, new TextBlock
+            {
+                Text = reminder.Occurrence.ToString("dd MMM", Culture),
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            }, 0);
+            AddColumn(row, new TextBlock
+            {
+                Text = reminder.Template.Description,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            }, 1);
 
-                var amount = new TextBlock
-                {
-                    Text = AmountText(reminder.Template.IndicativeAmount),
-                    FontSize = 12,
-                    FontWeight = FontWeight.SemiBold,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
+            var amount = new TextBlock
+            {
+                Text = AmountText(reminder.Template.IndicativeAmount),
+                FontSize = 12,
+                FontWeight = FontWeight.SemiBold,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center
+            };
 
-                AddColumn(row, amount, 2);
-                return row;
-            },
-            true)
-        };
-        var remindersContent = new Grid();
-        remindersContent.Children.Add(recurring);
-        var empty = QuietText("No recurring payment templates.", 12);
-        empty.IsVisible = reminders.Count == 0;
-        empty.VerticalAlignment = VerticalAlignment.Top;
-        empty.Margin = new Thickness(3, 4, 3, 0);
-        remindersContent.Children.Add(empty);
-
-        actions.Children.Add(IconButton("+", "Add recurring payment", () => EditRecurring(null)));
-        actions.Children.Add(IconButton("🗑", "Delete selected recurring payment", () => DeleteSelectedRecurring(recurring)));
-
-        AddColumn(header, actions, 1);
-        AddRow(body, header, 0);
-
-        recurring.DoubleTapped += async (_, _) =>
+            AddColumn(row, amount, 2);
+            return row;
+        },
+        true);
+        RemindersList.DoubleTapped += async (_, _) =>
         {
-            if (recurring.SelectedItem is Choice<RecurringReminder> selected)
+            if (RemindersList.SelectedItem is Choice<RecurringReminder> selected)
             {
                 await EditRecurring(selected.Value);
             }
         };
+        overviewReminderAddButton.Click += async (_, _) => await EditRecurring(null);
+        overviewReminderRemoveButton.Click += async (_, _) => await DeleteSelectedRecurring(RemindersList);
+    }
 
-        AddRow(body, remindersContent, 1);
+    private void RenderRemindersPanel()
+    {
+        overviewRemindersHeading.Text = Get("Reminders");
+        ToolTip.SetTip(overviewReminderAddButton, Get("Add recurring payment"));
+        ToolTip.SetTip(overviewReminderRemoveButton, Get("Delete selected recurring payment"));
+
+        RemindersList.ItemsSource = reminders.Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray();
+        overviewRemindersEmpty.Text = Get("No recurring payment templates.");
+        overviewRemindersEmpty.IsVisible = reminders.Count == 0;
 
         var totalNet = reminders.Aggregate(Money.Zero,
             (total, reminder) => total + reminder.Template.IndicativeAmount);
@@ -108,34 +77,10 @@ public partial class MainWindow
         var totalUpcomingMonth = reminders
             .Where(reminder => reminder.Occurrence.Year == upcomingMonth.Year && reminder.Occurrence.Month == upcomingMonth.Month)
             .Aggregate(Money.Zero, (total, reminder) => total + reminder.Template.IndicativeAmount);
-        var totals = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,*"),
-            ColumnSpacing = 8,
-            Margin = new Thickness(0, 5, 0, 0)
-        };
-        AddColumn(totals, ReminderTotal("TOTAL NET", totalNet), 0);
-        AddColumn(totals, ReminderTotal("TOTAL UPCOMING MONTH", totalUpcomingMonth), 1);
-        AddRow(body, totals, 2);
-
-        return Panel(body);
-    }
-
-    private static StackPanel ReminderTotal(string label, Money amount)
-    {
-        var total = new StackPanel
-        {
-            Spacing = 3
-        };
-        total.Children.Add(QuietText(label, 10));
-        total.Children.Add(new TextBlock
-        {
-            Text = AmountText(amount),
-            FontSize = 14,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = Brush.Parse("#263C48")
-        });
-        return total;
+        overviewReminderTotalNetLabel.Text = Get("TOTAL NET");
+        overviewReminderTotalNetValue.Text = AmountText(totalNet);
+        overviewReminderTotalUpcomingLabel.Text = Get("TOTAL UPCOMING MONTH");
+        overviewReminderTotalUpcomingValue.Text = AmountText(totalUpcomingMonth);
     }
 
     private async Task DeleteSelectedRecurring(ListBox recurring)
@@ -177,6 +122,25 @@ public partial class MainWindow
                 var values = (description.Text ?? "", ParseDate(date), ParseMoney(amount),
                     int.Parse(interval.Text ?? "", CultureInfo.InvariantCulture));
                 return () => store.SaveRecurringTemplate(template?.Id, values.Item1, values.Item2, values.Item3, values.Item4, template?.Archived ?? false);
+            },
+            validate: () =>
+            {
+                if (string.IsNullOrWhiteSpace(description.Text))
+                {
+                    return "Enter a description.";
+                }
+
+                if (ParseMoney(amount) <= Money.Zero)
+                {
+                    return "Enter amount greater than zero.";
+                }
+
+                if (!int.TryParse(interval.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInterval) || parsedInterval <= 0)
+                {
+                    return "Repeat interval must be positive.";
+                }
+
+                return null;
             });
     }
 }

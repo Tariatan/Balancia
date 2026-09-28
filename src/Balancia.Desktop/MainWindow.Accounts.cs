@@ -15,134 +15,85 @@ public partial class MainWindow
 {
     private readonly Dictionary<string, CheckBox> accountFilterChecks = [];
 
-    private Border AccountSummaryPanel(LedgerSnapshot ledgerSnapshot)
+    private void InitializeAccountPanel()
     {
-        var accountRows = new Grid
+        AccountsList.ItemTemplate = new FuncDataTemplate<Choice<Account>>((choice, _) =>
         {
-            RowDefinitions = new RowDefinitions("Auto,*,Auto"),
-            RowSpacing = 5
-        };
-        var accountHeader = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            Margin = new Thickness(0, 0, 0, 4)
-        };
-        accountHeader.Children.Add(Heading("Accounts", 11));
-        var accountActions = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 3
-        };
-        accountFilterChecks.Clear();
-        var accounts = new ListBox
-        {
-            Classes = { "compact-list" },
-            ItemsSource = ledgerSnapshot.Accounts.Select(a => new Choice<Account>(a, a.Name)).ToArray(),
-            MinHeight = ledgerSnapshot.Accounts.Count == 0 ? 0 : 45,
-            MaxHeight = 170,
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            ItemTemplate = new FuncDataTemplate<Choice<Account>>((choice, _) =>
+            // Virtualized presenters can request a template with no item while scrolling.
+            if (choice is null)
             {
-                // Virtualized presenters can request a template with no item while scrolling.
-                if (choice is null)
+                return null;
+            }
+
+            var check = new CheckBox
+            {
+                Classes = { "compact-filter-checkbox" },
+                IsChecked = overviewFilter.AccountId == choice.Value.Id || overviewFilter.AccountIds?.Contains(choice.Value.Id) == true,
+            };
+            AutomationProperties.SetName(check, choice.Value.Name);
+            accountFilterChecks[choice.Value.Id] = check;
+            check.IsCheckedChanged += async (_, _) =>
+            {
+                if (!updatingFilterControls && check.FindAncestorOfType<ListBox>() is { } list)
                 {
-                    return null;
+                    list.SelectedItem = choice;
                 }
 
-                var check = new CheckBox
-                {
-                    Classes = { "compact-filter-checkbox" },
-                    IsChecked = overviewFilter.AccountId == choice.Value.Id || overviewFilter.AccountIds?.Contains(choice.Value.Id) == true,
-                };
-                AutomationProperties.SetName(check, choice.Value.Name);
-                accountFilterChecks[choice.Value.Id] = check;
-                check.IsCheckedChanged += async (_, _) =>
-                {
-                    if (!updatingFilterControls && check.FindAncestorOfType<ListBox>() is { } list)
-                    {
-                        list.SelectedItem = choice;
-                    }
-
-                    await ToggleAccountFilter(choice.Value.Id, check.IsChecked == true);
-                };
-                var row = new Grid
-                {
-                    ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
-                    ColumnSpacing = 5,
-                    MinHeight = 18,
-                    Margin = new Thickness(0, 5)
-                };
-                row.Children.Add(check);
-                AddColumn(row, new TextBlock
-                {
-                    Text = choice.Value.Name,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    TextTrimming = TextTrimming.CharacterEllipsis
-                }, 1);
-                AddColumn(row, new TextBlock
-                {
-                    Text = AmountText(choice.Value.Balance),
-                    FontSize = 12,
-                    FontWeight = FontWeight.SemiBold,
-                    Foreground = BalanceColor(choice.Value.Balance),
-                    VerticalAlignment = VerticalAlignment.Center
-                }, 2);
-                return row;
-            })
-        };
-        accounts.DoubleTapped += async (_, _) =>
+                await ToggleAccountFilter(choice.Value.Id, check.IsChecked == true);
+            };
+            var row = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
+                ColumnSpacing = 5,
+                MinHeight = 18,
+                Margin = new Thickness(0, 5)
+            };
+            row.Children.Add(check);
+            AddColumn(row, new TextBlock
+            {
+                Text = choice.Value.Name,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            }, 1);
+            AddColumn(row, new TextBlock
+            {
+                Text = AmountText(choice.Value.Balance),
+                FontSize = 12,
+                FontWeight = FontWeight.SemiBold,
+                Foreground = BalanceColor(choice.Value.Balance),
+                VerticalAlignment = VerticalAlignment.Center
+            }, 2);
+            return row;
+        });
+        AccountsList.DoubleTapped += async (_, _) =>
         {
-            if (accounts.SelectedItem is Choice<Account> selected)
+            if (AccountsList.SelectedItem is Choice<Account> selected)
             {
                 await EditAccount(selected.Value);
             }
         };
-        var addAccount = ActionButton("+", () => EditAccount(null));
-        addAccount.Width = 30;
-        addAccount.Padding = new Thickness(0);
-        addAccount.FontSize = 18;
-        addAccount.HorizontalContentAlignment = HorizontalAlignment.Center;
+        overviewAccountAddButton.Click += async (_, _) => await EditAccount(null);
+        overviewAccountArchiveButton.Click += async (_, _) => await ArchiveSelectedAccount(AccountsList);
+        overviewAccountRemoveButton.Click += async (_, _) => await DeleteSelectedAccount(AccountsList);
+    }
 
-        var removeAccount = ActionButton("🗑", () => DeleteSelectedAccount(accounts));
-        removeAccount.Width = 30;
-        removeAccount.Padding = new Thickness(0);
-        removeAccount.FontSize = 18;
-        removeAccount.HorizontalContentAlignment = HorizontalAlignment.Center;
+    private void RenderAccountPanel(LedgerSnapshot ledgerSnapshot)
+    {
+        overviewAccountsHeading.Text = Get("Accounts");
+        ToolTip.SetTip(overviewAccountAddButton, Get("Add account"));
+        ToolTip.SetTip(overviewAccountArchiveButton, Get("Archive selected account"));
+        ToolTip.SetTip(overviewAccountRemoveButton, Get("Delete selected account"));
 
-        var archiveAccount = ActionButton("▣", () => ArchiveSelectedAccount(accounts));
-        archiveAccount.Width = 30;
-        archiveAccount.Padding = new Thickness(0);
-        archiveAccount.FontSize = 18;
-        archiveAccount.HorizontalContentAlignment = HorizontalAlignment.Center;
+        accountFilterChecks.Clear();
+        AccountsList.ItemsSource = ledgerSnapshot.Accounts.Select(a => new Choice<Account>(a, a.Name)).ToArray();
+        var hasAccounts = ledgerSnapshot.Accounts.Count > 0;
+        AccountsList.IsVisible = hasAccounts;
+        overviewAccountsEmpty.IsVisible = !hasAccounts;
+        overviewAccountsEmpty.Text = Get("No accounts yet");
 
-        ToolTip.SetTip(addAccount, Get("Add account"));
-        ToolTip.SetTip(archiveAccount, Get("Archive selected account"));
-        ToolTip.SetTip(removeAccount, Get("Delete selected account"));
-        accountActions.Children.Add(addAccount);
-        accountActions.Children.Add(archiveAccount);
-        accountActions.Children.Add(removeAccount);
-        AddColumn(accountHeader, accountActions, 1);
-        AddRow(accountRows, accountHeader, 0);
-
-        if (ledgerSnapshot.Accounts.Count == 0)
-        {
-            var emptyAccounts = QuietText("No accounts yet", 12);
-            emptyAccounts.VerticalAlignment = VerticalAlignment.Center;
-            AddRow(accountRows, emptyAccounts, 1);
-        }
-        else
-        {
-            AddRow(accountRows, accounts, 1);
-        }
-
-        var total = TwoColumn("Total net worth", AmountText(ledgerSnapshot.NetWorth), 16,
-            BalanceColor(ledgerSnapshot.NetWorth));
-        total.Margin = new Thickness(0, 10, 0, 0);
-        AddRow(accountRows, total, 2);
-        var accountPanel = Panel(accountRows);
-        accountPanel.Padding = new Thickness(10, 12, 10, 8);
-        return accountPanel;
+        overviewNetWorthLabel.Text = Get("Total net worth");
+        overviewNetWorthValue.Text = AmountText(ledgerSnapshot.NetWorth);
+        overviewNetWorthValue.Foreground = BalanceColor(ledgerSnapshot.NetWorth);
     }
 
     private void SyncAccountFilterChecks()
@@ -258,6 +209,20 @@ public partial class MainWindow
                         SaveApplicationSettings(databasePath, backupPath, snapshotPath, defaultAccountId);
                     }
                 };
+            },
+            validate: () =>
+            {
+                if (string.IsNullOrWhiteSpace(name.Text))
+                {
+                    return "Enter an account name.";
+                }
+
+                if (ParseDate(date) > DateOnly.FromDateTime(DateTime.Today))
+                {
+                    return "Opening date cannot be in the future.";
+                }
+
+                return null;
             });
     }
 }

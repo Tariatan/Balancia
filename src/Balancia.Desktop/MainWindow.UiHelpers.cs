@@ -23,16 +23,6 @@ public partial class MainWindow
         grid.Children.Add(control);
     }
 
-    private static Border Panel(Control content) => new()
-    {
-        Background = Brushes.White,
-        BorderBrush = Brush.Parse("#DCE6EB"),
-        BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(6),
-        Padding = new Thickness(15),
-        Child = content
-    };
-
     private static TextBlock QuietText(string content, double size) => new()
     {
         Text = Get(content),
@@ -41,41 +31,7 @@ public partial class MainWindow
         VerticalAlignment = VerticalAlignment.Center
     };
 
-    private static TextBlock Heading(string content, double size) => new()
-    {
-        Text = Get(content),
-        FontSize = size,
-        FontWeight = FontWeight.SemiBold,
-        Foreground = Brush.Parse("#263C48"),
-        Margin = new Thickness(0, 0, 0, 10)
-    };
-
     private static IBrush BalanceColor(Money amount) => Brush.Parse(amount > Money.Zero ? "#2C8B6D" : "#B95D4D");
-
-    private static Grid TwoColumn(string left, string right, double size, IBrush? valueColor = null)
-    {
-        var row = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            Margin = new Thickness(0, 4)
-        };
-        row.Children.Add(new TextBlock
-        {
-            Text = Get(left),
-            FontSize = size,
-            TextTrimming = TextTrimming.CharacterEllipsis
-        });
-        var value = new TextBlock
-        {
-            Text = right,
-            FontSize = size,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = valueColor ?? Brush.Parse("#263C48"),
-            Margin = new Thickness(8, 0, 0, 0)
-        };
-        AddColumn(row, value, 1);
-        return row;
-    }
 
     private static CalendarDatePicker DateInput(DateOnly? date) => new LocalizedCalendarDatePicker
     {
@@ -125,16 +81,6 @@ public partial class MainWindow
         return button;
     }
 
-    private static Button IconButton(string icon, string tooltip, Func<Task> action)
-    {
-        var button = ActionButton(icon, action);
-        button.Width = 30;
-        button.Padding = new Thickness(0);
-        button.FontSize = 18;
-        button.HorizontalContentAlignment = HorizontalAlignment.Center;
-        ToolTip.SetTip(button, Get(tooltip));
-        return button;
-    }
     private sealed record Choice<T>(T Value, string Label)
     {
         public override string ToString() => Label;

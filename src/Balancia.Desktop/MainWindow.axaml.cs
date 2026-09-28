@@ -4,7 +4,6 @@ using System.Globalization;
 using Avalonia.Threading;
 using Balancia.Core;
 using Balancia.Storage;
-using Balancia.Desktop.Localization;
 
 using static Balancia.Desktop.Localization.UiText;
 
@@ -12,14 +11,14 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow : Window
 {
-    private LedgerStore store;
-    private string databasePath;
+    internal LedgerStore store;
+    internal string databasePath;
     private string windowSettingsPath;
     private readonly string applicationSettingsPath;
-    private string? backupPath;
-    private string? snapshotPath;
+    internal string? backupPath;
+    internal string? snapshotPath;
     private string? defaultAccountId;
-    private string languageCode;
+    internal string languageCode;
     private string? languagePreference;
     private LedgerSnapshot? snapshot;
     private FlowAverages overviewAverages = new(Money.Zero, Money.Zero);
@@ -28,24 +27,26 @@ public partial class MainWindow : Window
     private DateOnly displayDate = DateOnly.FromDateTime(DateTime.Today);
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
     private string? lastAccountId;
+    private string statusMessage;
 
-    private void SetStatus(string text)
+    internal void SetStatus(string text)
     {
-        Status.Text = Get(text);
-        overviewStatus?.Text = Get(text);
+        statusMessage = Get(text);
+        overviewStatus.Text = statusMessage;
     }
 
     public MainWindow()
     {
         InitializeComponent();
+        InitializeOverview();
         var args = Environment.GetCommandLineArgs();
         var directoryArg = Array.IndexOf(args, "--data-dir");
         applicationSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia", "settings.json");
         var savedSettings = LoadApplicationSettings(applicationSettingsPath);
         languagePreference = savedSettings?.Language;
-        languageCode = UiText.ResolveLanguage(savedSettings?.Language, CultureInfo.CurrentUICulture);
-        UiText.SetLanguage(languageCode);
-        Status.Text = Get("Loading…");
+        languageCode = ResolveLanguage(savedSettings?.Language, CultureInfo.CurrentUICulture);
+        SetLanguage(languageCode);
+        statusMessage = Get("Loading…");
         backupPath = ResolveFullPath(savedSettings?.BackupPath);
         snapshotPath = ResolveFullPath(savedSettings?.SnapshotPath);
         defaultAccountId = savedSettings?.DefaultAccountId;
@@ -109,7 +110,7 @@ public partial class MainWindow : Window
         };
     }
 
-    private Task Refresh() => RefreshCore(false);
+    internal Task Refresh() => RefreshCore(false);
 
     private async Task RefreshCore(bool updateOverviewInPlace)
     {
@@ -129,18 +130,18 @@ public partial class MainWindow : Window
             OverviewPeriod.Day => AverageInterval.Day,
             OverviewPeriod.ThisWeek => AverageInterval.Week,
             OverviewPeriod.ThisYear => AverageInterval.Year,
-            _ => AverageInterval.Month,
+            _ => AverageInterval.Month
         };
         var averageFilter = filter with
         {
-            From = overviewPeriod == OverviewPeriod.Custom ? filter.From : null,
+            From = overviewPeriod == OverviewPeriod.Custom ? filter.From : null
         };
         overviewAverages = await Task.Run(() => store.ReadFlowAverages(averageFilter, averageInterval));
         analyticsFilter = filter;
 
-        if (updateOverviewInPlace && overviewLayout is not null)
+        if (updateOverviewInPlace)
         {
-            UpdateOverviewInPlace();
+            RenderOverview(snapshot!);
         }
         else
         {
@@ -158,10 +159,7 @@ public partial class MainWindow : Window
         busy = true;
         if (disableControls)
         {
-            PageBody.IsEnabled = false;
-            ResponsiveBody.IsEnabled = false;
-            Navigation.IsEnabled = false;
-            HeaderActions.IsEnabled = false;
+            Overview.IsEnabled = false;
             SetStatus("Working…");
         }
         try
@@ -182,10 +180,7 @@ public partial class MainWindow : Window
             busy = false;
             if (disableControls)
             {
-                PageBody.IsEnabled = true;
-                ResponsiveBody.IsEnabled = true;
-                Navigation.IsEnabled = true;
-                HeaderActions.IsEnabled = true;
+                Overview.IsEnabled = true;
             }
 
             if (pendingOverviewFilterRefresh)
@@ -198,23 +193,34 @@ public partial class MainWindow : Window
 
     private void Render()
     {
-        PageTitle.IsVisible = false;
-        HeaderActions.IsVisible = false;
-        HeaderActions.Children.Clear();
-
-        PageScrollViewer.IsVisible = false;
-        ResponsiveBody.IsVisible = true;
-        overviewFilterFrom = null;
-        overviewFilterTo = null;
-        ResponsiveBody.Content = null;
-        overviewLayout = null;
-
+        Overview.IsVisible = true;
         if (snapshot is not { } s)
         {
-            ResponsiveBody.Content = Text("The ledger could not be loaded. Check the message below and restart after resolving it.");
+            Overview.Content = Text("The ledger could not be loaded. Check the message below and restart after resolving it.");
             return;
         }
 
+        Overview.Content = OverviewRoot;
+        LocalizeOverview();
+        RenderAccountPanel(s);
+        RenderCategoryPanel(s);
+        RenderRemindersPanel();
+        FillCategoriesPanel(overviewCategoryBody, s);
+        SyncOverviewFilterInputs();
+        SyncOverviewFilterDates();
+        renderedPeriodState = null;
+        overviewHistoryList.ItemsSource = null;
         RenderOverview(s);
+    }
+
+    private void InitializeOverview()
+    {
+        overviewSettingsButton.Click += async (_, _) => await OpenSettingsDialog();
+        InitializeOverviewFilters();
+        InitializeAccountPanel();
+        InitializeCategoryPanel();
+        InitializeHistoryPanel();
+        InitializeRemindersPanel();
+        InitializeTrendPanel();
     }
 }

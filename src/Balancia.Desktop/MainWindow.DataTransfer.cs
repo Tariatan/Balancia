@@ -1,6 +1,3 @@
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Media;
 using Avalonia.Platform.Storage;
 
 using static Balancia.Desktop.Localization.UiText;
@@ -9,7 +6,7 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private async Task ImportCsv()
+    internal async Task ImportCsv()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -31,71 +28,11 @@ public partial class MainWindow
         await Run(async () =>
         {
             var preview = await Task.Run(() => store.PreviewCsvImport(path));
-            var summary = preview.Summary;
-            var message = Format("{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.\n\n",
-                    summary.Rows, summary.Expenses, summary.Incomes, summary.Transfers, summary.Openings) +
-                Get("Resolved dates (first 10 rows, 2000–2099): ") +
-                string.Join(", ", preview.ResolvedDates.Select(d => Format("Resolved date line {0}: {1}", d.Line, d.Date.ToString("yyyy-MM-dd")))) +
-                Get("\n\nAccounts and source totals:\n") +
-                string.Join("\n", summary.AccountTotals.Select(a => $"{a.Account}: {a.Centimes / 100m:N2}")) +
-                Get("\n\nCategories: ") + string.Join(", ", summary.Categories) +
-                (preview.Issues.Count == 0 ? Get("\n\nAll rows are valid. Apply this batch?") :
-                    Get("\n\nErrors (correct source file, then preview again):\n") +
-                    string.Join("\n", preview.Issues.Take(30).Select(i => Format("Line {0}: {1}", i.Line, Get(i.Message)))));
-            var dialog = new Window
-            {
-                Title = Get("CSV import preview"),
-                Icon = Icon,
-                ShowInTaskbar = false,
-                Width = 700,
-                Height = 650,
-                MinWidth = 500,
-                MinHeight = 350,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner
-            };
-            var body = new StackPanel
-            {
-                Spacing = 12,
-                Margin = new Thickness(20)
-            };
-            body.Children.Add(Text(message));
-            var apply = new Button
-            {
-                Content = Get("Apply import"),
-                IsEnabled = preview.CanApply
-            };
-            var cancel = new Button
-            {
-                Content = Get("Cancel"),
-                IsCancel = true
-            };
-            var error = Text("");
-            error.Foreground = Brushes.DarkRed;
-            body.Children.Add(error);
-            body.Children.Add(Row(apply, cancel));
-            dialog.Content = new ScrollViewer { Content = body };
-            cancel.Click += (_, _) => dialog.Close();
-            apply.Click += async (_, _) =>
-            {
-                apply.IsEnabled = false;
-                try
-                {
-                    var result = await Task.Run(() => store.ApplyCsvImport(preview));
-                    dialog.Close();
-                    await Refresh();
-                    SetStatus(Format("Imported {0} entries; {1} unchanged.", result.Added, result.Unchanged));
-                }
-                catch (Exception ex)
-                {
-                    error.Text = FriendlyError(ex);
-                    apply.IsEnabled = true;
-                }
-            };
-            await dialog.ShowDialog(this);
+            await CsvImportPreviewWindow.Show(this, preview);
         });
     }
 
-    private async Task ExportCsv()
+    internal async Task ExportCsv()
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -116,7 +53,7 @@ public partial class MainWindow
         });
     }
 
-    private async Task ExportSnapshot()
+    internal async Task ExportSnapshot()
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -137,7 +74,7 @@ public partial class MainWindow
         });
     }
 
-    private async Task RestoreSnapshot()
+    internal async Task RestoreSnapshot()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {

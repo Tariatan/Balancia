@@ -2,7 +2,6 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -16,15 +15,6 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private static ListBox HistoryList(IReadOnlyList<HistoryHit> hits) => new()
-    {
-        ItemsSource = hits.Select(hit => new HistoryItem(hit)).ToArray(),
-        ItemTemplate = new FuncDataTemplate<HistoryItem>((item, _) => HistoryRow(item.Hit), true),
-        HorizontalAlignment = HorizontalAlignment.Stretch,
-        Background = Brushes.Transparent,
-        BorderThickness = new Thickness(0)
-    };
-
     private static Grid HistoryRow(HistoryHit hit, string emptyDescriptionText = "")
     {
         var entry = hit.Entry;
@@ -259,8 +249,51 @@ public partial class MainWindow
                 var categoryPath = type == TransactionKind.Transfer ? null : ReadSelectedCategoryPath();
                 lastAccountId = draft.AccountId;
                 return () => store.SaveTransactionWithCategoryPath(entry?.Id, draft, categoryPath);
-            }, initialFocus: category, onSaveAndContinue: continueAfterSave);
+            }, initialFocus: category, onSaveAndContinue: continueAfterSave, validate: ValidateFields);
         return;
+
+        string? ValidateFields()
+        {
+            var type = ((Choice<TransactionKind>)kind.SelectedItem!).Value;
+            var transactionDate = ParseDate(date);
+            var selectedAccount = ((Choice<Account>)account.SelectedItem!).Value;
+            if (transactionDate < selectedAccount.OpeningDate)
+            {
+                return "Transaction date precedes the account's opening date.";
+            }
+
+            if (type == TransactionKind.Transfer)
+            {
+                if (destination.SelectedItem is Choice<Account> { Value.OpeningDate: var destinationOpeningDate } &&
+                    transactionDate < destinationOpeningDate)
+                {
+                    return "Transaction date precedes the account's opening date.";
+                }
+
+                return null;
+            }
+
+            var path = ReadSelectedCategoryPath();
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+
+            var parts = path.Split('/').Select(part => part.Trim()).ToArray();
+            if (parts.Length > 2 || parts.Any(string.IsNullOrWhiteSpace))
+            {
+                return "Enter a category or Category / Subcategory with one name on each side of '/'.";
+            }
+
+            if (availableCategories.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase)))
+            {
+                return null;
+            }
+
+            return snapshot!.Categories.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase))
+                ? "Restore the archived category before using it for another transaction."
+                : "Choose an existing category path.";
+        }
 
         void UpdateFields()
         {

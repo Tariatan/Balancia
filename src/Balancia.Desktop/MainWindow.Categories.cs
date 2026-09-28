@@ -3,7 +3,6 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Layout;
-using Avalonia.Media;
 using Avalonia.VisualTree;
 using Balancia.Core;
 
@@ -17,6 +16,75 @@ public partial class MainWindow
 
     private bool IsCategorySelected(string id) =>
         overviewFilter.CategoryId == id || overviewFilter.CategoryIds?.Contains(id) == true;
+
+    private void InitializeCategoryPanel()
+    {
+        CategoriesList.ItemTemplate = new FuncDataTemplate<Choice<Category>>((choice, _) =>
+        {
+            // Virtualized presenters can request a template with no item while scrolling.
+            if (choice is null)
+            {
+                return null;
+            }
+
+            var category = choice.Value;
+            var check = new CheckBox
+            {
+                Classes = { "compact-filter-checkbox" },
+                IsChecked = IsCategorySelected(category.Id),
+            };
+            AutomationProperties.SetName(check, category.Path);
+            ToolTip.SetTip(check, category.Path);
+            categoryFilterChecks[category.Id] = check;
+            check.IsCheckedChanged += async (_, _) =>
+            {
+                if (!updatingFilterControls && check.FindAncestorOfType<ListBox>() is { } list)
+                {
+                    list.SelectedItem = choice;
+                }
+
+                await ToggleCategoryFilter(category.Id, check.IsChecked == true);
+            };
+            var row = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+                ColumnSpacing = 7,
+                Margin = new Thickness(category.ParentId is null ? 0 : 15, 0, 0, 0),
+            };
+            row.Children.Add(check);
+            var name = new TextBlock
+            {
+                Text = category.Name + (category.Archived ? Get(" (archived)") : string.Empty),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            AddColumn(row, name, 1);
+            return row;
+        });
+        CategoriesList.DoubleTapped += async (_, _) =>
+        {
+            if (CategoriesList.SelectedItem is Choice<Category> choice)
+            {
+                await EditCategory(choice.Value);
+            }
+        };
+        overviewCategoryAddButton.Click += async (_, _) => await EditCategory(null);
+        overviewCategoryArchiveButton.Click += async (_, _) => await ArchiveSelectedCategory(CategoriesList);
+        overviewCategoryRemoveButton.Click += async (_, _) => await DeleteSelectedCategory(CategoriesList);
+    }
+
+    private void RenderCategoryPanel(LedgerSnapshot ledgerSnapshot)
+    {
+        overviewCategoriesHeading.Text = Get("Categories");
+        ToolTip.SetTip(overviewCategoryAddButton, Get("Add category"));
+        ToolTip.SetTip(overviewCategoryArchiveButton, Get("Archive selected category"));
+        ToolTip.SetTip(overviewCategoryRemoveButton, Get("Delete selected category"));
+
+        categoryFilterChecks.Clear();
+        CategoriesList.ItemsSource = ledgerSnapshot.Categories
+            .Select(category => new Choice<Category>(category,
+                category.Path + (category.Archived ? Get(" (archived)") : string.Empty)))
+            .ToArray();
+    }
 
     private void SyncCategoryFilterChecks()
     {
@@ -67,94 +135,6 @@ public partial class MainWindow
         await RequestOverviewFilterRefresh();
     }
 
-    private Border CategoryManagementPanel(LedgerSnapshot ledgerSnapshot)
-    {
-        categoryFilterChecks.Clear();
-
-        var categories = new ListBox
-        {
-            Classes = { "compact-list" },
-            ItemsSource = ledgerSnapshot.Categories
-                .Select(category => new Choice<Category>(category,
-                    category.Path + (category.Archived ? Get(" (archived)") : string.Empty)))
-                .ToArray(),
-            ItemTemplate = new FuncDataTemplate<Choice<Category>>((choice, _) =>
-            {
-                // Virtualized presenters can request a template with no item while scrolling.
-                if (choice is null)
-                {
-                    return null;
-                }
-
-                var category = choice.Value;
-                var check = new CheckBox
-                {
-                    Classes = { "compact-filter-checkbox" },
-                    IsChecked = IsCategorySelected(category.Id),
-                };
-                AutomationProperties.SetName(check, category.Path);
-                ToolTip.SetTip(check, category.Path);
-                categoryFilterChecks[category.Id] = check;
-                check.IsCheckedChanged += async (_, _) =>
-                {
-                    if (!updatingFilterControls && check.FindAncestorOfType<ListBox>() is { } list)
-                    {
-                        list.SelectedItem = choice;
-                    }
-
-                    await ToggleCategoryFilter(category.Id, check.IsChecked == true);
-                };
-                var row = new Grid
-                {
-                    ColumnDefinitions = new ColumnDefinitions("Auto,*"),
-                    ColumnSpacing = 7,
-                    Margin = new Thickness(category.ParentId is null ? 0 : 15, 0, 0, 0),
-                };
-                row.Children.Add(check);
-                var name = new TextBlock
-                {
-                    Text = category.Name + (category.Archived ? Get(" (archived)") : string.Empty),
-                    VerticalAlignment = VerticalAlignment.Center,
-                };
-                AddColumn(row, name, 1);
-                return row;
-            }),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch,
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0)
-        };
-        var categoryBody = new Grid
-        {
-            RowDefinitions = new RowDefinitions("Auto,*"),
-            RowSpacing = 6
-        };
-        var categoryHeader = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto")
-        };
-        categoryHeader.Children.Add(Heading("Categories", 11));
-        var buttons = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 3
-        };
-        buttons.Children.Add(IconButton("+", "Add category", () => EditCategory(null)));
-        buttons.Children.Add(IconButton("▣", "Archive selected category", () => ArchiveSelectedCategory(categories)));
-        buttons.Children.Add(IconButton("🗑", "Delete selected category", () => DeleteSelectedCategory(categories)));
-        AddColumn(categoryHeader, buttons, 1);
-        AddRow(categoryBody, categoryHeader, 0);
-        AddRow(categoryBody, categories, 1);
-        categories.DoubleTapped += async (_, _) =>
-        {
-            if (categories.SelectedItem is Choice<Category> choice)
-            {
-                await EditCategory(choice.Value);
-            }
-        };
-        return Panel(categoryBody);
-    }
-
     private async Task ArchiveSelectedCategory(ListBox categories)
     {
         if (categories.SelectedItem is not Choice<Category> choice)
@@ -188,7 +168,21 @@ public partial class MainWindow
                 Text("Categories used by transactions or with subcategories must be archived instead.")
             ],
             () => () => store.DeleteCategory(category.Id),
-            "Delete");
+            "Delete",
+            validate: () =>
+            {
+                if (store.CategoryHasSubcategories(category.Id))
+                {
+                    return "A category with subcategories cannot be deleted. Archive it instead.";
+                }
+
+                if (store.CategoryIsUsedByTransactions(category.Id))
+                {
+                    return "A category used by transactions cannot be deleted. Archive it instead.";
+                }
+
+                return null;
+            });
     }
 
     private async Task EditCategory(Category? category)
@@ -222,6 +216,34 @@ public partial class MainWindow
                 var newParentId = ((Choice<string?>)parent.SelectedItem!).Value;
                 var archived = category?.Archived ?? false;
                 return () => store.SaveCategory(category?.Id, newName, newParentId, archived);
+            },
+            validate: () =>
+            {
+                var trimmedName = (name.Text ?? "").Trim();
+                if (trimmedName.Length == 0 || trimmedName.Contains('/'))
+                {
+                    return "Enter a category name without '/'; choose its parent separately.";
+                }
+
+                var newParentId = ((Choice<string?>)parent.SelectedItem!).Value;
+                if (newParentId is null)
+                {
+                    return null;
+                }
+
+                var parentCategory = snapshot!.Categories.SingleOrDefault(c => c.Id == newParentId);
+                var categoryArchived = category?.Archived ?? false;
+                if (parentCategory is { Archived: true } && (!categoryArchived || category!.ParentId != newParentId))
+                {
+                    return "Restore the parent category before adding or restoring a child.";
+                }
+
+                if (category is not null && snapshot.Categories.Any(c => c.ParentId == category.Id))
+                {
+                    return "A category with subcategories must remain top-level.";
+                }
+
+                return null;
             });
     }
 }

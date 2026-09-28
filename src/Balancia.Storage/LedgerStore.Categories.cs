@@ -88,18 +88,42 @@ public sealed partial class LedgerStore
     public void DeleteCategory(string id) => Write((c, tx) =>
     {
         Require(c, tx, "SELECT 1 FROM categories WHERE id=$id", id, "Category no longer exists.");
-        if (Scalar(c, tx, "SELECT 1 FROM categories WHERE parent_id=$id LIMIT 1", ("$id", id)) is not null)
+        if (HasSubcategories(c, tx, id))
         {
             throw new InvalidOperationException("A category with subcategories cannot be deleted. Archive it instead.");
         }
 
-        if (Scalar(c, tx, "SELECT 1 FROM ledger WHERE category_id=$id LIMIT 1", ("$id", id)) is not null)
+        if (IsUsedByTransactions(c, tx, id))
         {
             throw new InvalidOperationException("A category used by transactions cannot be deleted. Archive it instead.");
         }
 
         Execute(c, tx, "DELETE FROM categories WHERE id=$id", ("$id", id));
     });
+
+    public bool CategoryHasSubcategories(string id)
+    {
+        using var c = connections.Open();
+        using var tx = c.BeginTransaction(deferred: true);
+        var result = HasSubcategories(c, tx, id);
+        tx.Commit();
+        return result;
+    }
+
+    public bool CategoryIsUsedByTransactions(string id)
+    {
+        using var c = connections.Open();
+        using var tx = c.BeginTransaction(deferred: true);
+        var result = IsUsedByTransactions(c, tx, id);
+        tx.Commit();
+        return result;
+    }
+
+    private static bool HasSubcategories(SqliteConnection c, SqliteTransaction tx, string id) =>
+        Scalar(c, tx, "SELECT 1 FROM categories WHERE parent_id=$id LIMIT 1", ("$id", id)) is not null;
+
+    private static bool IsUsedByTransactions(SqliteConnection c, SqliteTransaction tx, string id) =>
+        Scalar(c, tx, "SELECT 1 FROM ledger WHERE category_id=$id LIMIT 1", ("$id", id)) is not null;
 
     private static string[] ParseCategoryPath(string? categoryPath)
     {

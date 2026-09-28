@@ -29,8 +29,6 @@ public partial class MainWindow
     private readonly Dictionary<OverviewPeriod, Button> overviewPeriodButtons = [];
     private (OverviewPeriod Period, bool FiltersVisible)? renderedPeriodState;
 
-    private CalendarDatePicker? overviewFilterFrom;
-    private CalendarDatePicker? overviewFilterTo;
     private bool updatingFilterControls;
 
     private Task RefreshFilteredOverview() => RefreshCore(true);
@@ -122,9 +120,8 @@ public partial class MainWindow
         updatingFilterControls = true;
         try
         {
-            overviewFilterFrom?.SelectedDate = (overviewFilter.From ?? range.From)?.ToDateTime(TimeOnly.MinValue);
-
-            overviewFilterTo?.SelectedDate = (overviewFilter.To ?? range.To)?.ToDateTime(TimeOnly.MinValue);
+            overviewFilterFrom.SelectedDate = (overviewFilter.From ?? range.From)?.ToDateTime(TimeOnly.MinValue);
+            overviewFilterTo.SelectedDate = (overviewFilter.To ?? range.To)?.ToDateTime(TimeOnly.MinValue);
         }
         finally
         {

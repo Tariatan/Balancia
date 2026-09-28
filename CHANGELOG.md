@@ -13,6 +13,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [1.6.0] - 2026-09-28
+
+#### Changed
+
+- Controls moved from code-built UI to XAML.
+
 ### [1.5.0] - 2026-09-28
 
 #### Added
@@ -28,6 +34,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [1.2.0] - 2026-09-28
+
+#### Added
+
+- Added category usage/subcategory lookup methods so the desktop UI can validate deletions before calling the store.
 
 ### [1.1.0] - 2026-09-28
 

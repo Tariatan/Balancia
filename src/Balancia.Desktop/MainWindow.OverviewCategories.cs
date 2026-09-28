@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -10,27 +9,6 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private Border CategoriesPanel(LedgerSnapshot ledgerSnapshot)
-    {
-        var body = new StackPanel
-        {
-            Spacing = 1
-        };
-        var header = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            Margin = new Thickness(0, 0, 0, 10)
-        };
-        header.Children.Add(Heading("Top expenditures", 13));
-        overviewCategoryHeading = (TextBlock)header.Children[0];
-        body.Children.Add(header);
-        var rows = new StackPanel { Spacing = 1 };
-        body.Children.Add(rows);
-        overviewCategoryBody = rows;
-        FillCategoriesPanel(rows, ledgerSnapshot);
-        return Panel(body);
-    }
-
     private void FillCategoriesPanel(StackPanel body, LedgerSnapshot ledgerSnapshot)
     {
         body.Children.Clear();
@@ -42,7 +20,7 @@ public partial class MainWindow
         var title = hasSubcategories
             ? Format("Top expenditures · {0}", selectedCategory!.Name)
             : Get("Top expenditures");
-        overviewCategoryHeading!.Text = title;
+        overviewCategoryHeading.Text = title;
 
         if (ledgerSnapshot.LargestCategories.Count == 0)
         {

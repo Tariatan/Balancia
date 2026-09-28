@@ -10,7 +10,7 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private static string FriendlyError(Exception ex)
+    internal static string FriendlyError(Exception ex)
     {
         var english = ex switch
         {
@@ -20,51 +20,12 @@ public partial class MainWindow
             FormatException => "Check the date (YYYY-MM-DD) and amount (for example 12.50).",
             IOException or UnauthorizedAccessException => "The local data folder is unavailable or not writable.",
             InvalidDataException or ArgumentException or InvalidOperationException => ex.Message.Split('\n')[0].TrimEnd('\r'),
-            _ => "The operation failed. Your entered values have been kept; try again.",
+            _ => "The operation failed. Your entered values have been kept; try again."
         };
         return Get(english);
     }
 
-    private async Task ShowErrorDialog(string title, string message)
-    {
-        var dialog = new Window
-        {
-            Title = Get(title),
-            Icon = Icon,
-            ShowInTaskbar = false,
-            Width = 520,
-            Height = 260,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-        var close = new Button
-        {
-            Content = Get("Close"),
-            IsDefault = true,
-            IsCancel = true
-        };
-        close.Click += (_, _) => dialog.Close();
-        dialog.Content = new StackPanel
-        {
-            Spacing = 16,
-            Margin = new Thickness(24),
-            Children =
-            {
-                new TextBlock
-                {
-                    Text = Get("The operation could not be completed."),
-                    FontSize = 20,
-                    FontWeight = FontWeight.SemiBold
-                },
-                new TextBlock
-                {
-                    Text = message,
-                    TextWrapping = TextWrapping.Wrap
-                },
-                close
-            }
-        };
-        await dialog.ShowDialog(this);
-    }
+    internal Task ShowErrorDialog(string title, string message) => ErrorDialog.Show(this, title, message);
 
     private Task SelectFirst()
     {
@@ -74,7 +35,7 @@ public partial class MainWindow
 
     // Snapshot inputs on the UI thread, then perform the complete write off-thread.
     private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, string saveLabel = "Save",
-        InputElement? initialFocus = null, Action? onSaveAndContinue = null)
+        InputElement? initialFocus = null, Action? onSaveAndContinue = null, Func<string?>? validate = null)
     {
         var isRemoval = saveLabel == "Remove";
         var dialog = new Window
@@ -183,6 +144,12 @@ public partial class MainWindow
 
             try
             {
+                if (validate?.Invoke() is { } validationError)
+                {
+                    error.Text = Get(validationError);
+                    return;
+                }
+
                 var action = prepareSave();
                 saving = true;
                 body.IsEnabled = false;
