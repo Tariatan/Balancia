@@ -1,4 +1,15 @@
 <Solution>
+  <Folder Name="/Solution items/">
+    <File Path="AGENTS.md" />
+    <File Path="CHANGELOG.md" />
+    <File Path="MEMORY.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Solution items/docs/">
+    <File Path="docs\ANDROID.md" />
+    <File Path="docs\ARCHITECTURE.md" />
+    <File Path="docs\Coding Guidelines.md" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Balancia.Android/Balancia.Android.csproj" />
     <Project Path="src/Balancia.Core/Balancia.Core.csproj" />

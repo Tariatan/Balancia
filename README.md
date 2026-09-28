@@ -1,57 +1,65 @@
 # Balancia
 
-A personal finance ledger for Windows, with a read-only Android companion.
-Record income, expenses, and transfers; browse history; see account balances and
-upcoming recurring payments. C#/.NET, Avalonia, and SQLite are the agreed stack.
+A personal finance ledger for Windows, with a read-only Android companion. Record income, expenses, and transfers across local accounts; browse and filter history; watch account balances, spending trends, and upcoming recurring payments — all from one local SQLite ledger, with no server and no subscription.
 
-**Status:** The Windows ledger, CSV import/export, recurring reminders, snapshot
-backup/restore, and read-only Android snapshot viewer are implemented. Release
-polish and distribution remain. Dashboard balances and history come from the
-local SQLite ledger; Transactions provides combined search and filters.
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-blue)
+![Framework](https://img.shields.io/badge/.NET-10-purple)
+![UI](https://img.shields.io/badge/UI-Avalonia-8A2BE2)
+![Language](https://img.shields.io/badge/language-C%23-239120)
 
-## Project map
+**Status:** the Windows ledger, CSV import/export, recurring reminders, snapshot backup/restore, and the read-only Android viewer are implemented. Release polish and distribution remain — see [docs/PLAN.md](docs/PLAN.md).
 
-| File | Purpose |
-| --- | --- |
-| [AGENTS.md](AGENTS.md) | Agent entry point and working rules |
-| [MEMORY.md](MEMORY.md) | Compact dated handoff and current evidence |
-| [Specification](docs/SPECIFICATION.md) | Requirements, behavior, and explicit defaults |
-| [Architecture](docs/ARCHITECTURE.md) | Technical boundaries and decision record |
-| [Acceptance scenarios](docs/ACCEPTANCE.md) | Observable correctness and release checks |
-| [Implementation plan](docs/PLAN.md) | Ordered milestones and current checkpoint |
+## What it does
 
-## Harness check
+1. Records expenses, income, and transfers against local accounts, with dated opening balances and up to two levels of categories.
+2. Shows net worth, income/expense trends, and a cumulative timeline for whatever period and filters are currently selected — day, week, month, year, or a custom range.
+3. Tracks recurring payments (rent, subscriptions, insurance) by description and due month, surfacing overdue and upcoming occurrences without ever creating a transaction automatically.
+4. Imports the owner's existing CSV export once — matching transfers, opening balances, and categories — and exports the ledger back to CSV at any time.
+5. Backs up and restores consistent local snapshots, and hands a read-only, validated copy to the Android companion for balance and history lookups on the go.
 
-From the project root, run:
+The Windows desktop is the only writer; Android never opens or synchronizes the live database. See [docs/Technical_Design_Description.md](docs/Technical_Design_Description.md) for how that boundary — and the rest of the design — works.
 
-```powershell
-powershell -NoProfile -File scripts/Check-Harness.ps1
-```
+## UI overview
 
-This checks required context files, local Markdown links, and ignore rules for
-private data. It does not build or validate an application. It can optionally
-check the current CSV structure without printing financial values:
+Everything lives on one Overview dashboard: a filter row (period presets, custom dates, description, and amount range) drives every card and chart below it.
 
-```powershell
-powershell -NoProfile -File scripts/Check-Harness.ps1 -CheckPrivateImport
-```
+![Overview](docs/view_home.png)
 
-The optional check does not replace importer or reconciliation tests.
-No additional packages are required for these PowerShell checks.
+- **Accounts** — balances per account, with checkboxes that feed the same filter as every other card, and total net worth below the list.
+- **Income / Expenses / Average** — totals for the selected period, plus per-calendar-unit averages that account for periods with no activity.
+- **Trend / Timeline** — a bar/line chart of income, expenses, and savings by day, week, or month, and a cumulative comparison against the immediately preceding period of equal length.
+- **Categories** — checkbox filtering with parent/child rollup, shared with the **Top expenditures** card on the right.
+- **Transaction history** — a paged, searchable, double-click-to-edit table combining every filter above.
+- **Reminders** — upcoming and overdue recurring payments, with totals for everything shown and for the next calendar month.
 
-## Private data
+A gear icon opens **Settings** for the database/backup/snapshot folder pickers, CSV import/export, snapshot export/restore, and the English/German/Russian/Ukrainian language picker.
 
-`transactions.csv` is the user's private import source. It is intentionally ignored
-by Git. Keep live databases, exported snapshots, and backups outside source
-control. Committed tests use only synthetic fixtures.
-Ignore rules do not encrypt data or remove files already tracked elsewhere.
+## Tech stack
 
-## Development setup
+- **.NET 10 / Avalonia** — one shared UI toolkit for the Windows desktop app and the Android viewer
+- **SQLite** (`Microsoft.Data.Sqlite`) — local relational storage, no server, no ORM
+- **xUnit** — unit and SQLite integration test suite
 
-Install .NET SDK **10.0.201**, pinned by global.json. All projects target net10.0.
-Direct packages are pinned in project files; packages.lock.json files lock the
-transitive graph. Use locked restore for ordinary builds; intentionally regenerate
-and review locks when changing dependencies. Initial restore needs NuGet access.
+## Project structure
+
+| Project                                                     | Purpose                                                                                |
+|:----------------------------------------------------------- |:-------------------------------------------------------------------------------------- |
+| `src/Balancia.Core`                                         | Domain rules and application operations; no Avalonia, SQLite, or platform dependencies |
+| `src/Balancia.Storage`                                      | SQLite schema, migrations, queries, CSV import/export, and snapshot storage            |
+| `src/Balancia.Desktop`                                      | The Avalonia Windows application (full read/write UI)                                  |
+| `src/Balancia.Android`                                      | The read-only Avalonia Android shell                                                   |
+| `tests/Balancia.Core.Tests`, `tests/Balancia.Storage.Tests` | Unit and SQLite integration tests                                                      |
+
+## Documentation
+
+- [`docs/Technical_Design_Description.md`](docs/Technical_Design_Description.md) — architecture, context diagrams, and design decisions; the primary entry point for the project
+- [`docs/PLAN.md`](docs/PLAN.md) — remaining/upcoming tasks
+- [`docs/Coding Guidelines.md`](docs/Coding%20Guidelines.md) — C# formatting conventions
+- [`AGENTS.md`](AGENTS.md) / [`MEMORY.md`](MEMORY.md) — entry point and working handoff for AI agents and contributors
+
+## Getting started
+
+Install .NET SDK **10.0.201**, pinned by `global.json`. All projects target `net10.0`; direct package versions are pinned in project files and `packages.lock.json` locks the transitive graph.
 
 ```powershell
 dotnet restore Balancia.slnx --locked-mode
@@ -60,48 +68,10 @@ dotnet test Balancia.slnx -c Release --no-build --no-restore
 dotnet run --project src/Balancia.Desktop -c Release --no-build --no-restore
 ```
 
-Close the app before rebuilding on Windows to release its executable files.
+For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--` in the `dotnet run` command — the app creates that directory and its schema on first run.
 
-| Dependency | Version |
-| --- | --- |
-| Avalonia.Desktop / Avalonia.Themes.Fluent | 12.1.2 |
-| Microsoft.Data.Sqlite | 10.0.12 |
-| Microsoft.NET.Test.Sdk | 18.10.1 |
-| xUnit | 2.9.3 |
-| xunit.runner.visualstudio | 4.0.0 |
+The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db` by default. To import an existing CSV export, open Settings, choose **Import CSV**, inspect the preview, and apply it; a repeated identical import is a no-op, and a changed row under the same ID surfaces as a conflict instead of a silent overwrite. **Export CSV** writes the current ledger, including opening balances, in Balancia's own format.
 
-Core has no package dependencies. Storage uses Microsoft.Data.Sqlite directly.
-The Windows editor uses small navigation and dialog event handlers.
-Tests use synthetic data and temporary SQLite files, removed after each test.
-The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db`.
-For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--`
-in the `dotnet run` command. The app creates that directory and its version 3
-schema on first run. Upgrading a version 1 database writes a consistent `.bak`
-file beside it before migration. Opening an unsupported newer schema fails. Close the
-running app before rebuilding on Windows. The Android API 36 viewer is built and
-has been verified on a Samsung S20 FE.
+## Private data
 
-To import, open Settings, choose **Import CSV**, inspect the preview,
-and apply it. Invalid rows block import. Repeated identical imports add nothing;
-changed CSV IDs or locally edited imported entries cause a conflict. The
-source file is never modified. For a private-export reconciliation test in an
-isolated temporary database, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute
-path before running the test command, then remove the environment variable.
-**Export CSV** from the modal Settings form saves the current ledger, including
-opening balances, as a standard nine-column CSV. It is a ledger export and has
-a different format from the eleven-column source accepted by Import CSV.
-
-The Overview history shows 100 newest entries in the selected period. Its filter
-panel combines case-insensitive description search, account, type,
-category/subcategory, inclusive date, and inclusive absolute CHF amount filters;
-parent categories include their subcategories. Use Previous/Next to browse
-results. Double-click a row to edit it. The window minimum is 1280 × 1280.
-The main page is Overview. Account and category management is
-available from cards on Overview. Recurring
-template Add/Edit actions are in the Upcoming payments card on Overview.
-The Settings tab places category Add/Edit above a list that grows with the
-window and holds CSV and snapshot actions.
-
-The harness explicitly instructs agents to read MEMORY.md; it does not assume
-that filename is loaded automatically. The instruction entry point follows the
-[official AGENTS.md guidance](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
+Committed tests use only synthetic fixtures. For a one-off reconciliation test against a real export, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute path before running the test command, then unset it. Ignore rules do not encrypt data or remove files already tracked elsewhere.
