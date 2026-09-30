@@ -14,7 +14,7 @@ public sealed record FlowAverages(Money Income, Money Expenses);
 
 public sealed partial class LedgerStore
 {
-    public FlowAverages ReadFlowAverages(HistoryFilter filter, AverageInterval interval)
+    public FlowAverages ReadFlowAverages(TransactionsFilter filter, AverageInterval interval)
     {
         filter.Validate();
 

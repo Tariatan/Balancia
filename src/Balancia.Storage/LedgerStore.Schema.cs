@@ -63,7 +63,7 @@ public sealed partial class LedgerStore
 
         if (version == 2)
         {
-            CreateRecurringTable(c, tx);
+            CreateReminderTemplatesTable(c, tx);
             Execute(c, tx, "PRAGMA user_version=3");
         }
 
@@ -80,8 +80,8 @@ public sealed partial class LedgerStore
         CREATE UNIQUE INDEX import_transaction ON import_sources(transaction_id);
         """);
 
-    private static void CreateRecurringTable(SqliteConnection c, SqliteTransaction tx) => Execute(c, tx, """
-        CREATE TABLE IF NOT EXISTS recurring_templates (
+    private static void CreateReminderTemplatesTable(SqliteConnection c, SqliteTransaction tx) => Execute(c, tx, """
+        CREATE TABLE IF NOT EXISTS reminder_templates (
             id TEXT PRIMARY KEY, description TEXT NOT NULL CHECK(length(trim(description))>0),
             expected_date TEXT NOT NULL, indicative_amount INTEGER NOT NULL CHECK(indicative_amount>0),
             interval_months INTEGER NOT NULL CHECK(interval_months>0), archived INTEGER NOT NULL CHECK(archived IN (0,1)));

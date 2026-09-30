@@ -30,7 +30,7 @@ public sealed class FlowQueriesTests : IDisposable
         Add(new DateOnly(2025, 1, 2), 12.50m, category: child, source: otherAccount);
         Add(new DateOnly(2025, 1, 2), 12.50m, category: child, description: "Other");
         Add(new DateOnly(2025, 1, 2), 12.50m, category: child, kind: TransactionKind.Income);
-        var filter = new HistoryFilter("mAtCh", account, TransactionKind.Expense, parent,
+        var filter = new TransactionsFilter("mAtCh", account, TransactionKind.Expense, parent,
             new DateOnly(2025, 1, 1), new DateOnly(2025, 1, 31), Money.FromFrancs(12.50m), Money.FromFrancs(12.50m));
 
         // Act
@@ -45,7 +45,7 @@ public sealed class FlowQueriesTests : IDisposable
     }
 
     [Fact]
-    public void ReadFlowAnalytics_MoreThanHistoryPage_ExcludesTransfersAndOpeningAndKeepsNegativeSavings()
+    public void ReadFlowAnalytics_MoreThanTransactionsPage_ExcludesTransfersAndOpeningAndKeepsNegativeSavings()
     {
         // Arrange
         var date = new DateOnly(2025, 2, 1);
@@ -60,7 +60,7 @@ public sealed class FlowQueriesTests : IDisposable
             Money.FromFrancs(100), account, destination));
 
         // Act
-        var result = store.ReadFlowAnalytics(new HistoryFilter());
+        var result = store.ReadFlowAnalytics(new TransactionsFilter());
         var bucket = result.Trend(FlowInterval.Month)[0];
 
         // Assert
@@ -68,7 +68,7 @@ public sealed class FlowQueriesTests : IDisposable
         Assert.Equal(Money.FromFrancs(12.50m), bucket.Expenses);
         Assert.Equal(Money.FromFrancs(5m), bucket.Income);
         Assert.Equal(Money.FromFrancs(-7.50m), bucket.Savings);
-        Assert.Empty(store.ReadFlowAnalytics(new HistoryFilter(Kind: TransactionKind.Transfer)).Current);
+        Assert.Empty(store.ReadFlowAnalytics(new TransactionsFilter(Kind: TransactionKind.Transfer)).Current);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class FlowQueriesTests : IDisposable
         // Arrange
         Add(new DateOnly(2024, 2, 29), 10m);
         Add(new DateOnly(2024, 4, 1), 15m);
-        var data = store.ReadFlowAnalytics(new HistoryFilter(From: new DateOnly(2024, 2, 28), To: new DateOnly(2024, 4, 2)));
+        var data = store.ReadFlowAnalytics(new TransactionsFilter(From: new DateOnly(2024, 2, 28), To: new DateOnly(2024, 4, 2)));
 
         // Act
         var buckets = data.Trend(FlowInterval.Month);
@@ -97,7 +97,7 @@ public sealed class FlowQueriesTests : IDisposable
     {
         // Arrange
         var date = new DateOnly(2025, 2, 1);
-        var filter = new HistoryFilter(From: date, To: date);
+        var filter = new TransactionsFilter(From: date, To: date);
 
         // Act
         var data = store.ReadFlowAnalytics(filter);
@@ -124,12 +124,12 @@ public sealed class FlowQueriesTests : IDisposable
         Add(date, 40m, category: other);
         Add(date, 50m);
         Add(new DateOnly(2024, 12, 10), 5m, category: child);
-        var filter = new HistoryFilter(Description: "match", AccountId: account,
+        var filter = new TransactionsFilter(Description: "match", AccountId: account,
             From: new DateOnly(2025, 1, 1), To: new DateOnly(2025, 1, 31),
             CategoryIds: [parent, child, salary]);
 
         // Act
-        var history = store.ReadHistory(filter, pageSize: 1);
+        var history = store.ReadTransactions(filter, pageSize: 1);
         var totals = store.ReadDesktopSnapshotForFilter(filter);
         var flows = store.ReadFlowAnalytics(filter);
 
@@ -141,15 +141,15 @@ public sealed class FlowQueriesTests : IDisposable
         Assert.Equal(totals.MonthlyExpenses, Assert.Single(flows.Current).Expenses);
         Assert.Equal(totals.MonthlyIncome, Assert.Single(flows.Current).Income);
         Assert.Equal(Money.FromFrancs(5), Assert.Single(flows.Previous).Expenses);
-        Assert.Equal(1, store.ReadHistory(filter with
+        Assert.Equal(1, store.ReadTransactions(filter with
         {
             CategoryIds = [child]
         }).TotalCount);
-        Assert.Equal(5, store.ReadHistory(filter with
+        Assert.Equal(5, store.ReadTransactions(filter with
         {
             CategoryIds = []
         }).TotalCount);
-        Assert.Equal(2, store.ReadHistory(filter with
+        Assert.Equal(2, store.ReadTransactions(filter with
         {
             CategoryIds = null,
             CategoryId = parent
@@ -170,10 +170,10 @@ public sealed class FlowQueriesTests : IDisposable
         Add(date, 100m, source: cash, kind: TransactionKind.Income);
         store.SaveTransaction(null, new TransactionDraft(TransactionKind.Transfer, date, "Transfer",
             Money.FromFrancs(5), account, cash));
-        var filter = new HistoryFilter(From: date, To: date, AccountIds: [account, cash]);
+        var filter = new TransactionsFilter(From: date, To: date, AccountIds: [account, cash]);
 
         // Act
-        var history = store.ReadHistory(filter);
+        var history = store.ReadTransactions(filter);
         var totals = store.ReadDesktopSnapshotForFilter(filter);
         var flows = store.ReadFlowAnalytics(filter);
 
@@ -183,15 +183,15 @@ public sealed class FlowQueriesTests : IDisposable
         Assert.Equal(Money.FromFrancs(30), totals.MonthlyExpenses);
         Assert.Equal(Money.FromFrancs(100), totals.MonthlyIncome);
         Assert.Equal(totals.MonthlyExpenses, Assert.Single(flows.Current).Expenses);
-        Assert.Equal(2, store.ReadHistory(filter with
+        Assert.Equal(2, store.ReadTransactions(filter with
         {
             CategoryId = category
         }).TotalCount);
-        Assert.Equal(5, store.ReadHistory(filter with
+        Assert.Equal(5, store.ReadTransactions(filter with
         {
             AccountIds = []
         }).TotalCount);
-        Assert.Equal(3, store.ReadHistory(filter with
+        Assert.Equal(3, store.ReadTransactions(filter with
         {
             AccountIds = null,
             AccountId = cash

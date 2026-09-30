@@ -61,10 +61,10 @@ public sealed class PerformanceTests(ITestOutputHelper output)
             }
             var mix = new (string Name, Action Action)[]
             {
-                ("first page", () => _ = store.ReadHistory(new HistoryFilter())),
-                ("deep cursor page", () => _ = store.ReadHistoryAfter(new HistoryFilter(), deepCursor.Date, deepCursor.Id)),
-                ("search", () => _ = store.ReadHistory(new HistoryFilter(Description: "expense 12345"))),
-                ("combined filter", () => _ = store.ReadHistory(new HistoryFilter(AccountId: account, Kind: TransactionKind.Expense,
+                ("first page", () => _ = store.ReadTransactions(new TransactionsFilter())),
+                ("deep cursor page", () => _ = store.ReadTransactionsAfter(new TransactionsFilter(), deepCursor.Date, deepCursor.Id)),
+                ("search", () => _ = store.ReadTransactions(new TransactionsFilter(Description: "expense 12345"))),
+                ("combined filter", () => _ = store.ReadTransactions(new TransactionsFilter(AccountId: account, Kind: TransactionKind.Expense,
                     CategoryId: category, From: new DateOnly(2025, 1, 1), To: new DateOnly(2025, 12, 31),
                     Minimum: new Money(100), Maximum: new Money(100)))),
                 ("dashboard", () => _ = store.ReadDesktopSnapshot()),

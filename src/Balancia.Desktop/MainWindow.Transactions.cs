@@ -15,7 +15,7 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private static Grid HistoryRow(HistoryHit hit, string emptyDescriptionText = "")
+    private static Grid TransactionRow(TransactionsHit hit, string emptyDescriptionText = "")
     {
         var entry = hit.Entry;
         var effect = hit.AccountEffect;
@@ -28,14 +28,14 @@ public partial class MainWindow
                 _ => "↔ "
             };
 
-        return HistoryRow(entry.Draft.Date.ToString("dd MMM yyyy", Culture),
+        return TransactionRow(entry.Draft.Date.ToString("dd MMM yyyy", Culture),
             string.IsNullOrWhiteSpace(entry.Draft.Description) ? emptyDescriptionText : entry.Draft.Description,
             entry.CategoryPath ?? "—",
             entry.DestinationName is null ? entry.AccountName : $"{entry.AccountName} → {entry.DestinationName}",
             sign + AmountText(amount.Abs()), false, entry.Draft.Kind);
     }
 
-    private static Grid HistoryRow(string date, string description, string category, string account, string amount,
+    private static Grid TransactionRow(string date, string description, string category, string account, string amount,
         bool header, TransactionKind? kind = null)
     {
         var row = new Grid
@@ -358,12 +358,12 @@ public partial class MainWindow
 
     private async Task RemoveTransaction(LedgerEntry entry) => await EditDialog("Remove transaction",
         [
-            HistoryRow(new HistoryHit(entry, null), "(No description)"),
+            TransactionRow(new TransactionsHit(entry, null), "(No description)"),
             Text("Remove this transaction? For a transfer, both account movements will be removed together.")
         ],
         () => () => store.DeleteTransaction(entry.Id), "Remove");
 
-    private sealed record HistoryItem(HistoryHit Hit)
+    private sealed record TransactionItem(TransactionsHit Hit)
     {
         public override string ToString()
         {

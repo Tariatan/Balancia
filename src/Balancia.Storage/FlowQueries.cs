@@ -4,14 +4,14 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
-    public FlowAnalytics ReadFlowAnalytics(HistoryFilter filter)
+    public FlowAnalytics ReadFlowAnalytics(TransactionsFilter filter)
     {
         filter.Validate();
         using var connection = connections.Open();
         using var transaction = connection.BeginTransaction(deferred: true);
         var to = filter.To ?? (filter.From is { } start && start > Today ? start : Today);
         var earliest = Scalar(connection, transaction,
-            "SELECT MIN(l.date) " + HistoryFrom + " AND l.kind IN ('Income','Expense')",
+            "SELECT MIN(l.date) " + TransactionsFrom + " AND l.kind IN ('Income','Expense')",
             FilterParameters(filter with
             {
                 To = to
@@ -31,7 +31,7 @@ public sealed partial class LedgerStore
             var days = new List<DailyFlow>();
             using var command = Command(connection, transaction,
                 "SELECT l.date, SUM(CASE WHEN l.kind='Income' THEN m.amount ELSE 0 END), " +
-                "SUM(CASE WHEN l.kind='Expense' THEN -m.amount ELSE 0 END) " + HistoryFrom +
+                "SUM(CASE WHEN l.kind='Expense' THEN -m.amount ELSE 0 END) " + TransactionsFrom +
                 " AND l.kind IN ('Income','Expense') GROUP BY l.date ORDER BY l.date",
                 FilterParameters(filter with
                 {

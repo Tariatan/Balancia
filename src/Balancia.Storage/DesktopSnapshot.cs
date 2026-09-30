@@ -12,9 +12,9 @@ public sealed partial class LedgerStore
     }
 
     public LedgerSnapshot ReadDesktopSnapshotForPeriod(DateOnly? from, DateOnly? to)
-        => ReadDesktopSnapshotForFilter(new HistoryFilter(From: from, To: to));
+        => ReadDesktopSnapshotForFilter(new TransactionsFilter(From: from, To: to));
 
-    public LedgerSnapshot ReadDesktopSnapshotForFilter(HistoryFilter filter)
+    public LedgerSnapshot ReadDesktopSnapshotForFilter(TransactionsFilter filter)
     {
         filter.Validate();
 
@@ -30,7 +30,7 @@ public sealed partial class LedgerStore
             SELECT CASE WHEN parent.id=$category THEN category.name
                    ELSE COALESCE(parent.name,category.name,'Uncategorized') END,
                    SUM(-m.amount)
-            """ + " " + HistoryFrom + """
+            """ + " " + TransactionsFrom + """
              AND l.kind='Expense'
             GROUP BY CASE WHEN parent.id=$category THEN category.id
                           ELSE COALESCE(parent.id,category.id,'') END

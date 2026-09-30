@@ -29,7 +29,7 @@
   - [Ledger Write Lifecycle](#ledger-write-lifecycle)
   - [Read Queries and Indexing](#read-queries-and-indexing)
   - [CSV Import and Export](#csv-import-and-export)
-  - [Recurring Reminders](#recurring-reminders)
+  - [Reminders](#reminders)
   - [Snapshot Export, Validation, and Restore](#snapshot-export-validation-and-restore)
 - [Desktop Context (Balancia.Desktop)](#desktop-context-balanciadesktop)
   - [Window Composition](#window-composition)
@@ -45,7 +45,7 @@
 
 This document outlines the design of **Balancia** — a single-user personal
 finance ledger. Windows provides full management of accounts, transactions,
-categories, and recurring reminders; a companion Android app provides
+categories, and reminders; a companion Android app provides
 read-only balances and history search from a manually transported snapshot.
 Balancia replaces the owner's prior CSV-based workflow while preserving an
 import path for it.
@@ -102,9 +102,9 @@ workflows of each context.
 | **Immutable snapshots via user-managed Drive transport**   | No hosted API is required; stale mobile data is acceptable; the live database is never synced directly.                                                  | Snapshot export/import must be self-contained (schema, dataset identity, revision, integrity hash) so Android can validate a file without contacting Windows.        |
 | **Description + occurrence month/year for recurrence**     | The user defines recurrence manually; no fuzzy matching, amount matching, or bank integration is in scope.                                               | Reminder satisfaction compares only the exact description against the transaction's calendar month/year; amount and day never participate.                           |
 | **Money as signed 64-bit integer centimes**                | Binary floating point cannot represent currency amounts exactly and would risk silent rounding drift across thousands of transactions.                   | All monetary fields use checked `Int64` centime arithmetic; parsing rejects fractional centimes, overflow, and non-decimal input.                                    |
-| **No generic repository over every table**                 | Storage exposes the specific reads/writes each application operation needs (e.g. `HistoryFilter`, `ReadFlowAnalytics`) rather than a generic CRUD layer. | New query needs are added as purpose-built, parameterized SQL rather than generalized through an ORM abstraction.                                                    |
+| **No generic repository over every table**                 | Storage exposes the specific reads/writes each application operation needs (e.g. `TransactionsFilter`, `ReadFlowAnalytics`) rather than a generic CRUD layer. | New query needs are added as purpose-built, parameterized SQL rather than generalized through an ORM abstraction.                                                    |
 | **Explicit UI culture over ambient thread culture**        | Async filter refreshes previously reverted labels to the ambient thread culture after a language switch, showing stale text.                             | All resource lookups and date-picker calendar captions use the explicitly selected `CultureInfo`, not `CultureInfo.CurrentUICulture` read from the executing thread. |
-| **`MainWindow` split into feature-scoped partial classes** | A single monolithic window file became too large to navigate as Overview, Transactions, Categories, Recurring, Accounts, and Settings UI grew.           | Each partial file owns one feature area's controls and handlers; `MainWindow.axaml.cs` retains only shared state, initialization, refresh, and navigation.           |
+| **`MainWindow` split into feature-scoped partial classes** | A single monolithic window file became too large to navigate as Overview, Transactions, Categories, Reminders, Accounts, and Settings UI grew.           | Each partial file owns one feature area's controls and handlers; `MainWindow.axaml.cs` retains only shared state, initialization, refresh, and navigation.           |
 
 ## Overview
 
@@ -114,7 +114,7 @@ desktop app owns exclusively:
 1. The owner records income, expenses, transfers, and dated opening balances
    through the Windows Overview dashboard, or imports them from a CSV export
    of the prior tracking tool.
-2. Categories (up to two levels) and recurring payment templates classify and
+2. Categories (up to two levels) and reminder templates classify and
    forecast transactions; reminders track unresolved occurrences without ever
    creating transactions automatically.
 3. Every successful write validates domain invariants inside one database
@@ -222,7 +222,7 @@ class Movement {
   amountCentimes: Int64 (signed)
 }
 
-class RecurringTemplate {
+class ReminderTemplate {
   description
   indicativeCentimes
   intervalMonths
@@ -272,8 +272,9 @@ ImportSource --> LedgerTransaction
 - Zero amounts, fractional centimes, overflow, and same-account transfers are
   rejected at the domain boundary.
 - A transfer is one logical operation: creating, editing, or deleting it
-  always affects both accounts atomically. History renders it as a single
-  entry; per-account views show its signed effect on that account only.
+  always affects both accounts atomically. The transaction list renders it as
+  a single entry; per-account views show its signed effect on that account
+  only.
 - Dates use `DateOnly` semantics for financial dates (no time zone) and UTC
   instants for snapshot metadata.
 
@@ -282,7 +283,7 @@ ImportSource --> LedgerTransaction
 `Balancia.Storage` implements the persistence boundaries required by Core's
 operations directly against SQLite — there is no generic repository for every
 table. It owns the schema, all parameterized queries, CSV import/export, the
-recurring reminder calculation, and snapshot lifecycle.
+reminder calculation, and snapshot lifecycle.
 
 ### Schema and Migrations
 
@@ -314,7 +315,7 @@ else validation passes
     Storage --> UI : failure
   else write succeeds
     Storage --> UI : success and new revision
-    UI -> UI : reload affected reads\n(balances, history, reminders)
+    UI -> UI : reload affected reads\n(balances, transactions, reminders)
   end
 end
 @enduml
@@ -326,17 +327,18 @@ every transaction change.
 
 ### Read Queries and Indexing
 
-- `HistoryFilter` combines an optional category-ID set with the existing
-  single-category filter; shared history/count/aggregate predicates use a
+- `TransactionsFilter` combines an optional category-ID set with the existing
+  single-category filter; shared read/count/aggregate predicates use a
   parameterized JSON array with SQLite `json_each`, matching a category or its
   parent without joining and multiplying rows.
 - `ReadFlowAnalytics` reuses that same predicate to read current and prior
   periods in one SQLite read transaction for the Trend/Timeline charts; Core
   groups the daily amounts into calendar buckets with checked `Money`
   arithmetic.
-- History pages use a stable date/ID cursor of 100 rows instead of loading
-  every row; a count query supports result totals. The write path checks
-  movement and month totals without materializing every history entry.
+- Transactions pages use a stable date/ID cursor of 100 rows instead of
+  loading every row; a count query supports result totals. The write path
+  checks movement and month totals without materializing every transaction
+  entry.
 - Candidate indexes: ledger date + stable ID; movement account + transaction;
   category + date through query design; description/date for recurrence. A
   leading-wildcard substring search (description search) may scan
@@ -388,7 +390,7 @@ DestinationAccount, Category, Memo. This nine-column export format is
 independent of the eleven-column import format; the existing target file is
 replaced only after the write completes.
 
-### Recurring Reminders
+### Reminders
 
 An occurrence is satisfied when a posted transaction has exactly the
 template's description and falls within that occurrence's calendar month and
@@ -461,13 +463,13 @@ file stays scoped to one feature area:
 |:----------------------------------- |:----------------------------------------------------------------- |
 | `MainWindow.axaml.cs`               | Shared state, initialization, refresh, navigation, page selection |
 | `MainWindow.Overview.cs`            | Assembles and refreshes the Overview dashboard                    |
-| `MainWindow.OverviewFilterState.cs` | Owns Overview period and filter state                             |
-| `MainWindow.OverviewFilters.cs`     | Builds the Overview filter row controls                           |
-| `MainWindow.OverviewHistory.cs`     | Builds the paged transaction history card                         |
-| `MainWindow.OverviewCategories.cs`  | Builds the largest-expense-categories card                        |
+| `MainWindow.FilterState.cs`         | Owns Overview period and filter state                             |
+| `MainWindow.FiltersPanel.cs`        | Builds the Overview filter row controls                           |
+| `MainWindow.TransactionsPanel.cs`   | Builds the paged transactions card                                 |
+| `MainWindow.CategoriesPanel.cs`     | Builds the largest-expense-categories card                        |
 | `MainWindow.Transactions.cs`        | Transaction add/edit/delete dialogs                               |
 | `MainWindow.Categories.cs`          | Category management and checkbox filtering                        |
-| `MainWindow.RecurringPayments.cs`   | Upcoming payments card and template add/edit                      |
+| `MainWindow.RemindersPanel.cs`      | Reminders card and template add/edit                              |
 | `MainWindow.Accounts.cs`            | Accounts card and account add/edit/archive                        |
 | `MainWindow.DataTransfer.cs`        | CSV import/export and snapshot export/restore actions             |
 | `MainWindow.Settings.cs`            | The modal Settings dialog and folder pickers                      |
@@ -476,7 +478,7 @@ file stays scoped to one feature area:
 The Overview dashboard is the single transaction-editing surface (there is no
 separate Transactions page); filter and period changes update mounted
 controls in place rather than rebuilding the page, so focus and scroll
-position are preserved. Category, account, and recurring-template management
+position are preserved. Category, account, and reminder-template management
 live in their respective Overview cards rather than dedicated pages.
 
 ### Localization

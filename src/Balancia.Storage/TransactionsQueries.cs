@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Balancia.Storage;
 
-public sealed record HistoryFilter(string? Description = null, string? AccountId = null,
+public sealed record TransactionsFilter(string? Description = null, string? AccountId = null,
     TransactionKind? Kind = null, string? CategoryId = null, DateOnly? From = null,
     DateOnly? To = null, Money? Minimum = null, Money? Maximum = null,
     IReadOnlyList<string>? CategoryIds = null, IReadOnlyList<string>? AccountIds = null)
@@ -27,12 +27,12 @@ public sealed record HistoryFilter(string? Description = null, string? AccountId
         }
     }
 }
-public sealed record HistoryHit(LedgerEntry Entry, Money? AccountEffect);
-public sealed record HistoryPage(IReadOnlyList<HistoryHit> Hits, long TotalCount, int Offset, int PageSize, long Revision);
+public sealed record TransactionsHit(LedgerEntry Entry, Money? AccountEffect);
+public sealed record TransactionsPage(IReadOnlyList<TransactionsHit> Hits, long TotalCount, int Offset, int PageSize, long Revision);
 
 public sealed partial class LedgerStore
 {
-    private const string HistoryFrom = """
+    private const string TransactionsFrom = """
         FROM ledger l
         JOIN movements m ON m.transaction_id=l.id AND (l.kind<>'Transfer' OR m.amount<0)
         JOIN accounts a ON a.id=m.account_id
@@ -51,7 +51,7 @@ public sealed partial class LedgerStore
           AND ($minimum IS NULL OR abs(m.amount)>=$minimum)
           AND ($maximum IS NULL OR abs(m.amount)<=$maximum)
         """;
-    private const string HistoryCount = """
+    private const string TransactionsCount = """
         SELECT COUNT(*) FROM ledger l WHERE l.kind<>'OpeningBalance'
           AND ($description IS NULL OR contains_ci(l.description,$description))
           AND ($accounts IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id IN (SELECT value FROM json_each($accounts))))
@@ -65,13 +65,13 @@ public sealed partial class LedgerStore
           AND ($maximum IS NULL OR EXISTS(SELECT 1 FROM movements amount WHERE amount.transaction_id=l.id AND abs(amount.amount)<=$maximum))
         """;
 
-    public HistoryPage ReadHistory(HistoryFilter filter, int offset = 0, int pageSize = 100)
-        => ReadHistoryCore(filter, offset, pageSize, null, null);
+    public TransactionsPage ReadTransactions(TransactionsFilter filter, int offset = 0, int pageSize = 100)
+        => ReadTransactionsCore(filter, offset, pageSize, null, null);
 
-    public HistoryPage ReadAllHistory(HistoryFilter filter)
-        => ReadHistoryCore(filter, 0, null, null, null);
+    public TransactionsPage ReadAllTransactions(TransactionsFilter filter)
+        => ReadTransactionsCore(filter, 0, null, null, null);
 
-    public int FindHistoryOffset(string transactionId)
+    public int FindTransactionOffset(string transactionId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(transactionId);
         using var c = connections.Open();
@@ -86,13 +86,13 @@ public sealed partial class LedgerStore
         return checked((int)offset);
     }
 
-    public HistoryPage ReadHistoryAfter(HistoryFilter filter, DateOnly afterDate, string afterId, int pageSize = 100)
+    public TransactionsPage ReadTransactionsAfter(TransactionsFilter filter, DateOnly afterDate, string afterId, int pageSize = 100)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(afterId);
-        return ReadHistoryCore(filter, 0, pageSize, afterDate, afterId);
+        return ReadTransactionsCore(filter, 0, pageSize, afterDate, afterId);
     }
 
-    private HistoryPage ReadHistoryCore(HistoryFilter filter, int offset, int? pageSize, DateOnly? afterDate, string? afterId)
+    private TransactionsPage ReadTransactionsCore(TransactionsFilter filter, int offset, int? pageSize, DateOnly? afterDate, string? afterId)
     {
         if (offset < 0 || pageSize is < 1 or > 1000)
         {
@@ -104,14 +104,14 @@ public sealed partial class LedgerStore
         using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         var values = FilterParameters(filter);
-        var count = Convert.ToInt64(Scalar(c, tx, HistoryCount, values));
-        var hits = new List<HistoryHit>();
+        var count = Convert.ToInt64(Scalar(c, tx, TransactionsCount, values));
+        var hits = new List<TransactionsHit>();
         using (var cmd = Command(c, tx, """
             SELECT l.id,l.kind,l.date,l.description,l.category_id,l.memo,m.account_id,m.amount,
                    d.account_id,a.name,destination.name,
                    CASE WHEN category.id IS NULL THEN NULL WHEN parent.id IS NULL THEN category.name ELSE parent.name || ' / ' || category.name END,
                    d.amount
-            """ + " " + HistoryFrom +
+            """ + " " + TransactionsFrom +
             " AND ($cursorDate IS NULL OR l.date<$cursorDate OR (l.date=$cursorDate AND l.id<$cursorId))" +
             " ORDER BY l.date DESC,l.id DESC LIMIT $limit OFFSET $offset",
             [.. values, ("$cursorDate", afterDate is null ? null : DateText(afterDate.Value)),
@@ -129,22 +129,22 @@ public sealed partial class LedgerStore
                 var entry = new LedgerEntry(reader.GetString(0), draft, reader.GetString(9),
                     reader.IsDBNull(10) ? null : reader.GetString(10), reader.IsDBNull(11) ? null : reader.GetString(11));
                 Money? effect = filter.AccountId is null ? null : new Money(filter.AccountId == source ? amount : reader.GetInt64(12));
-                hits.Add(new HistoryHit(entry, effect));
+                hits.Add(new TransactionsHit(entry, effect));
             }
         }
 
         var revision = Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1"));
         tx.Commit();
-        return new HistoryPage(hits, count, offset, pageSize ?? hits.Count, revision);
+        return new TransactionsPage(hits, count, offset, pageSize ?? hits.Count, revision);
     }
 
     // Shared by DesktopSnapshot.ReadDesktopSnapshotForFilter and FlowAverages.ReadFlowAverages, which both
     // need the absolute Income/Expense total for the same filtered period.
     private static object? ReadAbsoluteFlowTotal(SqliteConnection c, SqliteTransaction tx, (string, object?)[] filterValues, string kind) =>
-        Scalar(c, tx, "SELECT COALESCE(SUM(abs(m.amount)),0) " + HistoryFrom + " AND l.kind=$flowKind",
+        Scalar(c, tx, "SELECT COALESCE(SUM(abs(m.amount)),0) " + TransactionsFrom + " AND l.kind=$flowKind",
             [.. filterValues, ("$flowKind", kind)]);
 
-    private static (string, object?)[] FilterParameters(HistoryFilter filter) =>
+    private static (string, object?)[] FilterParameters(TransactionsFilter filter) =>
     [
         ("$description", string.IsNullOrEmpty(filter.Description) ? null : filter.Description),
         ("$accounts", filter.HasAccountFilter ? JsonSerializer.Serialize((filter.AccountIds ?? []).Concat(filter.AccountId is { } accountId ? [accountId] : []).Distinct()) : null),

@@ -12,15 +12,15 @@ public partial class MainWindow
     private void FillCategoriesPanel(StackPanel body, LedgerSnapshot ledgerSnapshot)
     {
         body.Children.Clear();
-        renderedOverviewCategories = [.. ledgerSnapshot.LargestCategories];
-        renderedOverviewCategoryId = overviewFilter.CategoryId;
-        var selectedCategory = ledgerSnapshot.Categories.FirstOrDefault(c => c.Id == overviewFilter.CategoryId);
+        renderedCategories = [.. ledgerSnapshot.LargestCategories];
+        renderedCategoryId = filter.CategoryId;
+        var selectedCategory = ledgerSnapshot.Categories.FirstOrDefault(c => c.Id == filter.CategoryId);
         var hasSubcategories = selectedCategory is not null &&
             ledgerSnapshot.Categories.Any(c => c.ParentId == selectedCategory.Id);
         var title = hasSubcategories
             ? Format("Top expenditures · {0}", selectedCategory!.Name)
             : Get("Top expenditures");
-        overviewCategoryHeading.Text = title;
+        CategoryHeading.Text = title;
 
         if (ledgerSnapshot.LargestCategories.Count == 0)
         {

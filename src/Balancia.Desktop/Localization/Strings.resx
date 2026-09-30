@@ -89,12 +89,11 @@
   <data name="Opening date" xml:space="preserve"><value>Opening date</value></data>
   <data name="Opening amount" xml:space="preserve"><value>Opening amount</value></data>
   <data name="Reminders" xml:space="preserve"><value>Reminders</value></data>
-  <data name="No recurring payment templates." xml:space="preserve"><value>No recurring payment templates.</value></data>
-  <data name="Add recurring payment" xml:space="preserve"><value>Add recurring payment</value></data>
-  <data name="Delete selected recurring payment" xml:space="preserve"><value>Delete selected recurring payment</value></data>
-  <data name="Delete recurring payment" xml:space="preserve"><value>Delete recurring payment</value></data>
-  <data name="Add recurring template" xml:space="preserve"><value>Add recurring template</value></data>
-  <data name="Edit recurring template" xml:space="preserve"><value>Edit recurring template</value></data>
+  <data name="No reminders yet" xml:space="preserve"><value>No reminders yet</value></data>
+  <data name="Add reminder" xml:space="preserve"><value>Add reminder</value></data>
+  <data name="Delete selected reminder" xml:space="preserve"><value>Delete selected reminder</value></data>
+  <data name="Delete reminder" xml:space="preserve"><value>Delete reminder</value></data>
+  <data name="Edit reminder" xml:space="preserve"><value>Edit reminder</value></data>
   <data name="Description (exact match)" xml:space="preserve"><value>Description (exact match)</value></data>
   <data name="Expected date" xml:space="preserve"><value>Expected date</value></data>
   <data name="Repeat every N months" xml:space="preserve"><value>Repeat every N months</value></data>

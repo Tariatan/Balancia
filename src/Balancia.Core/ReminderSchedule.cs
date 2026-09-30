@@ -1,6 +1,6 @@
 namespace Balancia.Core;
 
-public static class RecurringSchedule
+public static class ReminderSchedule
 {
     public static DateOnly AddMonthsClamped(DateOnly date, int months, int desiredDay)
     {

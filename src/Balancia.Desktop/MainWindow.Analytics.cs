@@ -8,12 +8,12 @@ namespace Balancia.Desktop;
 public partial class MainWindow
 {
     private FlowAnalytics? overviewAnalytics;
-    private HistoryFilter analyticsFilter = new();
+    private TransactionsFilter analyticsFilter = new();
     private FlowInterval trendInterval = FlowInterval.Week;
 
     private void InitializeTrendPanel()
     {
-        trendIntervalLabel.Text = Get(trendInterval.ToString());
+        TrendIntervalLabel.Text = Get(trendInterval.ToString());
         TrendPanelBorder.PointerWheelChanged += (_, args) =>
         {
             var nextInterval = (trendInterval, args.Delta.Y > 0) switch
@@ -27,7 +27,7 @@ public partial class MainWindow
             if (nextInterval != trendInterval)
             {
                 trendInterval = nextInterval;
-                trendIntervalLabel.Text = Get(trendInterval.ToString());
+                TrendIntervalLabel.Text = Get(trendInterval.ToString());
                 UpdateAnalyticsCharts();
             }
 
@@ -37,7 +37,7 @@ public partial class MainWindow
 
     private void LocalizeTrendPanel()
     {
-        trendIntervalLabel.Text = Get(trendInterval.ToString());
+        TrendIntervalLabel.Text = Get(trendInterval.ToString());
     }
 
     private void SetDefaultTrendInterval(OverviewPeriod period, DateOnly? from, DateOnly? to)
@@ -57,7 +57,7 @@ public partial class MainWindow
         }
 
         trendInterval = interval;
-        trendIntervalLabel.Text = Get(trendInterval.ToString());
+        TrendIntervalLabel.Text = Get(trendInterval.ToString());
     }
 
     private void UpdateAnalyticsCharts()
@@ -95,7 +95,7 @@ public partial class MainWindow
                 bucket.From.ToString(trendInterval == FlowInterval.Month || data.To.DayNumber - data.From.DayNumber > 365
                     ? "MMM yy" : "dd MMM", Culture), details, amounts);
         }).ToArray();
-        trendChart.SetData(trendPoints, trendSeries, data.Current.Count == 0 ? empty ?? Get("No matching transactions in this period") : empty);
+        TrendChart.SetData(trendPoints, trendSeries, data.Current.Count == 0 ? empty ?? Get("No matching transactions in this period") : empty);
 
         // Compare expenses by default, or income when explicitly filtered to income.
         var metric = incomeOnly ? Get("Income") : Get("Expense");
@@ -109,10 +109,10 @@ public partial class MainWindow
         var currentTotal = Money.Zero;
         var previousTotal = Money.Zero;
         var timelinePoints = new List<FlowChartPoint>();
-        foreach (var offset in offsets)
+        foreach (var dayOffset in offsets)
         {
-            var date = data.From.AddDays(offset);
-            var previousDate = data.PreviousFrom?.AddDays(offset);
+            var date = data.From.AddDays(dayOffset);
+            var previousDate = data.PreviousFrom?.AddDays(dayOffset);
             while (currentIndex < data.Current.Count && data.Current[currentIndex].Date <= date)
             {
                 var day = data.Current[currentIndex++];
@@ -127,11 +127,11 @@ public partial class MainWindow
 
             var details = $"{metric} · {date.ToString("dd MMM yyyy", Culture)}: {AmountText(currentTotal)}" +
                 (previousDate is null ? string.Empty : $"\n{Get("Previous period")} · {previousDate.Value.ToString("dd MMM yyyy", Culture)}: {AmountText(previousTotal)}");
-            timelinePoints.Add(new FlowChartPoint(length == 0 ? 0.5 : offset / (double)length,
+            timelinePoints.Add(new FlowChartPoint(length == 0 ? 0.5 : dayOffset / (double)length,
                 date.ToString(length > 365 ? "MMM yy" : "dd MMM", Culture), details, [currentTotal, previousTotal]));
         }
 
-        timelineChart.SetData(timelinePoints,
+        TimelineChart.SetData(timelinePoints,
             [new FlowChartSeries(metric, incomeOnly ? "#2C8B6D" : "#EF8072", Steps: true),
                 new FlowChartSeries(Get("Previous period"), "#B8C2CC", Steps: true)], empty);
     }

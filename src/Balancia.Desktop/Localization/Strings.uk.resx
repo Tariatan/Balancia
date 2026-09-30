@@ -89,12 +89,11 @@
   <data name="Opening date" xml:space="preserve"><value>Дата відкриття</value></data>
   <data name="Opening amount" xml:space="preserve"><value>Початкова сума</value></data>
   <data name="Reminders" xml:space="preserve"><value>Нагадування</value></data>
-  <data name="No recurring payment templates." xml:space="preserve"><value>Немає шаблонів повторюваних платежів.</value></data>
-  <data name="Add recurring payment" xml:space="preserve"><value>Додати повторюваний платіж</value></data>
-  <data name="Delete selected recurring payment" xml:space="preserve"><value>Видалити вибраний повторюваний платіж</value></data>
-  <data name="Delete recurring payment" xml:space="preserve"><value>Видалити повторюваний платіж</value></data>
-  <data name="Add recurring template" xml:space="preserve"><value>Додати шаблон платежу</value></data>
-  <data name="Edit recurring template" xml:space="preserve"><value>Редагувати шаблон платежу</value></data>
+  <data name="No reminders yet" xml:space="preserve"><value>Нагадувань ще немає</value></data>
+  <data name="Add reminder" xml:space="preserve"><value>Додати нагадування</value></data>
+  <data name="Delete selected reminder" xml:space="preserve"><value>Видалити вибране нагадування</value></data>
+  <data name="Delete reminder" xml:space="preserve"><value>Видалити нагадування</value></data>
+  <data name="Edit reminder" xml:space="preserve"><value>Редагувати нагадування</value></data>
   <data name="Description (exact match)" xml:space="preserve"><value>Опис (точний збіг)</value></data>
   <data name="Expected date" xml:space="preserve"><value>Очікувана дата</value></data>
   <data name="Repeat every N months" xml:space="preserve"><value>Повторювати кожні N місяців</value></data>

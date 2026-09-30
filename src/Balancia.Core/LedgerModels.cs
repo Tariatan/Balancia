@@ -55,7 +55,7 @@ public sealed record LedgerSnapshot(IReadOnlyList<Account> Accounts, IReadOnlyLi
     IReadOnlyList<LedgerEntry> Entries, Money NetWorth, Money MonthlyIncome, Money MonthlyExpenses,
     IReadOnlyList<CategoryTotal> LargestCategories, long Revision);
 
-public sealed record RecurringTemplate(string Id, string Description, DateOnly ExpectedDate,
+public sealed record ReminderTemplate(string Id, string Description, DateOnly ExpectedDate,
     Money IndicativeAmount, int IntervalMonths, bool Archived);
-public sealed record RecurringReminder(RecurringTemplate Template, DateOnly Occurrence,
+public sealed record Reminder(ReminderTemplate Template, DateOnly Occurrence,
     bool Overdue, bool Satisfied);

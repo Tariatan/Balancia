@@ -21,8 +21,8 @@ public partial class MainWindow : Window
     internal string languageCode;
     private string? languagePreference;
     private LedgerSnapshot? snapshot;
-    private FlowAverages overviewAverages = new(Money.Zero, Money.Zero);
-    private IReadOnlyList<RecurringReminder> reminders = [];
+    private FlowAverages averages = new(Money.Zero, Money.Zero);
+    private IReadOnlyList<Reminder> reminders = [];
     private bool busy;
     private DateOnly displayDate = DateOnly.FromDateTime(DateTime.Today);
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
@@ -32,7 +32,7 @@ public partial class MainWindow : Window
     internal void SetStatus(string text)
     {
         statusMessage = Get(text);
-        overviewStatus.Text = statusMessage;
+        OverviewStatus.Text = statusMessage;
     }
 
     public MainWindow()
@@ -102,7 +102,7 @@ public partial class MainWindow : Window
                     e.Handled = true;
                     await EditTransaction(null);
                     break;
-                case Key.Delete when (overviewHistoryList?.SelectedItem is HistoryItem item):
+                case Key.Delete when (TransactionsList?.SelectedItem is TransactionItem item):
                     e.Handled = true;
                     await RemoveTransaction(item.Hit.Entry);
                     break;
@@ -116,14 +116,14 @@ public partial class MainWindow : Window
     {
         displayDate = DateOnly.FromDateTime(DateTime.Today);
         var (from, to) = OverviewRange();
-        var filter = overviewFilter with
+        var filter = this.filter with
         {
-            From = overviewFilter.From ?? from,
-            To = overviewFilter.To ?? to
+            From = this.filter.From ?? from,
+            To = this.filter.To ?? to
         };
         snapshot = await Task.Run(() => store.ReadDesktopSnapshotForFilter(filter));
-        reminders = await Task.Run(() => store.ReadRecurringReminders());
-        overviewHistory = await Task.Run(() => store.ReadHistory(filter, overviewOffset));
+        reminders = await Task.Run(() => store.ReadReminders());
+        transactions = await Task.Run(() => store.ReadTransactions(filter, offset));
         overviewAnalytics = await Task.Run(() => store.ReadFlowAnalytics(filter));
         var averageInterval = overviewPeriod switch
         {
@@ -136,7 +136,7 @@ public partial class MainWindow : Window
         {
             From = overviewPeriod == OverviewPeriod.Custom ? filter.From : null
         };
-        overviewAverages = await Task.Run(() => store.ReadFlowAverages(averageFilter, averageInterval));
+        averages = await Task.Run(() => store.ReadFlowAverages(averageFilter, averageInterval));
         analyticsFilter = filter;
 
         if (updateOverviewInPlace)
@@ -205,21 +205,21 @@ public partial class MainWindow : Window
         RenderAccountPanel(s);
         RenderCategoryPanel(s);
         RenderRemindersPanel();
-        FillCategoriesPanel(overviewCategoryBody, s);
+        FillCategoriesPanel(CategoryBody, s);
         SyncOverviewFilterInputs();
         SyncOverviewFilterDates();
         renderedPeriodState = null;
-        overviewHistoryList.ItemsSource = null;
+        TransactionsList.ItemsSource = null;
         RenderOverview(s);
     }
 
     private void InitializeOverview()
     {
-        overviewSettingsButton.Click += async (_, _) => await OpenSettingsDialog();
+        SettingsButton.Click += async (_, _) => await OpenSettingsDialog();
         InitializeOverviewFilters();
         InitializeAccountPanel();
         InitializeCategoryPanel();
-        InitializeHistoryPanel();
+        InitializeTransactionsPanel();
         InitializeRemindersPanel();
         InitializeTrendPanel();
     }

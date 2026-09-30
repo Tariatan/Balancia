@@ -6,56 +6,56 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private IReadOnlyList<CategoryTotal> renderedOverviewCategories = [];
-    private string? renderedOverviewCategoryId;
+    private IReadOnlyList<CategoryTotal> renderedCategories = [];
+    private string? renderedCategoryId;
 
     private void LocalizeOverview()
     {
-        ToolTip.SetTip(overviewSettingsButton, Get("Open settings"));
-        overviewIncomeTitle.Text = Get("Income");
-        overviewExpensesTitle.Text = Get("Expenses");
-        overviewAverageIncomeTitle.Text = Get("Average");
-        overviewAverageExpensesTitle.Text = Get("Average");
-        LocalizeOverviewFilters();
-        LocalizeHistoryPanel();
+        ToolTip.SetTip(SettingsButton, Get("Open settings"));
+        IncomeTitle.Text = Get("Income");
+        ExpensesTitle.Text = Get("Expenses");
+        AverageIncomeTitle.Text = Get("Average");
+        AverageExpensesTitle.Text = Get("Average");
+        LocalizeFilters();
+        LocalizeTransactionsPanel();
         LocalizeTrendPanel();
     }
 
     private void RenderOverview(LedgerSnapshot ledgerSnapshot)
     {
-        var label = OverviewScopeLabel();
-        overviewSummaryLabel.Text = Get(label);
-        overviewIncomeValue.Text = AmountText(ledgerSnapshot.MonthlyIncome);
-        overviewIncomeScope.Text = Get(label);
-        overviewExpensesValue.Text = AmountText(ledgerSnapshot.MonthlyExpenses);
-        overviewExpensesScope.Text = Get(label);
-        overviewAverageIncomeValue.Text = AmountText(overviewAverages.Income);
-        overviewAverageIncomeScope.Text = Get(OverviewAverageScopeLabel());
-        overviewAverageExpensesValue.Text = AmountText(overviewAverages.Expenses);
-        overviewAverageExpensesScope.Text = Get(OverviewAverageScopeLabel());
+        var label = ScopeLabel();
+        SummaryLabel.Text = Get(label);
+        IncomeValue.Text = AmountText(ledgerSnapshot.MonthlyIncome);
+        IncomeScope.Text = Get(label);
+        ExpensesValue.Text = AmountText(ledgerSnapshot.MonthlyExpenses);
+        ExpensesScope.Text = Get(label);
+        AverageIncomeValue.Text = AmountText(averages.Income);
+        AverageIncomeScope.Text = Get(AverageScopeLabel());
+        AverageExpensesValue.Text = AmountText(averages.Expenses);
+        AverageExpensesScope.Text = Get(AverageScopeLabel());
         UpdateAnalyticsCharts();
-        UpdateOverviewPeriodButtons();
-        if (renderedOverviewCategoryId != overviewFilter.CategoryId ||
-            !renderedOverviewCategories.SequenceEqual(ledgerSnapshot.LargestCategories))
+        UpdateFilterButtons();
+        if (renderedCategoryId != filter.CategoryId ||
+            !renderedCategories.SequenceEqual(ledgerSnapshot.LargestCategories))
         {
-            FillCategoriesPanel(overviewCategoryBody, ledgerSnapshot);
+            FillCategoriesPanel(CategoryBody, ledgerSnapshot);
         }
 
-        var total = overviewHistory?.TotalCount ?? 0;
-        var first = total == 0 ? 0 : overviewOffset + 1;
-        var last = overviewOffset + (overviewHistory?.Hits.Count ?? 0);
-        overviewHistoryHeading.Text = $"{Get("Transactions")} · {first:N0}-{last:N0} / {total:N0}";
-        overviewHistoryEmpty.IsVisible = total == 0;
-        var currentItems = overviewHistoryList.ItemsSource?.OfType<HistoryItem>().ToArray() ?? [];
-        var nextItems = overviewHistory?.Hits.Select(hit => new HistoryItem(hit)).ToArray() ?? [];
+        var total = transactions?.TotalCount ?? 0;
+        var first = total == 0 ? 0 : offset + 1;
+        var last = offset + (transactions?.Hits.Count ?? 0);
+        TransactionsHeading.Text = $"{Get("Transactions")} · {first:N0}-{last:N0} / {total:N0}";
+        TransactionsEmpty.IsVisible = total == 0;
+        var currentItems = TransactionsList.ItemsSource?.OfType<TransactionItem>().ToArray() ?? [];
+        var nextItems = transactions?.Hits.Select(hit => new TransactionItem(hit)).ToArray() ?? [];
         if (!currentItems.SequenceEqual(nextItems))
         {
-            var selectedId = (overviewHistoryList.SelectedItem as HistoryItem)?.Hit.Entry.Id;
-            overviewHistoryList.ItemsSource = nextItems;
-            overviewHistoryList.SelectedItem = nextItems.FirstOrDefault(item => item.Hit.Entry.Id == selectedId);
+            var selectedId = (TransactionsList.SelectedItem as TransactionItem)?.Hit.Entry.Id;
+            TransactionsList.ItemsSource = nextItems;
+            TransactionsList.SelectedItem = nextItems.FirstOrDefault(item => item.Hit.Entry.Id == selectedId);
         }
-        overviewPreviousPage.IsEnabled = overviewOffset > 0;
-        overviewNextPage.IsEnabled = overviewHistory is { } currentPage &&
-            overviewOffset + currentPage.Hits.Count < currentPage.TotalCount;
+        TransactionsPreviousPage.IsEnabled = offset > 0;
+        TransactionsNextPage.IsEnabled = transactions is { } currentPage &&
+            offset + currentPage.Hits.Count < currentPage.TotalCount;
     }
 }

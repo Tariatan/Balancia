@@ -72,7 +72,7 @@ public class MainActivity : Activity
         }
         try
         {
-            var page = viewerStore.ReadHistory(new HistoryFilter(search?.Text), 0, 50);
+            var page = viewerStore.ReadTransactions(new TransactionsFilter(search?.Text), 0, 50);
             results!.Text = page.Hits.Count == 0 ? "No matching transactions." :
                 string.Join("\n", page.Hits.Select(h => $"{h.Entry.Draft.Date:yyyy-MM-dd} · {h.Entry.Draft.Kind} · {h.Entry.Draft.Amount.Francs:N2} · {h.Entry.Draft.Description}"));
         }

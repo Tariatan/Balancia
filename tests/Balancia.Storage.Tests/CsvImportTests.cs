@@ -240,7 +240,7 @@ public sealed class CsvImportTests : IDisposable
         using (var c = new SqliteConnectionFactory(db).Open())
         using (var cmd = c.CreateCommand())
         {
-            cmd.CommandText = "DROP TABLE import_sources; PRAGMA user_version=1";
+            cmd.CommandText = "DROP TABLE import_sources; DROP TABLE reminder_templates; PRAGMA user_version=1";
             cmd.ExecuteNonQuery();
         }
         store.Initialize();
@@ -259,11 +259,11 @@ public sealed class CsvImportTests : IDisposable
         using (var c = new SqliteConnectionFactory(db).Open())
         using (var cmd = c.CreateCommand())
         {
-            cmd.CommandText = "DROP TABLE import_sources; DROP TABLE recurring_templates; PRAGMA user_version=1";
+            cmd.CommandText = "DROP TABLE import_sources; DROP TABLE reminder_templates; PRAGMA user_version=1";
             cmd.ExecuteNonQuery();
         }
         store.Initialize();
-        store.SaveRecurringTemplate(null, "Rent", new DateOnly(2026, 10, 1), Money.FromFrancs(1), 1);
+        store.SaveReminder(null, "Rent", new DateOnly(2026, 10, 1), Money.FromFrancs(1), 1);
         using var c2 = new SqliteConnectionFactory(db).Open();
         using var check = c2.CreateCommand();
         check.CommandText = "PRAGMA user_version";

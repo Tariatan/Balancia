@@ -19,7 +19,7 @@ public partial class MainWindow
         Custom,
     }
 
-    private HistoryFilter overviewFilter = new();
+    private TransactionsFilter filter = new();
     private bool overviewFiltersVisible;
     private bool pendingOverviewFilterRefresh;
     private OverviewPeriod overviewPeriod = OverviewPeriod.ThisMonth;
@@ -65,19 +65,19 @@ public partial class MainWindow
         _ => $"{customFrom?.ToString("dd MMM yyyy", Culture)} – {customTo?.ToString("dd MMM yyyy", Culture)}"
     };
 
-    private string OverviewScopeLabel()
+    private string ScopeLabel()
     {
         var range = OverviewRange();
-        var hasAdditionalFilter = !string.IsNullOrEmpty(overviewFilter.Description) ||
-            overviewFilter.HasAccountFilter || overviewFilter.Kind is not null ||
-            overviewFilter.HasCategoryFilter || overviewFilter.Minimum is not null ||
-            overviewFilter.Maximum is not null ||
-            (overviewFilter.From ?? range.From) != range.From ||
-            (overviewFilter.To ?? range.To) != range.To;
+        var hasAdditionalFilter = !string.IsNullOrEmpty(filter.Description) ||
+            filter.HasAccountFilter || filter.Kind is not null ||
+            filter.HasCategoryFilter || filter.Minimum is not null ||
+            filter.Maximum is not null ||
+            (filter.From ?? range.From) != range.From ||
+            (filter.To ?? range.To) != range.To;
         return hasAdditionalFilter ? Get("Filtered transactions") : Get(OverviewPeriodLabel());
     }
 
-    private string OverviewAverageScopeLabel() => overviewPeriod switch
+    private string AverageScopeLabel() => overviewPeriod switch
     {
         OverviewPeriod.Day => "Per calendar day",
         OverviewPeriod.ThisWeek => "Per calendar week",
@@ -85,7 +85,7 @@ public partial class MainWindow
         _ => "Per calendar month",
     };
 
-    private void UpdateOverviewPeriodButtons()
+    private void UpdateFilterButtons()
     {
         var current = (_overviewPeriod: overviewPeriod, _overviewFiltersVisible: overviewFiltersVisible);
         if (renderedPeriodState == current)
@@ -120,8 +120,8 @@ public partial class MainWindow
         updatingFilterControls = true;
         try
         {
-            overviewFilterFrom.SelectedDate = (overviewFilter.From ?? range.From)?.ToDateTime(TimeOnly.MinValue);
-            overviewFilterTo.SelectedDate = (overviewFilter.To ?? range.To)?.ToDateTime(TimeOnly.MinValue);
+            FilterFrom.SelectedDate = (filter.From ?? range.From)?.ToDateTime(TimeOnly.MinValue);
+            FilterTo.SelectedDate = (filter.To ?? range.To)?.ToDateTime(TimeOnly.MinValue);
         }
         finally
         {

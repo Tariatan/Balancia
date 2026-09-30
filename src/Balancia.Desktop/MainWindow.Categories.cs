@@ -15,7 +15,7 @@ public partial class MainWindow
     private readonly Dictionary<string, CheckBox> categoryFilterChecks = [];
 
     private bool IsCategorySelected(string id) =>
-        overviewFilter.CategoryId == id || overviewFilter.CategoryIds?.Contains(id) == true;
+        filter.CategoryId == id || filter.CategoryIds?.Contains(id) == true;
 
     private void InitializeCategoryPanel()
     {
@@ -67,17 +67,17 @@ public partial class MainWindow
                 await EditCategory(choice.Value);
             }
         };
-        overviewCategoryAddButton.Click += async (_, _) => await EditCategory(null);
-        overviewCategoryArchiveButton.Click += async (_, _) => await ArchiveSelectedCategory(CategoriesList);
-        overviewCategoryRemoveButton.Click += async (_, _) => await DeleteSelectedCategory(CategoriesList);
+        CategoryAddButton.Click += async (_, _) => await EditCategory(null);
+        CategoryArchiveButton.Click += async (_, _) => await ArchiveSelectedCategory(CategoriesList);
+        CategoryRemoveButton.Click += async (_, _) => await DeleteSelectedCategory(CategoriesList);
     }
 
     private void RenderCategoryPanel(LedgerSnapshot ledgerSnapshot)
     {
-        overviewCategoriesHeading.Text = Get("Categories");
-        ToolTip.SetTip(overviewCategoryAddButton, Get("Add category"));
-        ToolTip.SetTip(overviewCategoryArchiveButton, Get("Archive selected category"));
-        ToolTip.SetTip(overviewCategoryRemoveButton, Get("Delete selected category"));
+        CategoriesHeading.Text = Get("Categories");
+        ToolTip.SetTip(CategoryAddButton, Get("Add category"));
+        ToolTip.SetTip(CategoryArchiveButton, Get("Archive selected category"));
+        ToolTip.SetTip(CategoryRemoveButton, Get("Delete selected category"));
 
         categoryFilterChecks.Clear();
         CategoriesList.ItemsSource = ledgerSnapshot.Categories
@@ -110,8 +110,8 @@ public partial class MainWindow
             return;
         }
 
-        var ids = new HashSet<string>(overviewFilter.CategoryIds ?? []);
-        if (overviewFilter.CategoryId is { } single)
+        var ids = new HashSet<string>(filter.CategoryIds ?? []);
+        if (filter.CategoryId is { } single)
         {
             ids.Add(single);
         }
@@ -125,12 +125,12 @@ public partial class MainWindow
             ids.Remove(id);
         }
 
-        overviewFilter = overviewFilter with
+        filter = filter with
         {
             CategoryId = ids.Count == 1 ? ids.Single() : null,
             CategoryIds = ids.Count > 1 ? ids.Order().ToArray() : null,
         };
-        overviewOffset = 0;
+        offset = 0;
         SyncCategoryFilterChecks();
         await RequestOverviewFilterRefresh();
     }

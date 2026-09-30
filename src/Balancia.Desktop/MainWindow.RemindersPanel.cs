@@ -13,7 +13,7 @@ public partial class MainWindow
 {
     private void InitializeRemindersPanel()
     {
-        RemindersList.ItemTemplate = new FuncDataTemplate<Choice<RecurringReminder>>((choice, _) =>
+        RemindersList.ItemTemplate = new FuncDataTemplate<Choice<Reminder>>((choice, _) =>
         {
             var row = new Grid
             {
@@ -52,24 +52,24 @@ public partial class MainWindow
         true);
         RemindersList.DoubleTapped += async (_, _) =>
         {
-            if (RemindersList.SelectedItem is Choice<RecurringReminder> selected)
+            if (RemindersList.SelectedItem is Choice<Reminder> selected)
             {
-                await EditRecurring(selected.Value);
+                await EditReminder(selected.Value);
             }
         };
-        overviewReminderAddButton.Click += async (_, _) => await EditRecurring(null);
-        overviewReminderRemoveButton.Click += async (_, _) => await DeleteSelectedRecurring(RemindersList);
+        ReminderAddButton.Click += async (_, _) => await EditReminder(null);
+        ReminderRemoveButton.Click += async (_, _) => await DeleteSelectedReminder(RemindersList);
     }
 
     private void RenderRemindersPanel()
     {
-        overviewRemindersHeading.Text = Get("Reminders");
-        ToolTip.SetTip(overviewReminderAddButton, Get("Add recurring payment"));
-        ToolTip.SetTip(overviewReminderRemoveButton, Get("Delete selected recurring payment"));
+        RemindersHeading.Text = Get("Reminders");
+        ToolTip.SetTip(ReminderAddButton, Get("Add reminder"));
+        ToolTip.SetTip(ReminderRemoveButton, Get("Delete selected reminder"));
 
-        RemindersList.ItemsSource = reminders.Select(r => new Choice<RecurringReminder>(r, ReminderText(r))).ToArray();
-        overviewRemindersEmpty.Text = Get("No recurring payment templates.");
-        overviewRemindersEmpty.IsVisible = reminders.Count == 0;
+        RemindersList.ItemsSource = reminders.Select(r => new Choice<Reminder>(r, ReminderText(r))).ToArray();
+        RemindersEmpty.Text = Get("No reminders yet");
+        RemindersEmpty.IsVisible = reminders.Count == 0;
 
         var totalNet = reminders.Aggregate(Money.Zero,
             (total, reminder) => total + reminder.Template.IndicativeAmount);
@@ -77,32 +77,32 @@ public partial class MainWindow
         var totalUpcomingMonth = reminders
             .Where(reminder => reminder.Occurrence.Year == upcomingMonth.Year && reminder.Occurrence.Month == upcomingMonth.Month)
             .Aggregate(Money.Zero, (total, reminder) => total + reminder.Template.IndicativeAmount);
-        overviewReminderTotalNetLabel.Text = Get("TOTAL NET");
-        overviewReminderTotalNetValue.Text = AmountText(totalNet);
-        overviewReminderTotalUpcomingLabel.Text = Get("TOTAL UPCOMING MONTH");
-        overviewReminderTotalUpcomingValue.Text = AmountText(totalUpcomingMonth);
+        ReminderTotalNetLabel.Text = Get("TOTAL NET");
+        ReminderTotalNetValue.Text = AmountText(totalNet);
+        ReminderTotalUpcomingLabel.Text = Get("TOTAL UPCOMING MONTH");
+        ReminderTotalUpcomingValue.Text = AmountText(totalUpcomingMonth);
     }
 
-    private async Task DeleteSelectedRecurring(ListBox recurring)
+    private async Task DeleteSelectedReminder(ListBox remindersList)
     {
-        if (recurring.SelectedItem is not Choice<RecurringReminder> choice)
+        if (remindersList.SelectedItem is not Choice<Reminder> choice)
         {
             await SelectFirst();
             return;
         }
 
-        await EditDialog("Delete recurring payment",
+        await EditDialog("Delete reminder",
             [
                 Text(Format("Delete '{0}'?", choice.Value.Template.Description))
             ],
-            () => () => store.DeleteRecurringTemplate(choice.Value.Template.Id),
+            () => () => store.DeleteReminder(choice.Value.Template.Id),
             "Delete");
     }
 
-    private static string ReminderText(RecurringReminder reminder) =>
+    private static string ReminderText(Reminder reminder) =>
         $"{(reminder.Overdue ? Get("OVERDUE · ") : "")}{reminder.Occurrence:yyyy-MM-dd} · {reminder.Template.Description} · {AmountText(reminder.Template.IndicativeAmount)} · {Format("every {0} month(s)", reminder.Template.IntervalMonths)}";
 
-    private async Task EditRecurring(RecurringReminder? reminder)
+    private async Task EditReminder(Reminder? reminder)
     {
         var template = reminder?.Template;
         var description = Input(template?.Description ?? "");
@@ -110,7 +110,7 @@ public partial class MainWindow
         var amount = Input((template?.IndicativeAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
         var interval = Input((template?.IntervalMonths ?? 1).ToString(CultureInfo.InvariantCulture));
 
-        await EditDialog(template is null ? "Add recurring template" : "Edit recurring template",
+        await EditDialog(template is null ? "Add reminder" : "Edit reminder",
             [
                 Field("Description (exact match)", description),
                 Field("Expected date", date),
@@ -121,7 +121,7 @@ public partial class MainWindow
             {
                 var values = (description.Text ?? "", ParseDate(date), ParseMoney(amount),
                     int.Parse(interval.Text ?? "", CultureInfo.InvariantCulture));
-                return () => store.SaveRecurringTemplate(template?.Id, values.Item1, values.Item2, values.Item3, values.Item4, template?.Archived ?? false);
+                return () => store.SaveReminder(template?.Id, values.Item1, values.Item2, values.Item3, values.Item4, template?.Archived ?? false);
             },
             validate: () =>
             {

@@ -28,7 +28,7 @@ public partial class MainWindow
             var check = new CheckBox
             {
                 Classes = { "compact-filter-checkbox" },
-                IsChecked = overviewFilter.AccountId == choice.Value.Id || overviewFilter.AccountIds?.Contains(choice.Value.Id) == true,
+                IsChecked = filter.AccountId == choice.Value.Id || filter.AccountIds?.Contains(choice.Value.Id) == true,
             };
             AutomationProperties.SetName(check, choice.Value.Name);
             accountFilterChecks[choice.Value.Id] = check;
@@ -72,28 +72,28 @@ public partial class MainWindow
                 await EditAccount(selected.Value);
             }
         };
-        overviewAccountAddButton.Click += async (_, _) => await EditAccount(null);
-        overviewAccountArchiveButton.Click += async (_, _) => await ArchiveSelectedAccount(AccountsList);
-        overviewAccountRemoveButton.Click += async (_, _) => await DeleteSelectedAccount(AccountsList);
+        AccountAddButton.Click += async (_, _) => await EditAccount(null);
+        AccountArchiveButton.Click += async (_, _) => await ArchiveSelectedAccount(AccountsList);
+        AccountRemoveButton.Click += async (_, _) => await DeleteSelectedAccount(AccountsList);
     }
 
     private void RenderAccountPanel(LedgerSnapshot ledgerSnapshot)
     {
-        overviewAccountsHeading.Text = Get("Accounts");
-        ToolTip.SetTip(overviewAccountAddButton, Get("Add account"));
-        ToolTip.SetTip(overviewAccountArchiveButton, Get("Archive selected account"));
-        ToolTip.SetTip(overviewAccountRemoveButton, Get("Delete selected account"));
+        AccountsHeading.Text = Get("Accounts");
+        ToolTip.SetTip(AccountAddButton, Get("Add account"));
+        ToolTip.SetTip(AccountArchiveButton, Get("Archive selected account"));
+        ToolTip.SetTip(AccountRemoveButton, Get("Delete selected account"));
 
         accountFilterChecks.Clear();
         AccountsList.ItemsSource = ledgerSnapshot.Accounts.Select(a => new Choice<Account>(a, a.Name)).ToArray();
         var hasAccounts = ledgerSnapshot.Accounts.Count > 0;
         AccountsList.IsVisible = hasAccounts;
-        overviewAccountsEmpty.IsVisible = !hasAccounts;
-        overviewAccountsEmpty.Text = Get("No accounts yet");
+        AccountsEmpty.IsVisible = !hasAccounts;
+        AccountsEmpty.Text = Get("No accounts yet");
 
-        overviewNetWorthLabel.Text = Get("Total net worth");
-        overviewNetWorthValue.Text = AmountText(ledgerSnapshot.NetWorth);
-        overviewNetWorthValue.Foreground = BalanceColor(ledgerSnapshot.NetWorth);
+        NetWorthLabel.Text = Get("Total net worth");
+        NetWorthValue.Text = AmountText(ledgerSnapshot.NetWorth);
+        NetWorthValue.Foreground = BalanceColor(ledgerSnapshot.NetWorth);
     }
 
     private void SyncAccountFilterChecks()
@@ -104,7 +104,7 @@ public partial class MainWindow
         {
             foreach (var (id, check) in accountFilterChecks)
             {
-                check.IsChecked = overviewFilter.AccountId == id || overviewFilter.AccountIds?.Contains(id) == true;
+                check.IsChecked = filter.AccountId == id || filter.AccountIds?.Contains(id) == true;
             }
         }
         finally
@@ -120,8 +120,8 @@ public partial class MainWindow
             return;
         }
 
-        var ids = new HashSet<string>(overviewFilter.AccountIds ?? []);
-        if (overviewFilter.AccountId is { } single)
+        var ids = new HashSet<string>(filter.AccountIds ?? []);
+        if (filter.AccountId is { } single)
         {
             ids.Add(single);
         }
@@ -135,12 +135,12 @@ public partial class MainWindow
             ids.Remove(id);
         }
 
-        overviewFilter = overviewFilter with
+        filter = filter with
         {
             AccountId = ids.Count == 1 ? ids.Single() : null,
             AccountIds = ids.Count > 1 ? ids.Order().ToArray() : null,
         };
-        overviewOffset = 0;
+        offset = 0;
         SyncAccountFilterChecks();
         await RequestOverviewFilterRefresh();
     }

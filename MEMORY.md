@@ -21,12 +21,12 @@ Last updated: 2026-09-28. Scope: this repository only.
 - `EditDialog` (MainWindow.Dialogs.cs) supports an optional `validate: Func<string?>?`
   callback, checked before `prepareSave`/the store call; a returned message is shown
   inline instead of letting the store's `ArgumentException` throw. Applied to every
-  Add/Edit dialog that has free-text input and a client-derivable store check: Recurring
+  Add/Edit dialog that has free-text input and a client-derivable store check: Reminder
   template (description/amount/interval), Add/Edit transaction (category path format +
   existence + archived, account opening date), Add/Edit category (name format, archived
   parent, subcategories-must-stay-top-level), Add/Edit account (name, opening date not
   in the future). Left as store-only (no `validate`) where the check genuinely needs a
-  DB round trip not covered by `snapshot` in memory — recurring-template description
+  DB round trip not covered by `snapshot` in memory — reminder-template description
   uniqueness, category/account "no longer exists" (concurrent-edit races), account
   opening date vs. first transaction date. Delete/Archive dialogs have no free-form
   input, so nothing to validate there.

@@ -44,27 +44,27 @@
         <Grid x:Name="OverviewRoot" RowDefinitions="Auto,Auto,*" RowSpacing="11">
 
           <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
-            <TextBlock x:Name="overviewSummaryLabel" Grid.Column="0" FontSize="12" Foreground="#FFB95D4D" VerticalAlignment="Center" />
-            <TextBlock x:Name="overviewStatus" Grid.Column="1" FontSize="11" Foreground="#71838D" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <Button x:Name="overviewSettingsButton" Grid.Column="2" Content="⚙" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
+            <TextBlock x:Name="SummaryLabel" Grid.Column="0" FontSize="12" Foreground="#FFB95D4D" VerticalAlignment="Center" />
+            <TextBlock x:Name="OverviewStatus" Grid.Column="1" FontSize="11" Foreground="#71838D" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <Button x:Name="SettingsButton" Grid.Column="2" Content="⚙" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
           </Grid>
 
           <Border Grid.Row="1" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="10">
             <Grid ColumnDefinitions="*,Auto">
               <WrapPanel Grid.Column="0" Orientation="Horizontal">
-                <Button x:Name="overviewPeriodButtonAll" Content="All" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="overviewPeriodButtonDay" Content="Day" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="overviewPeriodButtonWeek" Content="Week" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="overviewPeriodButtonMonth" Content="Month" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="overviewPeriodButtonYear" Content="Year" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <local:LocalizedCalendarDatePicker x:Name="overviewFilterFrom" Width="150" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
-                <local:LocalizedCalendarDatePicker x:Name="overviewFilterTo" Width="150" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
-                <TextBox x:Name="overviewFilterSearch" Width="230" Margin="0,2,0,2" HorizontalAlignment="Stretch" />
-                <Button x:Name="overviewFilterClearSearch" Content="×" Width="28" Height="34" Padding="0" FontSize="17" Background="Transparent" Foreground="#71838D" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,2,7,2" />
-                <TextBox x:Name="overviewFilterMinimum" Width="115" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
-                <TextBox x:Name="overviewFilterMaximum" Width="115" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
+                <Button x:Name="FilterButtonAll" Content="All" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
+                <Button x:Name="FilterButtonToday" Content="Day" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
+                <Button x:Name="FilterButtonWeek" Content="Week" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
+                <Button x:Name="FilterButtonMonth" Content="Month" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
+                <Button x:Name="FilterButtonYear" Content="Year" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
+                <local:LocalizedCalendarDatePicker x:Name="FilterFrom" Width="150" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
+                <local:LocalizedCalendarDatePicker x:Name="FilterTo" Width="150" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
+                <TextBox x:Name="FilterSearch" Width="230" Margin="0,2,0,2" HorizontalAlignment="Stretch" />
+                <Button x:Name="FilterClearSearch" Content="×" Width="28" Height="34" Padding="0" FontSize="17" Background="Transparent" Foreground="#71838D" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,2,7,2" />
+                <TextBox x:Name="FilterMinimum" Width="115" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
+                <TextBox x:Name="FilterMaximum" Width="115" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
               </WrapPanel>
-              <Button x:Name="overviewFilterClearAll" Grid.Column="1" Content="🗑" Width="30" Padding="0" FontSize="16" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
+              <Button x:Name="FilterClearAll" Grid.Column="1" Content="🗑" Width="30" Padding="0" FontSize="16" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
             </Grid>
           </Border>
 
@@ -73,20 +73,20 @@
             <Border Grid.Column="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="10,12,10,8">
               <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-                  <TextBlock x:Name="overviewAccountsHeading" Grid.Column="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
+                  <TextBlock x:Name="AccountsHeading" Grid.Column="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
-                    <Button x:Name="overviewAccountAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                    <Button x:Name="overviewAccountArchiveButton" Content="▣" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                    <Button x:Name="overviewAccountRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                    <Button x:Name="AccountAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                    <Button x:Name="AccountArchiveButton" Content="▣" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                    <Button x:Name="AccountRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
                   </StackPanel>
                 </Grid>
                 <Grid Grid.Row="1">
-                  <TextBlock x:Name="overviewAccountsEmpty" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" />
+                  <TextBlock x:Name="AccountsEmpty" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" />
                   <ListBox x:Name="AccountsList" Classes="compact-list" MinHeight="45" MaxHeight="170" Background="Transparent" BorderThickness="0" />
                 </Grid>
                 <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-                  <TextBlock x:Name="overviewNetWorthLabel" Grid.Column="0" FontSize="16" TextTrimming="CharacterEllipsis" />
-                  <TextBlock x:Name="overviewNetWorthValue" Grid.Column="1" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0" />
+                  <TextBlock x:Name="NetWorthLabel" Grid.Column="0" FontSize="16" TextTrimming="CharacterEllipsis" />
+                  <TextBlock x:Name="NetWorthValue" Grid.Column="1" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0" />
                 </Grid>
               </Grid>
             </Border>
@@ -94,16 +94,16 @@
             <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="*,*" RowSpacing="6">
               <Border Grid.Row="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,6">
                 <Grid RowDefinitions="Auto,*,Auto">
-                  <TextBlock x:Name="overviewIncomeTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
-                  <TextBlock x:Name="overviewIncomeValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#2C8B6D" VerticalAlignment="Center" />
-                  <TextBlock x:Name="overviewIncomeScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
+                  <TextBlock x:Name="IncomeTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
+                  <TextBlock x:Name="IncomeValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#2C8B6D" VerticalAlignment="Center" />
+                  <TextBlock x:Name="IncomeScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
                 </Grid>
               </Border>
               <Border Grid.Row="1" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,6">
                 <Grid RowDefinitions="Auto,*,Auto">
-                  <TextBlock x:Name="overviewExpensesTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
-                  <TextBlock x:Name="overviewExpensesValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#B95D4D" VerticalAlignment="Center" />
-                  <TextBlock x:Name="overviewExpensesScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
+                  <TextBlock x:Name="ExpensesTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
+                  <TextBlock x:Name="ExpensesValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#B95D4D" VerticalAlignment="Center" />
+                  <TextBlock x:Name="ExpensesScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
                 </Grid>
               </Border>
             </Grid>
@@ -111,31 +111,31 @@
             <Grid Grid.Row="0" Grid.Column="2" RowDefinitions="*,*" RowSpacing="6">
               <Border Grid.Row="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,6">
                 <Grid RowDefinitions="Auto,*,Auto">
-                  <TextBlock x:Name="overviewAverageIncomeTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
-                  <TextBlock x:Name="overviewAverageIncomeValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#2C8B6D" VerticalAlignment="Center" />
-                  <TextBlock x:Name="overviewAverageIncomeScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
+                  <TextBlock x:Name="AverageIncomeTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
+                  <TextBlock x:Name="AverageIncomeValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#2C8B6D" VerticalAlignment="Center" />
+                  <TextBlock x:Name="AverageIncomeScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
                 </Grid>
               </Border>
               <Border Grid.Row="1" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,6">
                 <Grid RowDefinitions="Auto,*,Auto">
-                  <TextBlock x:Name="overviewAverageExpensesTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
-                  <TextBlock x:Name="overviewAverageExpensesValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#B95D4D" VerticalAlignment="Center" />
-                  <TextBlock x:Name="overviewAverageExpensesScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
+                  <TextBlock x:Name="AverageExpensesTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
+                  <TextBlock x:Name="AverageExpensesValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#B95D4D" VerticalAlignment="Center" />
+                  <TextBlock x:Name="AverageExpensesScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
                 </Grid>
               </Border>
             </Grid>
 
             <Border x:Name="TrendPanelBorder" Grid.Row="0" Grid.Column="3" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,8">
               <StackPanel Spacing="4">
-                <TextBlock x:Name="trendIntervalLabel" Height="16" FontSize="11" Foreground="#71838D" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                <local:FlowChart x:Name="trendChart" />
+                <TextBlock x:Name="TrendIntervalLabel" Height="16" FontSize="11" Foreground="#71838D" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                <local:FlowChart x:Name="TrendChart" />
               </StackPanel>
             </Border>
 
             <Border Grid.Row="0" Grid.Column="4" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,8">
               <StackPanel Spacing="4">
                 <Border Height="16" />
-                <local:FlowChart x:Name="timelineChart" />
+                <local:FlowChart x:Name="TimelineChart" />
               </StackPanel>
             </Border>
 
@@ -144,11 +144,11 @@
               <Border Grid.Column="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15">
                 <Grid RowDefinitions="Auto,*" RowSpacing="6">
                   <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                    <TextBlock x:Name="overviewCategoriesHeading" Grid.Column="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
+                    <TextBlock x:Name="CategoriesHeading" Grid.Column="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
-                      <Button x:Name="overviewCategoryAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                      <Button x:Name="overviewCategoryArchiveButton" Content="▣" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                      <Button x:Name="overviewCategoryRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                      <Button x:Name="CategoryAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                      <Button x:Name="CategoryArchiveButton" Content="▣" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                      <Button x:Name="CategoryRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
                     </StackPanel>
                   </Grid>
                   <ListBox x:Name="CategoriesList" Grid.Row="1" Classes="compact-list" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" />
@@ -160,26 +160,26 @@
                 <Border Grid.Column="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,15,15,5">
                   <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="2">
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
-                      <TextBlock x:Name="overviewHistoryHeading" Grid.Column="0" FontSize="13" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
+                      <TextBlock x:Name="TransactionsHeading" Grid.Column="0" FontSize="13" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
                       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
-                        <Button x:Name="overviewHistoryAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                        <Button x:Name="overviewHistoryRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                        <Button x:Name="TransactionsAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                        <Button x:Name="TransactionsRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
                       </StackPanel>
                     </Grid>
                     <Grid Grid.Row="1" ColumnDefinitions="120,120,200,130,*" MinHeight="31">
-                      <TextBlock x:Name="overviewHistoryColumnDate" Grid.Column="0" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
-                      <TextBlock x:Name="overviewHistoryColumnAmount" Grid.Column="1" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextAlignment="Right" Margin="0,0,30,0" />
-                      <TextBlock x:Name="overviewHistoryColumnCategory" Grid.Column="2" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
-                      <TextBlock x:Name="overviewHistoryColumnAccount" Grid.Column="3" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
-                      <TextBlock x:Name="overviewHistoryColumnDescription" Grid.Column="4" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
+                      <TextBlock x:Name="TransactionsColumnDate" Grid.Column="0" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
+                      <TextBlock x:Name="TransactionsColumnAmount" Grid.Column="1" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextAlignment="Right" Margin="0,0,30,0" />
+                      <TextBlock x:Name="TransactionsColumnCategory" Grid.Column="2" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
+                      <TextBlock x:Name="TransactionsColumnAccount" Grid.Column="3" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
+                      <TextBlock x:Name="TransactionsColumnDescription" Grid.Column="4" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
                     </Grid>
                     <Grid Grid.Row="2">
-                      <TextBlock x:Name="overviewHistoryEmpty" FontSize="13" Foreground="#71838D" VerticalAlignment="Top" Margin="0,6,0,0" />
-                      <ListBox x:Name="overviewHistoryList" HorizontalAlignment="Stretch" Background="Transparent" BorderThickness="0" />
+                      <TextBlock x:Name="TransactionsEmpty" FontSize="13" Foreground="#71838D" VerticalAlignment="Top" Margin="0,6,0,0" />
+                      <ListBox x:Name="TransactionsList" HorizontalAlignment="Stretch" Background="Transparent" BorderThickness="0" />
                     </Grid>
                     <WrapPanel Grid.Row="3">
-                      <Button x:Name="overviewPreviousPage" Content="Previous page" Margin="0,10,10,10" />
-                      <Button x:Name="overviewNextPage" Content="Next page" Margin="0,10,10,10" />
+                      <Button x:Name="TransactionsPreviousPage" Content="Previous page" Margin="0,10,10,10" />
+                      <Button x:Name="TransactionsNextPage" Content="Next page" Margin="0,10,10,10" />
                     </WrapPanel>
                   </Grid>
                 </Border>
@@ -189,38 +189,37 @@
                   <Border Grid.Row="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15">
                     <StackPanel Spacing="1">
                       <Grid Margin="0,0,0,10">
-                        <TextBlock x:Name="overviewCategoryHeading" FontSize="13" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
+                        <TextBlock x:Name="CategoryHeading" FontSize="13" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
                       </Grid>
-                      <StackPanel x:Name="overviewCategoryBody" Spacing="1" />
+                      <StackPanel x:Name="CategoryBody" Spacing="1" />
                     </StackPanel>
                   </Border>
 
                   <Border Grid.Row="1" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15">
                     <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
                       <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,7">
-                        <TextBlock x:Name="overviewRemindersHeading" Grid.Column="0" FontSize="13" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
+                        <TextBlock x:Name="RemindersHeading" Grid.Column="0" FontSize="13" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
-                          <Button x:Name="overviewReminderAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                          <Button x:Name="overviewReminderRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                          <Button x:Name="ReminderAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                          <Button x:Name="ReminderRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
                         </StackPanel>
                       </Grid>
                       <Grid Grid.Row="1">
                         <ListBox x:Name="RemindersList" MinHeight="45" Background="Transparent" BorderThickness="0" />
-                        <TextBlock x:Name="overviewRemindersEmpty" FontSize="12" Foreground="#71838D" VerticalAlignment="Top" Margin="3,4,3,0" />
+                        <TextBlock x:Name="RemindersEmpty" FontSize="12" Foreground="#71838D" VerticalAlignment="Top" Margin="3,4,3,0" />
                       </Grid>
                       <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,5,0,0">
                         <StackPanel Grid.Column="0" Spacing="3">
-                          <TextBlock x:Name="overviewReminderTotalNetLabel" FontSize="10" Foreground="#71838D" VerticalAlignment="Center" />
-                          <TextBlock x:Name="overviewReminderTotalNetValue" FontSize="14" FontWeight="SemiBold" Foreground="#263C48" />
+                          <TextBlock x:Name="ReminderTotalNetLabel" FontSize="10" Foreground="#71838D" VerticalAlignment="Center" />
+                          <TextBlock x:Name="ReminderTotalNetValue" FontSize="14" FontWeight="SemiBold" Foreground="#263C48" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="3">
-                          <TextBlock x:Name="overviewReminderTotalUpcomingLabel" FontSize="10" Foreground="#71838D" VerticalAlignment="Center" />
-                          <TextBlock x:Name="overviewReminderTotalUpcomingValue" FontSize="14" FontWeight="SemiBold" Foreground="#263C48" />
+                          <TextBlock x:Name="ReminderTotalUpcomingLabel" FontSize="10" Foreground="#71838D" VerticalAlignment="Center" />
+                          <TextBlock x:Name="ReminderTotalUpcomingValue" FontSize="14" FontWeight="SemiBold" Foreground="#263C48" />
                         </StackPanel>
                       </Grid>
                     </Grid>
                   </Border>
-
                 </Grid>
               </Grid>
             </Grid>
