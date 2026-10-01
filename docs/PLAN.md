@@ -10,3 +10,7 @@ Last updated: 2026-09-28.
 - Eradicate old import format
 - Verify import of own exported format 
 - Day -> Today
+- date up/down with keyboard
+- reminders in red
+- reminders upcoming in 30 days
+- no empty transactions on new month
