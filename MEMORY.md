@@ -18,6 +18,13 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-02: Reminder satisfaction now advances the occurrence immediately
+  regardless of whether its expected date has passed. An exact-description
+  payment on October 2 satisfies an October 10 occurrence and advances a
+  monthly reminder to November 10. Month/year matching and schedule clamping
+  remain unchanged. Locked restore, Release Desktop build (zero warnings/errors),
+  and diff check passed; native reminder interaction has not been verified.
+
 - 2026-10-02: Accounts highlights the default account row with a blue tint darker
   than normal selection, extending 2px on each side without shifting content or
   adding text. Desktop Release build and

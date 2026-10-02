@@ -78,6 +78,13 @@ Versioning rule:
 
 ## Balancia.Storage
 
+### [3.0.1] - 2026-10-02
+
+#### Fixed
+
+- Advance satisfied reminder occurrences regardless of whether their expected date has passed. An exact-description payment on October 2 now advances an October 10 monthly occurrence to November 10; matching still uses calendar month/year and ignores day and amount.
+
+
 ### [3.0.0] - 2026-10-02
 
 #### Changed

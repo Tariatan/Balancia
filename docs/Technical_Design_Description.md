@@ -399,7 +399,8 @@ An occurrence is satisfied when a posted transaction has exactly the
 template's description and falls within that occurrence's calendar month and
 year; day and amount never participate, and account/category are not
 additional matching keys. On satisfaction the next occurrence is the current
-one advanced by the template's interval in months. Unmatched past occurrences
+one advanced by the template's interval in months, even if the matching payment
+is entered before the expected day in that same month. Unmatched past occurrences
 remain visible as overdue until paid or manually rescheduled — the calendar
 advancing never silently skips or auto-creates a transaction.
 

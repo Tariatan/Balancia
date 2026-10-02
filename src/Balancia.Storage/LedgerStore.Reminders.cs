@@ -19,7 +19,7 @@ public sealed partial class LedgerStore
             var template = new ReminderTemplate(r.GetString(0), r.GetString(1), ParseDate(r.GetString(2)), new Money(r.GetInt64(3)), r.GetInt32(4), r.GetBoolean(5));
             var occurrence = template.ExpectedDate;
             var satisfied = IsSatisfied(c, tx, template.Description, occurrence);
-            while (occurrence < today && satisfied)
+            while (satisfied)
             {
                 occurrence = ReminderSchedule.AddMonthsClamped(occurrence, template.IntervalMonths, template.ExpectedDate.Day);
                 satisfied = IsSatisfied(c, tx, template.Description, occurrence);
