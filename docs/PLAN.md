@@ -6,7 +6,6 @@ Last updated: 2026-09-28.
 
 - Logging
 - Comments
-- date up/down with keyboard
 - reminders in red
 - reminders upcoming in 30 days
 - no empty transactions on new month

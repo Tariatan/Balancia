@@ -13,6 +13,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.1.0] - 2026-10-02
+
+#### Added
+
+- Focused date pickers now support keyboard Up/Down to adjust the selected date by one day.
+
+#### Changed
+
+- Keyboard Up and mouse wheel up increase the date; Down and wheel down decrease it. Empty dates, date limits, blackout dates, and open-calendar keyboard navigation are preserved.
+
 ### [2.0.1] - 2026-10-02
 
 #### Changed

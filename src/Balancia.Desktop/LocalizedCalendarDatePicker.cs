@@ -17,6 +17,7 @@ internal sealed class LocalizedCalendarDatePicker : CalendarDatePicker
     public LocalizedCalendarDatePicker()
     {
         CalendarOpened += (_, _) => RefreshCalendarCulture();
+        AddHandler(KeyDownEvent, OnDateKeyDown, RoutingStrategies.Tunnel);
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -31,6 +32,53 @@ internal sealed class LocalizedCalendarDatePicker : CalendarDatePicker
         calendar?.AddHandler(InputElement.PointerPressedEvent, OnCalendarPointerPressed, RoutingStrategies.Tunnel);
         calendar?.AddHandler(InputElement.KeyDownEvent, OnCalendarKeyDown, RoutingStrategies.Tunnel);
         calendar?.AddHandler(InputElement.PointerWheelChangedEvent, OnCalendarPointerWheelChanged, RoutingStrategies.Tunnel);
+    }
+
+    private void OnDateKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Handled || IsDropDownOpen || e.KeyModifiers != KeyModifiers.None ||
+            e.Key is not (Key.Up or Key.Down) || SelectedDate is null)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        AdjustDate(e.Key == Key.Up ? 1 : -1);
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        if (!e.Handled && !IsDropDownOpen && SelectedDate is not null && e.Delta.Y != 0)
+        {
+            e.Handled = true;
+            AdjustDate(e.Delta.Y > 0 ? 1 : -1);
+        }
+
+        base.OnPointerWheelChanged(e);
+    }
+
+    private void AdjustDate(int direction)
+    {
+        if (SelectedDate is not { } selectedDate)
+        {
+            return;
+        }
+
+        if (direction < 0 && selectedDate.Date == DateTime.MinValue.Date ||
+            direction > 0 && selectedDate.Date == DateTime.MaxValue.Date)
+        {
+            return;
+        }
+
+        var nextDate = selectedDate.AddDays(direction);
+        if (DisplayDateStart is { } start && nextDate.Date < start.Date ||
+            DisplayDateEnd is { } end && nextDate.Date > end.Date ||
+            BlackoutDates?.Contains(nextDate) == true)
+        {
+            return;
+        }
+
+        SetCurrentValue(SelectedDateProperty, nextDate);
     }
 
     private static void OnCalendarPointerPressed(object? sender, PointerPressedEventArgs e) => ApplySelectedCulture();

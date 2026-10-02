@@ -488,6 +488,11 @@ Period filter buttons are All, Today, Week, Month, and Year, localized in all
 four desktop languages. Today selects the current local date; Day remains the
 name of the daily chart granularity.
 
+Closed desktop date pickers support unmodified Up/Down keys while focused:
+Up and mouse wheel up select the next day; Down and wheel down select the previous day.
+Empty dates stay empty; date limits and blackout dates are respected. Open
+calendar keyboard navigation remains unchanged.
+
 ### Localization
 
 Resource lookup uses the explicitly selected `CultureInfo`, never the ambient

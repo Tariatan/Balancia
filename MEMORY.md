@@ -18,11 +18,19 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-02: Shared desktop date pickers support unmodified Up / wheel up (next day)
+  and Down / wheel down (previous day) while the calendar is closed, preserving empty values,
+  date limits, blackout dates, and open-calendar navigation. Locked restore,
+  Release build (zero warnings/errors), and diff check passed. Native keyboard
+  verification initially crossed October 1 / September 30 in both directions.
+  Direction was then inverted at user request: native Up moved October 1 to 2,
+  and wheel up moved October 2 to 3; the revised Release build passed.
+
 - 2026-10-02: The Day period filter is now Today / Heute / Сегодня / Сьогодні,
   including initial XAML and language refresh. Chart Day granularity stays Day.
   Locked Desktop restore, Release build, and diff check passed; native visual
   review remains pending.
-- Release metadata (2026-10-02): Desktop version is 2.0.1 for the Today filter
+- Release metadata (2026-10-02): Desktop version is 2.1.0 for keyboard date adjustment (2.0.1 added the Today filter)
   label correction; Storage remains 3.0.0 for the breaking settings/CSV changes.
   Matching dated changelog entries
   added. Core and Android versions remain unchanged. The owner confirmed the
