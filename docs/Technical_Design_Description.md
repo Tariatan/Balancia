@@ -395,6 +395,14 @@ The existing target file is replaced only after the write completes.
 
 ### Reminders
 
+The desktop reminder subtotal shows **UPCOMING THIS MONTH** and sums unsatisfied
+occurrences in the current calendar month whenever any remain (including overdue
+dates in that month). Otherwise it shows **UPCOMING NEXT MONTH** and sums
+unsatisfied occurrences in the next calendar month. Older overdue occurrences
+remain in the reminder list but do not enter either monthly subtotal.
+The overall reminder total is labeled **TOTAL**. All three total labels use
+uppercase translations in every supported desktop language.
+
 An occurrence is satisfied when a posted transaction has exactly the
 template's description and falls within that occurrence's calendar month and
 year; day and amount never participate, and account/category are not

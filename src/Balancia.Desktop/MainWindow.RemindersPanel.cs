@@ -73,13 +73,16 @@ public partial class MainWindow
 
         var totalNet = reminders.Aggregate(Money.Zero,
             (total, reminder) => total + reminder.Template.IndicativeAmount);
-        var upcomingMonth = displayDate.AddMonths(1);
-        var totalUpcomingMonth = reminders
+        var pendingReminders = reminders.Where(reminder => !reminder.Satisfied).ToArray();
+        var hasPendingThisMonth = pendingReminders.Any(reminder =>
+            reminder.Occurrence.Year == displayDate.Year && reminder.Occurrence.Month == displayDate.Month);
+        var upcomingMonth = hasPendingThisMonth ? displayDate : displayDate.AddMonths(1);
+        var totalUpcomingMonth = pendingReminders
             .Where(reminder => reminder.Occurrence.Year == upcomingMonth.Year && reminder.Occurrence.Month == upcomingMonth.Month)
             .Aggregate(Money.Zero, (total, reminder) => total + reminder.Template.IndicativeAmount);
-        ReminderTotalNetLabel.Text = Get("TOTAL NET");
+        ReminderTotalNetLabel.Text = Get("TOTAL");
         ReminderTotalNetValue.Text = AmountText(totalNet);
-        ReminderTotalUpcomingLabel.Text = Get("TOTAL UPCOMING MONTH");
+        ReminderTotalUpcomingLabel.Text = Get(hasPendingThisMonth ? "UPCOMING THIS MONTH" : "UPCOMING NEXT MONTH");
         ReminderTotalUpcomingValue.Text = AmountText(totalUpcomingMonth);
     }
 

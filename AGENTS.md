@@ -50,6 +50,12 @@ Restore in locked mode. Keep global.json, package versions, and lock files align
 review lock changes when intentionally updating dependencies. Close the running
 app before rebuilding. Never present planned commands as verified ones.
 
+## Versioning
+
+Bump versions only for projects whose implementation was modified in the current
+change. Do not bump an unchanged project merely because it references a changed
+project or ships with it.
+
 ## Maintain context
 
 Keep this file short and operational. Update

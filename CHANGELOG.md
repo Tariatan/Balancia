@@ -13,6 +13,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.2.1] - 2026-10-02
+
+#### Changed
+
+- Renamed Reminders' TOTAL NET label to TOTAL and capitalized UPCOMING THIS MONTH and UPCOMING NEXT MONTH in English, German, Russian, and Ukrainian.
+
 ### [2.2.0] - 2026-10-02
 
 #### Added
