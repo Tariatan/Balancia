@@ -18,6 +18,10 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-02: Accounts highlights the default account row with a blue tint darker
+  than normal selection, extending 2px on each side without shifting content or
+  adding text. Desktop Release build and
+  diff check passed; native visual review remains pending.
 - 2026-10-02: Shared desktop date pickers support unmodified Up / wheel up (next day)
   and Down / wheel down (previous day) while the calendar is closed, preserving empty values,
   date limits, blackout dates, and open-calendar navigation. Locked restore,
@@ -30,7 +34,8 @@ Last updated: 2026-09-28. Scope: this repository only.
   including initial XAML and language refresh. Chart Day granularity stays Day.
   Locked Desktop restore, Release build, and diff check passed; native visual
   review remains pending.
-- Release metadata (2026-10-02): Desktop version is 2.1.0 for keyboard date adjustment (2.0.1 added the Today filter)
+- Release metadata (2026-10-02): Desktop version is 2.2.0 for the default account
+  highlight (2.1.0 added keyboard date adjustment; 2.0.1 added the Today filter)
   label correction; Storage remains 3.0.0 for the breaking settings/CSV changes.
   Matching dated changelog entries
   added. Core and Android versions remain unchanged. The owner confirmed the

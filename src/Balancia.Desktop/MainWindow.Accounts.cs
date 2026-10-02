@@ -46,8 +46,20 @@ public partial class MainWindow
                 ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
                 ColumnSpacing = 5,
                 MinHeight = 18,
-                Margin = new Thickness(0, 5)
+                Margin = new Thickness(0, 5),
             };
+            if (choice.Value.Id == defaultAccountId)
+            {
+                var highlight = new Border
+                {
+                    Background = Brush.Parse("#403989A7"),
+                    Margin = new Thickness(-4, 0),
+                    IsHitTestVisible = false,
+                };
+                Grid.SetColumnSpan(highlight, 3);
+                row.Children.Add(highlight);
+            }
+
             row.Children.Add(check);
             AddColumn(row, new TextBlock
             {

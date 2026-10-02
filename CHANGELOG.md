@@ -13,6 +13,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.2.0] - 2026-10-02
+
+#### Added
+
+- Highlight the default account row with a blue background slightly darker than normal selection, extending 2px on each side without adding text or shifting the row content.
+
 ### [2.1.0] - 2026-10-02
 
 #### Added
