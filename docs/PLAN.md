@@ -6,7 +6,6 @@ Last updated: 2026-09-28.
 
 - Logging
 - Comments
-- reminders in red
 - no empty transactions on new month
 - give tooptips some love
 - Descriptions history

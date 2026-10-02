@@ -22,17 +22,35 @@ public partial class MainWindow
                 MinHeight = 20
             };
             var reminder = choice.Value;
+            var daysUntilDue = reminder.Occurrence.DayNumber - displayDate.DayNumber;
+            var monthsUntilDue = (reminder.Occurrence.Year - displayDate.Year) * 12 +
+                reminder.Occurrence.Month - displayDate.Month;
+            var emphasize = !reminder.Satisfied &&
+                (reminder.Overdue || daysUntilDue is >= 0 and <= 5);
+            var foreground = Brush.Parse(reminder switch
+            {
+                { Satisfied: true } => "#263C48",
+                { Overdue: true } => "#B95D4D",
+                _ when daysUntilDue is >= 0 and <= 5 => "#B58B00",
+                _ when monthsUntilDue == 1 => "#3989A7",
+                _ when monthsUntilDue > 1 => "#2C8B6D",
+                _ => "#263C48",
+            });
 
             AddColumn(row, new TextBlock
             {
                 Text = reminder.Occurrence.ToString("dd MMM", Culture),
                 FontSize = 12,
+                FontWeight = emphasize ? FontWeight.Bold : FontWeight.Normal,
+                Foreground = foreground,
                 VerticalAlignment = VerticalAlignment.Center
             }, 0);
             AddColumn(row, new TextBlock
             {
                 Text = reminder.Template.Description,
                 FontSize = 12,
+                FontWeight = emphasize ? FontWeight.Bold : FontWeight.Normal,
+                Foreground = foreground,
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
             }, 1);
@@ -41,7 +59,8 @@ public partial class MainWindow
             {
                 Text = AmountText(reminder.Template.IndicativeAmount),
                 FontSize = 12,
-                FontWeight = FontWeight.SemiBold,
+                Foreground = foreground,
+                FontWeight = emphasize ? FontWeight.Bold : FontWeight.SemiBold,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center
             };

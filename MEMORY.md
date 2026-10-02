@@ -18,6 +18,15 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-02: Pending reminders beyond the five-day urgency window are blue in
+  the next calendar month and green in later months; red overdue and bold yellow
+  imminent styling take precedence. Month offsets include year boundaries.
+  Desktop Release build and diff check passed; native visual review is pending.
+- 2026-10-02: Pending reminder dates, descriptions, and amounts are red when
+  overdue and golden yellow for today through today + 5 days inclusive, with bold
+  text in all three columns for these groups. Satisfied
+  and later reminders retain normal text. Desktop Release build and diff check
+  passed; native visual review remains pending.
 - 2026-10-02: Reminders totals use TOTAL and uppercase UPCOMING THIS/NEXT MONTH
   labels in all four desktop languages. Desktop Release build and resource/diff
   checks passed; native visual review remains pending.
@@ -51,7 +60,8 @@ Last updated: 2026-09-28. Scope: this repository only.
   including initial XAML and language refresh. Chart Day granularity stays Day.
   Locked Desktop restore, Release build, and diff check passed; native visual
   review remains pending.
-- Release metadata (2026-10-02): Desktop version is 2.2.1 for the Reminders label
+- Release metadata (2026-10-02): Desktop version is 2.3.0 for reminder due-date
+  colors and bold urgency styling; 2.2.1 updated the Reminders labels
   update; 2.2.0 added the default account
   highlight (2.1.0 added keyboard date adjustment; 2.0.1 added the Today filter)
   label correction; Storage remains 3.0.0 for the breaking settings/CSV changes.

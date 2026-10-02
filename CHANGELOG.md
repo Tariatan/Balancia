@@ -13,6 +13,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.3.0] - 2026-10-02
+
+#### Added
+
+- Color pending reminder dates, descriptions, and amounts by due date: bold red for overdue, bold golden yellow for today through five days ahead, blue for next calendar month, and green for later months. Urgency colors take precedence over month colors, including across year boundaries.
+
 ### [2.2.1] - 2026-10-02
 
 #### Changed

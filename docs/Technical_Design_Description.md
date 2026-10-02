@@ -403,6 +403,14 @@ remain in the reminder list but do not enter either monthly subtotal.
 The overall reminder total is labeled **TOTAL**. All three total labels use
 uppercase translations in every supported desktop language.
 
+Unsatisfied reminders show their date, description, and amount in red when
+overdue, and in a readable golden yellow when due today through five days from
+today (inclusive). Both highlighted groups use bold text across all three
+columns. Remaining pending reminders are blue in the next calendar month and
+green in subsequent months, including across year boundaries. The overdue and
+five-day rules take precedence over month colors. Other reminders retain the
+normal text color; later reminders retain their normal font weights.
+
 An occurrence is satisfied when a posted transaction has exactly the
 template's description and falls within that occurrence's calendar month and
 year; day and amount never participate, and account/category are not
