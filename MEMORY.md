@@ -18,8 +18,13 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
-- Release metadata (2026-10-02): Desktop version is 2.0.0 and Storage is
-  3.0.0 for the breaking settings/CSV changes; matching dated changelog entries
+- 2026-10-02: The Day period filter is now Today / Heute / Сегодня / Сьогодні,
+  including initial XAML and language refresh. Chart Day granularity stays Day.
+  Locked Desktop restore, Release build, and diff check passed; native visual
+  review remains pending.
+- Release metadata (2026-10-02): Desktop version is 2.0.1 for the Today filter
+  label correction; Storage remains 3.0.0 for the breaking settings/CSV changes.
+  Matching dated changelog entries
   added. Core and Android versions remain unchanged. The owner confirmed the
   CSV export/import workflow successfully in Windows.
 - CSV import (2026-10-02): only the nine-column Balancia export header is

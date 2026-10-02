@@ -13,6 +13,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.0.1] - 2026-10-02
+
+#### Changed
+
+- Renamed the current-day filter from Day to Today in English, German, Russian, and Ukrainian, including startup and language changes.
+
 ### [2.0.0] - 2026-10-02
 
 #### Changed

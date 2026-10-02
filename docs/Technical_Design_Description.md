@@ -484,6 +484,10 @@ controls in place rather than rebuilding the page, so focus and scroll
 position are preserved. Category, account, and reminder-template management
 live in their respective Overview cards rather than dedicated pages.
 
+Period filter buttons are All, Today, Week, Month, and Year, localized in all
+four desktop languages. Today selects the current local date; Day remains the
+name of the daily chart granularity.
+
 ### Localization
 
 Resource lookup uses the explicitly selected `CultureInfo`, never the ambient

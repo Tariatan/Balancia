@@ -46,6 +46,7 @@
   <data name="Per calendar month" xml:space="preserve"><value>За календарний місяць</value></data>
   <data name="Per calendar year" xml:space="preserve"><value>За календарний рік</value></data>
   <data name="All" xml:space="preserve"><value>Усі</value></data>
+  <data name="Today" xml:space="preserve"><value>Сьогодні</value></data>
   <data name="Day" xml:space="preserve"><value>День</value></data>
   <data name="Week" xml:space="preserve"><value>Тиждень</value></data>
   <data name="Month" xml:space="preserve"><value>Місяць</value></data>

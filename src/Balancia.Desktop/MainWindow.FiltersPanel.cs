@@ -14,7 +14,7 @@ public partial class MainWindow
     private static readonly (OverviewPeriod Period, string TitleKey)[] OverviewPeriods =
     [
         (OverviewPeriod.All, "All"),
-        (OverviewPeriod.Day, "Day"),
+        (OverviewPeriod.Day, "Today"),
         (OverviewPeriod.ThisWeek, "Week"),
         (OverviewPeriod.ThisMonth, "Month"),
         (OverviewPeriod.ThisYear, "Year"),
@@ -82,7 +82,7 @@ public partial class MainWindow
     private void LocalizeFilters()
     {
         FilterButtonAll.Content = Get("All");
-        FilterButtonToday.Content = Get("Day");
+        FilterButtonToday.Content = Get("Today");
         FilterButtonWeek.Content = Get("Week");
         FilterButtonMonth.Content = Get("Month");
         FilterButtonYear.Content = Get("Year");
