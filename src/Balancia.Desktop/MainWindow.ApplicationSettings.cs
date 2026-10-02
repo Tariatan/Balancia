@@ -17,16 +17,19 @@ public partial class MainWindow
                 ? JsonSerializer.Deserialize<ApplicationSettings>(File.ReadAllText(path))
                 : null;
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            Serilog.Log.Warning(ex, "Unable to load application settings, SettingsPath: '{SettingsPath}'", path);
             return null;
         }
-        catch (IOException)
+        catch (IOException ex)
         {
+            Serilog.Log.Warning(ex, "Unable to load application settings, SettingsPath: '{SettingsPath}'", path);
             return null;
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
+            Serilog.Log.Warning(ex, "Unable to load application settings, SettingsPath: '{SettingsPath}'", path);
             return null;
         }
     }

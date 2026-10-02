@@ -37,11 +37,13 @@ public partial class MainWindow
 
         await Run(async () =>
         {
+            Serilog.Log.Information("Changing database location, DatabasePath: '{DatabasePath}'", dbPath);
             var replacement = new LedgerStore(dbPath);
             await Task.Run(replacement.Initialize);
             await Task.Run(() => SaveApplicationSettings(dbPath));
             store = replacement;
             databasePath = dbPath;
+            Serilog.Log.Information("Database location changed, DatabasePath: '{DatabasePath}'", dbPath);
             await Refresh();
         });
     }
@@ -58,6 +60,7 @@ public partial class MainWindow
         {
             await Task.Run(() => SaveApplicationSettings(databasePath, selected));
             backupPath = selected;
+            Serilog.Log.Information("Backup location changed, BackupPath: '{BackupPath}'", selected);
             await Refresh();
         });
     }
@@ -74,6 +77,7 @@ public partial class MainWindow
         {
             await Task.Run(() => SaveApplicationSettings(databasePath, backupPath, selected));
             snapshotPath = selected;
+            Serilog.Log.Information("Snapshot location changed, SnapshotPath: '{SnapshotPath}'", selected);
             await Refresh();
         });
     }

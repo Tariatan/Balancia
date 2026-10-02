@@ -10,6 +10,21 @@ public sealed record TransactionDraft(TransactionKind Kind, DateOnly Date, strin
 {
     public void Validate(DateOnly today)
     {
+        try
+        {
+            ValidateCore(today);
+        }
+        catch (ArgumentException exception)
+        {
+            Serilog.Log.ForContext<TransactionDraft>().Information(
+                "Transaction validation rejected, Kind: '{Kind}', AccountId: '{AccountId}', Field: '{Field}', Reason: '{Reason}'",
+                Kind, AccountId, exception.ParamName, exception.Message);
+            throw;
+        }
+    }
+
+    private void ValidateCore(DateOnly today)
+    {
         if (!Enum.IsDefined(Kind))
         {
             throw new ArgumentException("Choose a valid transaction type.", nameof(Kind));

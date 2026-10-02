@@ -54,13 +54,16 @@ public partial class CsvImportPreviewWindow : Window
         applyButton.IsEnabled = false;
         try
         {
+            Serilog.Log.Information("Applying CSV import");
             var result = await Task.Run(() => owner.store.ApplyCsvImport(preview));
+            Serilog.Log.Information("CSV import completed, Added: '{Added}', Unchanged: '{Unchanged}'", result.Added, result.Unchanged);
             Close();
             await owner.Refresh();
             owner.SetStatus(Format("Imported {0} entries; {1} unchanged.", result.Added, result.Unchanged));
         }
         catch (Exception ex)
         {
+            MainWindow.LogWorkflowFailure(ex, "CSV import");
             errorText.Text = MainWindow.FriendlyError(ex);
             applyButton.IsEnabled = true;
         }

@@ -6,7 +6,9 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
-    public int ExportCsv(string exportPath)
+    public int ExportCsv(string exportPath) => LogOperation(() => ExportCsvCore(exportPath));
+
+    private int ExportCsvCore(string exportPath)
     {
         var snapshot = ReadSnapshot();
         AtomicFileWriter.Write(exportPath, stream =>

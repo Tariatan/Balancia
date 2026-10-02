@@ -11,7 +11,17 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
     private readonly TimeProvider clock = clock ?? TimeProvider.System;
     private DateOnly Today => DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
 
-    private void Write(Action<SqliteConnection, SqliteTransaction> action)
+    private void Write(Action<SqliteConnection, SqliteTransaction> action,
+        [System.Runtime.CompilerServices.CallerMemberName] string operation = "")
+    {
+        LogOperation(() =>
+        {
+            WriteCore(action);
+            return true;
+        }, operation);
+    }
+
+    private void WriteCore(Action<SqliteConnection, SqliteTransaction> action)
     {
         using var c = connections.Open();
         using var tx = c.BeginTransaction();

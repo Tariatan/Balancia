@@ -42,13 +42,13 @@ public partial class MainWindow
             windowSettings = new WindowSettings(Width, Height, position.X, position.Y);
             SaveApplicationSettings(databasePath);
         }
-        catch (IOException)
+        catch (IOException ex)
         {
-            // Window settings are best effort and must not affect application shutdown.
+            Serilog.Log.Warning(ex, "Unable to save window settings, SettingsPath: '{SettingsPath}'", applicationSettingsPath);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
-            // Window settings are best effort and must not affect application shutdown.
+            Serilog.Log.Warning(ex, "Unable to save window settings, SettingsPath: '{SettingsPath}'", applicationSettingsPath);
         }
     }
 

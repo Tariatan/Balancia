@@ -13,6 +13,12 @@
           "SQLitePCLRaw.core": "2.1.12"
         }
       },
+      "Serilog": {
+        "type": "Direct",
+        "requested": "[4.3.1, )",
+        "resolved": "4.3.1",
+        "contentHash": "savYe7h5yRlkqBVOwP8cIRDOdqKiPmYCU4W87JH38sBmcKD5EBoXvQIw6bNEvZ/pTe1gsiye3VFCzBsoppGkXQ=="
+      },
       "Microsoft.Data.Sqlite.Core": {
         "type": "Transitive",
         "resolved": "10.0.12",
@@ -49,7 +55,10 @@
         }
       },
       "balancia.core": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Serilog": "[4.3.1, )"
+        }
       }
     }
   }

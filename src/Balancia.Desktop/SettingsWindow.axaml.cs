@@ -98,6 +98,7 @@ public partial class SettingsWindow : Window
         }
         catch (Exception ex)
         {
+            Serilog.Log.Error(ex, "Language change failed, Language: '{Language}'", selected.Code);
             languagePicker.SelectedItem = MainWindow.Languages.Single(option => option.Code == owner.languageCode);
             await owner.ShowErrorDialog("Balancia", MainWindow.FriendlyError(ex));
         }

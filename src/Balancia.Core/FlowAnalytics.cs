@@ -19,6 +19,21 @@ public sealed record FlowAnalytics(DateOnly From, DateOnly To, DateOnly? Previou
 {
     public IReadOnlyList<FlowBucket> Trend(FlowInterval interval)
     {
+        try
+        {
+            return BuildTrend(interval);
+        }
+        catch (OverflowException exception)
+        {
+            Serilog.Log.ForContext<FlowAnalytics>().Error(exception,
+                "Flow aggregation exceeded monetary limits, Interval: '{Interval}', From: '{From}', To: '{To}', FlowCount: '{FlowCount}'",
+                interval, From, To, Current.Count);
+            throw;
+        }
+    }
+
+    private IReadOnlyList<FlowBucket> BuildTrend(FlowInterval interval)
+    {
         var buckets = new List<FlowBucket>();
         var index = 0;
         var start = From;

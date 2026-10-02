@@ -42,8 +42,8 @@ public partial class MainWindow : Window
         var args = Environment.GetCommandLineArgs();
         var directoryArg = Array.IndexOf(args, "--data-dir");
         separateDataFolder = directoryArg >= 0 && directoryArg + 1 < args.Length;
-        var userDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia");
-        applicationSettingsPath = Path.Combine(userDirectory, "settings.json");
+        var userDirectory = ApplicationPaths.UserDirectory;
+        applicationSettingsPath = ApplicationPaths.SettingsFile;
         var savedSettings = LoadApplicationSettings(applicationSettingsPath);
         var directory = separateDataFolder
             ? Path.GetFullPath(args[directoryArg + 1])
@@ -70,7 +70,9 @@ public partial class MainWindow : Window
             await Task.Run(() =>
             {
                 Directory.CreateDirectory(directory);
+                Serilog.Log.Information("Initializing ledger, DatabasePath: '{DatabasePath}', SeparateDataFolder: '{SeparateDataFolder}'", databasePath, separateDataFolder);
                 store.Initialize();
+                Serilog.Log.Information("Ledger initialized");
             });
             await Refresh();
         });
@@ -172,6 +174,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            LogWorkflowFailure(ex, action.Method.Name);
             SetStatus(FriendlyError(ex));
             await ShowErrorDialog("Balancia", FriendlyError(ex));
         }

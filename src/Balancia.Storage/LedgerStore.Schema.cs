@@ -4,7 +4,13 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
-    public void Initialize()
+    public void Initialize() => LogOperation(() =>
+    {
+        InitializeCore();
+        return true;
+    });
+
+    private void InitializeCore()
     {
         using var c = connections.Open();
         using (var check = c.CreateCommand())
@@ -68,6 +74,7 @@ public sealed partial class LedgerStore
         }
 
         tx.Commit();
+        Serilog.Log.ForContext<LedgerStore>().Information("Ledger schema ready, SchemaVersion: '{SchemaVersion}'", 3);
     }
 
     private static void CreateImportTable(SqliteConnection c, SqliteTransaction tx) => Execute(c, tx, """

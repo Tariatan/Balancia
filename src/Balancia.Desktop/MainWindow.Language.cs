@@ -26,6 +26,7 @@ public partial class MainWindow
         languagePreference = code;
         languageCode = code;
         UiText.SetLanguage(code);
+        Serilog.Log.Information("Application language changed, Language: '{Language}'", code);
         await Refresh();
     }
 

@@ -13,6 +13,14 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.5.0] - 2026-10-02
+
+#### Added
+
+- Application logging with Serilog: daily append-only files in `%LOCALAPPDATA%\Balancia\log` beside `settings.json`, retaining the latest 10 files. Restarts share the day's file; no size-based splitting occurs.
+- Logs for startup/shutdown, dialog saves, imports, location/language changes, settings failures, shutdown backups/snapshots, and unhandled application/UI/background-task exceptions. Expected validation rejections use Information; unexpected failures include exception details; unrecoverable application failures use Fatal.
+
+
 ### [2.4.0] - 2026-10-02
 
 #### Added
@@ -82,6 +90,13 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [2.1.0] - 2026-10-02
+
+#### Added
+
+- Structured logging for transaction-validation rejections, Debug diagnostics for rejected amount expressions, and Error details for monetary overflow during flow aggregation. Financial descriptions, notes, amounts, and expression input are not dumped; Core does not configure log files.
+
+
 ### [2.0.0] - 2026-09-30
 
 #### Changed
@@ -95,6 +110,14 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [3.2.0] - 2026-10-02
+
+#### Added
+
+- Structured start/completion/failure logging with operation IDs and elapsed time for ledger writes, initialization, CSV preview/reconciliation, and snapshot export/validation/restore.
+- Schema-ready, import result, and snapshot-restore milestones. Expected validation/import rejections use Information; unexpected failures include exceptions at Error. Storage uses the application logger without owning a file sink.
+
 
 ### [3.1.0] - 2026-10-02
 

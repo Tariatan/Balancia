@@ -18,6 +18,30 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-02: Logging release versions: Desktop 2.5.0, Core 2.1.0, Storage
+  3.2.0, each with a dated Added changelog entry. Android implementation and
+  version remain unchanged; dependency locks reflect the shared Serilog packages.
+
+- 2026-10-02: Logging expanded under check-logging skill across Core/Storage/
+  Desktop. Core validates/rejects at Information, parser diagnostics at Debug,
+  aggregation overflow at Error. Storage logs operation IDs, start/completion/
+  failure and elapsed time around writes, initialization, CSV, and snapshots.
+  Desktop logs location/language changes and classifies expected validation
+  rejections as Information. Fatal remains at application boundaries. No sinks
+  in libraries; shared Serilog dependency added and dependent locks refreshed.
+  Locked Desktop restore, Release build (zero warnings/errors), and diff check
+  passed. Synthetic startup log showed matching initialization operation IDs,
+  schema-ready milestone, duration, and shutdown; failure paths not executed.
+
+- 2026-10-02: Desktop logging uses Serilog 4.3.1 / File sink 7.0.0 (Automaton
+  versions), configured before UI startup. %LOCALAPPDATA%/Balancia/log contains
+  balancia-yyyyMMdd.log; daily rolling, shared append, retention 10, no size roll.
+  Startup/shutdown, saves/imports, settings failures, backup/snapshot failures,
+  and unhandled exceptions are logged. Locked restore, Release build (zero
+  warnings/errors), and diff check passed. Two synthetic native launches grew
+  the same daily file from 498 to 997 bytes with both sessions intact. Retention
+  and midnight rolling are configured but not time-shift verified.
+
 - 2026-10-02: Description autocomplete release metadata: Desktop 2.4.0 and
   Storage 3.1.0, with matching Added changelog entries. Both implementations
   changed; Core and Android versions remain unchanged. Diff check passed.

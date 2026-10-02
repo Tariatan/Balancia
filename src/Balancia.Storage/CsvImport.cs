@@ -61,16 +61,21 @@ public sealed class CsvImportPreview
 
 public sealed partial class LedgerStore
 {
-    public CsvImportPreview PreviewCsvImport(string importPath)
+    public CsvImportPreview PreviewCsvImport(string importPath) => LogOperation(() => PreviewCsvImportCore(importPath));
+
+    private CsvImportPreview PreviewCsvImportCore(string importPath)
     {
         var fullPath = Path.GetFullPath(importPath);
         var bytes = File.ReadAllBytes(fullPath);
         var hash = Convert.ToHexString(SHA256.HashData(bytes));
         var (groups, issues, summary) = CsvImportParser.Parse(bytes);
+        Serilog.Log.ForContext<LedgerStore>().Information("CSV preview prepared, Rows: '{Rows}', Issues: '{Issues}'", summary.Rows, issues.Count);
         return new CsvImportPreview(fullPath, hash, ReadSnapshot().Revision, [.. groups], [.. issues], summary);
     }
 
-    public ImportResult ApplyCsvImport(CsvImportPreview preview)
+    public ImportResult ApplyCsvImport(CsvImportPreview preview) => LogOperation(() => ApplyCsvImportCore(preview));
+
+    private ImportResult ApplyCsvImportCore(CsvImportPreview preview)
     {
         if (!preview.CanApply)
         {
@@ -94,6 +99,7 @@ public sealed partial class LedgerStore
             if (matched == preview.Groups.Length)
             {
                 tx.Commit();
+                Serilog.Log.ForContext<LedgerStore>().Information("CSV reconciliation unchanged, Entries: '{Entries}'", matched);
                 return new ImportResult(0, matched);
             }
             tx.Commit();
@@ -202,6 +208,7 @@ public sealed partial class LedgerStore
                 }
             }
         });
+        Serilog.Log.ForContext<LedgerStore>().Information("CSV reconciliation committed, Added: '{Added}', Unchanged: '{Unchanged}'", added, unchanged);
         return new ImportResult(added, unchanged);
     }
 

@@ -154,7 +154,9 @@ public partial class MainWindow
                 saving = true;
                 body.IsEnabled = false;
                 error.Text = Get("Saving…");
+                Serilog.Log.Information("Saving dialog changes, Operation: '{Operation}'", title);
                 await Task.Run(action);
+                Serilog.Log.Information("Dialog changes saved, Operation: '{Operation}'", title);
                 saving = false;
                 if (continueEditing)
                 {
@@ -172,6 +174,7 @@ public partial class MainWindow
             }
             catch (Exception ex)
             {
+                LogWorkflowFailure(ex, title);
                 error.Text = FriendlyError(ex);
             }
             finally

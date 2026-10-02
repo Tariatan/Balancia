@@ -538,6 +538,33 @@ code (`en`, `de`, `ru`, `uk`) is optional in application settings; it is only
 written when the owner explicitly selects a language, not as a side effect of
 other settings changes.
 
+### Desktop logging
+
+Windows configures Serilog before Avalonia startup, using the same Information
+level and timestamp/level/source/exception layout as Automaton. Daily files are
+`%LOCALAPPDATA%\Balancia\log\balancia-yyyyMMdd.log`, beside the fixed application
+settings file. Local calendar days determine rolling; restarts and concurrent
+instances append to the same day's file. The sink retains the latest 10 daily
+files, rolls only by day, and does not impose a size limit that would stop logging
+or create additional files within a day. Database-folder changes and `--data-dir`
+do not relocate logs.
+
+Logs cover application startup/shutdown, ledger initialization, dialog saves,
+CSV import outcomes, settings-load/window-save failures, best-effort shutdown
+backup/snapshot writes, and unhandled application/UI/background-task exceptions.
+Core and Storage use Serilog without owning file sinks or application lifetime.
+Core logs transaction-validation rejections at Information, expression-parser
+rejections at Debug, and aggregation overflow at Error. Storage logs writes,
+schema initialization, CSV preview/reconciliation, and snapshot export/validation/
+restore with start, completion, duration, and operation IDs. Expected input and
+import conflicts use Information; unexpected failures include exceptions at Error.
+Desktop additionally logs database/backup/snapshot location and language changes.
+Fatal remains reserved for unhandled application/UI exceptions. Descriptions,
+notes, full financial payloads, and amount-expression input are not dumped.
+
+Logging errors are traced through Serilog SelfLog; filesystem setup failures do
+not prevent application startup. Shutdown flushes and disposes the logger.
+
 ### Local Settings Persistence
 
 - One `%LOCALAPPDATA%\Balancia\settings.json` stores window width,

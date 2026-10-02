@@ -4,7 +4,6 @@ Last updated: 2026-09-28.
 
 ## ToDO list
 
-- Logging
 - Comments
 - no empty transactions on new month
 - give tooptips some love

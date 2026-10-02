@@ -10,7 +10,9 @@ public sealed record SnapshotRestoreResult(string BackupPath, SnapshotManifest M
 
 public sealed partial class LedgerStore
 {
-    public SnapshotRestoreResult RestoreSnapshot(string source)
+    public SnapshotRestoreResult RestoreSnapshot(string source) => LogOperation(() => RestoreSnapshotCore(source));
+
+    private SnapshotRestoreResult RestoreSnapshotCore(string source)
     {
         using var archive = ZipFile.OpenRead(Path.GetFullPath(source));
         var manifest = ReadManifestEntry(archive);
@@ -39,6 +41,7 @@ public sealed partial class LedgerStore
 
             SqliteConnection.ClearAllPools();
             File.Move(staged, path, true);
+            Serilog.Log.ForContext<LedgerStore>().Information("Snapshot restored, Revision: '{Revision}', BackupPath: '{BackupPath}'", manifest.Revision, backup);
             return new SnapshotRestoreResult(backup, manifest);
         }
         finally
@@ -65,7 +68,9 @@ public sealed partial class LedgerStore
         return result;
     }
 
-    public SnapshotManifest ValidateSnapshot(string source)
+    public SnapshotManifest ValidateSnapshot(string source) => LogOperation(() => ValidateSnapshotCore(source));
+
+    private SnapshotManifest ValidateSnapshotCore(string source)
     {
         using var archive = ZipFile.OpenRead(Path.GetFullPath(source));
         var manifest = ReadManifestEntry(archive);
@@ -130,7 +135,9 @@ public sealed partial class LedgerStore
         }
     }
 
-    public SnapshotManifest ExportSnapshot(string destination)
+    public SnapshotManifest ExportSnapshot(string destination) => LogOperation(() => ExportSnapshotCore(destination));
+
+    private SnapshotManifest ExportSnapshotCore(string destination)
     {
         var full = Path.GetFullPath(destination);
         var temporary = full + ".tmp-" + Guid.NewGuid().ToString("N");

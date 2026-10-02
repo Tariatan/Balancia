@@ -41,15 +41,17 @@ public partial class MainWindow
     }
 
     // Best-effort shutdown writes must never block the application from closing.
-    private static void TrySilently(Action action)
+    private static void TrySilently(Action action, [System.Runtime.CompilerServices.CallerMemberName] string operation = "")
     {
         try
         {
+            Serilog.Log.Information("Starting shutdown write, Operation: '{Operation}'", operation);
             action();
+            Serilog.Log.Information("Finished shutdown write, Operation: '{Operation}'", operation);
         }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
-        catch (InvalidOperationException) { }
-        catch (SqliteException) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or SqliteException)
+        {
+            Serilog.Log.Warning(ex, "Shutdown write failed, Operation: '{Operation}'", operation);
+        }
     }
 }

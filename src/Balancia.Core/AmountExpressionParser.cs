@@ -26,16 +26,22 @@ public sealed class AmountExpressionParser(string text)
             value = decimal.Round(new AmountExpressionParser(text).Parse(), 2, MidpointRounding.AwayFromZero);
             return true;
         }
-        catch (DivideByZeroException)
+        catch (DivideByZeroException exception)
         {
+            Serilog.Log.ForContext<AmountExpressionParser>().Debug(
+                "Amount expression rejected, FailureType: '{FailureType}'", exception.GetType().Name);
             return false;
         }
-        catch (FormatException)
+        catch (FormatException exception)
         {
+            Serilog.Log.ForContext<AmountExpressionParser>().Debug(
+                "Amount expression rejected, FailureType: '{FailureType}'", exception.GetType().Name);
             return false;
         }
-        catch (OverflowException)
+        catch (OverflowException exception)
         {
+            Serilog.Log.ForContext<AmountExpressionParser>().Debug(
+                "Amount expression rejected, FailureType: '{FailureType}'", exception.GetType().Name);
             return false;
         }
     }
