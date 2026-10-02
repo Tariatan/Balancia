@@ -506,9 +506,14 @@ slightly darker than normal selection, extending 2px beyond the content on each
 side without adding text. The highlight
 refreshes after saving the account and remains independent of filter selection.
 
-Period filter buttons are All, Today, Week, Month, and Year, localized in all
+Period filter buttons are All, Today, Week, Month, Year, and Last 30 days, localized in all
 four desktop languages. Today selects the current local date; Day remains the
 name of the daily chart granularity.
+Last 30 days includes today and the previous 29 days, with weekly Trend
+granularity by default. Startup selects Month when the current calendar month
+contains transactions, otherwise Last 30 days. This fallback runs only at
+startup and checks all transactions regardless of other filters. The selected
+period applies to Transactions and the other filtered dashboard panels.
 
 Closed desktop date pickers support unmodified Up/Down keys while focused:
 Up and mouse wheel up select the next day; Down and wheel down select the previous day.

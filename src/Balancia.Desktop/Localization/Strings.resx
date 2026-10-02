@@ -46,6 +46,7 @@
   <data name="Per calendar month" xml:space="preserve"><value>Per calendar month</value></data>
   <data name="Per calendar year" xml:space="preserve"><value>Per calendar year</value></data>
   <data name="All" xml:space="preserve"><value>All</value></data>
+  <data name="Last 30 days" xml:space="preserve"><value>Last 30 days</value></data>
   <data name="Today" xml:space="preserve"><value>Today</value></data>
   <data name="Day" xml:space="preserve"><value>Day</value></data>
   <data name="Week" xml:space="preserve"><value>Week</value></data>

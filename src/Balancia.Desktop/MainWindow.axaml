@@ -57,6 +57,7 @@
                 <Button x:Name="FilterButtonWeek" Content="Week" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
                 <Button x:Name="FilterButtonMonth" Content="Month" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
                 <Button x:Name="FilterButtonYear" Content="Year" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
+                <Button x:Name="FilterButtonLast30Days" Content="Last 30 days" MinWidth="170" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
                 <local:LocalizedCalendarDatePicker x:Name="FilterFrom" Width="150" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
                 <local:LocalizedCalendarDatePicker x:Name="FilterTo" Width="150" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
                 <TextBox x:Name="FilterSearch" Width="230" Margin="0,2,0,2" HorizontalAlignment="Stretch" />

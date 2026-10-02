@@ -13,6 +13,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.6.0] - 2026-10-02
+
+#### Added
+
+- Added a Last 30 days filter after Year in all four desktop languages. The range includes today and the previous 29 days, with weekly Trend granularity by default.
+- Startup selects Last 30 days when the current calendar month has no transactions; otherwise Month remains selected. Later filter changes do not trigger this fallback.
+
 ### [2.5.0] - 2026-10-02
 
 #### Added

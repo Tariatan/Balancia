@@ -46,6 +46,7 @@
   <data name="Per calendar month" xml:space="preserve"><value>За календарный месяц</value></data>
   <data name="Per calendar year" xml:space="preserve"><value>За календарный год</value></data>
   <data name="All" xml:space="preserve"><value>Все</value></data>
+  <data name="Last 30 days" xml:space="preserve"><value>Последние 30 дней</value></data>
   <data name="Today" xml:space="preserve"><value>Сегодня</value></data>
   <data name="Day" xml:space="preserve"><value>День</value></data>
   <data name="Week" xml:space="preserve"><value>Неделя</value></data>

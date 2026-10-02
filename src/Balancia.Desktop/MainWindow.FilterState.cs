@@ -16,6 +16,7 @@ public partial class MainWindow
         ThisWeek,
         ThisMonth,
         ThisYear,
+        Last30Days,
         Custom,
     }
 
@@ -52,6 +53,7 @@ public partial class MainWindow
         OverviewPeriod.ThisMonth => (new DateOnly(displayDate.Year, displayDate.Month, 1),
             new DateOnly(displayDate.Year, displayDate.Month, 1).AddMonths(1).AddDays(-1)),
         OverviewPeriod.ThisYear => (new DateOnly(displayDate.Year, 1, 1), new DateOnly(displayDate.Year, 12, 31)),
+        OverviewPeriod.Last30Days => (displayDate.AddDays(-29), displayDate),
         _ => (_customFrom: customFrom, _customTo: customTo)
     };
 
@@ -62,6 +64,7 @@ public partial class MainWindow
         OverviewPeriod.ThisWeek => "This week",
         OverviewPeriod.ThisMonth => displayDate.ToString("MMMM yyyy", Culture),
         OverviewPeriod.ThisYear => displayDate.Year.ToString(Culture),
+        OverviewPeriod.Last30Days => "Last 30 days",
         _ => $"{customFrom?.ToString("dd MMM yyyy", Culture)} – {customTo?.ToString("dd MMM yyyy", Culture)}"
     };
 

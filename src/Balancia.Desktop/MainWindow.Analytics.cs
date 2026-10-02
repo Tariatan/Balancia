@@ -45,7 +45,7 @@ public partial class MainWindow
         var interval = period switch
         {
             OverviewPeriod.Day or OverviewPeriod.ThisWeek => FlowInterval.Day,
-            OverviewPeriod.ThisMonth => FlowInterval.Week,
+            OverviewPeriod.ThisMonth or OverviewPeriod.Last30Days => FlowInterval.Week,
             OverviewPeriod.ThisYear or OverviewPeriod.All => FlowInterval.Month,
             _ when from is { } start && to is { } end && end < start.AddMonths(1) => FlowInterval.Day,
             _ when from is { } start && to is { } end && end < start.AddYears(1) => FlowInterval.Week,

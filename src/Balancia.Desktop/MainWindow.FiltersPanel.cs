@@ -18,6 +18,7 @@ public partial class MainWindow
         (OverviewPeriod.ThisWeek, "Week"),
         (OverviewPeriod.ThisMonth, "Month"),
         (OverviewPeriod.ThisYear, "Year"),
+        (OverviewPeriod.Last30Days, "Last 30 days"),
     ];
 
     private void InitializeOverviewFilters()
@@ -27,7 +28,7 @@ public partial class MainWindow
         var buttons = new[]
         {
             FilterButtonAll, FilterButtonToday, FilterButtonWeek,
-            FilterButtonMonth, FilterButtonYear
+            FilterButtonMonth, FilterButtonYear, FilterButtonLast30Days
         };
         for (var i = 0; i < OverviewPeriods.Length; i++)
         {
@@ -86,6 +87,7 @@ public partial class MainWindow
         FilterButtonWeek.Content = Get("Week");
         FilterButtonMonth.Content = Get("Month");
         FilterButtonYear.Content = Get("Year");
+        FilterButtonLast30Days.Content = Get("Last 30 days");
         FilterFrom.PlaceholderText = Get("Select a date");
         FilterTo.PlaceholderText = Get("Select a date");
         FilterSearch.PlaceholderText = Get("Description");
@@ -134,8 +136,8 @@ public partial class MainWindow
         var range = OverviewRange();
         filter = filter with
         {
-            From = range.From,
-            To = range.To
+            From = period == OverviewPeriod.Last30Days ? null : range.From,
+            To = period == OverviewPeriod.Last30Days ? null : range.To
         };
         SetDefaultTrendInterval(period, range.From, range.To);
         SyncOverviewFilterDates();
@@ -192,7 +194,9 @@ public partial class MainWindow
             UpdateFilterButtons();
         }
 
-        filter = nextFilter;
+        filter = overviewPeriod == OverviewPeriod.Last30Days
+            ? nextFilter with { From = null, To = null }
+            : nextFilter;
         offset = 0;
         SyncCategoryFilterChecks();
         SyncAccountFilterChecks();

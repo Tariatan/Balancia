@@ -74,6 +74,18 @@ public partial class MainWindow : Window
                 store.Initialize();
                 Serilog.Log.Information("Ledger initialized");
             });
+            var monthStart = new DateOnly(displayDate.Year, displayDate.Month, 1);
+            var monthFilter = new TransactionsFilter
+            {
+                From = monthStart,
+                To = monthStart.AddMonths(1).AddDays(-1),
+            };
+            var monthTransactions = await Task.Run(() => store.ReadTransactions(monthFilter, pageSize: 1));
+            if (monthTransactions.TotalCount == 0)
+            {
+                overviewPeriod = OverviewPeriod.Last30Days;
+            }
+
             await Refresh();
         });
         timer.Tick += async (_, _) =>

@@ -18,6 +18,11 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-02: Last 30 days preset follows Year in all four languages; it spans
+  today and the previous 29 days and defaults Trend to Week. Startup selects it
+  only when the unfiltered current calendar month has no transactions; otherwise
+  Month remains the default. Desktop Release build passed; native startup and
+  filter interaction review remains pending.
 - 2026-10-02: Logging release versions: Desktop 2.5.0, Core 2.1.0, Storage
   3.2.0, each with a dated Added changelog entry. Android implementation and
   version remain unchanged; dependency locks reflect the shared Serilog packages.
@@ -96,7 +101,8 @@ Last updated: 2026-09-28. Scope: this repository only.
   including initial XAML and language refresh. Chart Day granularity stays Day.
   Locked Desktop restore, Release build, and diff check passed; native visual
   review remains pending.
-- Release metadata (2026-10-02): Desktop version is 2.3.0 for reminder due-date
+- Release metadata (2026-10-02): Desktop version is 2.6.0 for the Last 30 days
+  filter and startup fallback; 2.3.0 added reminder due-date
   colors and bold urgency styling; 2.2.1 updated the Reminders labels
   update; 2.2.0 added the default account
   highlight (2.1.0 added keyboard date adjustment; 2.0.1 added the Today filter)
