@@ -92,6 +92,8 @@ public partial class MainWindow
         };
         var date = DateInput(existing?.Date ?? DateOnly.FromDateTime(DateTime.Today));
         var description = Input(existing?.Description ?? "");
+        var descriptionHistory = (await Task.Run(() => store.ReadRecentDescriptions())).ToList();
+        var descriptionInput = DescriptionInput(description, descriptionHistory);
         var amount = Input(existing?.Amount.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
         amount.LostFocus += (_, _) => NormalizeAmount(amount);
         var account = new ComboBox
@@ -218,6 +220,11 @@ public partial class MainWindow
         {
             continueAfterSave = () =>
             {
+                if (!string.IsNullOrWhiteSpace(description.Text))
+                {
+                    descriptionHistory.RemoveAll(value => string.Equals(value, description.Text, StringComparison.OrdinalIgnoreCase));
+                    descriptionHistory.Insert(0, description.Text);
+                }
                 description.Text = "";
                 amount.Text = "";
                 memo.Text = "";
@@ -231,7 +238,7 @@ public partial class MainWindow
                 Field("Date", date), categoryField,
                 Field("Amount (positive)", amount),
                 Field("Account", account), toField,
-                Field("Description", description),
+                Field("Description", descriptionInput),
                 Field("Notes", memo)
             ],
             () =>

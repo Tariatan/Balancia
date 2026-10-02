@@ -515,6 +515,17 @@ Up and mouse wheel up select the next day; Down and wheel down select the previo
 Empty dates stay empty; date limits and blackout dates are respected. Open
 calendar keyboard navigation remains unchanged.
 
+### Transaction description suggestions
+
+The Windows Add/Edit transaction Description field suggests distinct nonempty
+descriptions from saved transactions, excluding opening balances. Prefix matching
+is case-insensitive; recent transaction dates rank first, with ledger insertion
+order breaking ties. Up/Down selects a suggestion, Tab accepts it and moves to
+the next field, mouse click accepts it, and Escape dismisses suggestions.
+Descriptions remain freely editable. Save-and-continue adds the newly saved
+description to the current dialog's suggestions immediately. History is derived
+from the ledger, without a separate file or persistent history table.
+
 ### Localization
 
 Resource lookup uses the explicitly selected `CultureInfo`, never the ambient

@@ -18,6 +18,18 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-02: Description autocomplete release metadata: Desktop 2.4.0 and
+  Storage 3.1.0, with matching Added changelog entries. Both implementations
+  changed; Core and Android versions remain unchanged. Diff check passed.
+
+- 2026-10-02: Add/Edit transaction Description now has case-insensitive prefix
+  suggestions from nonempty saved transaction descriptions, recent dates first.
+  Up/Down selects, Tab accepts and advances focus, click accepts, Escape closes.
+  New descriptions remain allowed; save-and-continue refreshes local history.
+  Locked restore, Release build (zero warnings/errors), and diff check passed.
+  Synthetic dialog opened, but native Description/Tab interaction remains
+  unverified because the UI tool could not reliably target the owned dialog.
+
 - 2026-10-02: Pending reminders beyond the five-day urgency window are blue in
   the next calendar month and green in later months; red overdue and bold yellow
   imminent styling take precedence. Month offsets include year boundaries.
