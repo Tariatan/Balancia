@@ -13,6 +13,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.7.0] - 2026-10-02
+
+#### Changed
+
+- Trend and Timeline tooltips now use bold, colored table rows with right-aligned amounts. Trend shows its date range and green Income, red Expense, and blue Savings rows; Timeline shows the metric and current/previous comparison dates in the corresponding series colors.
+- Reuse tooltip content while hovering within the same chart point to avoid unnecessary redraws.
+
 ### [2.6.0] - 2026-10-02
 
 #### Added

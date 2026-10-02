@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using System.Globalization;
 using Balancia.Core;
 
 using static Balancia.Desktop.Localization.UiText;
@@ -9,7 +10,9 @@ using static Balancia.Desktop.Localization.UiText;
 namespace Balancia.Desktop;
 
 internal sealed record FlowChartSeries(string Name, string Color, bool Bars = false, bool Steps = false);
-internal sealed record FlowChartPoint(double Position, string Label, string Details, IReadOnlyList<Money> Values);
+internal sealed record FlowChartPoint(double Position, string Label, string Details,
+    IReadOnlyList<Money> Values, string? TooltipHeading = null,
+    IReadOnlyList<string>? TooltipLabels = null);
 
 internal sealed class FlowChart : Control
 {
@@ -157,12 +160,36 @@ internal sealed class FlowChart : Control
         }
 
         var fraction = (position.X - Plot.Left) / Plot.Width;
+        var previousHovered = hovered;
         hovered = series.Any(item => item.Steps)
             ? Math.Max(0, Enumerable.Range(0, points.Count).LastOrDefault(index => points[index].Position <= fraction))
             : Enumerable.Range(0, points.Count).MinBy(index => Math.Abs(points[index].Position - fraction));
-        ToolTip.SetTip(this, points[hovered].Details);
+        if (previousHovered != hovered)
+        {
+            ToolTip.SetTip(this, BuildTooltip(points[hovered]));
+        }
         ToolTip.SetIsOpen(this, true);
         InvalidateVisual();
+    }
+
+    private object BuildTooltip(FlowChartPoint point)
+    {
+        if (point.TooltipHeading is null)
+        {
+            return point.Details;
+        }
+
+        var rowCount = point.TooltipLabels?.Count ?? series.Count;
+        var rows = new List<ChartTooltipRow>(rowCount);
+        for (var index = 0; index < rowCount; index++)
+        {
+            rows.Add(new ChartTooltipRow(
+                point.TooltipLabels?[index] ?? series[index].Name,
+                point.Values[index].Francs.ToString("N2", CultureInfo.GetCultureInfo("de-CH")),
+                Brush.Parse(series[index].Color)));
+        }
+
+        return new ChartTooltipData(point.TooltipHeading, rows);
     }
 
     private static void DrawLabel(DrawingContext context, string text, Point origin) => context.DrawText(

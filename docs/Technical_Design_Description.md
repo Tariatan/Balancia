@@ -515,6 +515,17 @@ contains transactions, otherwise Last 30 days. This fallback runs only at
 startup and checks all transactions regardless of other filters. The selected
 period applies to Transactions and the other filtered dashboard panels.
 
+Trend hover tooltips show a localized date-range heading above a two-column
+table with right-aligned amounts. Income, Expense, and Savings labels and values
+use bold text and the chart series' green, red, and blue colors. Single-series filters display
+only the applicable row. Timeline uses the same bold table layout with an Income
+or Expense heading, current/comparison dates, and right-aligned totals colored
+to match the current and previous chart series.
+Both tooltip tables use the shared compiled `ChartTooltipData` template in
+`App.axaml`. `FlowChart` supplies immutable heading/row data with formatted
+amounts and series colors; AXAML owns layout, shared amount-column sizing,
+spacing, and font weights. Hover selection and chart drawing remain in code.
+
 Closed desktop date pickers support unmodified Up/Down keys while focused:
 Up and mouse wheel up select the next day; Down and wheel down select the previous day.
 Empty dates stay empty; date limits and blackout dates are respected. Open

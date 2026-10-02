@@ -89,11 +89,12 @@ public partial class MainWindow
         {
             Money[] amounts = incomeOnly ? [bucket.Income] : expenseOnly ? [bucket.Expenses] :
                 [bucket.Income, -bucket.Expenses, bucket.Savings];
-            var details = $"{bucket.From.ToString("dd MMM yyyy", Culture)} – {bucket.To.ToString("dd MMM yyyy", Culture)}" + Environment.NewLine +
+            var heading = $"{bucket.From.ToString("dd MMM yyyy", Culture)} – {bucket.To.ToString("dd MMM yyyy", Culture)}";
+            var details = heading + Environment.NewLine +
                 string.Join(Environment.NewLine, trendSeries.Select((series, seriesIndex) => $"{series.Name}: {AmountText(amounts[seriesIndex])}"));
             return new FlowChartPoint((index + 0.5) / buckets.Count,
                 bucket.From.ToString(trendInterval == FlowInterval.Month || data.To.DayNumber - data.From.DayNumber > 365
-                    ? "MMM yy" : "dd MMM", Culture), details, amounts);
+                    ? "MMM yy" : "dd MMM", Culture), details, amounts, heading);
         }).ToArray();
         TrendChart.SetData(trendPoints, trendSeries, data.Current.Count == 0 ? empty ?? Get("No matching transactions in this period") : empty);
 
@@ -127,8 +128,13 @@ public partial class MainWindow
 
             var details = $"{metric} · {date.ToString("dd MMM yyyy", Culture)}: {AmountText(currentTotal)}" +
                 (previousDate is null ? string.Empty : $"\n{Get("Previous period")} · {previousDate.Value.ToString("dd MMM yyyy", Culture)}: {AmountText(previousTotal)}");
+            IReadOnlyList<string> tooltipLabels = previousDate is { } comparisonDate
+                ? [date.ToString("dd MMM yyyy", Culture),
+                    $"{Get("Previous period")} · {comparisonDate.ToString("dd MMM yyyy", Culture)}"]
+                : [date.ToString("dd MMM yyyy", Culture)];
             timelinePoints.Add(new FlowChartPoint(length == 0 ? 0.5 : dayOffset / (double)length,
-                date.ToString(length > 365 ? "MMM yy" : "dd MMM", Culture), details, [currentTotal, previousTotal]));
+                date.ToString(length > 365 ? "MMM yy" : "dd MMM", Culture), details,
+                [currentTotal, previousTotal], metric, tooltipLabels));
         }
 
         TimelineChart.SetData(timelinePoints,

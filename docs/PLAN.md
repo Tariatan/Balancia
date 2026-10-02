@@ -1,7 +1,5 @@
 # Implementation plan and checkpoint
 
-Last updated: 2026-09-28.
+Last updated: 2026-10-02.
 
 ## ToDO list
-
-- give tooptips some love

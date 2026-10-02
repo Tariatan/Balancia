@@ -1,6 +1,34 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Balancia.Desktop"
              x:Class="Balancia.Desktop.App" RequestedThemeVariant="Light">
+  <Application.DataTemplates>
+    <DataTemplate DataType="{x:Type local:ChartTooltipData}" x:DataType="local:ChartTooltipData">
+      <StackPanel Grid.IsSharedSizeScope="True">
+        <TextBlock Text="{Binding Heading}" Margin="0,0,0,8" />
+        <ItemsControl ItemsSource="{Binding Rows}" HorizontalAlignment="Stretch">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="4" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="local:ChartTooltipRow">
+              <Grid ColumnSpacing="18">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" SharedSizeGroup="TooltipAmounts" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Label}" Foreground="{Binding Foreground}" FontWeight="Bold" />
+                <TextBlock Grid.Column="1" Text="{Binding Amount}" Foreground="{Binding Foreground}"
+                           FontWeight="Bold" HorizontalAlignment="Right" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </DataTemplate>
+  </Application.DataTemplates>
   <Application.Styles>
     <FluentTheme />
     <Style Selector="TextBox">

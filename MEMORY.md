@@ -18,6 +18,15 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-02: Chart tooltip visuals moved to a shared compiled data template in
+  App.axaml, bound to ChartTooltipData/ChartTooltipRow. FlowChart now supplies
+  only formatted row data; AXAML owns spacing, bold fonts, and amount alignment.
+  Desktop Release build and diff check passed; native hover review is pending.
+- 2026-10-02: Trend tooltips now show a date heading and bold colored two-column
+  rows with right-aligned amounts, using the displayed series and existing signs.
+  Timeline uses the same table with a metric heading and per-row current/comparison
+  dates. Desktop Release build and diff check passed;
+  native hover/visual review remains pending.
 - 2026-10-02: Last 30 days preset follows Year in all four languages; it spans
   today and the previous 29 days and defaults Trend to Week. Startup selects it
   only when the unfiltered current calendar month has no transactions; otherwise
@@ -101,7 +110,8 @@ Last updated: 2026-09-28. Scope: this repository only.
   including initial XAML and language refresh. Chart Day granularity stays Day.
   Locked Desktop restore, Release build, and diff check passed; native visual
   review remains pending.
-- Release metadata (2026-10-02): Desktop version is 2.6.0 for the Last 30 days
+- Release metadata (2026-10-02): Desktop version is 2.7.0 for chart tooltip
+  tables; 2.6.0 added the Last 30 days
   filter and startup fallback; 2.3.0 added reminder due-date
   colors and bold urgency styling; 2.2.1 updated the Reminders labels
   update; 2.2.0 added the default account
