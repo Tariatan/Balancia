@@ -13,8 +13,8 @@ public partial class MainWindow : Window
 {
     internal LedgerStore store;
     internal string databasePath;
-    private string windowSettingsPath;
     private readonly string applicationSettingsPath;
+    private readonly bool separateDataFolder;
     internal string? backupPath;
     internal string? snapshotPath;
     private string? defaultAccountId;
@@ -41,23 +41,23 @@ public partial class MainWindow : Window
         InitializeOverview();
         var args = Environment.GetCommandLineArgs();
         var directoryArg = Array.IndexOf(args, "--data-dir");
-        applicationSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia", "settings.json");
+        separateDataFolder = directoryArg >= 0 && directoryArg + 1 < args.Length;
+        var userDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia");
+        applicationSettingsPath = Path.Combine(userDirectory, "settings.json");
         var savedSettings = LoadApplicationSettings(applicationSettingsPath);
+        var directory = separateDataFolder
+            ? Path.GetFullPath(args[directoryArg + 1])
+            : Path.GetDirectoryName(ResolveFullPath(savedSettings?.DatabasePath) ?? string.Empty) ?? userDirectory;
         languagePreference = savedSettings?.Language;
         languageCode = ResolveLanguage(savedSettings?.Language, CultureInfo.CurrentUICulture);
         SetLanguage(languageCode);
         statusMessage = Get("Loading…");
-        backupPath = ResolveFullPath(savedSettings?.BackupPath);
-        snapshotPath = ResolveFullPath(savedSettings?.SnapshotPath);
-        defaultAccountId = savedSettings?.DefaultAccountId;
-        var directory = directoryArg >= 0 && directoryArg + 1 < args.Length
-            ? Path.GetFullPath(args[directoryArg + 1])
-            : Path.GetDirectoryName(ResolveFullPath(savedSettings?.DatabasePath) ?? "") ??
-              Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Balancia");
+        backupPath = separateDataFolder ? null : ResolveFullPath(savedSettings?.BackupPath);
+        snapshotPath = separateDataFolder ? null : ResolveFullPath(savedSettings?.SnapshotPath);
+        defaultAccountId = separateDataFolder ? null : savedSettings?.DefaultAccountId;
         databasePath = Path.Combine(directory, "balancia.db");
         store = new LedgerStore(databasePath);
-        windowSettingsPath = Path.Combine(directory, "window.json");
-        LoadWindowSettings();
+        LoadWindowSettings(savedSettings);
         PositionChanged += (_, _) => windowPositionForPersistence = Position;
         if (directoryArg >= 0)
         {

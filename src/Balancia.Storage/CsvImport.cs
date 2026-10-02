@@ -12,7 +12,7 @@ public sealed record ImportSummary(int Rows, int Expenses, int Incomes, int Tran
 public sealed record ImportResult(int Added, int Unchanged);
 
 internal sealed record CsvImportRow(long Line, string Id, DateOnly Date, string Description, long Amount,
-    string Type, string Tags, string Account, string Memo, string[] Fields);
+    string Type, string Category, string Account, string Memo, string[] Fields, string DestinationAccount);
 internal sealed record CsvImportGroup(string Id, string Kind, CsvImportRow[] Rows, string Fingerprint);
 
 public sealed class CsvImportPreview
@@ -53,7 +53,7 @@ public sealed class CsvImportPreview
     }
     public IReadOnlyList<ImportDateExample> ResolvedDates =>
     [
-        .. Groups.SelectMany(g => g.Rows)
+        .. Groups.Select(g => g.Rows[0])
             .OrderBy(r => r.Line).Take(10).Select(r => new ImportDateExample(r.Line, r.Date))
     ];
     public bool CanApply => Issues.Count == 0;
@@ -176,7 +176,7 @@ public sealed partial class LedgerStore
                 else
                 {
                     transactionId = Guid.NewGuid().ToString("N");
-                    var category = group.Kind == "Transfer" ? null : FindOrCreateCategory(c, tx, row.Tags);
+                    var category = group.Kind == "Transfer" ? null : FindOrCreateCategory(c, tx, row.Category);
                     Execute(c, tx, "INSERT INTO ledger VALUES($id,$kind,$date,$description,$category,$memo)",
                         ("$id", transactionId), ("$kind", group.Kind), ("$date", DateText(row.Date)),
                         ("$description", row.Description), ("$category", category), ("$memo", row.Memo));
@@ -188,10 +188,10 @@ public sealed partial class LedgerStore
                 }
                 Execute(c, tx, "INSERT INTO import_sources(source,external_id,transaction_id,fingerprint,raw_rows_json) VALUES('CSV',$external,$transaction,$fingerprint,$raw)",
                     ("$external", group.Id), ("$transaction", transactionId), ("$fingerprint", group.Fingerprint),
-                    ("$raw", JsonSerializer.Serialize(group.Rows.Select(r => r.Fields).ToArray())));
+                    ("$raw", JsonSerializer.Serialize(group.Rows.Select(r => r.Fields).Distinct().ToArray())));
                 added++;
             }
-            var importedTotals = preview.Groups.SelectMany(g => g.Rows).GroupBy(r => r.Account)
+            var importedTotals = preview.Groups.SelectMany(g => g.Rows).GroupBy(r => r.Account, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => checked((long)g.Sum(r => (decimal)r.Amount)));
             foreach (var (name, total) in importedTotals)
             {
@@ -227,15 +227,15 @@ public sealed partial class LedgerStore
         return matched;
     }
 
-    private static string? FindOrCreateCategory(SqliteConnection c, SqliteTransaction tx, string tag)
+    private static string? FindOrCreateCategory(SqliteConnection c, SqliteTransaction tx, string categoryPath)
     {
-        if (tag.Length == 0)
+        if (categoryPath.Length == 0)
         {
             return null;
         }
 
         string? parent = null;
-        foreach (var name in tag.Split('/').Select(x => x.Trim()))
+        foreach (var name in categoryPath.Split('/').Select(x => x.Trim()))
         {
             var found = Scalar(c, tx, "SELECT id FROM categories WHERE name=$name COLLATE NOCASE AND parent_id IS $parent", ("$name", name), ("$parent", parent)) as string;
             if (found is null)

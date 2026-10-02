@@ -42,7 +42,6 @@ public partial class MainWindow
             await Task.Run(() => SaveApplicationSettings(dbPath));
             store = replacement;
             databasePath = dbPath;
-            windowSettingsPath = Path.Combine(Path.GetDirectoryName(dbPath)!, "window.json");
             await Refresh();
         });
     }

@@ -4,14 +4,14 @@ internal static class CsvImportSummaryBuilder
 {
     public static ImportSummary Build(List<CsvImportRow> rows, List<CsvImportGroup> groups, int sourceRows)
     {
-        var totals = rows
-            .GroupBy(r => r.Account)
+        var totals = groups.SelectMany(group => group.Rows)
+            .GroupBy(r => r.Account, StringComparer.OrdinalIgnoreCase)
             .Select(g => new ImportAccountTotal(g.Key, checked((long)g.Sum(r => (decimal)r.Amount))))
             .OrderBy(x => x.Account)
             .ToArray();
         var categories = rows
-            .Where(r => r.Tags.Length > 0)
-            .Select(r => r.Tags.Trim())
+            .Where(r => r.Category.Length > 0)
+            .Select(r => r.Category.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(s => s)
             .ToArray();

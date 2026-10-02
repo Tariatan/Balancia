@@ -147,8 +147,8 @@
   <data name="Separate data folder" xml:space="preserve"><value>Separater Datenordner</value></data>
   <data name="Delete '{0}'?" xml:space="preserve"><value>„{0}“ löschen?</value></data>
   <data name="Archive '{0}'?" xml:space="preserve"><value>„{0}“ archivieren?</value></data>
-  <data name="{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} Zeilen: {1} Ausgaben, {2} Einnahmen, {3} zugeordnete Umbuchungen, {4} Anfangsbestände.&#10;&#10;</value></data>
-  <data name="Resolved dates (first 10 rows, 2000–2099): " xml:space="preserve"><value>Erkannte Daten (erste 10 Zeilen, 2000–2099): </value></data>
+  <data name="{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} Zeilen: {1} Ausgaben, {2} Einnahmen, {3} Umbuchungen, {4} Anfangsbestände.&#10;&#10;</value></data>
+  <data name="Dates (first 10 rows): " xml:space="preserve"><value>Daten (erste 10 Zeilen): </value></data>
   <data name="Resolved date line {0}: {1}" xml:space="preserve"><value>Zeile {0}: {1}</value></data>
   <data name="&#10;&#10;Accounts and source totals:&#10;" xml:space="preserve"><value>&#10;&#10;Konten und Quellsummen:&#10;</value></data>
   <data name="&#10;&#10;Categories: " xml:space="preserve"><value>&#10;&#10;Kategorien: </value></data>

@@ -147,8 +147,8 @@
   <data name="Separate data folder" xml:space="preserve"><value>Отдельная папка данных</value></data>
   <data name="Delete '{0}'?" xml:space="preserve"><value>Удалить «{0}»?</value></data>
   <data name="Archive '{0}'?" xml:space="preserve"><value>Архивировать «{0}»?</value></data>
-  <data name="{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} строк: {1} расходов, {2} доходов, {3} парных переводов, {4} начальных остатков.&#10;&#10;</value></data>
-  <data name="Resolved dates (first 10 rows, 2000–2099): " xml:space="preserve"><value>Распознанные даты (первые 10 строк, 2000–2099): </value></data>
+  <data name="{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} строк: {1} расходов, {2} доходов, {3} переводов, {4} начальных остатков.&#10;&#10;</value></data>
+  <data name="Dates (first 10 rows): " xml:space="preserve"><value>Даты (первые 10 строк): </value></data>
   <data name="Resolved date line {0}: {1}" xml:space="preserve"><value>строка {0}: {1}</value></data>
   <data name="&#10;&#10;Accounts and source totals:&#10;" xml:space="preserve"><value>&#10;&#10;Счета и исходные суммы:&#10;</value></data>
   <data name="&#10;&#10;Categories: " xml:space="preserve"><value>&#10;&#10;Категории: </value></data>

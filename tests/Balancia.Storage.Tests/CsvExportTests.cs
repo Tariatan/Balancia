@@ -44,6 +44,27 @@ public sealed class CsvExportTests
             Assert.Contains(rows, row => row[2] == "Income" && row[4] == "5.00");
             Assert.Single(rows, row => row[2] == "Transfer" && row[4] == "20.00" &&
                 row[5] == "Everyday" && row[6] == "Savings");
+
+            // Act: import the actual exported file into a fresh ledger.
+            var restored = new LedgerStore(Path.Combine(directory, "restored.db"));
+            restored.Initialize();
+            var preview = restored.PreviewCsvImport(path);
+            Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Select(issue => issue.Message)));
+            Assert.Equal(5, restored.ApplyCsvImport(preview).Added);
+
+            // Assert: opening balances, zero openings, transfer direction, and text survive.
+            var original = store.ReadSnapshot();
+            var imported = restored.ReadSnapshot();
+            Assert.Equal(original.NetWorth, imported.NetWorth);
+            Assert.Equal(original.Accounts.Select(account => (account.Name, account.OpeningDate, account.OpeningAmount, account.Balance)).OrderBy(account => account.Name),
+                imported.Accounts.Select(account => (account.Name, account.OpeningDate, account.OpeningAmount, account.Balance)).OrderBy(account => account.Name));
+            Assert.Equal(original.Entries.Select(entry => (entry.Draft.Kind, entry.Draft.Date, entry.Draft.Description,
+                    entry.Draft.Amount, entry.AccountName, entry.DestinationName, entry.CategoryPath, entry.Draft.Memo)).OrderBy(entry => entry.Date),
+                imported.Entries.Select(entry => (entry.Draft.Kind, entry.Draft.Date, entry.Draft.Description,
+                    entry.Draft.Amount, entry.AccountName, entry.DestinationName, entry.CategoryPath, entry.Draft.Memo)).OrderBy(entry => entry.Date));
+            var revision = imported.Revision;
+            Assert.Equal(new ImportResult(0, 5), restored.ApplyCsvImport(restored.PreviewCsvImport(path)));
+            Assert.Equal(revision, restored.ReadSnapshot().Revision);
         }
         finally { Directory.Delete(directory, recursive: true); }
     }

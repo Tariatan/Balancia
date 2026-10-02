@@ -4,8 +4,10 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
+    private readonly object settingsWriteGate = new();
+
     private sealed record ApplicationSettings(string DatabasePath, string? BackupPath = null, string? SnapshotPath = null,
-        string? DefaultAccountId = null, string? Language = null);
+        string? DefaultAccountId = null, string? Language = null, WindowSettings? Window = null);
 
     private static ApplicationSettings? LoadApplicationSettings(string path)
     {
@@ -49,21 +51,31 @@ public partial class MainWindow
     private void SaveApplicationSettings(string dbPath, string? selectedBackupPath = null, string? selectedSnapshotPath = null,
         string? selectedDefaultAccountId = null, string? selectedLanguage = null)
     {
-        var directory = Path.GetDirectoryName(applicationSettingsPath);
-        if (string.IsNullOrWhiteSpace(directory))
+        if (separateDataFolder)
         {
-            throw new IOException("The application settings folder is unavailable.");
+            return;
         }
 
-        Directory.CreateDirectory(directory);
-        var temporaryPath = applicationSettingsPath + ".tmp";
-        var json = JsonSerializer.Serialize(new ApplicationSettings(
-            dbPath,
-            selectedBackupPath ?? backupPath,
-            selectedSnapshotPath ?? snapshotPath,
-            selectedDefaultAccountId ?? defaultAccountId,
-            selectedLanguage ?? languagePreference));
-        File.WriteAllText(temporaryPath, json);
-        File.Move(temporaryPath, applicationSettingsPath, true);
+        lock (settingsWriteGate)
+        {
+            var directory = Path.GetDirectoryName(applicationSettingsPath);
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                throw new IOException("The application settings folder is unavailable.");
+            }
+
+            Directory.CreateDirectory(directory);
+            var settingsPath = applicationSettingsPath;
+            var temporaryPath = settingsPath + ".tmp";
+            var json = JsonSerializer.Serialize(new ApplicationSettings(
+                dbPath,
+                selectedBackupPath ?? backupPath,
+                selectedSnapshotPath ?? snapshotPath,
+                selectedDefaultAccountId ?? defaultAccountId,
+                selectedLanguage ?? languagePreference,
+                windowSettings));
+            File.WriteAllText(temporaryPath, json);
+            File.Move(temporaryPath, settingsPath, true);
+        }
     }
 }

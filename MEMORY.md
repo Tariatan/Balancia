@@ -18,6 +18,25 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- Release metadata (2026-10-02): Desktop version is 2.0.0 and Storage is
+  3.0.0 for the breaking settings/CSV changes; matching dated changelog entries
+  added. Core and Android versions remain unchanged. The owner confirmed the
+  CSV export/import workflow successfully in Windows.
+- CSV import (2026-10-02): only the nine-column Balancia export header is
+  accepted, with ISO dates, explicit OpeningBalance rows, and one positive
+  transfer row with source/destination accounts. The old eleven-column format
+  is rejected before writes. Import/export share their header; transfer rows
+  expand into balanced movements. Actual export-to-fresh-ledger roundtrip,
+  unchanged reimport, invalid format/IDs/amounts, and atomic rollback are covered.
+  Desktop Release build (zero warnings/errors), 82 storage tests, and diff
+  checks passed. The CSV picker/preview was not manually exercised this turn.
+- Settings consolidation (2026-10-02, revised): one settings.json stays in
+  %LOCALAPPDATA%\\Balancia, storing preferences, the selected DB path, and
+  window geometry. Settings retains database, backup, and snapshot folder selectors.
+  Registry access and all legacy window/settings migration have been removed.
+  --data-dir sessions do not write preferences or use configured backup/snapshot
+  folders. Desktop Release build and diff checks passed; manual Settings
+  interaction remains unchecked for this revision.
 - `EditDialog` (MainWindow.Dialogs.cs) supports an optional `validate: Func<string?>?`
   callback, checked before `prepareSave`/the store call; a returned message is shown
   inline instead of letting the store's `ArgumentException` throw. Applied to every

@@ -147,8 +147,8 @@
   <data name="Separate data folder" xml:space="preserve"><value>Окрема тека даних</value></data>
   <data name="Delete '{0}'?" xml:space="preserve"><value>Видалити «{0}»?</value></data>
   <data name="Archive '{0}'?" xml:space="preserve"><value>Архівувати «{0}»?</value></data>
-  <data name="{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} рядків: {1} витрат, {2} доходів, {3} парних переказів, {4} початкових залишків.&#10;&#10;</value></data>
-  <data name="Resolved dates (first 10 rows, 2000–2099): " xml:space="preserve"><value>Розпізнані дати (перші 10 рядків, 2000–2099): </value></data>
+  <data name="{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} рядків: {1} витрат, {2} доходів, {3} переказів, {4} початкових залишків.&#10;&#10;</value></data>
+  <data name="Dates (first 10 rows): " xml:space="preserve"><value>Дати (перші 10 рядків): </value></data>
   <data name="Resolved date line {0}: {1}" xml:space="preserve"><value>рядок {0}: {1}</value></data>
   <data name="&#10;&#10;Accounts and source totals:&#10;" xml:space="preserve"><value>&#10;&#10;Рахунки та вихідні суми:&#10;</value></data>
   <data name="&#10;&#10;Categories: " xml:space="preserve"><value>&#10;&#10;Категорії: </value></data>

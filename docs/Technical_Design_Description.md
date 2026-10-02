@@ -8,6 +8,7 @@
 **Modification History:**
 
 - **V1.0:** by shyshkiv `28-Sep-2026`: **Initial version**.
+- **V1.1:** `02-Oct-2026`: **Consolidated desktop settings persistence**.
 
 ## Table of Contents <!-- omit from toc -->
 
@@ -48,7 +49,7 @@ finance ledger. Windows provides full management of accounts, transactions,
 categories, and reminders; a companion Android app provides
 read-only balances and history search from a manually transported snapshot.
 Balancia replaces the owner's prior CSV-based workflow while preserving an
-import path for it.
+import path for Balancia's own CSV exports.
 
 The intended audience for this document is developers and AI agents
 implementing or reviewing Balancia, and anyone assessing the overall design
@@ -358,8 +359,8 @@ database "balancia.db" as Db
 
 Owner -> UI : Import CSV (file picker)
 UI -> Import : Preview(file)
-Import -> Import : Parse rows, fingerprint file\n(quoting, BOM, DD-MM-YY dates, decimals)
-Import -> Import : Group transfer rows by ID,\ndetect opening singletons,\nmap Tags to two-level category paths
+Import -> Import : Parse export rows, fingerprint file\n(quoting, BOM, YYYY-MM-DD dates, decimals)
+Import -> Import : Validate unique IDs and explicit openings,\nexpand transfers to balanced movements,\nmap Category to two-level category paths
 Import -> Db : Read existing import_sources\n(reconciliation, conflicts)
 Import --> UI : Preview\n(counts, mappings, errors, totals)
 alt invalid rows present
@@ -376,19 +377,21 @@ end
 @enduml
 ```
 
-The import source is the owner's CSV file: columns ID, Date,
-Description, Currency, Amount, Type, Tags, Account, Status, Memo, IOU.
-Transfer rows are grouped by shared CSV ID and require exactly two different
-accounts with the same currency/date and opposite equal amounts — never paired
-by amount/date alone. A repeated ID under unchanged data is a no-op; the same
-ID under changed data is a reviewable conflict, never a silent overwrite.
+Import accepts only Balancia's nine-column export structure, in this order:
+ID, Date, Type, Description, Amount, Account, DestinationAccount, Category, Memo.
+Dates use YYYY-MM-DD; expenses have negative amounts, income and transfers
+have positive amounts, and OpeningBalance amounts may be positive, negative,
+or zero. Every account has exactly one explicit OpeningBalance row. A transfer
+is one row with different source and destination accounts and no category.
+IDs must be unique within a file. A repeated import with unchanged IDs and data
+is a no-op; changed data or local edits produce a conflict. The old eleven-column
+format is rejected at preview before any writes.
 
 Export CSV writes all account opening balances and posted transactions from
 one consistent ledger read, one row per logical transaction (including
 transfers), with columns ID, Date, Type, Description, Amount, Account,
-DestinationAccount, Category, Memo. This nine-column export format is
-independent of the eleven-column import format; the existing target file is
-replaced only after the write completes.
+DestinationAccount, Category, Memo. Import and export share the same header.
+The existing target file is replaced only after the write completes.
 
 ### Reminders
 
@@ -495,12 +498,17 @@ other settings changes.
 
 ### Local Settings Persistence
 
-- `window.json`, written beside the active `balancia.db` with an atomic
-  replace on close, stores width, height, and screen position. An invalid or
-  malformed file is ignored rather than blocking startup.
-- `%LOCALAPPDATA%\Balancia\settings.json` stores the selected database
-  folder, the optional backup folder, the optional snapshot folder, and the
-  optional language code, independent of ledger data.
+- One `%LOCALAPPDATA%\Balancia\settings.json` stores window width,
+  height, and position, plus the optional backup folder, snapshot folder,
+  default account, and explicitly chosen language. Writes replace the file
+  atomically; invalid optional window geometry does not block ledger startup.
+- The settings path is fixed regardless of the active database directory.
+  Startup reads the database path from this file, using the default user
+  directory when no path is saved. Settings provides database, backup, and
+  snapshot folder selectors; all three paths persist in the same settings file.
+- No registry access or legacy settings migration is performed. `window.json`
+  and settings files beside a custom database are not loaded. `--data-dir`
+  overrides the database for a temporary session and does not write preferences.
 
 ## Android Context (Balancia.Android)
 

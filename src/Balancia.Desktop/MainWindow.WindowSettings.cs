@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 
@@ -7,43 +6,24 @@ namespace Balancia.Desktop;
 public partial class MainWindow
 {
     private sealed record WindowSettings(double Width, double Height, int X, int Y);
+    private WindowSettings? windowSettings;
     private PixelPoint? loadedWindowPosition;
     private PixelPoint? windowPositionForPersistence;
 
-    private void LoadWindowSettings()
+    private void LoadWindowSettings(ApplicationSettings? settings)
     {
-        try
+        var geometry = settings?.Window;
+        if (geometry is null || !IsValidWindowSize(geometry.Width, geometry.Height))
         {
-            if (!File.Exists(windowSettingsPath))
-            {
-                return;
-            }
+            return;
+        }
 
-            var json = File.ReadAllText(windowSettingsPath);
-            var settings = JsonSerializer.Deserialize<WindowSettings>(json);
-            if (settings is null || !IsValidWindowSize(settings.Width, settings.Height))
-            {
-                return;
-            }
-
-            Width = settings.Width;
-            Height = settings.Height;
-            loadedWindowPosition = new PixelPoint(settings.X, settings.Y);
-            windowPositionForPersistence = loadedWindowPosition;
-            WindowStartupLocation = WindowStartupLocation.Manual;
-        }
-        catch (JsonException)
-        {
-            // A malformed settings file should not prevent the ledger from opening.
-        }
-        catch (IOException)
-        {
-            // Window settings are optional and can be unavailable temporarily.
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // Window settings are optional and can be unavailable temporarily.
-        }
+        windowSettings = geometry;
+        Width = geometry.Width;
+        Height = geometry.Height;
+        loadedWindowPosition = new PixelPoint(geometry.X, geometry.Y);
+        windowPositionForPersistence = loadedWindowPosition;
+        WindowStartupLocation = WindowStartupLocation.Manual;
     }
 
     private void ApplyLoadedWindowPosition()
@@ -58,19 +38,9 @@ public partial class MainWindow
     {
         try
         {
-            var directory = Path.GetDirectoryName(windowSettingsPath);
-            if (string.IsNullOrWhiteSpace(directory))
-            {
-                return;
-            }
-
-            Directory.CreateDirectory(directory);
             var position = windowPositionForPersistence ?? Position;
-            var settings = new WindowSettings(Width, Height, position.X, position.Y);
-            var json = JsonSerializer.Serialize(settings);
-            var temporaryPath = windowSettingsPath + ".tmp";
-            File.WriteAllText(temporaryPath, json);
-            File.Move(temporaryPath, windowSettingsPath, true);
+            windowSettings = new WindowSettings(Width, Height, position.X, position.Y);
+            SaveApplicationSettings(databasePath);
         }
         catch (IOException)
         {

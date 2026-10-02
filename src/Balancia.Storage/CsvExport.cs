@@ -14,15 +14,7 @@ public sealed partial class LedgerStore
             using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
             WriteCsvRow(
                 writer,
-                "ID",
-                "Date",
-                "Type",
-                "Description",
-                "Amount",
-                "Account",
-                "DestinationAccount",
-                "Category",
-                "Memo");
+                CsvImportRowValidator.Header);
 
             foreach (var account in snapshot.Accounts)
             {

@@ -13,6 +13,14 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.0.0] - 2026-10-02
+
+#### Changed
+
+- **Breaking:** CSV import now accepts only Balancia's own nine-column export format, using ISO dates, explicit opening balances, and one row per transfer. Updated import preview wording in all four languages.
+- **Breaking:** window geometry and application preferences now persist in one `%LOCALAPPDATA%\Balancia\settings.json`. The settings path stays fixed when the database location changes; legacy `window.json` and settings files beside custom databases are no longer loaded or migrated.
+- Temporary `--data-dir` sessions no longer save application preferences or use configured backup and snapshot folders.
+
 ### [1.7.0] - 2026-09-30
 
 #### Changed
@@ -47,6 +55,14 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [3.0.0] - 2026-10-02
+
+#### Changed
+
+- **Breaking:** replaced the eleven-column CSV import format with the exported `ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo` structure. The old header is rejected before writes.
+- Import and export share the same column header. Import validates ISO dates, unique IDs, exact centime amounts, one explicit opening balance per account, and positive single-row transfers with distinct source and destination accounts.
+- Transfers expand into two balanced movements within the existing atomic import transaction. Export/import roundtrip preserves account balances, transaction text, categories, and transfer direction; unchanged repeated imports remain a no-op.
 
 ### [2.0.0] - 2026-09-30
 

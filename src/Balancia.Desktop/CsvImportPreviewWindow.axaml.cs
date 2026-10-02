@@ -37,9 +37,9 @@ public partial class CsvImportPreviewWindow : Window
     private string BuildMessage()
     {
         var summary = preview.Summary;
-        return Format("{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.\n\n",
+        return Format("{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.\n\n",
                 summary.Rows, summary.Expenses, summary.Incomes, summary.Transfers, summary.Openings) +
-            Get("Resolved dates (first 10 rows, 2000–2099): ") +
+            Get("Dates (first 10 rows): ") +
             string.Join(", ", preview.ResolvedDates.Select(d => Format("Resolved date line {0}: {1}", d.Line, d.Date.ToString("yyyy-MM-dd")))) +
             Get("\n\nAccounts and source totals:\n") +
             string.Join("\n", summary.AccountTotals.Select(a => $"{a.Account}: {a.Centimes / 100m:N2}")) +

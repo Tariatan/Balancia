@@ -70,7 +70,7 @@ dotnet run --project src/Balancia.Desktop -c Release --no-build --no-restore
 
 For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--` in the `dotnet run` command — the app creates that directory and its schema on first run.
 
-The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db` by default. To import an existing CSV export, open Settings, choose **Import CSV**, inspect the preview, and apply it; a repeated identical import is a no-op, and a changed row under the same ID surfaces as a conflict instead of a silent overwrite. **Export CSV** writes the current ledger, including opening balances, in Balancia's own format.
+The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db` by default. CSV import accepts only Balancia's own export format: `ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo`, with `YYYY-MM-DD` dates. Open Settings, choose **Import CSV**, inspect the preview, and apply it; a repeated identical import is a no-op, and a changed row under the same ID surfaces as a conflict instead of a silent overwrite. **Export CSV** writes the current ledger, including explicit opening balances and one row per transfer. The former eleven-column CSV format is no longer supported.
 
 ## Private data
 

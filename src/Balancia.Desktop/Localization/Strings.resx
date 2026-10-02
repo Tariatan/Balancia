@@ -147,8 +147,8 @@
   <data name="Separate data folder" xml:space="preserve"><value>Separate data folder</value></data>
   <data name="Delete '{0}'?" xml:space="preserve"><value>Delete '{0}'?</value></data>
   <data name="Archive '{0}'?" xml:space="preserve"><value>Archive '{0}'?</value></data>
-  <data name="{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} rows: {1} expenses, {2} income, {3} paired transfers, {4} openings.&#10;&#10;</value></data>
-  <data name="Resolved dates (first 10 rows, 2000–2099): " xml:space="preserve"><value>Resolved dates (first 10 rows, 2000–2099): </value></data>
+  <data name="{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.&#10;&#10;" xml:space="preserve"><value>{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.&#10;&#10;</value></data>
+  <data name="Dates (first 10 rows): " xml:space="preserve"><value>Dates (first 10 rows): </value></data>
   <data name="Resolved date line {0}: {1}" xml:space="preserve"><value>line {0}: {1}</value></data>
   <data name="&#10;&#10;Accounts and source totals:&#10;" xml:space="preserve"><value>&#10;&#10;Accounts and source totals:&#10;</value></data>
   <data name="&#10;&#10;Categories: " xml:space="preserve"><value>&#10;&#10;Categories: </value></data>

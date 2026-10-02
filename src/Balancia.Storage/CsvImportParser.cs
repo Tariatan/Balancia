@@ -22,7 +22,7 @@ internal static class CsvImportParser
             var header = parser.ReadFields();
             if (header is null || !header.SequenceEqual(CsvImportRowValidator.Header))
             {
-                issues.Add(new ImportIssue(1, "Expected the 11 import columns in their original order."));
+                issues.Add(new ImportIssue(1, "Expected the 9 Balancia export columns in their original order: ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo."));
             }
 
             if (issues.Count == 0)
@@ -47,9 +47,9 @@ internal static class CsvImportParser
                     }
 
                     sourceRows++;
-                    if (f.Length != 11)
+                    if (f.Length != CsvImportRowValidator.Header.Length)
                     {
-                        issues.Add(new ImportIssue(line, $"Expected 11 columns; found {f.Length}."));
+                        issues.Add(new ImportIssue(line, $"Expected 9 columns; found {f.Length}."));
                         continue;
                     }
 
