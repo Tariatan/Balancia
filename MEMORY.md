@@ -18,6 +18,10 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-03: Useful local formatting rules were migrated to the common harness.
+  Removed the local guidelines file. Repository documentation refers to the
+  common harness without machine-specific paths or personal repository names.
+
 - 2026-10-03: Add another transaction now clears Category and its suggestion
   state after successful save, then focuses the empty field. Date, type, and
   account are retained. Desktop Release build and diff check passed; native
@@ -236,5 +240,5 @@ with the updated API 36 APK; see docs/ANDROID.md acceptance sequence.
 Product truth and technical reasoning belong in
 docs/Technical_Design_Description.md; remaining/upcoming tasks belong in
 docs/PLAN.md. Keep this handoff compact. C# formatting preferences from
-CategoriesPanel and RemindersPanel are recorded in docs/Coding Guidelines.md.
+CategoriesPanel and RemindersPanel are maintained in the common harness.
 

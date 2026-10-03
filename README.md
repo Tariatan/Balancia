@@ -59,7 +59,7 @@ remembered-key failures are logged without passphrases, keys, or financial conte
 
 - [`docs/Technical_Design_Description.md`](docs/Technical_Design_Description.md) — architecture, context diagrams, and design decisions; the primary entry point for the project
 - [`docs/PLAN.md`](docs/PLAN.md) — remaining/upcoming tasks
-- [`docs/Coding Guidelines.md`](docs/Coding%20Guidelines.md) — C# formatting conventions
+- Follow the coding guidelines defined by the common harness.
 - [`AGENTS.md`](AGENTS.md) / [`MEMORY.md`](MEMORY.md) — entry point and working handoff for AI agents and contributors
 
 ## Getting started

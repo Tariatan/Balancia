@@ -5,9 +5,8 @@
 Read [MEMORY.md](MEMORY.md), then
 [docs/Technical_Design_Description.md](docs/Technical_Design_Description.md)
 for product behavior and technical decisions, and
-[docs/PLAN.md](docs/PLAN.md) for remaining/upcoming tasks. Follow
-[docs/Coding Guidelines.md](docs/Coding Guidelines.md) for C# formatting. Load
-other context only as needed.
+[docs/PLAN.md](docs/PLAN.md) for remaining/upcoming tasks. Follow the coding guidelines defined by the common harness.
+Load other context only as needed.
 
 The user's current instructions take precedence. The Technical Design
 Description owns product behavior and technical decisions; memory is a

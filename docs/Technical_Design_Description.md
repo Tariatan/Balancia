@@ -81,7 +81,7 @@ workflows of each context.
 | Reference | Title                                                                           |
 |:--------- |:------------------------------------------------------------------------------- |
 | 1         | [docs/PLAN.md](PLAN.md) — remaining/upcoming tasks                             |
-| 2         | [docs/Coding Guidelines.md](Coding%20Guidelines.md) — C# formatting conventions |
+| 2         | Follow the coding guidelines defined by the common harness. |
 | 3         | [AGENTS.md](../AGENTS.md) — agent/contributor operational entry point           |
 
 ## Abbreviations and Definitions
