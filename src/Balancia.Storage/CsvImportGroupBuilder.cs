@@ -26,7 +26,14 @@ internal static class CsvImportGroupBuilder
             groups.Add(new CsvImportGroup(grouping.Key, first.Type, movements, fingerprint));
         }
 
-        foreach (var account in groups.SelectMany(group => group.Rows).GroupBy(row => row.Account, StringComparer.OrdinalIgnoreCase))
+        foreach (var duplicate in rows.Where(row => row.Type == "Reminder" &&
+                !JsonSerializer.Deserialize<CsvReminderOptions>(row.Memo)!.Archived)
+            .GroupBy(row => row.Description.Trim(), StringComparer.OrdinalIgnoreCase).Where(group => group.Count() > 1))
+        {
+            issues.Add(new ImportIssue(duplicate.First().Line, "Duplicate reminder description."));
+        }
+
+        foreach (var account in groups.Where(group => group.Kind != "Reminder").SelectMany(group => group.Rows).GroupBy(row => row.Account, StringComparer.OrdinalIgnoreCase))
         {
             var openings = account.Where(row => row.Type == "OpeningBalance").ToArray();
             if (openings.Length != 1)

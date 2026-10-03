@@ -18,6 +18,20 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-03: Reminder CSV release metadata: Desktop 2.8.0 and Storage 3.3.0,
+  with matching Added changelog entries. Only these implementations changed;
+  Core and Android versions remain unchanged.
+
+- 2026-10-03: CSV now includes Reminder rows alongside openings/transactions.
+  The nine-column header is unchanged: reminder:<id>, expected-date anchor,
+  exact description, indicative amount, empty account/destination/category,
+  and Memo JSON with IntervalMonths/Archived. Export reads templates and ledger
+  in one SQLite read transaction. Imports exclude reminders from balances,
+  track fingerprints atomically, reject conflicts, and mark locally edited/
+  deleted imported reminders as modified. Preview count and validation errors
+  translated in all four desktop languages. Locked restore and Release build
+  passed; runtime CSV reminder roundtrip has not been exercised.
+
 - 2026-10-02: Chart tooltip visuals moved to a shared compiled data template in
   App.axaml, bound to ChartTooltipData/ChartTooltipRow. FlowChart now supplies
   only formatted row data; AXAML owns spacing, bold fonts, and amount alignment.

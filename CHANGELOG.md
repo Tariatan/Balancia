@@ -13,6 +13,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.8.0] - 2026-10-03
+
+#### Added
+
+- CSV import preview now shows a separate reminder count. Reminder validation and conflict messages are translated into English, German, Russian, and Ukrainian.
+
+
 ### [2.7.0] - 2026-10-02
 
 #### Changed
@@ -124,6 +131,14 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [3.3.0] - 2026-10-03
+
+#### Added
+
+- CSV export/import now includes reminder templates, preserving expected-date anchors, exact descriptions, indicative amounts, repeat intervals, and archived state. Reminder rows use the existing nine-column header, with schedule metadata in Memo; export reads reminders and ledger data from one consistent SQLite transaction.
+- Reminder imports commit atomically with transactions, exclude reminder amounts from account totals, detect duplicate active descriptions and conflicting schedules, and track unchanged reimports. Local edits or deletion of an imported reminder prevent a later import from silently replacing that change.
+
 
 ### [3.2.0] - 2026-10-02
 

@@ -8,7 +8,7 @@ public sealed record ImportIssue(long Line, string Message);
 public sealed record ImportAccountTotal(string Account, long Centimes);
 public sealed record ImportDateExample(long Line, DateOnly Date);
 public sealed record ImportSummary(int Rows, int Expenses, int Incomes, int Transfers, int Openings,
-    IReadOnlyList<ImportAccountTotal> AccountTotals, IReadOnlyList<string> Categories);
+    IReadOnlyList<ImportAccountTotal> AccountTotals, IReadOnlyList<string> Categories, int Reminders = 0);
 public sealed record ImportResult(int Added, int Unchanged);
 
 internal sealed record CsvImportRow(long Line, string Id, DateOnly Date, string Description, long Amount,
@@ -141,7 +141,7 @@ public sealed partial class LedgerStore
             }
 
             var existingAccounts = new HashSet<string>(accounts.Keys, StringComparer.OrdinalIgnoreCase);
-            var earliest = pending.SelectMany(g => g.Rows).GroupBy(r => r.Account, StringComparer.OrdinalIgnoreCase)
+            var earliest = pending.Where(g => g.Kind != "Reminder").SelectMany(g => g.Rows).GroupBy(r => r.Account, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.Min(r => r.Date), StringComparer.OrdinalIgnoreCase);
             foreach (var (name, firstDate) in earliest)
             {
@@ -159,6 +159,15 @@ public sealed partial class LedgerStore
             {
                 var row = group.Rows[0];
                 string transactionId;
+                if (group.Kind == "Reminder")
+                {
+                    ImportCsvReminder(c, tx, row);
+                    Execute(c, tx, "INSERT INTO import_sources(source,external_id,transaction_id,fingerprint,raw_rows_json) VALUES('CSV',$external,NULL,$fingerprint,$raw)",
+                        ("$external", group.Id), ("$fingerprint", group.Fingerprint),
+                        ("$raw", JsonSerializer.Serialize<string[][]>([row.Fields])));
+                    added++;
+                    continue;
+                }
                 if (group.Kind == "OpeningBalance")
                 {
                     var account = accounts[row.Account];
@@ -197,7 +206,7 @@ public sealed partial class LedgerStore
                     ("$raw", JsonSerializer.Serialize(group.Rows.Select(r => r.Fields).Distinct().ToArray())));
                 added++;
             }
-            var importedTotals = preview.Groups.SelectMany(g => g.Rows).GroupBy(r => r.Account, StringComparer.OrdinalIgnoreCase)
+            var importedTotals = preview.Groups.Where(g => g.Kind != "Reminder").SelectMany(g => g.Rows).GroupBy(r => r.Account, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => checked((long)g.Sum(r => (decimal)r.Amount)));
             foreach (var (name, total) in importedTotals)
             {

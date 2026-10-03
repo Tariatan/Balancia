@@ -170,4 +170,9 @@
   <data name="Enter an amount greater than zero." xml:space="preserve"><value>Введіть суму, більшу за нуль.</value></data>
   <data name="Choose two different accounts for a transfer." xml:space="preserve"><value>Для переказу виберіть два різні рахунки.</value></data>
   <data name="Transactions cannot be dated in the future." xml:space="preserve"><value>Дата операції не може бути в майбутньому.</value></data>
+  <data name="Reminders: {0}" xml:space="preserve"><value>Нагадування: {0}</value></data>
+  <data name="Invalid reminder fields." xml:space="preserve"><value>Некоректні поля нагадування.</value></data>
+  <data name="Invalid reminder schedule." xml:space="preserve"><value>Некоректний розклад нагадування.</value></data>
+  <data name="Duplicate reminder description." xml:space="preserve"><value>Повторюваний опис нагадування.</value></data>
+  <data name="Imported reminder conflicts with existing reminder data." xml:space="preserve"><value>Імпортоване нагадування конфліктує з наявними даними.</value></data>
 </root>

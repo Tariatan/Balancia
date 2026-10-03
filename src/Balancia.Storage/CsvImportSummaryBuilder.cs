@@ -4,7 +4,7 @@ internal static class CsvImportSummaryBuilder
 {
     public static ImportSummary Build(List<CsvImportRow> rows, List<CsvImportGroup> groups, int sourceRows)
     {
-        var totals = groups.SelectMany(group => group.Rows)
+        var totals = groups.Where(group => group.Kind != "Reminder").SelectMany(group => group.Rows)
             .GroupBy(r => r.Account, StringComparer.OrdinalIgnoreCase)
             .Select(g => new ImportAccountTotal(g.Key, checked((long)g.Sum(r => (decimal)r.Amount))))
             .OrderBy(x => x.Account)
@@ -22,6 +22,6 @@ internal static class CsvImportSummaryBuilder
             groups.Count(g => g.Kind == "Transfer"),
             groups.Count(g => g.Kind == "OpeningBalance"),
             totals,
-            categories);
+            categories, groups.Count(group => group.Kind == "Reminder"));
     }
 }

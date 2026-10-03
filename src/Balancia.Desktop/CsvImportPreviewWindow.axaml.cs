@@ -39,6 +39,7 @@ public partial class CsvImportPreviewWindow : Window
         var summary = preview.Summary;
         return Format("{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.\n\n",
                 summary.Rows, summary.Expenses, summary.Incomes, summary.Transfers, summary.Openings) +
+            Format("Reminders: {0}", summary.Reminders) + "\n\n" +
             Get("Dates (first 10 rows): ") +
             string.Join(", ", preview.ResolvedDates.Select(d => Format("Resolved date line {0}: {1}", d.Line, d.Date.ToString("yyyy-MM-dd")))) +
             Get("\n\nAccounts and source totals:\n") +

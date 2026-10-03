@@ -58,12 +58,17 @@ public sealed partial class LedgerStore
                 throw new ArgumentException("An active reminder already uses this description.");
             }
 
+            Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE external_id=$external", ("$external", "reminder:" + key));
             Execute(c, tx, "INSERT INTO reminder_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id", key), ("$description", description), ("$date", DateText(expectedDate)), ("$amount", indicativeAmount.Centimes), ("$interval", intervalMonths), ("$archived", archived ? 1 : 0));
         });
         return key;
     }
 
-    public void DeleteReminder(string id) => Write((c, tx) => Execute(c, tx, "DELETE FROM reminder_templates WHERE id=$id", ("$id", id)));
+    public void DeleteReminder(string id) => Write((c, tx) =>
+    {
+        Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE external_id=$external", ("$external", "reminder:" + id));
+        Execute(c, tx, "DELETE FROM reminder_templates WHERE id=$id", ("$id", id));
+    });
 
     private static bool IsSatisfied(SqliteConnection c, SqliteTransaction tx, string description, DateOnly occurrence) =>
         Scalar(c, tx, "SELECT 1 FROM ledger WHERE kind<>'OpeningBalance' AND description=$description AND substr(date,1,7)=$month LIMIT 1", ("$description", description), ("$month", occurrence.ToString("yyyy-MM", CultureInfo.InvariantCulture))) is not null;

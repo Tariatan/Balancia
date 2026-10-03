@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 
 namespace Balancia.Storage;
 
@@ -42,6 +43,36 @@ internal static class CsvImportRowValidator
         else
         {
             amount = (long)(parsed * 100);
+        }
+
+        if (f[TypeIndex] == "Reminder")
+        {
+            if (!f[IdIndex].StartsWith("reminder:", StringComparison.Ordinal) || f[IdIndex].Length <= 9 ||
+                string.IsNullOrWhiteSpace(f[DescriptionIndex]) || amount <= 0 ||
+                f[AccountIndex].Length > 0 || f[DestinationIndex].Length > 0 || f[CategoryIndex].Length > 0)
+            {
+                errors.Add("Invalid reminder fields.");
+            }
+
+            try
+            {
+                var options = JsonSerializer.Deserialize<CsvReminderOptions>(f[MemoIndex]);
+                using var metadata = JsonDocument.Parse(f[MemoIndex]);
+                if (options is null || options.IntervalMonths <= 0 ||
+                    !metadata.RootElement.TryGetProperty("Archived", out var archived) ||
+                    archived.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                {
+                    errors.Add("Invalid reminder schedule.");
+                }
+            }
+            catch (Exception exception) when (exception is JsonException or InvalidOperationException)
+            {
+                errors.Add("Invalid reminder schedule.");
+            }
+
+            return (errors.Count == 0
+                ? new CsvImportRow(line, f[IdIndex], date, f[DescriptionIndex], amount, "Reminder", "", "", f[MemoIndex], f, "")
+                : null, errors);
         }
 
         if (f[TypeIndex] is not ("Expense" or "Income" or "Transfer" or "OpeningBalance"))

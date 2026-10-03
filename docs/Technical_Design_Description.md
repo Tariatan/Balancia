@@ -387,11 +387,23 @@ IDs must be unique within a file. A repeated import with unchanged IDs and data
 is a no-op; changed data or local edits produce a conflict. The old eleven-column
 format is rejected at preview before any writes.
 
-Export CSV writes all account opening balances and posted transactions from
-one consistent ledger read, one row per logical transaction (including
+Export CSV writes all account opening balances, posted transactions, and reminder templates from
+one consistent ledger read, one row per logical transaction or reminder (including
 transfers), with columns ID, Date, Type, Description, Amount, Account,
 DestinationAccount, Category, Memo. Import and export share the same header.
 The existing target file is replaced only after the write completes.
+
+Reminder rows use `Type=Reminder`, `ID=reminder:<template ID>`, the schedule anchor
+in Date, the exact Description, and the positive indicative Amount. Account,
+DestinationAccount, and Category are empty. Memo contains JSON with
+`IntervalMonths` (positive integer) and `Archived` (boolean). All templates,
+including archived ones, are exported; payment-derived next occurrences are
+recomputed from the imported transactions rather than exported as new anchors.
+Reminder rows contribute to preview/import row counts but not account totals.
+Reminder creation and import-source tracking commit atomically with transactions.
+Identical reimports are unchanged; conflicting schedule data or duplicate active
+descriptions reject the batch. Editing/deleting an imported reminder marks its
+source as locally modified, so reimport cannot silently discard that local change.
 
 ### Reminders
 

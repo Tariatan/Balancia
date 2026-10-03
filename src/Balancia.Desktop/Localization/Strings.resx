@@ -170,4 +170,9 @@
   <data name="Enter an amount greater than zero." xml:space="preserve"><value>Enter an amount greater than zero.</value></data>
   <data name="Choose two different accounts for a transfer." xml:space="preserve"><value>Choose two different accounts for a transfer.</value></data>
   <data name="Transactions cannot be dated in the future." xml:space="preserve"><value>Transactions cannot be dated in the future.</value></data>
+  <data name="Reminders: {0}" xml:space="preserve"><value>Reminders: {0}</value></data>
+  <data name="Invalid reminder fields." xml:space="preserve"><value>Invalid reminder fields.</value></data>
+  <data name="Invalid reminder schedule." xml:space="preserve"><value>Invalid reminder schedule.</value></data>
+  <data name="Duplicate reminder description." xml:space="preserve"><value>Duplicate reminder description.</value></data>
+  <data name="Imported reminder conflicts with existing reminder data." xml:space="preserve"><value>Imported reminder conflicts with existing reminder data.</value></data>
 </root>
