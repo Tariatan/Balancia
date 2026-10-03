@@ -3,7 +3,7 @@
         x:Class="Balancia.Desktop.SettingsWindow"
         Icon="avares://Balancia.Desktop/Balancia.ico"
         ShowInTaskbar="False"
-        Width="600" Height="470" MinWidth="600" MinHeight="470" MaxWidth="600" MaxHeight="470"
+        Width="600" Height="620" MinWidth="600" MinHeight="620" MaxWidth="600" MaxHeight="620"
         CanResize="False"
         WindowStartupLocation="CenterOwner">
   <ScrollViewer>
@@ -21,6 +21,10 @@
         <Button x:Name="snapshotButton" Grid.Row="2" Grid.Column="0" />
         <TextBlock x:Name="snapshotText" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" />
       </Grid>
+      <Separator Margin="0,4" />
+      <TextBlock x:Name="encryptionHeading" FontWeight="SemiBold" />
+      <TextBlock x:Name="encryptionStatus" TextWrapping="Wrap" />
+      <Button x:Name="encryptionButton" HorizontalAlignment="Left" />
       <Separator Margin="0,4" />
       <TextBlock x:Name="dataTransferHeading" FontWeight="SemiBold" />
       <StackPanel Spacing="0">

@@ -7,8 +7,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.companyname.Balancia.Android</ApplicationId>
-    <ApplicationVersion>3</ApplicationVersion>
-    <ApplicationDisplayVersion>0.2.0</ApplicationDisplayVersion>
+    <Version>0.3.1</Version>
+    <ApplicationVersion>5</ApplicationVersion>
+    <ApplicationDisplayVersion>0.3.1</ApplicationDisplayVersion>
     <!--
       Enables trim analyzers and full trimming during Release mode.
       To learn more, see: https://learn.microsoft.com/dotnet/core/deploying/trimming/trimming-options#trimming-granularity
@@ -16,6 +17,8 @@
     <TrimMode>partial</TrimMode>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <ProjectReference Include="..\Balancia.Core\Balancia.Core.csproj" />
     <ProjectReference Include="..\Balancia.Storage\Balancia.Storage.csproj" />
   </ItemGroup>

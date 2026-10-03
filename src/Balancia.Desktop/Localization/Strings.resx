@@ -175,4 +175,29 @@
   <data name="Invalid reminder schedule." xml:space="preserve"><value>Invalid reminder schedule.</value></data>
   <data name="Duplicate reminder description." xml:space="preserve"><value>Duplicate reminder description.</value></data>
   <data name="Imported reminder conflicts with existing reminder data." xml:space="preserve"><value>Imported reminder conflicts with existing reminder data.</value></data>
+  <data name="Snapshot encryption" xml:space="preserve"><value>Snapshot encryption</value></data>
+  <data name="Unlock snapshot" xml:space="preserve"><value>Unlock snapshot</value></data>
+  <data name="Passphrase" xml:space="preserve"><value>Passphrase</value></data>
+  <data name="Confirm passphrase" xml:space="preserve"><value>Confirm passphrase</value></data>
+  <data name="Unlock" xml:space="preserve"><value>Unlock</value></data>
+  <data name="Set passphrase" xml:space="preserve"><value>Set passphrase</value></data>
+  <data name="Change passphrase" xml:space="preserve"><value>Change passphrase</value></data>
+  <data name="Use at least 12 characters for the passphrase." xml:space="preserve"><value>Use at least 12 characters for the passphrase.</value></data>
+  <data name="The passphrases do not match or are empty." xml:space="preserve"><value>The passphrases do not match or are empty.</value></data>
+  <data name="Enter the passphrase used when this snapshot was exported." xml:space="preserve"><value>Enter the passphrase used when this snapshot was exported.</value></data>
+  <data name="Keep this passphrase in a safe place. Windows remembers the key for automatic exports. Android asks once, then remembers it too. Older files keep their previous passphrase." xml:space="preserve"><value>Keep this passphrase in a safe place. Windows remembers the key for automatic exports. Android asks once, then remembers it too. Older files keep their previous passphrase.</value></data>
+  <data name="Encrypted snapshots and backups. Key remembered on this Windows account. Local databases and CSV stay unencrypted." xml:space="preserve"><value>Encrypted snapshots and backups. Key remembered on this Windows account. Local databases and CSV stay unencrypted.</value></data>
+  <data name="Set a passphrase before exporting snapshots or enabling automatic backups." xml:space="preserve"><value>Set a passphrase before exporting snapshots or enabling automatic backups.</value></data>
+  <data name="The remembered snapshot key is unavailable. Set up encryption again before exporting." xml:space="preserve"><value>The remembered snapshot key is unavailable. Set up encryption again before exporting.</value></data>
+  <data name="Automatic backups and snapshots are paused until a passphrase is configured in Settings." xml:space="preserve"><value>Automatic backups and snapshots are paused until a passphrase is configured in Settings.</value></data>
+  <data name="The snapshot key could not be saved. Encryption settings were kept." xml:space="preserve"><value>The snapshot key could not be saved. Encryption settings were kept.</value></data>
+  <data name="Enter the snapshot passphrase to unlock this file." xml:space="preserve"><value>Enter the snapshot passphrase to unlock this file.</value></data>
+  <data name="The snapshot passphrase is incorrect or the file is damaged." xml:space="preserve"><value>The snapshot passphrase is incorrect or the file is damaged.</value></data>
+  <data name="Snapshot is incomplete or unsupported." xml:space="preserve"><value>Snapshot is incomplete or unsupported.</value></data>
+  <data name="Snapshot encryption version or format is unsupported." xml:space="preserve"><value>Snapshot encryption version or format is unsupported.</value></data>
+  <data name="Snapshot is incomplete or exceeds the supported size." xml:space="preserve"><value>Snapshot is incomplete or exceeds the supported size.</value></data>
+  <data name="Snapshot encryption parameters are unsupported." xml:space="preserve"><value>Snapshot encryption parameters are unsupported.</value></data>
+  <data name="Snapshot exceeds the supported size." xml:space="preserve"><value>Snapshot exceeds the supported size.</value></data>
+  <data name="Snapshot manifest exceeds the supported size." xml:space="preserve"><value>Snapshot manifest exceeds the supported size.</value></data>
+  <data name="Snapshot database exceeds the supported size." xml:space="preserve"><value>Snapshot database exceeds the supported size.</value></data>
 </root>

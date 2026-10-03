@@ -10,11 +10,11 @@ public sealed record SnapshotRestoreResult(string BackupPath, SnapshotManifest M
 
 public sealed partial class LedgerStore
 {
-    public SnapshotRestoreResult RestoreSnapshot(string source) => LogOperation(() => RestoreSnapshotCore(source));
+    public SnapshotRestoreResult RestoreSnapshot(string source, SnapshotKey? key = null) => LogOperation(() => RestoreSnapshotCore(source, key));
 
-    private SnapshotRestoreResult RestoreSnapshotCore(string source)
+    private SnapshotRestoreResult RestoreSnapshotCore(string source, SnapshotKey? key)
     {
-        using var archive = ZipFile.OpenRead(Path.GetFullPath(source));
+        using var archive = SnapshotEncryption.OpenArchive(Path.GetFullPath(source), key);
         var manifest = ReadManifestEntry(archive);
         var (datasetId, revision) = ReadDatasetIdAndRevision();
         if (manifest.DatasetId != datasetId)
@@ -33,11 +33,14 @@ public sealed partial class LedgerStore
         {
             ExtractDatabaseEntry(archive, staged);
             ValidateExtractedDatabase(staged, manifest);
+            Serilog.Log.ForContext<LedgerStore>().Information("Restore snapshot validated before replacement");
             using (var liveConnection = connections.Open())
             using (var backupConnection = new SqliteConnectionFactory(backup).Open())
             {
                 liveConnection.BackupDatabase(backupConnection);
             }
+
+            Serilog.Log.ForContext<LedgerStore>().Information("Restore recovery copy saved before replacement");
 
             SqliteConnection.ClearAllPools();
             File.Move(staged, path, true);
@@ -68,18 +71,14 @@ public sealed partial class LedgerStore
         return result;
     }
 
-    public SnapshotManifest ValidateSnapshot(string source) => LogOperation(() => ValidateSnapshotCore(source));
+    public SnapshotManifest ValidateSnapshot(string source, SnapshotKey? key = null) => LogOperation(() => ValidateSnapshotCore(source, key));
 
-    private SnapshotManifest ValidateSnapshotCore(string source)
+    private SnapshotManifest ValidateSnapshotCore(string source, SnapshotKey? key)
     {
-        using var archive = ZipFile.OpenRead(Path.GetFullPath(source));
-        var manifest = ReadManifestEntry(archive);
         var temporary = path + ".snapshot-check-" + Guid.NewGuid().ToString("N");
         try
         {
-            ExtractDatabaseEntry(archive, temporary);
-            ValidateExtractedDatabase(temporary, manifest);
-            return manifest;
+            return ExtractValidatedSnapshot(source, temporary, key);
         }
         finally
         {
@@ -90,13 +89,28 @@ public sealed partial class LedgerStore
         }
     }
 
+    internal static SnapshotManifest ExtractValidatedSnapshot(string source, string destination, SnapshotKey? key)
+    {
+        using var archive = SnapshotEncryption.OpenArchive(Path.GetFullPath(source), key);
+        var manifest = ReadManifestEntry(archive);
+        ExtractDatabaseEntry(archive, destination);
+        ValidateExtractedDatabase(destination, manifest);
+        return manifest;
+    }
+
     private static SnapshotManifest ReadManifestEntry(ZipArchive archive)
     {
         var manifestEntry = archive.GetEntry("manifest.json") ?? throw new InvalidDataException("Snapshot manifest is missing.");
-        SnapshotManifest? manifest;
-        using (var reader = new StreamReader(manifestEntry.Open()))
+        if (manifestEntry.Length > 64 * 1024)
         {
-            manifest = JsonSerializer.Deserialize<SnapshotManifest>(reader.ReadToEnd());
+            throw new InvalidDataException("Snapshot manifest exceeds the supported size.");
+        }
+        SnapshotManifest? manifest;
+        using (var input = manifestEntry.Open())
+        using (var buffer = new MemoryStream())
+        {
+            CopyBounded(input, buffer, 64 * 1024);
+            manifest = JsonSerializer.Deserialize<SnapshotManifest>(buffer.GetBuffer().AsSpan(0, checked((int)buffer.Length)));
         }
 
         if (manifest is null || manifest.Format != "balancia-snapshot-1" || manifest.SchemaVersion != 3)
@@ -110,9 +124,37 @@ public sealed partial class LedgerStore
     private static void ExtractDatabaseEntry(ZipArchive archive, string destination)
     {
         var database = archive.GetEntry("ledger.db") ?? throw new InvalidDataException("Snapshot database is missing.");
+        if (database.Length > 512L * 1024 * 1024)
+        {
+            throw new InvalidDataException("Snapshot database exceeds the supported size.");
+        }
         using var input = database.Open();
         using var output = File.Create(destination);
-        input.CopyTo(output);
+        CopyBounded(input, output, 512L * 1024 * 1024);
+    }
+
+    private static void CopyBounded(Stream input, Stream output, long maximum)
+    {
+        var buffer = new byte[64 * 1024];
+        long total = 0;
+        try
+        {
+            int count;
+            while ((count = input.Read(buffer)) > 0)
+            {
+                total += count;
+                if (total > maximum)
+                {
+                    throw new InvalidDataException("Snapshot exceeds the supported size.");
+                }
+
+                output.Write(buffer, 0, count);
+            }
+        }
+        finally
+        {
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(buffer);
+        }
     }
 
     private static void ValidateExtractedDatabase(string databasePath, SnapshotManifest manifest)
@@ -135,12 +177,15 @@ public sealed partial class LedgerStore
         }
     }
 
-    public SnapshotManifest ExportSnapshot(string destination) => LogOperation(() => ExportSnapshotCore(destination));
+    public SnapshotManifest ExportSnapshot(string destination, SnapshotKey key) => LogOperation(() => ExportSnapshotCore(destination, key));
 
-    private SnapshotManifest ExportSnapshotCore(string destination)
+    private SnapshotManifest ExportSnapshotCore(string destination, SnapshotKey key)
     {
+        ArgumentNullException.ThrowIfNull(key);
+        key.CheckUsable();
         var full = Path.GetFullPath(destination);
-        var temporary = full + ".tmp-" + Guid.NewGuid().ToString("N");
+        // Plaintext staging must stay local, never in the destination's synced folder.
+        var temporary = Path.Combine(Path.GetTempPath(), "balancia-export-" + Guid.NewGuid().ToString("N") + ".db");
         try
         {
             SnapshotManifest manifest;
@@ -148,7 +193,7 @@ public sealed partial class LedgerStore
             using (var backup = new SqliteConnectionFactory(temporary).Open())
             {
                 source.BackupDatabase(backup);
-                using var command = source.CreateCommand();
+                using var command = backup.CreateCommand();
                 command.CommandText = "SELECT dataset_id,revision FROM metadata WHERE id=1";
                 using var reader = command.ExecuteReader();
                 if (!reader.Read())
@@ -159,13 +204,25 @@ public sealed partial class LedgerStore
                 manifest = new SnapshotManifest("balancia-snapshot-1", 3, reader.GetString(0), reader.GetInt64(1), DateTimeOffset.UtcNow);
             }
 
-            AtomicFileWriter.Write(full, stream =>
+            using var buffer = new MemoryStream();
+            try
             {
-                using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
-                archive.CreateEntryFromFile(temporary, "ledger.db", CompressionLevel.Optimal);
-                using var writer = new StreamWriter(archive.CreateEntry("manifest.json").Open());
-                writer.Write(JsonSerializer.Serialize(manifest));
-            });
+                using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
+                {
+                    archive.CreateEntryFromFile(temporary, "ledger.db", CompressionLevel.Optimal);
+                    using var writer = new StreamWriter(archive.CreateEntry("manifest.json").Open());
+                    writer.Write(JsonSerializer.Serialize(manifest));
+                }
+
+                AtomicFileWriter.Write(full, stream => SnapshotEncryption.Write(stream,
+                    buffer.GetBuffer().AsSpan(0, checked((int)buffer.Length)), key));
+                Serilog.Log.ForContext<LedgerStore>().Information("Encrypted snapshot saved atomically, Revision: '{Revision}'", manifest.Revision);
+            }
+            finally
+            {
+                System.Security.Cryptography.CryptographicOperations.ZeroMemory(buffer.GetBuffer());
+            }
+
             return manifest;
         }
         finally

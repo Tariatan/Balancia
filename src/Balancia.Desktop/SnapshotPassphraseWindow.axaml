@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Balancia.Desktop.SnapshotPassphraseWindow"
+        Width="530" Height="480" CanResize="False" ShowInTaskbar="False"
+        Icon="avares://Balancia.Desktop/Balancia.ico" WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="24" Spacing="12">
+    <TextBlock x:Name="heading" FontSize="23" FontWeight="SemiBold" />
+    <TextBlock x:Name="explanation" TextWrapping="Wrap" />
+    <TextBlock x:Name="passphraseLabel" />
+    <TextBox x:Name="passphrase" PasswordChar="●" />
+    <TextBlock x:Name="confirmLabel" />
+    <TextBox x:Name="confirmation" PasswordChar="●" />
+    <TextBlock x:Name="error" Foreground="DarkRed" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <Button x:Name="accept" IsDefault="True" />
+      <Button x:Name="cancel" IsCancel="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>

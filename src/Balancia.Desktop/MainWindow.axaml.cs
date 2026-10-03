@@ -87,6 +87,7 @@ public partial class MainWindow : Window
             }
 
             await Refresh();
+            await InitializeEncryption();
         });
         timer.Tick += async (_, _) =>
         {
@@ -101,6 +102,8 @@ public partial class MainWindow : Window
         Closed += (_, _) => SaveWindowSettings();
         Closed += (_, _) => SaveBackupOnClose();
         Closed += (_, _) => SaveSnapshotOnClose();
+        Closed += (_, _) => snapshotKey?.Dispose();
+        Closing += (_, e) => e.Cancel = busy;
         KeyDown += async (_, e) =>
         {
             if (e.Handled || busy || snapshot is null ||
@@ -163,7 +166,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task Run(Func<Task> action, bool disableControls = true)
+    private async Task Run(Func<Task> action, bool disableControls = true, Window? errorOwner = null, string? operationName = null)
     {
         if (busy)
         {
@@ -186,9 +189,9 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            LogWorkflowFailure(ex, action.Method.Name);
+            LogWorkflowFailure(ex, operationName ?? action.Method.Name);
             SetStatus(FriendlyError(ex));
-            await ShowErrorDialog("Balancia", FriendlyError(ex));
+            await ErrorDialog.Show(errorOwner ?? this, "Balancia", FriendlyError(ex));
         }
         finally
         {

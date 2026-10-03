@@ -13,6 +13,8 @@
 *.balancia-snapshot
 *.balancia-backup
 *.balancia
+*.dpapi
+*.keystore
 .env
 .env.*
 !.env.example

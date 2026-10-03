@@ -7,7 +7,7 @@ namespace Balancia.Desktop;
 
 internal static class ApplicationLogging
 {
-    private const string OutputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}][{SourceContext}]{Message:lj}{NewLine}{Exception}";
+    private const string OutputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}][{SourceContext}]{Message:lj} {Properties:j}{NewLine}{Exception}";
 
     public static void Configure()
     {
@@ -17,6 +17,7 @@ internal static class ApplicationLogging
             Directory.CreateDirectory(ApplicationPaths.LogDirectory);
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Is(LogEventLevel.Information)
+                .Enrich.FromLogContext()
                 .Enrich.WithProperty("SourceContext", "Balancia.Desktop")
                 .WriteTo.File(
                     Path.Combine(ApplicationPaths.LogDirectory, "balancia-.log"),

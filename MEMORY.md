@@ -175,6 +175,59 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Context maintenance
 
+Encryption diagnostics (2026-10-03): Desktop 2.9.1 / Storage 4.0.1 / Android
+0.3.1 (application version 5) add setup/key-cache/unlock/cancellation outcomes,
+authentication and validation/replacement milestones, atomic export completion,
+shutdown duration/skips/retention, and Android import/search results. Serilog
+LogContext correlates nested operations; file templates print unused context
+properties. Android now configures an unbuffered app-private daily file sink at
+Application startup in NoBackupFilesDir/log, retaining ten files. No secrets,
+key metadata, financial contents, document URIs, or search text are logged;
+snapshot failure diagnostics use type/HResult instead of raw parser/provider
+messages. Wrong/missing keys and malformed archives use Information; disposed
+keys are unexpected errors, and recoverable cache/shutdown failures use Warning.
+Verified locked restore, Release solution build (zero warnings/errors), 79 Core
+and 100 Storage tests including privacy/correlation/severity, actual native
+Windows startup/key-load/normal-close logs, and source-linked shutdown methods'
+success/failure/skip/retention file logs. Android runtime log creation and
+Keystore outcomes still require the owner's device acceptance below. Published
+and hash-checked artifacts/Balancia.Android-0.3.1.apk (version 5, target API 36).
+
+Snapshot encryption (2026-10-03): Storage 4.0.0 exports only encrypted
+`BALENC01` AES-256-GCM envelopes over the full ZIP, with PBKDF2-SHA256
+(600,000 iterations), setup salt, and a fresh nonce for each export.
+`ExportSnapshot(destination, key)` now requires a key; validate/restore/import
+accept an optional key for legacy plaintext compatibility. Local DBs, local
+recovery `.bak` files, and CSV exports stay plaintext by user choice. Plaintext
+export staging stays in the local temporary directory, never beside a synced
+destination; only encrypted output is staged there. Manifest metadata comes
+from the same SQLite backup as the embedded database.
+
+Desktop 2.9.0 adds Settings encryption setup/change and a masked confirmation
+dialog (minimum 12 characters). Remembered keys are in current-user DPAPI
+`snapshot-key.dpapi` beside settings, separate from JSON; `--data-dir` isolates
+this key too. Existing configured automatic destinations prompt at startup if
+the key is absent. Canceling pauses output; there is no plaintext fallback.
+Ten backups and one overwritten Snapshot.balancia remain the close-time policy.
+Passphrase changes affect future files; previous files still need their old phrase.
+
+Android 0.3.0 / application version 4 keeps API 36 and the native Android UI.
+Imports ask for a new passphrase once, remembering the derived key only after
+successful import, wrapped by Android Keystore in NoBackupFilesDir. Later imports
+unlock automatically; restart reopens the saved local viewer database. Wrong
+phrase/cancel/invalid archives preserve the prior database. No real user secret
+was requested, entered, or persisted during implementation.
+
+Verified: locked restore, full Release build (zero warnings/errors), 79 Core and
+95 Storage tests; synthetic current-user DPAPI save/load/tampered-cache checks;
+actual shutdown methods exercised in an ignored harness for ten encrypted backups,
+one fixed snapshot, and preservation on missing/disposed keys. Native Windows
+Settings/passphrase layout and Cancel checked with a separate database; actual
+passphrase Save/restore via picker and Android Keystore/pairing on a device remain
+unverified. The old Check-Harness.ps1 script no longer exists in this checkout.
+Next: owner verifies Windows setup/export and Android first-import/reimport
+with the updated API 36 APK; see docs/ANDROID.md acceptance sequence.
+
 Product truth and technical reasoning belong in
 docs/Technical_Design_Description.md; remaining/upcoming tasks belong in
 docs/PLAN.md. Keep this handoff compact. C# formatting preferences from

@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Text.Json;
 using Balancia.Core;
 using Xunit;
 
@@ -9,6 +8,7 @@ public sealed class SnapshotTests : IDisposable
 {
     private readonly string dir = Path.Combine(Path.GetTempPath(), "balancia-snapshot-" + Guid.NewGuid());
     private readonly LedgerStore store;
+    private readonly SnapshotKey key = SnapshotKey.Create("synthetic snapshot test passphrase");
     public SnapshotTests()
     {
         Directory.CreateDirectory(dir);
@@ -21,25 +21,18 @@ public sealed class SnapshotTests : IDisposable
     public void ExportContainsConsistentDatabaseAndManifest()
     {
         var path = Path.Combine(dir, "snapshot.balancia");
-        var manifest = store.ExportSnapshot(path);
+        var manifest = store.ExportSnapshot(path, key);
         Assert.True(File.Exists(path));
-        using var archive = ZipFile.OpenRead(path);
-        Assert.Contains(archive.Entries, e => e.FullName == "ledger.db");
-        var json = new StreamReader(archive.GetEntry("manifest.json")!.Open()).ReadToEnd();
-        var read = JsonSerializer.Deserialize<SnapshotManifest>(json)!;
-        Assert.Equal(manifest.DatasetId, read.DatasetId);
-        Assert.Equal(3, read.SchemaVersion);
-        using (var entry = archive.GetEntry("ledger.db")!.Open())
-        using (var file = File.Create(Path.Combine(dir, "extracted.db")))
-        {
-            entry.CopyTo(file);
-        }
+        Assert.Equal("BALENC01", System.Text.Encoding.ASCII.GetString(File.ReadAllBytes(path), 0, 8));
+        Assert.Throws<InvalidDataException>(() => ZipFile.OpenRead(path));
+        var (_, read) = SnapshotImporter.Import(path, Path.Combine(dir, "extracted.db"), key);
+        Assert.Equal(manifest, read);
 
         using var check = new SqliteConnectionFactory(Path.Combine(dir, "extracted.db")).Open();
         using var command = check.CreateCommand();
         command.CommandText = "SELECT COUNT(*) FROM accounts";
         Assert.Equal(1L, command.ExecuteScalar());
-        Assert.Equal(manifest, store.ValidateSnapshot(path));
+        Assert.Equal(manifest, store.ValidateSnapshot(path, key));
     }
 
     [Fact]
@@ -47,17 +40,17 @@ public sealed class SnapshotTests : IDisposable
     {
         var path = Path.Combine(dir, "bad.balancia");
         File.WriteAllText(path, "not a zip");
-        Assert.Throws<InvalidDataException>(() => store.ValidateSnapshot(path));
+        Assert.Throws<InvalidDataException>(() => store.ValidateSnapshot(path, key));
     }
 
     [Fact]
     public void OlderSnapshotCannotReplaceCurrentLedger()
     {
         var path = Path.Combine(dir, "older.balancia");
-        store.ExportSnapshot(path);
+        store.ExportSnapshot(path, key);
         var account = store.ReadSnapshot().Accounts.Single().Id;
         store.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, new DateOnly(2026, 1, 2), "Coffee", new Money(1), account));
-        Assert.Throws<InvalidDataException>(() => store.RestoreSnapshot(path));
+        Assert.Throws<InvalidDataException>(() => store.RestoreSnapshot(path, key));
         Assert.Single(store.ReadSnapshot().Entries);
     }
 
@@ -67,8 +60,8 @@ public sealed class SnapshotTests : IDisposable
         var path = Path.Combine(dir, "current.balancia");
         var account = store.ReadSnapshot().Accounts.Single().Id;
         store.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, new DateOnly(2026, 1, 2), "Coffee", new Money(1), account));
-        var manifest = store.ExportSnapshot(path);
-        var result = store.RestoreSnapshot(path);
+        var manifest = store.ExportSnapshot(path, key);
+        var result = store.RestoreSnapshot(path, key);
         Assert.Equal(manifest.Revision, result.Manifest.Revision);
         Assert.True(File.Exists(result.BackupPath));
         using var backupConnection = new SqliteConnectionFactory(result.BackupPath).Open();
@@ -102,6 +95,7 @@ public sealed class SnapshotTests : IDisposable
 
     public void Dispose()
     {
+        key.Dispose();
         try
         {
             Directory.Delete(dir, true);

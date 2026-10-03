@@ -175,4 +175,29 @@
   <data name="Invalid reminder schedule." xml:space="preserve"><value>Ungültiger Erinnerungsplan.</value></data>
   <data name="Duplicate reminder description." xml:space="preserve"><value>Doppelte Erinnerungsbeschreibung.</value></data>
   <data name="Imported reminder conflicts with existing reminder data." xml:space="preserve"><value>Die importierte Erinnerung widerspricht vorhandenen Erinnerungsdaten.</value></data>
+  <data name="Snapshot encryption" xml:space="preserve"><value>Snapshot-Verschlüsselung</value></data>
+  <data name="Unlock snapshot" xml:space="preserve"><value>Snapshot entsperren</value></data>
+  <data name="Passphrase" xml:space="preserve"><value>Passphrase</value></data>
+  <data name="Confirm passphrase" xml:space="preserve"><value>Passphrase bestätigen</value></data>
+  <data name="Unlock" xml:space="preserve"><value>Entsperren</value></data>
+  <data name="Set passphrase" xml:space="preserve"><value>Passphrase festlegen</value></data>
+  <data name="Change passphrase" xml:space="preserve"><value>Passphrase ändern</value></data>
+  <data name="Use at least 12 characters for the passphrase." xml:space="preserve"><value>Verwenden Sie mindestens 12 Zeichen für die Passphrase.</value></data>
+  <data name="The passphrases do not match or are empty." xml:space="preserve"><value>Die Passphrasen stimmen nicht überein oder sind leer.</value></data>
+  <data name="Enter the passphrase used when this snapshot was exported." xml:space="preserve"><value>Geben Sie die beim Export dieses Snapshots verwendete Passphrase ein.</value></data>
+  <data name="Keep this passphrase in a safe place. Windows remembers the key for automatic exports. Android asks once, then remembers it too. Older files keep their previous passphrase." xml:space="preserve"><value>Bewahren Sie diese Passphrase sicher auf. Windows merkt sich den Schlüssel für automatische Exporte. Android fragt einmal und merkt ihn sich ebenfalls. Ältere Dateien behalten ihre bisherige Passphrase.</value></data>
+  <data name="Encrypted snapshots and backups. Key remembered on this Windows account. Local databases and CSV stay unencrypted." xml:space="preserve"><value>Snapshots und Sicherungen sind verschlüsselt. Der Schlüssel ist für dieses Windows-Konto gespeichert. Lokale Datenbanken und CSV bleiben unverschlüsselt.</value></data>
+  <data name="Set a passphrase before exporting snapshots or enabling automatic backups." xml:space="preserve"><value>Legen Sie eine Passphrase fest, bevor Sie Snapshots exportieren oder automatische Sicherungen aktivieren.</value></data>
+  <data name="The remembered snapshot key is unavailable. Set up encryption again before exporting." xml:space="preserve"><value>Der gespeicherte Snapshot-Schlüssel ist nicht verfügbar. Richten Sie die Verschlüsselung vor dem Export erneut ein.</value></data>
+  <data name="Automatic backups and snapshots are paused until a passphrase is configured in Settings." xml:space="preserve"><value>Automatische Sicherungen und Snapshots sind pausiert, bis in den Einstellungen eine Passphrase festgelegt wird.</value></data>
+  <data name="The snapshot key could not be saved. Encryption settings were kept." xml:space="preserve"><value>Der Snapshot-Schlüssel konnte nicht gespeichert werden. Die Verschlüsselungseinstellungen wurden beibehalten.</value></data>
+  <data name="Enter the snapshot passphrase to unlock this file." xml:space="preserve"><value>Geben Sie die Snapshot-Passphrase ein, um diese Datei zu entsperren.</value></data>
+  <data name="The snapshot passphrase is incorrect or the file is damaged." xml:space="preserve"><value>Die Snapshot-Passphrase ist falsch oder die Datei ist beschädigt.</value></data>
+  <data name="Snapshot is incomplete or unsupported." xml:space="preserve"><value>Der Snapshot ist unvollständig oder wird nicht unterstützt.</value></data>
+  <data name="Snapshot encryption version or format is unsupported." xml:space="preserve"><value>Die Verschlüsselungsversion oder das Format des Snapshots wird nicht unterstützt.</value></data>
+  <data name="Snapshot is incomplete or exceeds the supported size." xml:space="preserve"><value>Der Snapshot ist unvollständig oder überschreitet die unterstützte Größe.</value></data>
+  <data name="Snapshot encryption parameters are unsupported." xml:space="preserve"><value>Die Verschlüsselungsparameter des Snapshots werden nicht unterstützt.</value></data>
+  <data name="Snapshot exceeds the supported size." xml:space="preserve"><value>Der Snapshot überschreitet die unterstützte Größe.</value></data>
+  <data name="Snapshot manifest exceeds the supported size." xml:space="preserve"><value>Das Snapshot-Manifest überschreitet die unterstützte Größe.</value></data>
+  <data name="Snapshot database exceeds the supported size." xml:space="preserve"><value>Die Snapshot-Datenbank überschreitet die unterstützte Größe.</value></data>
 </root>

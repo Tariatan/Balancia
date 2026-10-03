@@ -175,4 +175,29 @@
   <data name="Invalid reminder schedule." xml:space="preserve"><value>Некоректний розклад нагадування.</value></data>
   <data name="Duplicate reminder description." xml:space="preserve"><value>Повторюваний опис нагадування.</value></data>
   <data name="Imported reminder conflicts with existing reminder data." xml:space="preserve"><value>Імпортоване нагадування конфліктує з наявними даними.</value></data>
+  <data name="Snapshot encryption" xml:space="preserve"><value>Шифрування знімків</value></data>
+  <data name="Unlock snapshot" xml:space="preserve"><value>Розблокувати знімок</value></data>
+  <data name="Passphrase" xml:space="preserve"><value>Парольна фраза</value></data>
+  <data name="Confirm passphrase" xml:space="preserve"><value>Підтвердьте парольну фразу</value></data>
+  <data name="Unlock" xml:space="preserve"><value>Розблокувати</value></data>
+  <data name="Set passphrase" xml:space="preserve"><value>Задати парольну фразу</value></data>
+  <data name="Change passphrase" xml:space="preserve"><value>Змінити парольну фразу</value></data>
+  <data name="Use at least 12 characters for the passphrase." xml:space="preserve"><value>Використовуйте щонайменше 12 символів для парольної фрази.</value></data>
+  <data name="The passphrases do not match or are empty." xml:space="preserve"><value>Парольні фрази не збігаються або порожні.</value></data>
+  <data name="Enter the passphrase used when this snapshot was exported." xml:space="preserve"><value>Введіть парольну фразу, використану під час експорту цього знімка.</value></data>
+  <data name="Keep this passphrase in a safe place. Windows remembers the key for automatic exports. Android asks once, then remembers it too. Older files keep their previous passphrase." xml:space="preserve"><value>Збережіть цю парольну фразу в надійному місці. Windows запам’ятовує ключ для автоматичного експорту. Android запитає один раз і теж запам’ятає ключ. Старі файли зберігають попередню парольну фразу.</value></data>
+  <data name="Encrypted snapshots and backups. Key remembered on this Windows account. Local databases and CSV stay unencrypted." xml:space="preserve"><value>Знімки та резервні копії зашифровані. Ключ збережено для цього облікового запису Windows. Локальні бази даних і CSV не шифруються.</value></data>
+  <data name="Set a passphrase before exporting snapshots or enabling automatic backups." xml:space="preserve"><value>Задайте парольну фразу перед експортом знімків або ввімкненням автоматичного резервного копіювання.</value></data>
+  <data name="The remembered snapshot key is unavailable. Set up encryption again before exporting." xml:space="preserve"><value>Збережений ключ знімків недоступний. Налаштуйте шифрування знову перед експортом.</value></data>
+  <data name="Automatic backups and snapshots are paused until a passphrase is configured in Settings." xml:space="preserve"><value>Автоматичні резервні копії та знімки призупинені до налаштування парольної фрази в Налаштуваннях.</value></data>
+  <data name="The snapshot key could not be saved. Encryption settings were kept." xml:space="preserve"><value>Не вдалося зберегти ключ знімків. Налаштування шифрування залишилися без змін.</value></data>
+  <data name="Enter the snapshot passphrase to unlock this file." xml:space="preserve"><value>Введіть парольну фразу знімка, щоб розблокувати цей файл.</value></data>
+  <data name="The snapshot passphrase is incorrect or the file is damaged." xml:space="preserve"><value>Парольна фраза знімка неправильна або файл пошкоджений.</value></data>
+  <data name="Snapshot is incomplete or unsupported." xml:space="preserve"><value>Знімок неповний або не підтримується.</value></data>
+  <data name="Snapshot encryption version or format is unsupported." xml:space="preserve"><value>Версія шифрування або формат знімка не підтримується.</value></data>
+  <data name="Snapshot is incomplete or exceeds the supported size." xml:space="preserve"><value>Знімок неповний або перевищує допустимий розмір.</value></data>
+  <data name="Snapshot encryption parameters are unsupported." xml:space="preserve"><value>Параметри шифрування знімка не підтримуються.</value></data>
+  <data name="Snapshot exceeds the supported size." xml:space="preserve"><value>Знімок перевищує допустимий розмір.</value></data>
+  <data name="Snapshot manifest exceeds the supported size." xml:space="preserve"><value>Маніфест знімка перевищує допустимий розмір.</value></data>
+  <data name="Snapshot database exceeds the supported size." xml:space="preserve"><value>База даних знімка перевищує допустимий розмір.</value></data>
 </root>

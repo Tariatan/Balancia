@@ -36,7 +36,7 @@ A gear icon opens **Settings** for the database/backup/snapshot folder pickers, 
 
 ## Tech stack
 
-- **.NET 10 / Avalonia** — one shared UI toolkit for the Windows desktop app and the Android viewer
+- **.NET 10 / Avalonia** — Windows desktop UI, with a native .NET Android viewer sharing the ledger code
 - **SQLite** (`Microsoft.Data.Sqlite`) — local relational storage, no server, no ORM
 - **xUnit** — unit and SQLite integration test suite
 
@@ -47,10 +47,15 @@ A gear icon opens **Settings** for the database/backup/snapshot folder pickers, 
 | `src/Balancia.Core`                                         | Domain rules and application operations; no Avalonia, SQLite, or platform dependencies |
 | `src/Balancia.Storage`                                      | SQLite schema, migrations, queries, CSV import/export, and snapshot storage            |
 | `src/Balancia.Desktop`                                      | The Avalonia Windows application (full read/write UI)                                  |
-| `src/Balancia.Android`                                      | The read-only Avalonia Android shell                                                   |
+| `src/Balancia.Android`                                      | The read-only native Android shell                                                     |
 | `tests/Balancia.Core.Tests`, `tests/Balancia.Storage.Tests` | Unit and SQLite integration tests                                                      |
 
 ## Documentation
+
+Windows diagnostics are in `%LOCALAPPDATA%\Balancia\log\balancia-yyyyMMdd.log`.
+Android diagnostics are in app-private `NoBackupFilesDir/log`. Both keep ten daily
+files and append across restarts. Encryption, snapshot/backup outcomes, and
+remembered-key failures are logged without passphrases, keys, or financial content.
 
 - [`docs/Technical_Design_Description.md`](docs/Technical_Design_Description.md) — architecture, context diagrams, and design decisions; the primary entry point for the project
 - [`docs/PLAN.md`](docs/PLAN.md) — remaining/upcoming tasks
@@ -73,5 +78,19 @@ For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--` 
 The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db` by default. CSV import accepts only Balancia's own export format: `ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo`, with `YYYY-MM-DD` dates. Open Settings, choose **Import CSV**, inspect the preview, and apply it; a repeated identical import is a no-op, and a changed row under the same ID surfaces as a conflict instead of a silent overwrite. **Export CSV** writes the current ledger, including explicit opening balances and one row per transfer. The former eleven-column CSV format is no longer supported.
 
 ## Private data
+
+Snapshots and rolling backups are encrypted. In Settings, choose **Set passphrase**
+under **Snapshot encryption** (minimum 12 characters, entered twice). Windows
+remembers the key using current-user DPAPI and encrypts manual exports and both
+close-time destinations automatically. On Android, import the new snapshot and
+enter the same passphrase once; Android Keystore protects the remembered key for
+later imports. Install the updated Android viewer before using encrypted exports.
+
+Keep the passphrase separately for a new/reinstalled device. Changing it affects
+future exports; older files still need their original phrase. Existing plaintext
+snapshots remain importable. Encryption does not rewrite old local or Drive copies.
+The working databases, local `.bak` recovery copies, and CSV exports remain
+plaintext. Canceling setup with existing automatic destinations pauses exports
+until a passphrase is configured.
 
 Committed tests use only synthetic fixtures. For a one-off reconciliation test against a real export, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute path before running the test command, then unset it. Ignore rules do not encrypt data or remove files already tracked elsewhere.

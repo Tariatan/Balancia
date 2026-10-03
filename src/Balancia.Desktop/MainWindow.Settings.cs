@@ -48,10 +48,10 @@ public partial class MainWindow
         });
     }
 
-    internal async Task ChooseBackupLocation()
+    internal async Task ChooseBackupLocation(Avalonia.Controls.Window? dialogOwner = null)
     {
         var selected = await PickFolder("Choose backup folder");
-        if (selected is null)
+        if (selected is null || !await EnsureEncryption(dialogOwner ?? this))
         {
             return;
         }
@@ -65,10 +65,10 @@ public partial class MainWindow
         });
     }
 
-    internal async Task ChooseSnapshotLocation()
+    internal async Task ChooseSnapshotLocation(Avalonia.Controls.Window? dialogOwner = null)
     {
         var selected = await PickFolder("Choose snapshot folder");
-        if (selected is null)
+        if (selected is null || !await EnsureEncryption(dialogOwner ?? this))
         {
             return;
         }

@@ -3,12 +3,13 @@
 ---
 
 **Author:** `Viacheslav Shyshkin [Developer]`
-**Guideline Version:** `1.1`
+**Guideline Version:** `1.2`
 
 **Modification History:**
 
 - **V1.0:** by shyshkiv `28-Sep-2026`: **Initial version**.
 - **V1.1:** `02-Oct-2026`: **Consolidated desktop settings persistence**.
+- **V1.2:** `03-Oct-2026`: **Encrypted snapshots and backups, protected device keys**.
 
 ## Table of Contents <!-- omit from toc -->
 
@@ -68,7 +69,7 @@ This TDD covers all projects in the `Balancia.slnx` solution:
 - **Balancia.Storage** — SQLite schema, migrations, queries, CSV import/export,
   and snapshot storage
 - **Balancia.Desktop** — the Avalonia Windows application (full read/write UI)
-- **Balancia.Android** — a read-only Avalonia Android shell
+- **Balancia.Android** — a read-only native Android shell
 - **Balancia.Core.Tests** / **Balancia.Storage.Tests** — the automated test
   suites
 
@@ -100,7 +101,7 @@ workflows of each context.
 | **Local Windows writer, read-only Android**                | Matches actual single-user usage; avoids server operations and multi-writer conflict resolution.                                                         | Android never opens the live database for write; it only imports validated, immutable snapshots.                                                                     |
 | **C#/.NET, Avalonia, SQLite**                              | Shared language and domain logic across desktop and mobile; desktop-first UI; local relational persistence with no server dependency.                    | `Balancia.Core` must stay free of Avalonia/SQLite/cloud dependencies so it is reusable by both shells and testable in isolation.                                     |
 | **One logical transfer, two atomic movements**             | Preserves account balances during every edit and excludes transfers from income/expense totals.                                                          | Create, edit, and delete of a transfer must update both movements inside one database transaction; a partial write must roll back entirely.                          |
-| **Immutable snapshots via user-managed Drive transport**   | No hosted API is required; stale mobile data is acceptable; the live database is never synced directly.                                                  | Snapshot export/import must be self-contained (schema, dataset identity, revision, integrity hash) so Android can validate a file without contacting Windows.        |
+| **Immutable snapshots via user-managed Drive transport**   | No hosted API is required; stale mobile data is acceptable; the live database is never synced directly.                                                  | Encrypted snapshots contain schema, dataset identity, revision, and an authenticated archive so Android can validate a file without contacting Windows.        |
 | **Description + occurrence month/year for recurrence**     | The user defines recurrence manually; no fuzzy matching, amount matching, or bank integration is in scope.                                               | Reminder satisfaction compares only the exact description against the transaction's calendar month/year; amount and day never participate.                           |
 | **Money as signed 64-bit integer centimes**                | Binary floating point cannot represent currency amounts exactly and would risk silent rounding drift across thousands of transactions.                   | All monetary fields use checked `Int64` centime arithmetic; parsing rejects fractional centimes, overflow, and non-decimal input.                                    |
 | **No generic repository over every table**                 | Storage exposes the specific reads/writes each application operation needs (e.g. `TransactionsFilter`, `ReadFlowAnalytics`) rather than a generic CRUD layer. | New query needs are added as purpose-built, parameterized SQL rather than generalized through an ORM abstraction.                                                    |
@@ -136,9 +137,11 @@ stays on the owner's devices. Google Drive is used only as user-managed file
 transport for snapshots, never as an active database. The private CSV import
 source and any live database/backup/snapshot files are excluded from source
 control by ignore rules; committed tests use only synthetic financial data.
-Snapshot integrity hashes detect corruption, not malicious authenticity —
-Balancia does not currently sign or encrypt exported archives (see
-[Open Choices](#open-choices)).
+Snapshots and rolling backups encrypt the whole archive with AES-256-GCM,
+including the manifest. Authentication detects modification before extracting
+the embedded database. Local databases, local migration/pre-restore recovery
+copies, and CSV exports remain plaintext by the owner's choice. Previously
+exported plaintext files and any Drive version history are not rewritten.
 
 ### Considerations for Localization
 
@@ -163,7 +166,7 @@ skinparam rectangle {
 rectangle "Balancia.Core\n[domain library]" as Core #E8F4E8
 rectangle "Balancia.Storage\n[SQLite persistence]" as Storage #E8EEF8
 rectangle "Balancia.Desktop\n[Avalonia Windows app]" as Desktop #F8EEE8
-rectangle "Balancia.Android\n[Avalonia Android app]" as Android #F8F4E8
+rectangle "Balancia.Android\n[native Android app]" as Android #F8F4E8
 
 database "balancia.db\n(SQLite, local)" as Db #FFFFFF
 file "Snapshot.balancia\n(.balancia archive)" as Snap #FFFFFF
@@ -452,8 +455,9 @@ participant "Android app" as Android
 collections "app-private copy" as AndroidDb
 
 Desktop -> Db : SQLite consistent backup
-Desktop -> Desktop : Package ledger.db + manifest\n(dataset, schema, revision, UTC time, hash)
-Desktop -> Snap : Atomically replace archive
+Desktop -> Desktop : Package ledger.db + manifest\n(dataset, schema, revision, UTC time)
+Desktop -> Desktop : Encrypt ZIP + authenticate header\nAES-256-GCM
+Desktop -> Snap : Atomically replace encrypted archive
 note right of Desktop
   Also written on clean close to the
   rolling backup folder (10 newest kept)
@@ -463,8 +467,9 @@ Snap -> Drive : synced manually by the owner
 
 Android -> Drive : pick file via document picker
 Android -> Android : Stage downloaded file locally
+Android -> Android : Unlock with remembered key / passphrase\nAuthenticate before extracting
 Android -> Android : Validate archive, manifest,\nschema, dataset identity,\nrevision, SQLite integrity
-alt validation fails or older revision
+alt validation fails
   Android --> Android : reject,\nkeep previous usable copy
 else validation passes
   Android -> AndroidDb : swap staged copy in\n(only on success)
@@ -472,13 +477,46 @@ end
 @enduml
 ```
 
-Snapshot export uses SQLite's consistent backup facilities (or an equivalent
-consistent logical export), never a raw copy of an open WAL database. The
-archive's hash detects corruption, not malicious authenticity. Before a schema
-migration a separate, timestamped `.pre-restore-*`/`.bak` recovery copy is
-written so restoration can be tested independently of the migration path. An
-older revision is rejected by default; deliberate restore is a distinct,
-explicit action from the automatic refresh flow.
+Snapshot export uses SQLite's consistent backup facilities, never a raw copy
+of an open WAL database. Metadata is read from the backed-up database so the
+manifest and ledger represent the same revision. The plaintext database is
+staged in the local temporary directory and removed on success/failure; the
+ZIP is encrypted in memory. Destination staging contains only ciphertext and
+is flushed before atomic replacement. Close-time backup retention remains ten
+files, deleting older backups only after a successful export. The snapshot
+folder contains one overwritten `Snapshot.balancia` file.
+
+The encrypted envelope version 1 has an authenticated 60-byte header:
+`BALENC01` (8 ASCII bytes), PBKDF2 iteration count (4-byte little-endian), salt
+(32 bytes), nonce (12 bytes), ciphertext length (4-byte little-endian), then a
+16-byte GCM tag and the ciphertext. AES-256-GCM encrypts the entire existing
+`balancia-snapshot-1` ZIP (manifest plus database). PBKDF2-HMAC-SHA256 derives
+the 32-byte key from the exact passphrase with 600,000 iterations and a random
+salt at setup; every export generates a fresh random nonce. Readers accept
+600,000–2,000,000 iterations, cap ZIP/ciphertext at 256 MiB, the manifest at
+64 KiB, and the extracted database at 512 MiB. Authentication precedes ZIP or
+SQLite parsing. A legacy plaintext ZIP remains importable after normal validation.
+
+Settings asks for a passphrase and confirmation (minimum 12 characters). Keep
+it separately for device replacement/reinstallation: remembered keys are a
+convenience, not portable recovery credentials. Windows stores the derived key,
+salt, and iteration count in a current-user DPAPI blob beside settings; Android
+wraps these bytes with an AES-GCM key held by Android Keystore, saving the blob
+in `NoBackupFilesDir`. Neither shell stores the passphrase or a plaintext key
+in preferences/logs. Windows exports and restores its own snapshots without
+an unlock prompt; Android asks once for a new export key, remembering it only
+after successful import. Later imports unlock automatically, without a biometric
+or device-credential prompt. Missing/invalid protected storage asks for pairing
+again. Passphrase changes affect future exports; old files need their old phrase.
+
+An existing Windows backup/snapshot configuration without a remembered key
+prompts for setup at startup. Cancellation leaves destinations unchanged and
+pauses automatic exports; no plaintext fallback is permitted. Wrong passphrases,
+unsupported versions, tampering, truncation, and failed database validation
+preserve the last usable ledger/viewer and surface an error. Windows restore
+still requires matching dataset identity and rejects an older revision. Before
+a successful restore or schema migration, a local plaintext recovery copy is
+written beside the database.
 
 ## Desktop Context (Balancia.Desktop)
 
@@ -566,7 +604,7 @@ code (`en`, `de`, `ru`, `uk`) is optional in application settings; it is only
 written when the owner explicitly selects a language, not as a side effect of
 other settings changes.
 
-### Desktop logging
+### Application logging
 
 Windows configures Serilog before Avalonia startup, using the same Information
 level and timestamp/level/source/exception layout as Automaton. Daily files are
@@ -587,11 +625,33 @@ schema initialization, CSV preview/reconciliation, and snapshot export/validatio
 restore with start, completion, duration, and operation IDs. Expected input and
 import conflicts use Information; unexpected failures include exceptions at Error.
 Desktop additionally logs database/backup/snapshot location and language changes.
+Encryption logs cover setup/change/cancellation, remembered-key availability,
+restore key selection, authentication, validation before database replacement,
+and successful atomic encrypted exports. Shutdown writes record duration,
+missing-key skips, and retention counts after a successful backup. Correlation
+properties link nested storage operations to the shutdown write or Android import;
+file templates include these additional properties.
 Fatal remains reserved for unhandled application/UI exceptions. Descriptions,
 notes, full financial payloads, and amount-expression input are not dumped.
+Passphrases, derived keys, key envelopes, salts/nonces, document URIs, and search
+text are also excluded. Snapshot parser/provider failures record exception type
+and HResult rather than potentially sensitive exception messages. Wrong/missing
+keys and invalid archives are expected Information-level rejections; failed key
+cache loading/saving and shutdown writes use Warning, and unexpected operation
+failures use Error.
 
 Logging errors are traced through Serilog SelfLog; filesystem setup failures do
 not prevent application startup. Shutdown flushes and disposes the logger.
+
+Android configures its own Information-level Serilog file sink in Application
+startup, before the activity uses shared storage. App-private
+`NoBackupFilesDir/log/balancia-yyyyMMdd.log` retains ten daily files, appends across
+restarts, and writes without buffering so diagnostics do not depend on a process
+shutdown callback. It records reopening the saved viewer, document selection,
+copying, unlock/retry/cancel, validation/replacement, Keystore cache outcomes, and
+search completion/failure without financial contents. Logging setup failures are
+reported to Android's diagnostic log without preventing startup. Libraries never
+configure file sinks or close the application logger.
 
 ### Local Settings Persistence
 
@@ -606,10 +666,14 @@ not prevent application startup. Shutdown flushes and disposes the logger.
 - No registry access or legacy settings migration is performed. `window.json`
   and settings files beside a custom database are not loaded. `--data-dir`
   overrides the database for a temporary session and does not write preferences.
+- The snapshot key is stored separately as `snapshot-key.dpapi`; settings JSON
+  contains no encryption secret. `--data-dir` uses a separate protected-key file
+  in that test directory and never reads/writes the real remembered key.
 
 ## Android Context (Balancia.Android)
 
-`Balancia.Android` is a read-only Avalonia shell targeting `net10.0-android`.
+`Balancia.Android` is a read-only native Android shell targeting `net10.0-android`
+and Android API 36.
 It reuses Core's domain rules and Storage's read models and queries, not a
 writable desktop service surface. It shows net worth, account balances,
 transaction history with description search, and a visible snapshot update
@@ -619,6 +683,11 @@ staging/validation/swap sequence in
 the selected document is copied into app-private staging, validated, and
 swapped in only on success, so an interrupted transfer or a failed import
 keeps the prior working copy.
+The app reopens its saved local database on restart. Encrypted import prompts
+for the Windows export passphrase only when the Keystore-protected remembered
+key is absent or does not match the file's salt/KDF parameters. Canceling leaves
+the saved copy unchanged. Reinstallation or a passphrase change requires pairing
+again; older plaintext imports remain supported.
 
 ## Non-Functional Considerations
 
@@ -638,7 +707,7 @@ The following are acknowledged as unresolved implementation choices rather
 than accepted design decisions:
 
 - Windows distribution/update method and Android sideload packaging.
-- Snapshot encryption, backup retention policy beyond the current fixed count,
+- Backup retention policy beyond the current fixed count,
   and a full end-to-end restore UX.
 - Android document-provider compatibility across devices, and whether
   automatic (rather than manual, close-triggered) export adds value.

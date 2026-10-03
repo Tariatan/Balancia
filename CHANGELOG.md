@@ -13,6 +13,21 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.9.1] - 2026-10-03
+
+#### Fixed
+
+- Fill missing diagnostics for encryption setup/change/cancel, remembered-key loading, manual restore unlock, and skipped close-time exports. Shutdown logs include duration and backup retention counts; nested operations carry correlation IDs.
+- Keep snapshot failure diagnostics free of parser/provider messages that may contain private input. Expected snapshot rejections remain Information-level events.
+
+### [2.9.0] - 2026-10-03
+
+#### Added
+
+- Snapshot encryption setup and passphrase change in Settings, with confirmation and a 12-character minimum. Windows remembers only the derived key, protected by current-user DPAPI; passphrases and keys are excluded from settings JSON and logs.
+- Manual snapshots, ten rolling close-time backups, and the fixed `Snapshot.balancia` close-time export are encrypted. Existing configured destinations prompt for setup at startup; canceling pauses exports without replacing existing files.
+- Encrypted restore prompts when needed and retains support for older plaintext snapshots. Local SQLite databases, local recovery copies, and CSV exports remain plaintext.
+
 ### [2.8.0] - 2026-10-03
 
 #### Added
@@ -132,6 +147,22 @@ Versioning rule:
 
 ## Balancia.Storage
 
+### [4.0.1] - 2026-10-03
+
+#### Fixed
+
+- Add correlated viewer import start/validation/replacement/failure logs and authentication/export/restore milestones. Wrong/missing keys and malformed archives are expected rejections; unexpected file failures are errors.
+- Exclude raw snapshot parser/provider exception messages; record failure type and HResult. Add tests for correlation, rejection severity, previous-copy preservation, and absence of secrets/financial content in captured logs.
+
+### [4.0.0] - 2026-10-03
+
+#### Changed
+
+- **Breaking:** snapshot export requires a key and writes a versioned AES-256-GCM envelope over the entire ZIP, including its manifest. Older viewers must be updated to read new exports; legacy plaintext snapshots remain importable.
+- Derive portable keys with PBKDF2-HMAC-SHA256 (600,000 iterations, random 32-byte salt); authenticate header metadata and use a fresh 12-byte nonce per export. Verify authentication before parsing/extracting the archive.
+- Keep plaintext export staging in the local temporary directory, write only ciphertext beside the destination, and atomically replace the prior export after success. Read manifest metadata from the same consistent SQLite backup as the embedded database.
+- Import validates and extracts the same archive once, cleans up failed staging, and preserves the last working database on wrong-passphrase, tampering, or validation failure.
+
 ### [3.3.0] - 2026-10-03
 
 #### Added
@@ -190,6 +221,20 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.3.1] - 2026-10-03
+
+#### Fixed
+
+- Activate app-private daily file logging before viewer startup, retaining ten daily files. Previously shared-library and cleanup logs had no Android sink.
+- Record saved-copy startup, picker/copy/import, unlock/cancel/retry, Keystore cache outcomes, and transaction search results/failures without logging secrets, financial contents, document URIs, or search text. Application version is now 5; API 36 is unchanged.
+
+### [0.3.0] - 2026-10-03
+
+#### Added
+
+- Encrypted snapshot import with a masked passphrase prompt, retry/cancel behavior, and automatic unlock on later imports. Android Keystore wraps the remembered derived key in app-private, non-backed-up storage.
+- Reopen the previous local viewer copy on startup. Rejected imports display an error and keep the previous copy; incoming archives are removed after import.
 
 ### [0.2.0] - 2026-09-30
 
