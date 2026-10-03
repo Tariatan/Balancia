@@ -18,6 +18,10 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-03: Add another transaction now clears Category and its suggestion
+  state after successful save, then focuses the empty field. Date, type, and
+  account are retained. Desktop Release build and diff check passed; native
+  repeated-entry interaction remains pending.
 - 2026-10-03: Reminder CSV release metadata: Desktop 2.8.0 and Storage 3.3.0,
   with matching Added changelog entries. Only these implementations changed;
   Core and Android versions remain unchanged.
@@ -124,7 +128,8 @@ Last updated: 2026-09-28. Scope: this repository only.
   including initial XAML and language refresh. Chart Day granularity stays Day.
   Locked Desktop restore, Release build, and diff check passed; native visual
   review remains pending.
-- Release metadata (2026-10-02): Desktop version is 2.7.0 for chart tooltip
+- Release metadata (2026-10-03): Desktop version is 2.9.2 for clearing Category
+  after Add another transaction; 2.7.0 added chart tooltip
   tables; 2.6.0 added the Last 30 days
   filter and startup fallback; 2.3.0 added reminder due-date
   colors and bold urgency styling; 2.2.1 updated the Reminders labels

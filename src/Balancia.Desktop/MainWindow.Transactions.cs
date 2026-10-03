@@ -228,6 +228,12 @@ public partial class MainWindow
                 description.Text = "";
                 amount.Text = "";
                 memo.Text = "";
+                acceptedCategoryPath = null;
+                categorySuggestions = [];
+                selectedCategorySuggestionIndex = -1;
+                suggestionRows.Children.Clear();
+                suggestionPopup.IsOpen = false;
+                category.Text = string.Empty;
                 category.Focus();
             };
         }

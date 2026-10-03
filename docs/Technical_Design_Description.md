@@ -551,6 +551,11 @@ controls in place rather than rebuilding the page, so focus and scroll
 position are preserved. Category, account, and reminder-template management
 live in their respective Overview cards rather than dedicated pages.
 
+After a successful Add another transaction save, the entry dialog clears
+category, amount, description, and memo while retaining date, type, and account.
+It also closes and clears category suggestions, then focuses the empty Category
+field. Failed saves retain the entered values.
+
 Accounts highlights the configured default account row with a blue background
 slightly darker than normal selection, extending 2px beyond the content on each
 side without adding text. The highlight

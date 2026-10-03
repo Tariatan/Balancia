@@ -13,6 +13,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.9.2] - 2026-10-03
+
+#### Fixed
+
+- Clear Category and its suggestion state after a successful Add another transaction save, then focus the empty field for the next entry.
+
 ### [2.9.1] - 2026-10-03
 
 #### Fixed
