@@ -18,6 +18,16 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Resume here
 
+- 2026-10-04: Category selection release metadata: Desktop 2.10.0, with
+  matching Added/Changed changelog entries. Only Desktop implementation changed.
+
+- 2026-10-04: Categories panel has a localized `#` select/clear-all button.
+  Parent checkbox changes also select/clear every child checkbox. Existing
+  combined filters and parent-inclusive storage predicates are retained.
+  Locked restore, full Release build, and diff check passed. Native button
+  accessibility and empty-list click checked in a separate sample ledger;
+  populated parent/child interaction remains unverified.
+
 - 2026-10-03: Useful local formatting rules were migrated to the common harness.
   Removed the local guidelines file. Repository documentation refers to the
   common harness without machine-specific paths or personal repository names.

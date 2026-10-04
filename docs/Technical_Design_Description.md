@@ -266,7 +266,9 @@ ImportSource --> LedgerTransaction
   indexed movements rather than independently persisted, until measurement
   justifies a cache.
 - Categories nest at most two levels; a parent category filter includes its
-  children without double-counting overlaps.
+  children without double-counting overlaps. Toggling a parent checkbox also
+  toggles all its subcategory checkboxes. The `#` button beside `+` selects all
+  categories (including archived ones), or clears selection if all are checked.
 
 ### Money and Transfer Invariants
 

@@ -200,4 +200,5 @@
   <data name="Snapshot exceeds the supported size." xml:space="preserve"><value>Снимок превышает допустимый размер.</value></data>
   <data name="Snapshot manifest exceeds the supported size." xml:space="preserve"><value>Манифест снимка превышает допустимый размер.</value></data>
   <data name="Snapshot database exceeds the supported size." xml:space="preserve"><value>База данных снимка превышает допустимый размер.</value></data>
+  <data name="Toggle all categories" xml:space="preserve"><value>Переключить выбор всех категорий</value></data>
 </root>

@@ -67,6 +67,7 @@ public partial class MainWindow
                 await EditCategory(choice.Value);
             }
         };
+        CategorySelectAllButton.Click += async (_, _) => await ToggleAllCategoryFilters();
         CategoryAddButton.Click += async (_, _) => await EditCategory(null);
         CategoryArchiveButton.Click += async (_, _) => await ArchiveSelectedCategory(CategoriesList);
         CategoryRemoveButton.Click += async (_, _) => await DeleteSelectedCategory(CategoriesList);
@@ -75,6 +76,9 @@ public partial class MainWindow
     private void RenderCategoryPanel(LedgerSnapshot ledgerSnapshot)
     {
         CategoriesHeading.Text = Get("Categories");
+        var selectionLabel = Get("Toggle all categories");
+        ToolTip.SetTip(CategorySelectAllButton, selectionLabel);
+        AutomationProperties.SetName(CategorySelectAllButton, selectionLabel);
         ToolTip.SetTip(CategoryAddButton, Get("Add category"));
         ToolTip.SetTip(CategoryArchiveButton, Get("Archive selected category"));
         ToolTip.SetTip(CategoryRemoveButton, Get("Delete selected category"));
@@ -116,15 +120,36 @@ public partial class MainWindow
             ids.Add(single);
         }
 
+        var affectedIds = snapshot!.Categories
+            .Where(category => category.Id == id || category.ParentId == id)
+            .Select(category => category.Id);
         if (selected)
         {
-            ids.Add(id);
+            ids.UnionWith(affectedIds);
         }
         else
         {
-            ids.Remove(id);
+            ids.ExceptWith(affectedIds);
         }
 
+        await ApplyCategorySelection(ids);
+    }
+
+    private async Task ToggleAllCategoryFilters()
+    {
+        if (updatingFilterControls || snapshot is null)
+        {
+            return;
+        }
+
+        var ids = snapshot.Categories.All(category => IsCategorySelected(category.Id))
+            ? new HashSet<string>()
+            : snapshot.Categories.Select(category => category.Id).ToHashSet();
+        await ApplyCategorySelection(ids);
+    }
+
+    private async Task ApplyCategorySelection(HashSet<string> ids)
+    {
         filter = filter with
         {
             CategoryId = ids.Count == 1 ? ids.Single() : null,
