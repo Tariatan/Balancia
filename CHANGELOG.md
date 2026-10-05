@@ -7,11 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Versioning rule:
 
+- Always bump Balancia.Desktop's application version whenever any project changes. Other projects are bumped only when their own implementation changes.
 - **Major** - behavior visible to other system components changes (breaking)
 - **Minor** - new backward-compatible feature
 - **Patch** - backward-compatible bug fix only
 
 ## Balancia.Desktop
+
+### [2.10.0] - 2026-10-04
+
+#### Added
+
+- Display the Desktop application version at the bottom right of Settings.
+- Categories panel `#` button beside `+` selects all categories or clears selection when all are checked, with a localized label in English, German, Russian, and Ukrainian.
+
+#### Changed
+
+- Toggling a parent category checkbox also selects or clears all its subcategories.
 
 ### [2.9.2] - 2026-10-03
 

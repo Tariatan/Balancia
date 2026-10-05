@@ -4,6 +4,9 @@ Last updated: 2026-09-28. Scope: this repository only.
 
 ## Durable context
 
+- Versioning rule from 2026-10-05: always bump Desktop's application version
+  whenever any project changes, even if Desktop implementation is unchanged.
+  Other projects receive bumps only for their own implementation changes.
 - Windows performs all writes. Android checks balances and searches history;
   stale snapshots and manual refresh are acceptable. Offline local operation.
 - Recurrence: exact description within scheduled month/year, ignoring amount/day;
@@ -17,6 +20,11 @@ Last updated: 2026-09-28. Scope: this repository only.
   https://github.com/Tariatan/Balancia.
 
 ## Resume here
+
+- 2026-10-05: Settings shows the running Desktop assembly version as
+  `Balancia major.minor.patch` in a fixed bottom-right footer beside Close.
+  Locked restore and Desktop Release build passed; native dialog layout
+  verification remains pending. PLAN.md is user-owned and was not edited.
 
 - 2026-10-04: Category selection release metadata: Desktop 2.10.0, with
   matching Added/Changed changelog entries. Only Desktop implementation changed.
@@ -251,4 +259,3 @@ Product truth and technical reasoning belong in
 docs/Technical_Design_Description.md; remaining/upcoming tasks belong in
 docs/PLAN.md. Keep this handoff compact. C# formatting preferences from
 CategoriesPanel and RemindersPanel are maintained in the common harness.
-

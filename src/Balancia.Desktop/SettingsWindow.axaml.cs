@@ -14,6 +14,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        versionText.Text = $"Balancia {typeof(SettingsWindow).Assembly.GetName().Version!.ToString(3)}";
     }
 
     public static Task ShowFor(MainWindow owner)

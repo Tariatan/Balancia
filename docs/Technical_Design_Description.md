@@ -662,6 +662,8 @@ configure file sinks or close the application logger.
 
 ### Local Settings Persistence
 
+- Settings displays the running Desktop application's version at the bottom
+  right, beside Close, in a footer that stays visible while content scrolls.
 - One `%LOCALAPPDATA%\Balancia\settings.json` stores window width,
   height, and position, plus the optional backup folder, snapshot folder,
   default account, and explicitly chosen language. Writes replace the file

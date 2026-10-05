@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <ApplicationIcon>Balancia.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <Version>2.9.2</Version>
+    <Version>2.10.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Balancia.ico" />

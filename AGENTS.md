@@ -51,9 +51,21 @@ app before rebuilding. Never present planned commands as verified ones.
 
 ## Versioning
 
-Bump versions only for projects whose implementation was modified in the current
-change. Do not bump an unchanged project merely because it references a changed
-project or ships with it.
+Always bump Balancia.Desktop's application version whenever any project changes,
+even when Desktop's own implementation is unchanged. For other projects, bump
+versions only when their own implementation changed.
+Record notable implementation changes in [CHANGELOG.md](CHANGELOG.md) under the
+affected project's version, newest first, with a date and the appropriate Keep
+a Changelog category. Use Major for breaking behavior, Minor for compatible
+features, and Patch for compatible bug fixes. Keep version metadata and changelog
+entries aligned; planned rework belongs in PLAN.md until implemented.
+
+## Editing Rules
+
+- docs/PLAN.md is maintained exclusively by the user. Read it for context, but never modify it, including task status, completion notes, or formatting.
+- Never add an empty line at the end of a file.
+- If a file ends with an empty line, remove that empty line.
+- Keep documentation links repository-relative. Do not publish machine-specific absolute paths or references to local agent libraries.
 
 ## Maintain context
 
