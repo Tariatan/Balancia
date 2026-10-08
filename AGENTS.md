@@ -71,11 +71,19 @@ entries aligned; planned rework belongs in PLAN.md until implemented.
 
 Keep this file short and operational. Update
 [docs/Technical_Design_Description.md](docs/Technical_Design_Description.md)
-when behavior or architecture changes, then update docs/PLAN.md's task list.
-Update local MEMORY.md with durable facts, evidence dates, limitations, and
-the next concrete step when project context changes. Do not accumulate
-transcripts, private financial values, or unverified claims. This concerns
-repository memory only, not global agent memory.
+only when a significant application design decision changes, such as architecture,
+component responsibilities or boundaries, or a core workflow contract. Keep the
+TDD concise and focused on durable design rationale. Routine features, bug fixes,
+UI adjustments, implementation details, test results, and progress notes belong
+in CHANGELOG.md, focused documentation, or repository memory when requested;
+they do not require a TDD update unless they materially change application design.
+Leave docs/PLAN.md unchanged. Link focused documents from the TDD only when they
+support an important design decision.
+
+If repository MEMORY.md exists, update it only when requested by the user, with
+durable facts, evidence dates, limitations, and the next concrete step. Do not
+accumulate transcripts, secrets, private telemetry, or unverified claims.
+This concerns repository memory only, not global agent memory.
 
 At handoff, distinguish implemented, verified, planned, and blocked work. Record
 checks actually run. Do not mark a milestone complete merely because documents
