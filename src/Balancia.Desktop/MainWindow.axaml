@@ -62,8 +62,8 @@
                 <local:LocalizedCalendarDatePicker x:Name="FilterTo" Width="110" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
                 <TextBox x:Name="FilterSearch" Width="150" Margin="0,2,0,2" HorizontalAlignment="Stretch" />
                 <Button x:Name="FilterClearSearch" Content="×" Width="28" Height="34" Padding="0" FontSize="17" Background="Transparent" Foreground="#71838D" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,2,7,2" />
-                <TextBox x:Name="FilterMinimum" Width="100" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
-                <TextBox x:Name="FilterMaximum" Width="100" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
+                <TextBox x:Name="FilterMinimum" Width="115" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
+                <TextBox x:Name="FilterMaximum" Width="110" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
               </WrapPanel>
               <Button x:Name="FilterClearAll" Grid.Column="1" Content="🗑" Width="30" Padding="0" FontSize="16" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
             </Grid>
@@ -140,7 +140,7 @@
               </StackPanel>
             </Border>
 
-            <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" ColumnDefinitions="0.72*,3.58*" ColumnSpacing="11">
+            <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" ColumnDefinitions="0.6*,3.58*" ColumnSpacing="11">
 
               <Border Grid.Column="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15">
                 <Grid RowDefinitions="Auto,*" RowSpacing="6">
