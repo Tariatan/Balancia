@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Balancia.Core;
 using Balancia.Storage;
 
@@ -378,6 +379,16 @@ public partial class MainWindow
                 };
                 button.Click += (_, _) => AcceptCategorySuggestion(suggestion);
                 suggestionRows.Children.Add(button);
+                if (suggestion.IsKeyboardSelected)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (suggestionPopup.IsOpen && suggestionRows.Children.Contains(button))
+                        {
+                            button.BringIntoView();
+                        }
+                    }, DispatcherPriority.Loaded);
+                }
             }
         }
     }

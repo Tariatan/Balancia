@@ -31,6 +31,10 @@
   </Application.DataTemplates>
   <Application.Styles>
     <FluentTheme />
+    <Style Selector="ScrollViewer /template/ ScrollContentPresenter#PART_ContentPresenter">
+      <Setter Property="Grid.ColumnSpan" Value="1" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+    </Style>
     <Style Selector="TextBox">
       <Setter Property="Foreground" Value="#71838D" />
       <Setter Property="SelectionBrush" Value="#3989A7" />

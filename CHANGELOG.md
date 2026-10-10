@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.11.1] - 2026-10-10
+
+#### Fixed
+
+- Scroll the selected category suggestion into view when navigating the list with the Up and Down keys.
+
 ### [2.11.0] - 2026-10-10
 
 #### Added

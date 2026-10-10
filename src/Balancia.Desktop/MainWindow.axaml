@@ -52,18 +52,18 @@
           <Border Grid.Row="1" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="10">
             <Grid ColumnDefinitions="*,Auto">
               <WrapPanel Grid.Column="0" Orientation="Horizontal">
-                <Button x:Name="FilterButtonAll" Content="All" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
+                <Button x:Name="FilterButtonAll" Content="All" MinWidth="50" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
                 <Button x:Name="FilterButtonToday" Content="Today" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
                 <Button x:Name="FilterButtonWeek" Content="Week" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
                 <Button x:Name="FilterButtonMonth" Content="Month" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="FilterButtonYear" Content="Year" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="FilterButtonLast30Days" Content="Last 30 days" MinWidth="170" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <local:LocalizedCalendarDatePicker x:Name="FilterFrom" Width="150" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
-                <local:LocalizedCalendarDatePicker x:Name="FilterTo" Width="150" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
-                <TextBox x:Name="FilterSearch" Width="230" Margin="0,2,0,2" HorizontalAlignment="Stretch" />
+                <Button x:Name="FilterButtonYear" Content="Year" MinWidth="50" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
+                <Button x:Name="FilterButtonLast30Days" Content="Last 30 days" MinWidth="100" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
+                <local:LocalizedCalendarDatePicker x:Name="FilterFrom" Width="110" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
+                <local:LocalizedCalendarDatePicker x:Name="FilterTo" Width="110" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
+                <TextBox x:Name="FilterSearch" Width="150" Margin="0,2,0,2" HorizontalAlignment="Stretch" />
                 <Button x:Name="FilterClearSearch" Content="×" Width="28" Height="34" Padding="0" FontSize="17" Background="Transparent" Foreground="#71838D" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,2,7,2" />
-                <TextBox x:Name="FilterMinimum" Width="115" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
-                <TextBox x:Name="FilterMaximum" Width="115" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
+                <TextBox x:Name="FilterMinimum" Width="100" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
+                <TextBox x:Name="FilterMaximum" Width="100" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
               </WrapPanel>
               <Button x:Name="FilterClearAll" Grid.Column="1" Content="🗑" Width="30" Padding="0" FontSize="16" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
             </Grid>
