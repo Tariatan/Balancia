@@ -132,6 +132,22 @@ public partial class MainWindow
             ids.ExceptWith(affectedIds);
         }
 
+        var parentId = snapshot.Categories.Single(category => category.Id == id).ParentId;
+        if (parentId is not null)
+        {
+            var allChildrenSelected = snapshot.Categories
+                .Where(category => category.ParentId == parentId)
+                .All(category => ids.Contains(category.Id));
+            if (allChildrenSelected)
+            {
+                ids.Add(parentId);
+            }
+            else
+            {
+                ids.Remove(parentId);
+            }
+        }
+
         await ApplyCategorySelection(ids);
     }
 

@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.11.2] - 2026-10-10
+
+#### Fixed
+
+- Keep parent category checkboxes checked only when all their subcategories are checked; unchecking a subcategory clears its parent without changing sibling selections.
+
 ### [2.11.1] - 2026-10-10
 
 #### Fixed
