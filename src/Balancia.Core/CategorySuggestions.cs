@@ -22,11 +22,14 @@ public static class CategorySuggestionRanking
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         var suggestions = new List<CategorySuggestion>();
+        var recentPaths = recentCategoryPaths.ToArray();
+        var recentSet = recentPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
         string? topMatch = null;
 
         if (normalizedQuery.Length > 0)
         {
             topMatch = matches
+                .Where(path => !recentSet.Contains(path))
                 .OrderBy(path => MatchRank(path, normalizedQuery))
                 .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
                 .FirstOrDefault();
@@ -36,7 +39,7 @@ public static class CategorySuggestionRanking
             }
         }
 
-        var recentMatches = recentCategoryPaths
+        var recentMatches = recentPaths
             .Where(path => matches.Contains(path, StringComparer.OrdinalIgnoreCase))
             .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -44,7 +47,6 @@ public static class CategorySuggestionRanking
         suggestions.AddRange(recentMatches.Select((path, index) =>
             new CategorySuggestion(path, index == 0 ? CategorySuggestionSection.Recent : null)));
 
-        var recentSet = recentMatches.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var remaining = matches
             .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase) && !recentSet.Contains(path))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)

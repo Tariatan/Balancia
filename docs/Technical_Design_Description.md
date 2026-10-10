@@ -588,6 +588,19 @@ Up and mouse wheel up select the next day; Down and wheel down select the previo
 Empty dates stay empty; date limits and blackout dates are respected. Open
 calendar keyboard navigation remains unchanged.
 
+### Transaction category suggestions
+
+The Add/Edit category dropdown remembers every accepted suggestion immediately,
+independently of transaction save or cancellation. Recent contains all remembered
+active categories matching typed text anywhere in their full path, without a
+count limit; matching remembered categories remain in Recent rather than Top
+Match. The dialog updates its history immediately, including save-and-continue.
+Storage persists category IDs and selection order in an optional
+`category_selections` table, preserving history through renames and snapshots.
+This additive UI history does not change the schema-3 ledger contract; existing
+databases acquire an empty table on initialization, without inferring selections
+from transaction dates. Android does not use or write this table.
+
 ### Transaction description suggestions
 
 The Windows Add/Edit transaction Description field suggests distinct nonempty

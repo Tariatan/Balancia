@@ -5,26 +5,34 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
-    public IReadOnlyList<string> ReadRecentCategoryPaths(int limit = 5)
+    public void RememberCategorySelection(string categoryId) => LogOperation(() =>
     {
-        if (limit <= 0)
-        {
-            return [];
-        }
+        using var connection = connections.Open();
+        using var transaction = connection.BeginTransaction();
+        Require(connection, transaction, "SELECT 1 FROM categories WHERE id=$id AND archived=0", categoryId,
+            "Choose an active category.");
+        var revision = checked(Convert.ToInt64(Scalar(connection, transaction, "SELECT revision FROM metadata WHERE id=1")) + 1);
+        Execute(connection, transaction, "UPDATE metadata SET revision=$revision WHERE id=1", ("$revision", revision));
+        Execute(connection, transaction, """
+            INSERT INTO category_selections(category_id,selected_order) VALUES($id,$order)
+            ON CONFLICT(category_id) DO UPDATE SET selected_order=excluded.selected_order;
+            """, ("$id", categoryId), ("$order", revision));
+        transaction.Commit();
+        return true;
+    });
 
+    public IReadOnlyList<string> ReadRecentCategoryPaths()
+    {
         using var connection = connections.Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT CASE WHEN parent.id IS NULL THEN category.name ELSE parent.name || ' / ' || category.name END AS path
-            FROM ledger
-            JOIN categories category ON category.id=ledger.category_id
+            FROM category_selections selection
+            JOIN categories category ON category.id=selection.category_id
             LEFT JOIN categories parent ON parent.id=category.parent_id
-            WHERE category.archived=0
-            GROUP BY category.id
-            ORDER BY MAX(ledger.date) DESC, path COLLATE NOCASE
-            LIMIT $limit;
+            WHERE category.archived=0 AND (parent.id IS NULL OR parent.archived=0)
+            ORDER BY selection.selected_order DESC, path COLLATE NOCASE;
             """;
-        command.Parameters.AddWithValue("$limit", limit);
         using var reader = command.ExecuteReader();
         var paths = new List<string>();
 

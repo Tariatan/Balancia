@@ -271,44 +271,77 @@ public sealed class LedgerStoreTests : IDisposable
     }
 
     [Fact]
-    public void ReadRecentCategoryPaths_MultipleTransactions_ReturnsDistinctPathsByLatestTransactionDate()
+    public void ReadRecentCategoryPaths_SelectionsSurviveRestartWithoutLimitOrDuplicates()
+    {
+        // Arrange
+        var ids = Enumerable.Range(0, 8).Select(index => store.SaveCategory(null, $"Category {index}", null)).ToArray();
+        foreach (var id in ids)
+        {
+            store.RememberCategorySelection(id);
+        }
+        store.RememberCategorySelection(ids[0]);
+
+        // Act
+        var reopened = new LedgerStore(path, clock);
+        reopened.Initialize();
+        var paths = reopened.ReadRecentCategoryPaths();
+
+        // Assert
+        Assert.Equal(["Category 0", "Category 7", "Category 6", "Category 5", "Category 4", "Category 3", "Category 2", "Category 1"], paths);
+        Assert.Empty(reopened.ReadSnapshot().Entries);
+    }
+
+    [Fact]
+    public void ReadRecentCategoryPaths_RenameArchiveRestoreDelete_PreservesIdentityAndFiltersUnavailableCategories()
+    {
+        // Arrange
+        var parent = store.SaveCategory(null, "Shop", null);
+        var child = store.SaveCategory(null, "Misc", parent);
+        store.RememberCategorySelection(child);
+
+        // Act / Assert
+        store.SaveCategory(parent, "Shopping", null);
+        Assert.Equal(["Shopping / Misc"], store.ReadRecentCategoryPaths());
+        store.SaveCategory(child, "Misc", parent, archived: true);
+        Assert.Empty(store.ReadRecentCategoryPaths());
+        store.SaveCategory(child, "Misc", parent);
+        Assert.Equal(["Shopping / Misc"], store.ReadRecentCategoryPaths());
+        store.DeleteCategory(child);
+        Assert.Empty(store.ReadRecentCategoryPaths());
+    }
+
+    [Fact]
+    public void RememberCategorySelection_InvalidCategory_DoesNotChangeHistoryOrRevision()
+    {
+        // Arrange
+        var category = store.SaveCategory(null, "Archived", null, archived: true);
+        var revision = store.ReadSnapshot().Revision;
+
+        // Act / Assert
+        Assert.Throws<ArgumentException>(() => store.RememberCategorySelection(category));
+        Assert.Throws<ArgumentException>(() => store.RememberCategorySelection("missing"));
+        Assert.Equal(revision, store.ReadSnapshot().Revision);
+        Assert.Empty(store.ReadRecentCategoryPaths());
+    }
+
+    [Fact]
+    public void Initialize_OlderSchemaThreeDatabase_AddsEmptySelectionHistory()
     {
         // Arrange
         var account = Account("A");
-        var draft = Draft(account, TransactionKind.Expense, 10);
-        var food = store.SaveCategory(null, "Food", null);
-        store.SaveCategory(null, "Restaurant", food);
-        var car = store.SaveCategory(null, "Car", null);
-        store.SaveCategory(null, "Fuel", car);
-        var health = store.SaveCategory(null, "Health", null);
-        var restaurant = store.ReadSnapshot().Categories.Single(category => category.Name == "Restaurant").Id;
-        var fuel = store.ReadSnapshot().Categories.Single(category => category.Name == "Fuel").Id;
-        store.SaveTransaction(null, draft with
-        {
-            Date = Start.AddDays(1),
-            CategoryId = restaurant
-        });
-        store.SaveTransaction(null, draft with
-        {
-            Date = Start.AddDays(4),
-            CategoryId = fuel
-        });
-        store.SaveTransaction(null, draft with
-        {
-            Date = Start.AddDays(3),
-            CategoryId = restaurant
-        });
-        store.SaveTransaction(null, draft with
-        {
-            Date = Start.AddDays(2),
-            CategoryId = health
-        });
+        var category = store.SaveCategory(null, "Shop", null);
+        store.SaveTransaction(null, Draft(account, TransactionKind.Expense, 10) with { CategoryId = category });
+        Sql("DROP TABLE category_selections;");
+        var revision = store.ReadSnapshot().Revision;
 
         // Act
-        var paths = store.ReadRecentCategoryPaths(2);
+        store.Initialize();
 
         // Assert
-        Assert.Equal(["Car / Fuel", "Food / Restaurant"], paths);
+        Assert.Empty(store.ReadRecentCategoryPaths());
+        Assert.Single(store.ReadSnapshot().Entries);
+        Assert.Equal(revision, store.ReadSnapshot().Revision);
+        Assert.Equal(3L, Scalar("PRAGMA user_version"));
     }
 
     [Fact]

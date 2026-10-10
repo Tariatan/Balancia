@@ -33,6 +33,7 @@ public sealed partial class LedgerStore
         {
             ExtractDatabaseEntry(archive, staged);
             ValidateExtractedDatabase(staged, manifest);
+            new LedgerStore(staged, clock).Initialize();
             Serilog.Log.ForContext<LedgerStore>().Information("Restore snapshot validated before replacement");
             using (var liveConnection = connections.Open())
             using (var backupConnection = new SqliteConnectionFactory(backup).Open())

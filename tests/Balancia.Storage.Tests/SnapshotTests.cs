@@ -44,6 +44,46 @@ public sealed class SnapshotTests : IDisposable
     }
 
     [Fact]
+    public void RestoreSnapshot_CategorySelections_PreservesHistory()
+    {
+        // Arrange
+        var parent = store.SaveCategory(null, "Shop", null);
+        var category = store.SaveCategory(null, "Misc", parent);
+        store.RememberCategorySelection(category);
+        var snapshotPath = Path.Combine(dir, "selections.balancia");
+        store.ExportSnapshot(snapshotPath, key);
+
+        // Act
+        store.RestoreSnapshot(snapshotPath, key);
+
+        // Assert
+        Assert.Equal(["Shop / Misc"], store.ReadRecentCategoryPaths());
+    }
+
+    [Fact]
+    public void RestoreSnapshot_LegacySchemaThreeWithoutHistory_CreatesEmptyHistory()
+    {
+        // Arrange
+        var databasePath = Path.Combine(dir, "ledger.db");
+        using (var connection = new SqliteConnectionFactory(databasePath).Open())
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "DROP TABLE category_selections";
+            command.ExecuteNonQuery();
+        }
+        var snapshotPath = Path.Combine(dir, "legacy.balancia");
+        var manifest = store.ExportSnapshot(snapshotPath, key);
+        store.Initialize();
+
+        // Act
+        store.RestoreSnapshot(snapshotPath, key);
+
+        // Assert
+        Assert.Empty(store.ReadRecentCategoryPaths());
+        Assert.Equal(manifest.Revision, store.ReadSnapshot().Revision);
+    }
+
+    [Fact]
     public void OlderSnapshotCannotReplaceCurrentLedger()
     {
         var path = Path.Combine(dir, "older.balancia");

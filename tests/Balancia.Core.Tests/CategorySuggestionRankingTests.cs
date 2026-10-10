@@ -92,6 +92,26 @@ public class CategorySuggestionRankingTests
     public void Build_NoMatch_ReturnsEmpty() =>
         Assert.Empty(CategorySuggestionRanking.Build(["Groceries"], [], "zzz"));
 
+    [Theory]
+    [InlineData("shop", "Shop / Misc")]
+    [InlineData("misc", "Shop / Misc")]
+    [InlineData("service", "Services / Health insurance")]
+    [InlineData("health", "Services / Health insurance")]
+    [InlineData("MISC", "Shop / Misc")]
+    public void Build_RememberedParentOrChildMatch_AppearsInRecent(string query, string path)
+    {
+        // Arrange
+        string[] categories = ["Shop / Misc", "Services / Health insurance"];
+
+        // Act
+        var suggestions = CategorySuggestionRanking.Build(categories, categories, query);
+
+        // Assert
+        var suggestion = Assert.Single(suggestions);
+        Assert.Equal(path, suggestion.Path);
+        Assert.Equal(CategorySuggestionSection.Recent, suggestion.Section);
+    }
+
     [Fact]
     public void Highlight_MarksOnlySelectedIndexAsKeyboardSelected()
     {

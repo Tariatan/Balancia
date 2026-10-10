@@ -330,6 +330,19 @@ public partial class MainWindow
 
         void AcceptCategorySuggestion(CategorySuggestion suggestion)
         {
+            var selectedCategory = availableCategories.Single(candidate =>
+                string.Equals(candidate.Path, suggestion.Path, StringComparison.OrdinalIgnoreCase));
+            try
+            {
+                store.RememberCategorySelection(selectedCategory.Id);
+                recentCategoryPaths.RemoveAll(path => string.Equals(path, suggestion.Path, StringComparison.OrdinalIgnoreCase));
+                recentCategoryPaths.Insert(0, suggestion.Path);
+            }
+            catch (Exception ex)
+            {
+                LogWorkflowFailure(ex, "Remember category selection");
+                SetStatus(FriendlyError(ex));
+            }
             acceptedCategoryPath = suggestion.Path;
             acceptingCategorySuggestion = true;
             try

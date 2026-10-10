@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.11.0] - 2026-10-10
+
+#### Added
+
+- Remember all accepted category suggestions in the active ledger across restarts, including selections made before canceling the dialog.
+
+#### Fixed
+
+- Update Recent immediately in Add transaction, including Add another transaction; match remembered paths by parent or subcategory text without a five-category limit.
+
 ### [2.10.0] - 2026-10-04
 
 #### Added
@@ -144,6 +154,12 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [2.2.0] - 2026-10-10
+
+#### Changed
+
+- Keep remembered matching categories in Recent even when they would otherwise rank as the top match.
+
 ### [2.1.0] - 2026-10-02
 
 #### Added
@@ -164,6 +180,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [4.1.0] - 2026-10-10
+
+#### Added
+
+- Persist unlimited category selection history by category ID and selection order in an optional schema-3 table. Renames retain history; archived categories are hidden and deleted categories are removed. Existing ledgers start with empty selection history.
 
 ### [4.0.1] - 2026-10-03
 

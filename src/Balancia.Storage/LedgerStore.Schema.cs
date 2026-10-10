@@ -73,6 +73,11 @@ public sealed partial class LedgerStore
             Execute(c, tx, "PRAGMA user_version=3");
         }
 
+        Execute(c, tx, """
+            CREATE TABLE IF NOT EXISTS category_selections (
+                category_id TEXT PRIMARY KEY REFERENCES categories(id) ON DELETE CASCADE,
+                selected_order INTEGER NOT NULL CHECK(typeof(selected_order)='integer' AND selected_order>=0));
+            """);
         tx.Commit();
         Serilog.Log.ForContext<LedgerStore>().Information("Ledger schema ready, SchemaVersion: '{SchemaVersion}'", 3);
     }
