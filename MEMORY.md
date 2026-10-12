@@ -14,6 +14,18 @@ Historical checks below are recorded evidence, not checks rerun during cleanup.
 
 ## Decisions worth retaining
 
+- **Regular suggestions trial (2026-10-12):** the owner rejected unlimited
+  persisted Recent because it would gradually include nearly every category.
+  Regular instead tries two matching category paths ranked by saved transaction
+  frequency over 35 days, using transaction dates; 35 rather than 30 gives
+  monthly and slightly delayed payments a chance. The owner explicitly wants
+  to try this in daily use and may revise it; usefulness is not yet established.
+  Next: check whether Regular surfaces the expected monthly/ordinary choices
+  and whether two entries suffice before changing its window or ranking.
+  Native `misc` rendering was checked, but Tab and save-and-continue interaction
+  remain unverified because automation targeted the owner window. Sources:
+  the owner's October 12 decision, the TDD's Transaction category suggestions,
+  and Desktop 2.12.0 in [CHANGELOG.md](CHANGELOG.md).
 - **Usage agreement:** Windows is the only writer; Android is a read-only
   balance/history viewer. Stale snapshots and manual refresh are acceptable.
   Google Drive is user-managed snapshot transport. Android transport/device
