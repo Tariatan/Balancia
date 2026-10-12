@@ -15,12 +15,13 @@ public partial class ErrorDialog : Window
     {
         var dialog = new ErrorDialog
         {
-            Title = Get(title)
+            Title = Get(title), Heading = { Text = Get("The operation could not be completed.") }, MessageText =
+            {
+                Text = message
+            },
+            CloseButton = { Content = Get("Close") }
         };
-        dialog.heading.Text = Get("The operation could not be completed.");
-        dialog.messageText.Text = message;
-        dialog.closeButton.Content = Get("Close");
-        dialog.closeButton.Click += (_, _) => dialog.Close();
+        dialog.CloseButton.Click += (_, _) => dialog.Close();
         return dialog.ShowDialog(owner);
     }
 }

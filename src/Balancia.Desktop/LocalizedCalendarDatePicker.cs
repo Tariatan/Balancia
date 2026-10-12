@@ -22,16 +22,16 @@ internal sealed class LocalizedCalendarDatePicker : CalendarDatePicker
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
-        calendar?.RemoveHandler(InputElement.PointerPressedEvent, OnCalendarPointerPressed);
-        calendar?.RemoveHandler(InputElement.KeyDownEvent, OnCalendarKeyDown);
-        calendar?.RemoveHandler(InputElement.PointerWheelChangedEvent, OnCalendarPointerWheelChanged);
+        calendar?.RemoveHandler(InputElement.PointerPressedEvent, OnCalendarInput);
+        calendar?.RemoveHandler(InputElement.KeyDownEvent, OnCalendarInput);
+        calendar?.RemoveHandler(InputElement.PointerWheelChangedEvent, OnCalendarInput);
 
         base.OnApplyTemplate(e);
 
         calendar = e.NameScope.Find<Avalonia.Controls.Calendar>("PART_Calendar");
-        calendar?.AddHandler(InputElement.PointerPressedEvent, OnCalendarPointerPressed, RoutingStrategies.Tunnel);
-        calendar?.AddHandler(InputElement.KeyDownEvent, OnCalendarKeyDown, RoutingStrategies.Tunnel);
-        calendar?.AddHandler(InputElement.PointerWheelChangedEvent, OnCalendarPointerWheelChanged, RoutingStrategies.Tunnel);
+        calendar?.AddHandler(InputElement.PointerPressedEvent, OnCalendarInput, RoutingStrategies.Tunnel);
+        calendar?.AddHandler(InputElement.KeyDownEvent, OnCalendarInput, RoutingStrategies.Tunnel);
+        calendar?.AddHandler(InputElement.PointerWheelChangedEvent, OnCalendarInput, RoutingStrategies.Tunnel);
     }
 
     private void OnDateKeyDown(object? sender, KeyEventArgs e)
@@ -81,11 +81,7 @@ internal sealed class LocalizedCalendarDatePicker : CalendarDatePicker
         SetCurrentValue(SelectedDateProperty, nextDate);
     }
 
-    private static void OnCalendarPointerPressed(object? sender, PointerPressedEventArgs e) => ApplySelectedCulture();
-
-    private static void OnCalendarKeyDown(object? sender, KeyEventArgs e) => ApplySelectedCulture();
-
-    private static void OnCalendarPointerWheelChanged(object? sender, PointerWheelEventArgs e) => ApplySelectedCulture();
+    private static void OnCalendarInput(object? sender, RoutedEventArgs e) => ApplySelectedCulture();
 
     private void RefreshCalendarCulture()
     {

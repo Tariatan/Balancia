@@ -14,7 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
-### [2.11.3] - 2026-10-10
+### [2.11.4] - 2026-10-12
+
+#### Changed
+
+- LocalizedCalendarDatePicker class optimized.
+
+### [2.11.3] - 2026-10-12
 
 #### Changed
 
