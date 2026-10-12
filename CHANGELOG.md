@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.11.3] - 2026-10-10
+
+#### Changed
+
+- CsvImportPreviewWindow class optimized.
+
 ### [2.11.2] - 2026-10-10
 
 #### Fixed

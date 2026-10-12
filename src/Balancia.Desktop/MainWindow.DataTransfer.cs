@@ -30,7 +30,11 @@ public partial class MainWindow
         await Run(async () =>
         {
             var preview = await Task.Run(() => store.PreviewCsvImport(path));
-            await CsvImportPreviewWindow.Show(this, preview);
+            await CsvImportPreviewWindow.Show(this, preview, store.ApplyCsvImport, async result =>
+            {
+                await Refresh();
+                SetStatus(Format("Imported {0} entries; {1} unchanged.", result.Added, result.Unchanged));
+            });
         });
     }
 
