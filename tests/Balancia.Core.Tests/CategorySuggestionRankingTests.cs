@@ -39,7 +39,7 @@ public class CategorySuggestionRankingTests
     }
 
     [Fact]
-    public void Build_RecentMatchesFollowTopMatchAndExcludeIt()
+    public void Build_RegularMatchesPrecedeTopMatchWithoutDuplicates()
     {
         var suggestions = CategorySuggestionRanking.Build(
             ["Alpha", "Beta", "Gamma"], ["Gamma", "Beta"], "a");
@@ -47,18 +47,18 @@ public class CategorySuggestionRankingTests
         Assert.Collection(suggestions,
             first =>
             {
-                Assert.Equal("Alpha", first.Path);
-                Assert.Equal(CategorySuggestionSection.TopMatch, first.Section);
+                Assert.Equal("Gamma", first.Path);
+                Assert.Equal(CategorySuggestionSection.Regular, first.Section);
             },
             second =>
             {
-                Assert.Equal("Gamma", second.Path);
-                Assert.Equal(CategorySuggestionSection.Recent, second.Section);
+                Assert.Equal("Beta", second.Path);
+                Assert.Null(second.Section);
             },
             third =>
             {
-                Assert.Equal("Beta", third.Path);
-                Assert.Null(third.Section);
+                Assert.Equal("Alpha", third.Path);
+                Assert.Equal(CategorySuggestionSection.TopMatch, third.Section);
             });
     }
 
@@ -98,7 +98,7 @@ public class CategorySuggestionRankingTests
     [InlineData("service", "Services / Health insurance")]
     [InlineData("health", "Services / Health insurance")]
     [InlineData("MISC", "Shop / Misc")]
-    public void Build_RememberedParentOrChildMatch_AppearsInRecent(string query, string path)
+    public void Build_UsedParentOrChildMatch_AppearsInRegular(string query, string path)
     {
         // Arrange
         string[] categories = ["Shop / Misc", "Services / Health insurance"];
@@ -109,7 +109,24 @@ public class CategorySuggestionRankingTests
         // Assert
         var suggestion = Assert.Single(suggestions);
         Assert.Equal(path, suggestion.Path);
-        Assert.Equal(CategorySuggestionSection.Recent, suggestion.Section);
+        Assert.Equal(CategorySuggestionSection.Regular, suggestion.Section);
+    }
+
+    [Fact]
+    public void Build_MoreThanTwoUsedMatches_FiltersBeforeLimitAndKeepsRemainingChoices()
+    {
+        // Arrange
+        string[] categories = ["Popular", "Shop / Misc", "Misc / Misc", "Other / Misc", "Unused / Misc"];
+
+        // Act
+        var suggestions = CategorySuggestionRanking.Build(categories, categories.Take(4), "misc");
+
+        // Assert
+        Assert.Equal(["Shop / Misc", "Misc / Misc", "Other / Misc", "Unused / Misc"], suggestions.Select(suggestion => suggestion.Path));
+        Assert.Equal(CategorySuggestionSection.Regular, suggestions[0].Section);
+        Assert.Null(suggestions[1].Section);
+        Assert.Equal(CategorySuggestionSection.TopMatch, suggestions[2].Section);
+        Assert.Equal(CategorySuggestionSection.Other, suggestions[3].Section);
     }
 
     [Fact]

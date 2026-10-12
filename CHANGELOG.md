@@ -14,6 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.12.0] - 2026-10-12
+
+#### Changed
+
+- Replace Recent category suggestions with Regular: show up to two matching category paths most used in saved transactions dated today or the previous 34 days. Regular appears first, matches parent/subcategory text, and refreshes after Add another transaction.
+- Accepting a suggestion no longer persists selection history; canceled selections do not affect ranking. Localize Regular in all four desktop languages.
+
 ### [2.11.4] - 2026-10-12
 
 #### Changed
@@ -178,6 +185,12 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [2.3.0] - 2026-10-12
+
+#### Changed
+
+- Filter ranked category usage candidates by typed text before choosing at most two Regular entries; retain other matching choices without duplicates.
+
 ### [2.2.0] - 2026-10-10
 
 #### Changed
@@ -204,6 +217,13 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [4.2.0] - 2026-10-12
+
+#### Changed
+
+- Derive Regular category candidates from transaction counts within an inclusive 35-day window, with latest transaction date and alphabetical path breaking ties. Archived categories, transfers, opening balances, and future dates are excluded.
+- Stop creating or writing category selection history. Existing optional history tables are left unused; no ledger schema or snapshot format change is required.
 
 ### [4.1.0] - 2026-10-10
 

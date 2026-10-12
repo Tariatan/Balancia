@@ -3,7 +3,7 @@ namespace Balancia.Core;
 public enum CategorySuggestionSection
 {
     TopMatch,
-    Recent,
+    Regular,
     Other,
 }
 
@@ -13,7 +13,7 @@ public static class CategorySuggestionRanking
 {
     public static IReadOnlyList<CategorySuggestion> Build(
         IEnumerable<string> categoryPaths,
-        IEnumerable<string> recentCategoryPaths,
+        IEnumerable<string> regularCategoryPaths,
         string query)
     {
         var normalizedQuery = query.Trim();
@@ -22,14 +22,21 @@ public static class CategorySuggestionRanking
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         var suggestions = new List<CategorySuggestion>();
-        var recentPaths = recentCategoryPaths.ToArray();
-        var recentSet = recentPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var matchingSet = matches.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var regularMatches = regularCategoryPaths
+            .Where(matchingSet.Contains)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToArray();
+        var regularSet = regularMatches.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        suggestions.AddRange(regularMatches.Select((path, index) =>
+            new CategorySuggestion(path, index == 0 ? CategorySuggestionSection.Regular : null)));
         string? topMatch = null;
 
         if (normalizedQuery.Length > 0)
         {
             topMatch = matches
-                .Where(path => !recentSet.Contains(path))
+                .Where(path => !regularSet.Contains(path))
                 .OrderBy(path => MatchRank(path, normalizedQuery))
                 .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
                 .FirstOrDefault();
@@ -39,16 +46,8 @@ public static class CategorySuggestionRanking
             }
         }
 
-        var recentMatches = recentPaths
-            .Where(path => matches.Contains(path, StringComparer.OrdinalIgnoreCase))
-            .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        suggestions.AddRange(recentMatches.Select((path, index) =>
-            new CategorySuggestion(path, index == 0 ? CategorySuggestionSection.Recent : null)));
-
         var remaining = matches
-            .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase) && !recentSet.Contains(path))
+            .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase) && !regularSet.Contains(path))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToArray();
         suggestions.AddRange(remaining.Select((path, index) =>

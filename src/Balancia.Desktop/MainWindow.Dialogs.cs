@@ -35,7 +35,7 @@ public partial class MainWindow
 
     // Snapshot inputs on the UI thread, then perform the complete write off-thread.
     private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, string saveLabel = "Save",
-        InputElement? initialFocus = null, Action? onSaveAndContinue = null, Func<string?>? validate = null)
+        InputElement? initialFocus = null, Func<Task>? onSaveAndContinue = null, Func<string?>? validate = null)
     {
         var isRemoval = saveLabel == "Remove";
         var dialog = new Window
@@ -157,18 +157,18 @@ public partial class MainWindow
                 Serilog.Log.Information("Saving dialog changes, Operation: '{Operation}'", title);
                 await Task.Run(action);
                 Serilog.Log.Information("Dialog changes saved, Operation: '{Operation}'", title);
-                saving = false;
                 if (continueEditing)
                 {
                     await Run(Refresh, false);
+                    await onSaveAndContinue!();
                     body.IsEnabled = true;
                     initialFocus?.Focus();
-                    onSaveAndContinue!();
                     error.Text = "";
                 }
                 else
                 {
                     saved = true;
+                    saving = false;
                     dialog.Close();
                 }
             }

@@ -118,7 +118,7 @@
   <data name="Choose Balancia database folder" xml:space="preserve"><value>Вибрати теку бази даних Balancia</value></data>
   <data name="This database folder is already active." xml:space="preserve"><value>Ця тека бази даних уже використовується.</value></data>
   <data name="TOP MATCH" xml:space="preserve"><value>НАЙКРАЩИЙ ЗБІГ</value></data>
-  <data name="RECENT" xml:space="preserve"><value>НЕЩОДАВНІ</value></data>
+  <data name="REGULAR" xml:space="preserve"><value>РЕГУЛЯРНІ</value></data>
   <data name="Category suggestion header" xml:space="preserve"><value>КАТЕГОРІЇ</value></data>
   <data name="Add an active account before entering transactions." xml:space="preserve"><value>Додайте активний рахунок перед внесенням операцій.</value></data>
   <data name="Remove this transaction? For a transfer, both account movements will be removed together." xml:space="preserve"><value>Видалити цю операцію? Для переказу буде видалено рухи на обох рахунках.</value></data>

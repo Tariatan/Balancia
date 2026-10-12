@@ -118,7 +118,7 @@
   <data name="Choose Balancia database folder" xml:space="preserve"><value>Choose Balancia database folder</value></data>
   <data name="This database folder is already active." xml:space="preserve"><value>This database folder is already active.</value></data>
   <data name="TOP MATCH" xml:space="preserve"><value>TOP MATCH</value></data>
-  <data name="RECENT" xml:space="preserve"><value>RECENT</value></data>
+  <data name="REGULAR" xml:space="preserve"><value>REGULAR</value></data>
   <data name="Category suggestion header" xml:space="preserve"><value>CATEGORIES</value></data>
   <data name="Add an active account before entering transactions." xml:space="preserve"><value>Add an active account before entering transactions.</value></data>
   <data name="Remove this transaction? For a transfer, both account movements will be removed together." xml:space="preserve"><value>Remove this transaction? For a transfer, both account movements will be removed together.</value></data>

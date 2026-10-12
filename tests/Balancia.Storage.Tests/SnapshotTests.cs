@@ -44,12 +44,14 @@ public sealed class SnapshotTests : IDisposable
     }
 
     [Fact]
-    public void RestoreSnapshot_CategorySelections_PreservesHistory()
+    public void RestoreSnapshot_RegularCategories_DerivesUsageFromRestoredTransactions()
     {
         // Arrange
         var parent = store.SaveCategory(null, "Shop", null);
         var category = store.SaveCategory(null, "Misc", parent);
-        store.RememberCategorySelection(category);
+        var account = store.ReadSnapshot().Accounts.Single().Id;
+        store.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, DateOnly.FromDateTime(DateTime.Today),
+            "Synthetic purchase", new Money(1), account, CategoryId: category));
         var snapshotPath = Path.Combine(dir, "selections.balancia");
         store.ExportSnapshot(snapshotPath, key);
 
@@ -57,30 +59,7 @@ public sealed class SnapshotTests : IDisposable
         store.RestoreSnapshot(snapshotPath, key);
 
         // Assert
-        Assert.Equal(["Shop / Misc"], store.ReadRecentCategoryPaths());
-    }
-
-    [Fact]
-    public void RestoreSnapshot_LegacySchemaThreeWithoutHistory_CreatesEmptyHistory()
-    {
-        // Arrange
-        var databasePath = Path.Combine(dir, "ledger.db");
-        using (var connection = new SqliteConnectionFactory(databasePath).Open())
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "DROP TABLE category_selections";
-            command.ExecuteNonQuery();
-        }
-        var snapshotPath = Path.Combine(dir, "legacy.balancia");
-        var manifest = store.ExportSnapshot(snapshotPath, key);
-        store.Initialize();
-
-        // Act
-        store.RestoreSnapshot(snapshotPath, key);
-
-        // Assert
-        Assert.Empty(store.ReadRecentCategoryPaths());
-        Assert.Equal(manifest.Revision, store.ReadSnapshot().Revision);
+        Assert.Equal(["Shop / Misc"], store.ReadRegularCategoryPaths());
     }
 
     [Fact]

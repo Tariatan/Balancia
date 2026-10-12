@@ -113,7 +113,7 @@ public partial class MainWindow
             .Where(c => !c.Archived || c.Id == existing?.CategoryId)
             .ToArray();
         var categoryPaths = availableCategories.Select(c => c.Path).ToList();
-        var recentCategoryPaths = (await Task.Run(() => store.ReadRecentCategoryPaths())).ToList();
+        var regularCategoryPaths = await Task.Run(() => store.ReadRegularCategoryPaths());
         IReadOnlyList<CategorySuggestion> categorySuggestions = [];
         var selectedCategorySuggestionIndex = -1;
         var acceptingCategorySuggestion = false;
@@ -172,7 +172,7 @@ public partial class MainWindow
             {
                 var matches = string.IsNullOrWhiteSpace(query)
                     ? []
-                    : CategorySuggestionRanking.Build(categoryPaths, recentCategoryPaths, query);
+                    : CategorySuggestionRanking.Build(categoryPaths, regularCategoryPaths, query);
                 selectedCategorySuggestionIndex = matches.Count > 0 ? 0 : -1;
                 categorySuggestions = CategorySuggestionRanking.Highlight(matches, selectedCategorySuggestionIndex);
                 RenderCategorySuggestions();
@@ -216,10 +216,10 @@ public partial class MainWindow
         var categoryField = Field("Category / subcategory", categoryInput);
         kind.SelectionChanged += (_, _) => UpdateFields();
         UpdateFields();
-        Action? continueAfterSave = null;
+        Func<Task>? continueAfterSave = null;
         if (entry is null)
         {
-            continueAfterSave = () =>
+            continueAfterSave = async () =>
             {
                 if (!string.IsNullOrWhiteSpace(description.Text))
                 {
@@ -235,7 +235,7 @@ public partial class MainWindow
                 suggestionRows.Children.Clear();
                 suggestionPopup.IsOpen = false;
                 category.Text = string.Empty;
-                category.Focus();
+                regularCategoryPaths = await Task.Run(() => store.ReadRegularCategoryPaths());
             };
         }
 
@@ -331,19 +331,6 @@ public partial class MainWindow
 
         void AcceptCategorySuggestion(CategorySuggestion suggestion)
         {
-            var selectedCategory = availableCategories.Single(candidate =>
-                string.Equals(candidate.Path, suggestion.Path, StringComparison.OrdinalIgnoreCase));
-            try
-            {
-                store.RememberCategorySelection(selectedCategory.Id);
-                recentCategoryPaths.RemoveAll(path => string.Equals(path, suggestion.Path, StringComparison.OrdinalIgnoreCase));
-                recentCategoryPaths.Insert(0, suggestion.Path);
-            }
-            catch (Exception ex)
-            {
-                LogWorkflowFailure(ex, "Remember category selection");
-                SetStatus(FriendlyError(ex));
-            }
             acceptedCategoryPath = suggestion.Path;
             acceptingCategorySuggestion = true;
             try
@@ -417,7 +404,7 @@ public partial class MainWindow
             var label = section switch
             {
                 CategorySuggestionSection.TopMatch => "TOP MATCH",
-                CategorySuggestionSection.Recent => "RECENT",
+                CategorySuggestionSection.Regular => "REGULAR",
                 _ => "Category suggestion header",
             };
             body.Children.Add(new TextBlock

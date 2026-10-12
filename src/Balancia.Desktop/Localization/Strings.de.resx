@@ -118,7 +118,7 @@
   <data name="Choose Balancia database folder" xml:space="preserve"><value>Balancia-Datenbankordner auswählen</value></data>
   <data name="This database folder is already active." xml:space="preserve"><value>Dieser Datenbankordner ist bereits aktiv.</value></data>
   <data name="TOP MATCH" xml:space="preserve"><value>BESTE ÜBEREINSTIMMUNG</value></data>
-  <data name="RECENT" xml:space="preserve"><value>ZULETZT VERWENDET</value></data>
+  <data name="REGULAR" xml:space="preserve"><value>REGELMÄSSIG</value></data>
   <data name="Category suggestion header" xml:space="preserve"><value>KATEGORIEN</value></data>
   <data name="Add an active account before entering transactions." xml:space="preserve"><value>Fügen Sie vor dem Erfassen von Buchungen ein aktives Konto hinzu.</value></data>
   <data name="Remove this transaction? For a transfer, both account movements will be removed together." xml:space="preserve"><value>Diese Buchung entfernen? Bei einer Umbuchung werden beide Kontobewegungen entfernt.</value></data>

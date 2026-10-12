@@ -271,77 +271,112 @@ public sealed class LedgerStoreTests : IDisposable
     }
 
     [Fact]
-    public void ReadRecentCategoryPaths_SelectionsSurviveRestartWithoutLimitOrDuplicates()
+    public void ReadRegularCategoryPaths_TransactionDates_UsesInclusive35DayWindow()
     {
         // Arrange
-        var ids = Enumerable.Range(0, 8).Select(index => store.SaveCategory(null, $"Category {index}", null)).ToArray();
-        foreach (var id in ids)
-        {
-            store.RememberCategorySelection(id);
-        }
-        store.RememberCategorySelection(ids[0]);
-
-        // Act
-        var reopened = new LedgerStore(path, clock);
-        reopened.Initialize();
-        var paths = reopened.ReadRecentCategoryPaths();
-
-        // Assert
-        Assert.Equal(["Category 0", "Category 7", "Category 6", "Category 5", "Category 4", "Category 3", "Category 2", "Category 1"], paths);
-        Assert.Empty(reopened.ReadSnapshot().Entries);
-    }
-
-    [Fact]
-    public void ReadRecentCategoryPaths_RenameArchiveRestoreDelete_PreservesIdentityAndFiltersUnavailableCategories()
-    {
-        // Arrange
-        var parent = store.SaveCategory(null, "Shop", null);
-        var child = store.SaveCategory(null, "Misc", parent);
-        store.RememberCategorySelection(child);
-
-        // Act / Assert
-        store.SaveCategory(parent, "Shopping", null);
-        Assert.Equal(["Shopping / Misc"], store.ReadRecentCategoryPaths());
-        store.SaveCategory(child, "Misc", parent, archived: true);
-        Assert.Empty(store.ReadRecentCategoryPaths());
-        store.SaveCategory(child, "Misc", parent);
-        Assert.Equal(["Shopping / Misc"], store.ReadRecentCategoryPaths());
-        store.DeleteCategory(child);
-        Assert.Empty(store.ReadRecentCategoryPaths());
-    }
-
-    [Fact]
-    public void RememberCategorySelection_InvalidCategory_DoesNotChangeHistoryOrRevision()
-    {
-        // Arrange
-        var category = store.SaveCategory(null, "Archived", null, archived: true);
+        clock.Now = new DateTimeOffset(2026, 10, 7, 12, 0, 0, TimeSpan.Zero);
+        var account = Account("A");
+        var outside = store.SaveCategory(null, "Outside", null);
+        var boundary = store.SaveCategory(null, "Boundary", null);
+        var today = store.SaveCategory(null, "Today", null);
+        var future = store.SaveCategory(null, "Future", null);
+        store.SaveCategory(null, "Unused", null);
+        var draft = Draft(account, TransactionKind.Expense, 1);
+        store.SaveTransaction(null, draft with { Date = new(2026, 9, 1), CategoryId = outside });
+        store.SaveTransaction(null, draft with { Date = new(2026, 9, 2), CategoryId = boundary });
+        store.SaveTransaction(null, draft with { Date = new(2026, 10, 6), CategoryId = today });
+        store.SaveTransaction(null, draft with { Date = new(2026, 10, 7), CategoryId = future });
+        clock.Now = new DateTimeOffset(2026, 10, 6, 12, 0, 0, TimeSpan.Zero);
         var revision = store.ReadSnapshot().Revision;
 
-        // Act / Assert
-        Assert.Throws<ArgumentException>(() => store.RememberCategorySelection(category));
-        Assert.Throws<ArgumentException>(() => store.RememberCategorySelection("missing"));
+        // Act
+        var paths = store.ReadRegularCategoryPaths();
+
+        // Assert
+        Assert.Equal(["Today", "Boundary"], paths);
         Assert.Equal(revision, store.ReadSnapshot().Revision);
-        Assert.Empty(store.ReadRecentCategoryPaths());
+        clock.Now = new DateTimeOffset(2026, 10, 8, 12, 0, 0, TimeSpan.Zero);
+        Assert.Equal(["Future", "Today"], store.ReadRegularCategoryPaths());
     }
 
     [Fact]
-    public void Initialize_OlderSchemaThreeDatabase_AddsEmptySelectionHistory()
+    public void ReadRegularCategoryPaths_FrequencyTies_OrdersByCountThenLatestDateThenName()
     {
         // Arrange
         var account = Account("A");
-        var category = store.SaveCategory(null, "Shop", null);
-        store.SaveTransaction(null, Draft(account, TransactionKind.Expense, 10) with { CategoryId = category });
-        Sql("DROP TABLE category_selections;");
-        var revision = store.ReadSnapshot().Revision;
+        var alpha = store.SaveCategory(null, "Alpha", null);
+        var beta = store.SaveCategory(null, "Beta", null);
+        var most = store.SaveCategory(null, "Most used", null);
+        var latest = store.SaveCategory(null, "Latest", null);
+        var draft = Draft(account, TransactionKind.Expense, 1);
+        string[] categoryIds = [alpha, beta, most, most];
+        foreach (var id in categoryIds)
+        {
+            store.SaveTransaction(null, draft with { CategoryId = id });
+        }
+        store.SaveTransaction(null, draft with { Date = Start.AddDays(5), CategoryId = latest });
 
         // Act
-        store.Initialize();
+        var paths = store.ReadRegularCategoryPaths();
 
         // Assert
-        Assert.Empty(store.ReadRecentCategoryPaths());
-        Assert.Single(store.ReadSnapshot().Entries);
-        Assert.Equal(revision, store.ReadSnapshot().Revision);
-        Assert.Equal(3L, Scalar("PRAGMA user_version"));
+        Assert.Equal(["Most used", "Latest", "Alpha", "Beta"], paths);
+    }
+
+    [Fact]
+    public void ReadRegularCategoryPaths_EditDeleteArchiveAndRestart_RecomputesFromLedger()
+    {
+        // Arrange
+        var account = Account("A");
+        var shop = store.SaveCategory(null, "Shop", null);
+        var misc = store.SaveCategory(null, "Misc", shop);
+        var draft = Draft(account, TransactionKind.Expense, 1) with { CategoryId = misc };
+        var transaction = store.SaveTransaction(null, draft);
+        store.SaveCategory(shop, "Shopping", null);
+        var reopened = new LedgerStore(path, clock);
+        reopened.Initialize();
+
+        // Act / Assert
+        Assert.Equal(["Shopping / Misc"], reopened.ReadRegularCategoryPaths());
+        reopened.SaveCategory(misc, "Misc", shop, archived: true);
+        Assert.Empty(reopened.ReadRegularCategoryPaths());
+        reopened.SaveCategory(misc, "Misc", shop);
+        Assert.Equal(["Shopping / Misc"], reopened.ReadRegularCategoryPaths());
+        reopened.SaveTransaction(transaction, draft with { CategoryId = null });
+        Assert.Empty(reopened.ReadRegularCategoryPaths());
+        reopened.SaveTransaction(transaction, draft);
+        Assert.Equal(["Shopping / Misc"], reopened.ReadRegularCategoryPaths());
+        reopened.DeleteTransaction(transaction);
+        Assert.Empty(reopened.ReadRegularCategoryPaths());
+    }
+
+    [Fact]
+    public void ReadRegularCategoryPaths_SaveAndContinueData_FiltersBeforeChoosingTwo()
+    {
+        // Arrange
+        var account = Account("A");
+        var shop = store.SaveCategory(null, "Shop", null);
+        var shopMisc = store.SaveCategory(null, "Misc", shop);
+        var misc = store.SaveCategory(null, "Misc", null);
+        var miscMisc = store.SaveCategory(null, "Misc", misc);
+        var other = store.SaveCategory(null, "Popular", null);
+        var draft = Draft(account, TransactionKind.Expense, 1);
+        store.SaveTransaction(null, draft with { CategoryId = other });
+        store.SaveTransaction(null, draft with { CategoryId = other });
+        store.SaveTransaction(null, draft with { CategoryId = shopMisc });
+        string[] paths = ["Shop / Misc", "Misc / Misc", "Popular"];
+        var before = CategorySuggestionRanking.Build(paths, store.ReadRegularCategoryPaths(), "misc");
+
+        // Act
+        store.SaveTransactionWithCategoryPath(null, draft, "Misc / Misc");
+        var after = CategorySuggestionRanking.Build(paths, store.ReadRegularCategoryPaths(), "misc");
+
+        // Assert
+        Assert.Equal(CategorySuggestionSection.Regular, before[0].Section);
+        Assert.Equal("Shop / Misc", before[0].Path);
+        Assert.Equal(["Misc / Misc", "Shop / Misc"], after.Select(suggestion => suggestion.Path));
+        Assert.Equal(CategorySuggestionSection.Regular, after[0].Section);
+        Assert.Null(after[1].Section);
     }
 
     [Fact]

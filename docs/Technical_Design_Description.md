@@ -590,16 +590,16 @@ calendar keyboard navigation remains unchanged.
 
 ### Transaction category suggestions
 
-The Add/Edit category dropdown remembers every accepted suggestion immediately,
-independently of transaction save or cancellation. Recent contains all remembered
-active categories matching typed text anywhere in their full path, without a
-count limit; matching remembered categories remain in Recent rather than Top
-Match. The dialog updates its history immediately, including save-and-continue.
-Storage persists category IDs and selection order in an optional
-`category_selections` table, preserving history through renames and snapshots.
-This additive UI history does not change the schema-3 ledger contract; existing
-databases acquire an empty table on initialization, without inferring selections
-from transaction dates. Android does not use or write this table.
+The Add/Edit category dropdown derives Regular suggestions from saved income
+and expense transactions dated today or the previous 34 days. Matching is
+case-insensitive anywhere in the full category path. After filtering by typed
+text, at most two active category paths appear in Regular, ordered by transaction
+count, latest transaction date, then alphabetical path. Regular appears before
+Top Match and remaining categories, without duplicates. Save-and-continue
+reloads usage from the ledger; accepting or canceling a suggestion does not
+affect ranking. Usage is derived from the ledger without separate history;
+legacy optional `category_selections` tables are unused. The ledger schema and
+snapshot format remain unchanged.
 
 ### Transaction description suggestions
 
