@@ -38,7 +38,7 @@ A gear icon opens **Settings** for the database/backup/snapshot folder pickers, 
 
 - **.NET 10 / Avalonia** — Windows desktop UI, with a native .NET Android viewer sharing the ledger code
 - **SQLite** (`Microsoft.Data.Sqlite`) — local relational storage, no server, no ORM
-- **xUnit** — unit and SQLite integration test suite
+- **xUnit** — unit, SQLite integration and headless Avalonia UI test suite
 
 ## Project structure
 
@@ -49,6 +49,7 @@ A gear icon opens **Settings** for the database/backup/snapshot folder pickers, 
 | `src/Balancia.Desktop`                                      | The Avalonia Windows application (full read/write UI)                                  |
 | `src/Balancia.Android`                                      | The read-only native Android shell                                                     |
 | `tests/Balancia.Core.Tests`, `tests/Balancia.Storage.Tests` | Unit and SQLite integration tests                                                      |
+| `tests/Balancia.Desktop.Tests`                              | Headless UI tests that open the real `MainWindow` against a temporary data folder      |
 
 ## Documentation
 
@@ -72,6 +73,8 @@ dotnet build Balancia.slnx -c Release --no-restore
 dotnet test Balancia.slnx -c Release --no-build --no-restore
 dotnet run --project src/Balancia.Desktop -c Release --no-build --no-restore
 ```
+
+`tests/Balancia.Desktop.Tests` runs on Avalonia's headless platform (xUnit v3), so it needs no display and never touches `%LOCALAPPDATA%\Balancia`: each test gets its own temporary data folder and settings file.
 
 For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--` in the `dotnet run` command — the app creates that directory and its schema on first run.
 

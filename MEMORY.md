@@ -48,6 +48,13 @@ Historical checks below are recorded evidence, not checks rerun during cleanup.
 - **Repository reference (2026-09-17):** Git was initialized on `main`; the
   recorded private repository is [Tariatan/Balancia](https://github.com/Tariatan/Balancia).
 
+## UI tests
+
+- `tests/Balancia.Desktop.Tests` uses Avalonia.Headless.XUnit, which requires xunit v3; all three test projects use xunit.v3.
+  `MainWindow(separateDataDirectory, settingsFile)` and `UseSnapshotKey` are the internal seams; the DPAPI key store is Windows-only, so tests inject the key.
+- Opening a window with a backup or snapshot folder and no key shows the passphrase dialog, which blocks a headless test.
+  Close such a window without showing it.
+
 ## Recorded verification
 
 ### Encryption and diagnostics — 2026-10-03

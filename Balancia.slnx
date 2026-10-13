@@ -18,6 +18,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Balancia.Core.Tests/Balancia.Core.Tests.csproj" />
+    <Project Path="tests/Balancia.Desktop.Tests/Balancia.Desktop.Tests.csproj" />
     <Project Path="tests/Balancia.Storage.Tests/Balancia.Storage.Tests.csproj" />
   </Folder>
 </Solution>

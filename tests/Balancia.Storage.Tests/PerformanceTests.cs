@@ -2,7 +2,6 @@ using System.Diagnostics;
 using Balancia.Core;
 using Microsoft.Data.Sqlite;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Balancia.Storage.Tests;
 

@@ -3,6 +3,6 @@
     <Version>2.3.0</Version>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
   </ItemGroup>
 </Project>

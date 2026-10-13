@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.12.2] - 2026-10-13
+
+#### Added
+
+- Headless UI test project `Balancia.Desktop.Tests` covering MainWindow startup rendering and the backup/snapshot writes done on close (retention, missing key, unwritable folder, separate data folder).
+
+#### Changed
+
+- MainWindow can be created with an explicit data folder and settings file, so tests never read or write the user's settings. A snapshot key provided before startup is kept instead of being replaced by the remembered Windows key.
+
 ### [2.12.1] - 2026-10-13
 
 #### Changed

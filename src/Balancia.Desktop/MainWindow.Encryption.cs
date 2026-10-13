@@ -14,12 +14,19 @@ public partial class MainWindow
         : Path.Combine(Path.GetDirectoryName(applicationSettingsPath)!, "snapshot-key.dpapi");
     internal bool EncryptionConfigured => snapshotKey is not null;
 
+    /// <summary>Provides the snapshot key without the Windows key store or the passphrase dialog; used by UI tests.</summary>
+    internal void UseSnapshotKey(SnapshotKey key)
+    {
+        snapshotKey?.Dispose();
+        snapshotKey = key;
+    }
+
     private async Task InitializeEncryption()
     {
         Log.Information("Loading remembered Windows snapshot key");
         try
         {
-            snapshotKey = await Task.Run(() => WindowsSnapshotKeyStore.Load(SnapshotKeyPath));
+            snapshotKey ??= await Task.Run(() => WindowsSnapshotKeyStore.Load(SnapshotKeyPath));
             Log.Information("Windows snapshot key load completed, KeyAvailable: '{KeyAvailable}'", snapshotKey is not null);
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or

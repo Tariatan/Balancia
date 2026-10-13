@@ -30,17 +30,21 @@ public partial class MainWindow : Window
 
     private void SetStatus(string text) => OverviewStatus.Text = Get(text);
 
-    public MainWindow()
+    public MainWindow() : this(SeparateDataDirectory(Environment.GetCommandLineArgs()), ApplicationPaths.SettingsFile)
+    {
+    }
+
+    /// <param name="separateDataDirectory">The <c>--data-dir</c> folder. When set, the user's settings are neither read nor written.</param>
+    /// <param name="settingsFile">The application settings file; tests point it at a temporary folder.</param>
+    internal MainWindow(string? separateDataDirectory, string settingsFile)
     {
         InitializeComponent();
         InitializeOverview();
-        var args = Environment.GetCommandLineArgs();
-        var directoryArg = Array.IndexOf(args, "--data-dir");
-        separateDataFolder = directoryArg >= 0 && directoryArg + 1 < args.Length;
-        applicationSettingsPath = ApplicationPaths.SettingsFile;
+        separateDataFolder = separateDataDirectory is not null;
+        applicationSettingsPath = settingsFile;
         var savedSettings = LoadApplicationSettings(applicationSettingsPath);
-        var directory = separateDataFolder
-            ? Path.GetFullPath(args[directoryArg + 1])
+        var directory = separateDataDirectory is not null
+            ? Path.GetFullPath(separateDataDirectory)
             : Path.GetDirectoryName(ResolveFullPath(savedSettings?.DatabasePath) ?? string.Empty) ?? ApplicationPaths.UserDirectory;
         languagePreference = savedSettings?.Language;
         LanguageCode = ResolveLanguage(savedSettings?.Language, CultureInfo.CurrentUICulture);
@@ -51,13 +55,19 @@ public partial class MainWindow : Window
         DatabasePath = Path.Combine(directory, "balancia.db");
         store = new LedgerStore(DatabasePath);
         LoadWindowSettings(savedSettings);
-        if (directoryArg >= 0)
+        if (separateDataFolder)
         {
             Title = $"Balancia — {Get("Separate data folder")}";
         }
 
         WireLifecycle(directory);
         KeyDown += async (_, e) => await HandleShortcut(e);
+    }
+
+    private static string? SeparateDataDirectory(string[] args)
+    {
+        var index = Array.IndexOf(args, "--data-dir");
+        return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
     }
 
     private void WireLifecycle(string directory)
