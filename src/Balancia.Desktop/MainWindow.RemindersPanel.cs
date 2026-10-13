@@ -22,20 +22,8 @@ public partial class MainWindow
                 MinHeight = 20
             };
             var reminder = choice.Value;
-            var daysUntilDue = reminder.Occurrence.DayNumber - displayDate.DayNumber;
-            var monthsUntilDue = (reminder.Occurrence.Year - displayDate.Year) * 12 +
-                reminder.Occurrence.Month - displayDate.Month;
-            var emphasize = !reminder.Satisfied &&
-                (reminder.Overdue || daysUntilDue is >= 0 and <= 5);
-            var foreground = Brush.Parse(reminder switch
-            {
-                { Satisfied: true } => "#263C48",
-                { Overdue: true } => "#B95D4D",
-                _ when daysUntilDue is >= 0 and <= 5 => "#B58B00",
-                _ when monthsUntilDue == 1 => "#3989A7",
-                _ when monthsUntilDue > 1 => "#2C8B6D",
-                _ => "#263C48",
-            });
+            var emphasize = ReminderPresentation.IsEmphasized(reminder, displayDate);
+            var foreground = Brush.Parse(ReminderPresentation.ColorFor(reminder, displayDate));
 
             AddColumn(row, new TextBlock
             {
@@ -90,19 +78,11 @@ public partial class MainWindow
         RemindersEmpty.Text = Get("No reminders yet");
         RemindersEmpty.IsVisible = reminders.Count == 0;
 
-        var totalNet = reminders.Aggregate(Money.Zero,
-            (total, reminder) => total + reminder.Template.IndicativeAmount);
-        var pendingReminders = reminders.Where(reminder => !reminder.Satisfied).ToArray();
-        var hasPendingThisMonth = pendingReminders.Any(reminder =>
-            reminder.Occurrence.Year == displayDate.Year && reminder.Occurrence.Month == displayDate.Month);
-        var upcomingMonth = hasPendingThisMonth ? displayDate : displayDate.AddMonths(1);
-        var totalUpcomingMonth = pendingReminders
-            .Where(reminder => reminder.Occurrence.Year == upcomingMonth.Year && reminder.Occurrence.Month == upcomingMonth.Month)
-            .Aggregate(Money.Zero, (total, reminder) => total + reminder.Template.IndicativeAmount);
+        var totals = ReminderPresentation.Summarize(reminders, displayDate);
         ReminderTotalNetLabel.Text = Get("TOTAL");
-        ReminderTotalNetValue.Text = AmountText(totalNet);
-        ReminderTotalUpcomingLabel.Text = Get(hasPendingThisMonth ? "UPCOMING THIS MONTH" : "UPCOMING NEXT MONTH");
-        ReminderTotalUpcomingValue.Text = AmountText(totalUpcomingMonth);
+        ReminderTotalNetValue.Text = AmountText(totals.Net);
+        ReminderTotalUpcomingLabel.Text = Get(totals.UpcomingIsThisMonth ? "UPCOMING THIS MONTH" : "UPCOMING NEXT MONTH");
+        ReminderTotalUpcomingValue.Text = AmountText(totals.Upcoming);
     }
 
     private async Task DeleteSelectedReminder(ListBox remindersList)

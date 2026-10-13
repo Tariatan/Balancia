@@ -12,222 +12,230 @@
     </Style>
     <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#D5EAF1" />
-      <Setter Property="Foreground" Value="#263C48" />
     </Style>
     <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#BDDDE9" />
+    </Style>
+    <Style Selector="Button.icon">
+      <Setter Property="Width" Value="30" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.filter">
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="WrapPanel.filters > :is(Control)">
+      <Setter Property="Margin" Value="0,2,7,2" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="TextBlock.title">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="#71838D" />
+    </Style>
+    <Style Selector="TextBlock.column-header">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="#71838D" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="Margin" Value="0,0,30,0" />
+    </Style>
+    <Style Selector="TextBlock.total-label">
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="Foreground" Value="#71838D" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.total-value">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Foreground" Value="#263C48" />
     </Style>
-    <Style Selector="Button.nav">
+    <Style Selector="ListBox.panel-list">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="#D3E1E7" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="10,8" />
-    </Style>
-    <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#355364" />
-      <Setter Property="Foreground" Value="White" />
-    </Style>
-    <Style Selector="Button.nav.selected">
-      <Setter Property="Background" Value="#3989A7" />
-      <Setter Property="Foreground" Value="White" />
     </Style>
   </Window.Styles>
   <Grid RowDefinitions="Auto,*">
     <Border Background="#1B303D" Padding="18,9">
-      <DockPanel>
-        <TextBlock Text="Balancia" DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="19" FontWeight="Bold" Foreground="White" Margin="0,0,27,0" />
-      </DockPanel>
+      <TextBlock Text="Balancia" VerticalAlignment="Center" FontSize="19" FontWeight="Bold" Foreground="White" />
     </Border>
-    <Grid Grid.Row="1" Margin="24,0,24,14">
-      <ContentControl x:Name="Overview" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-        <Grid x:Name="OverviewRoot" RowDefinitions="Auto,Auto,*" RowSpacing="11">
+    <ContentControl x:Name="Overview" Grid.Row="1" Margin="24,0,24,14" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+      <Grid x:Name="OverviewRoot" RowDefinitions="Auto,Auto,*" RowSpacing="11">
 
-          <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
-            <TextBlock x:Name="SummaryLabel" Grid.Column="0" FontSize="12" Foreground="#FFB95D4D" VerticalAlignment="Center" />
-            <TextBlock x:Name="OverviewStatus" Grid.Column="1" FontSize="11" Foreground="#71838D" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <Button x:Name="SettingsButton" Grid.Column="2" Content="⚙" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
+          <TextBlock x:Name="SummaryLabel" Grid.Column="0" FontSize="12" Foreground="#FFB95D4D" VerticalAlignment="Center" />
+          <TextBlock x:Name="OverviewStatus" Grid.Column="1" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" />
+          <Button x:Name="SettingsButton" Classes="icon" Grid.Column="2" Content="⚙" VerticalAlignment="Center" />
+        </Grid>
+
+        <Border Classes="card" Grid.Row="1" Padding="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <WrapPanel Classes="filters">
+              <Button x:Name="FilterButtonAll" Classes="filter" Content="All" MinWidth="50" />
+              <Button x:Name="FilterButtonToday" Classes="filter" Content="Today" MinWidth="70" />
+              <Button x:Name="FilterButtonWeek" Classes="filter" Content="Week" MinWidth="70" />
+              <Button x:Name="FilterButtonMonth" Classes="filter" Content="Month" MinWidth="70" />
+              <Button x:Name="FilterButtonYear" Classes="filter" Content="Year" MinWidth="50" />
+              <Button x:Name="FilterButtonLast30Days" Classes="filter" Content="Last 30 days" MinWidth="100" />
+              <local:LocalizedCalendarDatePicker x:Name="FilterFrom" Width="110" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" />
+              <local:LocalizedCalendarDatePicker x:Name="FilterTo" Width="110" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" />
+              <TextBox x:Name="FilterSearch" Width="150" Margin="0,2,0,2" />
+              <Button x:Name="FilterClearSearch" Content="×" Width="28" Height="34" Padding="0" FontSize="17" Background="Transparent" Foreground="#71838D" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" />
+              <TextBox x:Name="FilterMinimum" Width="115" />
+              <TextBox x:Name="FilterMaximum" Width="110" />
+            </WrapPanel>
+            <Button x:Name="FilterClearAll" Classes="icon" Grid.Column="1" Content="🗑" FontSize="16" VerticalAlignment="Center" />
           </Grid>
+        </Border>
 
-          <Border Grid.Row="1" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="10">
-            <Grid ColumnDefinitions="*,Auto">
-              <WrapPanel Grid.Column="0" Orientation="Horizontal">
-                <Button x:Name="FilterButtonAll" Content="All" MinWidth="50" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="FilterButtonToday" Content="Today" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="FilterButtonWeek" Content="Week" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="FilterButtonMonth" Content="Month" MinWidth="70" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="FilterButtonYear" Content="Year" MinWidth="50" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <Button x:Name="FilterButtonLast30Days" Content="Last 30 days" MinWidth="100" HorizontalContentAlignment="Center" Margin="0,2,7,2" />
-                <local:LocalizedCalendarDatePicker x:Name="FilterFrom" Width="110" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
-                <local:LocalizedCalendarDatePicker x:Name="FilterTo" Width="110" Margin="0,2,7,2" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" HorizontalAlignment="Stretch" />
-                <TextBox x:Name="FilterSearch" Width="150" Margin="0,2,0,2" HorizontalAlignment="Stretch" />
-                <Button x:Name="FilterClearSearch" Content="×" Width="28" Height="34" Padding="0" FontSize="17" Background="Transparent" Foreground="#71838D" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="0,2,7,2" />
-                <TextBox x:Name="FilterMinimum" Width="115" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
-                <TextBox x:Name="FilterMaximum" Width="110" Margin="0,2,7,2" HorizontalAlignment="Stretch" />
-              </WrapPanel>
-              <Button x:Name="FilterClearAll" Grid.Column="1" Content="🗑" Width="30" Padding="0" FontSize="16" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
+        <Grid Grid.Row="2" ColumnDefinitions="0.65*,0.44*,0.46*,1.4*,1.5*" RowDefinitions="Auto,*" RowSpacing="11" ColumnSpacing="11">
+
+          <Border Classes="card" Grid.Column="0" Padding="10,12,10,8">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                <TextBlock x:Name="AccountsHeading" Classes="title" Grid.Column="0" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                  <Button x:Name="AccountAddButton" Classes="icon" Content="+" />
+                  <Button x:Name="AccountArchiveButton" Classes="icon" Content="🗎" />
+                  <Button x:Name="AccountRemoveButton" Classes="icon" Content="🗑" />
+                </StackPanel>
+              </Grid>
+              <Grid Grid.Row="1">
+                <TextBlock x:Name="AccountsEmpty" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+                <ListBox x:Name="AccountsList" Classes="compact-list panel-list" MinHeight="45" MaxHeight="170" />
+              </Grid>
+              <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+                <TextBlock x:Name="NetWorthLabel" Grid.Column="0" FontSize="16" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="NetWorthValue" Grid.Column="1" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0" />
+              </Grid>
             </Grid>
           </Border>
 
-          <Grid Grid.Row="2" ColumnDefinitions="0.65*,0.44*,0.46*,1.4*,1.5*" RowDefinitions="Auto,*" RowSpacing="11" ColumnSpacing="11">
+          <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="*,*" RowSpacing="6">
+            <local:StatCard x:Name="IncomeCard" Grid.Row="0" Foreground="#2C8B6D" />
+            <local:StatCard x:Name="ExpensesCard" Grid.Row="1" Foreground="#B95D4D" />
+          </Grid>
 
-            <Border Grid.Column="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="10,12,10,8">
-              <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
-                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-                  <TextBlock x:Name="AccountsHeading" Grid.Column="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
+          <Grid Grid.Row="0" Grid.Column="2" RowDefinitions="*,*" RowSpacing="6">
+            <local:StatCard x:Name="AverageIncomeCard" Grid.Row="0" Foreground="#2C8B6D" />
+            <local:StatCard x:Name="AverageExpensesCard" Grid.Row="1" Foreground="#B95D4D" />
+          </Grid>
+
+          <Border x:Name="TrendPanelBorder" Classes="card" Grid.Row="0" Grid.Column="3" Padding="15,8">
+            <StackPanel Spacing="4">
+              <TextBlock x:Name="TrendIntervalLabel" Height="16" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+              <local:FlowChart x:Name="TrendChart" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card" Grid.Row="0" Grid.Column="4" Padding="15,8">
+            <StackPanel Spacing="4">
+              <Border Height="16" />
+              <local:FlowChart x:Name="TimelineChart" />
+            </StackPanel>
+          </Border>
+
+          <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" ColumnDefinitions="0.6*,3.58*" ColumnSpacing="11">
+
+            <Border Classes="card" Grid.Column="0" Padding="15">
+              <Grid RowDefinitions="Auto,*" RowSpacing="6">
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                  <TextBlock x:Name="CategoriesHeading" Classes="title" Grid.Column="0" />
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
-                    <Button x:Name="AccountAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                    <Button x:Name="AccountArchiveButton" Content="🗎" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                    <Button x:Name="AccountRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                    <Button x:Name="CategoryAddButton" Classes="icon" Content="+" />
+                    <Button x:Name="CategorySelectAllButton" Classes="icon" Content="▣" />
+                    <Button x:Name="CategoryArchiveButton" Classes="icon" Content="🗎" />
+                    <Button x:Name="CategoryRemoveButton" Classes="icon" Content="🗑" />
                   </StackPanel>
                 </Grid>
-                <Grid Grid.Row="1">
-                  <TextBlock x:Name="AccountsEmpty" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" />
-                  <ListBox x:Name="AccountsList" Classes="compact-list" MinHeight="45" MaxHeight="170" Background="Transparent" BorderThickness="0" />
-                </Grid>
-                <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-                  <TextBlock x:Name="NetWorthLabel" Grid.Column="0" FontSize="16" TextTrimming="CharacterEllipsis" />
-                  <TextBlock x:Name="NetWorthValue" Grid.Column="1" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0" />
-                </Grid>
+                <ListBox x:Name="CategoriesList" Grid.Row="1" Classes="compact-list panel-list" />
               </Grid>
             </Border>
 
-            <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="*,*" RowSpacing="6">
-              <Border Grid.Row="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,6">
-                <Grid RowDefinitions="Auto,*,Auto">
-                  <TextBlock x:Name="IncomeTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
-                  <TextBlock x:Name="IncomeValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#2C8B6D" VerticalAlignment="Center" />
-                  <TextBlock x:Name="IncomeScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
-                </Grid>
-              </Border>
-              <Border Grid.Row="1" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,6">
-                <Grid RowDefinitions="Auto,*,Auto">
-                  <TextBlock x:Name="ExpensesTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
-                  <TextBlock x:Name="ExpensesValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#B95D4D" VerticalAlignment="Center" />
-                  <TextBlock x:Name="ExpensesScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
-                </Grid>
-              </Border>
-            </Grid>
+            <Grid Grid.Column="1" ColumnDefinitions="2.4*,1*" ColumnSpacing="11">
 
-            <Grid Grid.Row="0" Grid.Column="2" RowDefinitions="*,*" RowSpacing="6">
-              <Border Grid.Row="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,6">
-                <Grid RowDefinitions="Auto,*,Auto">
-                  <TextBlock x:Name="AverageIncomeTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
-                  <TextBlock x:Name="AverageIncomeValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#2C8B6D" VerticalAlignment="Center" />
-                  <TextBlock x:Name="AverageIncomeScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
-                </Grid>
-              </Border>
-              <Border Grid.Row="1" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,6">
-                <Grid RowDefinitions="Auto,*,Auto">
-                  <TextBlock x:Name="AverageExpensesTitle" Grid.Row="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,2" />
-                  <TextBlock x:Name="AverageExpensesValue" Grid.Row="1" FontSize="23" FontWeight="SemiBold" Foreground="#B95D4D" VerticalAlignment="Center" />
-                  <TextBlock x:Name="AverageExpensesScope" Grid.Row="2" FontSize="11" Foreground="#71838D" VerticalAlignment="Center" />
-                </Grid>
-              </Border>
-            </Grid>
-
-            <Border x:Name="TrendPanelBorder" Grid.Row="0" Grid.Column="3" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,8">
-              <StackPanel Spacing="4">
-                <TextBlock x:Name="TrendIntervalLabel" Height="16" FontSize="11" Foreground="#71838D" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                <local:FlowChart x:Name="TrendChart" />
-              </StackPanel>
-            </Border>
-
-            <Border Grid.Row="0" Grid.Column="4" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,8">
-              <StackPanel Spacing="4">
-                <Border Height="16" />
-                <local:FlowChart x:Name="TimelineChart" />
-              </StackPanel>
-            </Border>
-
-            <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" ColumnDefinitions="0.6*,3.58*" ColumnSpacing="11">
-
-              <Border Grid.Column="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15">
-                <Grid RowDefinitions="Auto,*" RowSpacing="6">
-                  <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                    <TextBlock x:Name="CategoriesHeading" Grid.Column="0" FontSize="11" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
+              <Border Classes="card" Grid.Column="0" Padding="15,15,15,5">
+                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="2">
+                  <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                    <TextBlock x:Name="TransactionsHeading" Classes="heading" Grid.Column="0" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
-                      <Button x:Name="CategoryAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                      <Button x:Name="CategorySelectAllButton" Content="▣" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                      <Button x:Name="CategoryArchiveButton" Content="🗎" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                      <Button x:Name="CategoryRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
+                      <Button x:Name="TransactionsAddButton" Classes="icon" Content="+" />
+                      <Button x:Name="TransactionsRemoveButton" Classes="icon" Content="🗑" />
                     </StackPanel>
                   </Grid>
-                  <ListBox x:Name="CategoriesList" Grid.Row="1" Classes="compact-list" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" />
+                  <Grid Grid.Row="1" ColumnDefinitions="120,120,200,130,*" MinHeight="31">
+                    <TextBlock x:Name="TransactionsColumnDate" Grid.Column="0" Classes="column-header" />
+                    <TextBlock x:Name="TransactionsColumnAmount" Grid.Column="1" Classes="column-header" TextAlignment="Right" />
+                    <TextBlock x:Name="TransactionsColumnCategory" Grid.Column="2" Classes="column-header" />
+                    <TextBlock x:Name="TransactionsColumnAccount" Grid.Column="3" Classes="column-header" />
+                    <TextBlock x:Name="TransactionsColumnDescription" Grid.Column="4" Classes="column-header" />
+                  </Grid>
+                  <Grid Grid.Row="2">
+                    <TextBlock x:Name="TransactionsEmpty" Classes="muted" FontSize="13" VerticalAlignment="Top" Margin="0,6,0,0" />
+                    <ListBox x:Name="TransactionsList" Classes="panel-list" />
+                  </Grid>
+                  <WrapPanel Grid.Row="3">
+                    <Button x:Name="TransactionsPreviousPage" Content="Previous page" Margin="0,10,10,10" />
+                    <Button x:Name="TransactionsNextPage" Content="Next page" Margin="0,10,10,10" />
+                  </WrapPanel>
                 </Grid>
               </Border>
 
-              <Grid Grid.Column="1" ColumnDefinitions="2.4*,1*" ColumnSpacing="11">
+              <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="11">
 
-                <Border Grid.Column="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15,15,15,5">
-                  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="2">
-                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
-                      <TextBlock x:Name="TransactionsHeading" Grid.Column="0" FontSize="13" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
-                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
-                        <Button x:Name="TransactionsAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                        <Button x:Name="TransactionsRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                      </StackPanel>
-                    </Grid>
-                    <Grid Grid.Row="1" ColumnDefinitions="120,120,200,130,*" MinHeight="31">
-                      <TextBlock x:Name="TransactionsColumnDate" Grid.Column="0" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
-                      <TextBlock x:Name="TransactionsColumnAmount" Grid.Column="1" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextAlignment="Right" Margin="0,0,30,0" />
-                      <TextBlock x:Name="TransactionsColumnCategory" Grid.Column="2" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
-                      <TextBlock x:Name="TransactionsColumnAccount" Grid.Column="3" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
-                      <TextBlock x:Name="TransactionsColumnDescription" Grid.Column="4" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0" />
-                    </Grid>
-                    <Grid Grid.Row="2">
-                      <TextBlock x:Name="TransactionsEmpty" FontSize="13" Foreground="#71838D" VerticalAlignment="Top" Margin="0,6,0,0" />
-                      <ListBox x:Name="TransactionsList" HorizontalAlignment="Stretch" Background="Transparent" BorderThickness="0" />
-                    </Grid>
-                    <WrapPanel Grid.Row="3">
-                      <Button x:Name="TransactionsPreviousPage" Content="Previous page" Margin="0,10,10,10" />
-                      <Button x:Name="TransactionsNextPage" Content="Next page" Margin="0,10,10,10" />
-                    </WrapPanel>
-                  </Grid>
+                <Border Classes="card" Grid.Row="0" Padding="15">
+                  <StackPanel Spacing="1">
+                    <TextBlock x:Name="CategoryHeading" Classes="heading" Margin="0,0,0,20" />
+                    <StackPanel x:Name="CategoryBody" Spacing="1" />
+                  </StackPanel>
                 </Border>
 
-                <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="11">
-
-                  <Border Grid.Row="0" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15">
-                    <StackPanel Spacing="1">
-                      <Grid Margin="0,0,0,10">
-                        <TextBlock x:Name="CategoryHeading" FontSize="13" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
-                      </Grid>
-                      <StackPanel x:Name="CategoryBody" Spacing="1" />
-                    </StackPanel>
-                  </Border>
-
-                  <Border Grid.Row="1" Background="White" BorderBrush="#DCE6EB" BorderThickness="1" CornerRadius="6" Padding="15">
-                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
-                      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,7">
-                        <TextBlock x:Name="RemindersHeading" Grid.Column="0" FontSize="13" FontWeight="SemiBold" Foreground="#263C48" Margin="0,0,0,10" />
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
-                          <Button x:Name="ReminderAddButton" Content="+" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                          <Button x:Name="ReminderRemoveButton" Content="🗑" Width="30" Padding="0" FontSize="18" HorizontalContentAlignment="Center" />
-                        </StackPanel>
-                      </Grid>
-                      <Grid Grid.Row="1">
-                        <ListBox x:Name="RemindersList" MinHeight="45" Background="Transparent" BorderThickness="0" />
-                        <TextBlock x:Name="RemindersEmpty" FontSize="12" Foreground="#71838D" VerticalAlignment="Top" Margin="3,4,3,0" />
-                      </Grid>
-                      <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,5,0,0">
-                        <StackPanel Grid.Column="0" Spacing="3">
-                          <TextBlock x:Name="ReminderTotalNetLabel" FontSize="10" Foreground="#71838D" VerticalAlignment="Center" />
-                          <TextBlock x:Name="ReminderTotalNetValue" FontSize="14" FontWeight="SemiBold" Foreground="#263C48" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Spacing="3">
-                          <TextBlock x:Name="ReminderTotalUpcomingLabel" FontSize="10" Foreground="#71838D" VerticalAlignment="Center" />
-                          <TextBlock x:Name="ReminderTotalUpcomingValue" FontSize="14" FontWeight="SemiBold" Foreground="#263C48" />
-                        </StackPanel>
-                      </Grid>
+                <Border Classes="card" Grid.Row="1" Padding="15">
+                  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,7">
+                      <TextBlock x:Name="RemindersHeading" Classes="heading" Grid.Column="0" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Button x:Name="ReminderAddButton" Classes="icon" Content="+" />
+                        <Button x:Name="ReminderRemoveButton" Classes="icon" Content="🗑" />
+                      </StackPanel>
                     </Grid>
-                  </Border>
-                </Grid>
+                    <Grid Grid.Row="1">
+                      <ListBox x:Name="RemindersList" Classes="panel-list" MinHeight="45" />
+                      <TextBlock x:Name="RemindersEmpty" Classes="muted" FontSize="12" VerticalAlignment="Top" Margin="3,4,3,0" />
+                    </Grid>
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,5,0,0">
+                      <StackPanel Grid.Column="0" Spacing="3">
+                        <TextBlock x:Name="ReminderTotalNetLabel" Classes="total-label" />
+                        <TextBlock x:Name="ReminderTotalNetValue" Classes="total-value" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Spacing="3">
+                        <TextBlock x:Name="ReminderTotalUpcomingLabel" Classes="total-label" />
+                        <TextBlock x:Name="ReminderTotalUpcomingValue" Classes="total-value" />
+                      </StackPanel>
+                    </Grid>
+                  </Grid>
+                </Border>
               </Grid>
             </Grid>
           </Grid>
         </Grid>
-      </ContentControl>
-    </Grid>
+      </Grid>
+    </ContentControl>
   </Grid>
 </Window>

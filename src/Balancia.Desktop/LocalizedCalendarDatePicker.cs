@@ -22,16 +22,16 @@ internal sealed class LocalizedCalendarDatePicker : CalendarDatePicker
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
-        calendar?.RemoveHandler(InputElement.PointerPressedEvent, OnCalendarInput);
-        calendar?.RemoveHandler(InputElement.KeyDownEvent, OnCalendarInput);
-        calendar?.RemoveHandler(InputElement.PointerWheelChangedEvent, OnCalendarInput);
+        calendar?.RemoveHandler(PointerPressedEvent, OnCalendarInput);
+        calendar?.RemoveHandler(KeyDownEvent, OnCalendarInput);
+        calendar?.RemoveHandler(PointerWheelChangedEvent, OnCalendarInput);
 
         base.OnApplyTemplate(e);
 
         calendar = e.NameScope.Find<Avalonia.Controls.Calendar>("PART_Calendar");
-        calendar?.AddHandler(InputElement.PointerPressedEvent, OnCalendarInput, RoutingStrategies.Tunnel);
-        calendar?.AddHandler(InputElement.KeyDownEvent, OnCalendarInput, RoutingStrategies.Tunnel);
-        calendar?.AddHandler(InputElement.PointerWheelChangedEvent, OnCalendarInput, RoutingStrategies.Tunnel);
+        calendar?.AddHandler(PointerPressedEvent, OnCalendarInput, RoutingStrategies.Tunnel);
+        calendar?.AddHandler(KeyDownEvent, OnCalendarInput, RoutingStrategies.Tunnel);
+        calendar?.AddHandler(PointerWheelChangedEvent, OnCalendarInput, RoutingStrategies.Tunnel);
     }
 
     private void OnDateKeyDown(object? sender, KeyEventArgs e)

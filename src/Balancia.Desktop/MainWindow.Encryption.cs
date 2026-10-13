@@ -10,7 +10,7 @@ public partial class MainWindow
 {
     private SnapshotKey? snapshotKey;
     private string SnapshotKeyPath => separateDataFolder
-        ? Path.Combine(Path.GetDirectoryName(databasePath)!, "snapshot-key.dpapi")
+        ? Path.Combine(Path.GetDirectoryName(DatabasePath)!, "snapshot-key.dpapi")
         : Path.Combine(Path.GetDirectoryName(applicationSettingsPath)!, "snapshot-key.dpapi");
     internal bool EncryptionConfigured => snapshotKey is not null;
 
@@ -29,7 +29,7 @@ public partial class MainWindow
             await ShowErrorDialog("Snapshot encryption", Get("The remembered snapshot key is unavailable. Set up encryption again before exporting."));
         }
 
-        if (snapshotKey is null && (backupPath is not null || snapshotPath is not null))
+        if (snapshotKey is null && (BackupPath is not null || SnapshotPath is not null))
         {
             if (!await ConfigureEncryption(this))
             {

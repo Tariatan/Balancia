@@ -54,7 +54,7 @@ public partial class MainWindow
             popup.IsOpen = input.IsFocused && matches.Length > 0;
         };
         input.LostFocus += (_, _) => popup.IsOpen = false;
-        input.AddHandler(InputElement.KeyDownEvent, (_, args) =>
+        input.AddHandler(KeyDownEvent, (_, args) =>
         {
             if (!popup.IsOpen || matches.Length == 0)
             {

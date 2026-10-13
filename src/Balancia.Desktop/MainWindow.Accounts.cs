@@ -218,7 +218,7 @@ public partial class MainWindow
                     store.SaveAccount(account?.Id, values.Item1, values.Item2, values.Item3, values.Item4);
                     if (useAsDefault && account?.Id is not null)
                     {
-                        SaveApplicationSettings(databasePath, backupPath, snapshotPath, defaultAccountId);
+                        SaveApplicationSettings(DatabasePath, BackupPath, SnapshotPath, defaultAccountId);
                     }
                 };
             },

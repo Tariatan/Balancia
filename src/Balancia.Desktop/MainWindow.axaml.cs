@@ -1,6 +1,6 @@
 using Avalonia.Controls;
-using Avalonia.Input;
 using System.Globalization;
+using Avalonia.Input;
 using Avalonia.Threading;
 using Balancia.Core;
 using Balancia.Storage;
@@ -11,14 +11,14 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow : Window
 {
-    internal LedgerStore store;
-    internal string databasePath;
+    private LedgerStore store;
+    internal string DatabasePath;
     private readonly string applicationSettingsPath;
     private readonly bool separateDataFolder;
-    internal string? backupPath;
-    internal string? snapshotPath;
+    internal string? BackupPath;
+    internal string? SnapshotPath;
     private string? defaultAccountId;
-    internal string languageCode;
+    internal string LanguageCode;
     private string? languagePreference;
     private LedgerSnapshot? snapshot;
     private FlowAverages averages = new(Money.Zero, Money.Zero);
@@ -27,13 +27,8 @@ public partial class MainWindow : Window
     private DateOnly displayDate = DateOnly.FromDateTime(DateTime.Today);
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
     private string? lastAccountId;
-    private string statusMessage;
 
-    internal void SetStatus(string text)
-    {
-        statusMessage = Get(text);
-        OverviewStatus.Text = statusMessage;
-    }
+    private void SetStatus(string text) => OverviewStatus.Text = Get(text);
 
     public MainWindow()
     {
@@ -42,106 +37,115 @@ public partial class MainWindow : Window
         var args = Environment.GetCommandLineArgs();
         var directoryArg = Array.IndexOf(args, "--data-dir");
         separateDataFolder = directoryArg >= 0 && directoryArg + 1 < args.Length;
-        var userDirectory = ApplicationPaths.UserDirectory;
         applicationSettingsPath = ApplicationPaths.SettingsFile;
         var savedSettings = LoadApplicationSettings(applicationSettingsPath);
         var directory = separateDataFolder
             ? Path.GetFullPath(args[directoryArg + 1])
-            : Path.GetDirectoryName(ResolveFullPath(savedSettings?.DatabasePath) ?? string.Empty) ?? userDirectory;
+            : Path.GetDirectoryName(ResolveFullPath(savedSettings?.DatabasePath) ?? string.Empty) ?? ApplicationPaths.UserDirectory;
         languagePreference = savedSettings?.Language;
-        languageCode = ResolveLanguage(savedSettings?.Language, CultureInfo.CurrentUICulture);
-        SetLanguage(languageCode);
-        statusMessage = Get("Loading…");
-        backupPath = separateDataFolder ? null : ResolveFullPath(savedSettings?.BackupPath);
-        snapshotPath = separateDataFolder ? null : ResolveFullPath(savedSettings?.SnapshotPath);
+        LanguageCode = ResolveLanguage(savedSettings?.Language, CultureInfo.CurrentUICulture);
+        SetLanguage(LanguageCode);
+        BackupPath = separateDataFolder ? null : ResolveFullPath(savedSettings?.BackupPath);
+        SnapshotPath = separateDataFolder ? null : ResolveFullPath(savedSettings?.SnapshotPath);
         defaultAccountId = separateDataFolder ? null : savedSettings?.DefaultAccountId;
-        databasePath = Path.Combine(directory, "balancia.db");
-        store = new LedgerStore(databasePath);
+        DatabasePath = Path.Combine(directory, "balancia.db");
+        store = new LedgerStore(DatabasePath);
         LoadWindowSettings(savedSettings);
-        PositionChanged += (_, _) => windowPositionForPersistence = Position;
         if (directoryArg >= 0)
         {
             Title = $"Balancia — {Get("Separate data folder")}";
         }
 
-        Opened += (_, _) => ApplyLoadedWindowPosition();
-        Opened += async (_, _) => await Run(async () =>
-        {
-            await Task.Run(() =>
-            {
-                Directory.CreateDirectory(directory);
-                Serilog.Log.Information("Initializing ledger, DatabasePath: '{DatabasePath}', SeparateDataFolder: '{SeparateDataFolder}'", databasePath, separateDataFolder);
-                store.Initialize();
-                Serilog.Log.Information("Ledger initialized");
-            });
-            var monthStart = new DateOnly(displayDate.Year, displayDate.Month, 1);
-            var monthFilter = new TransactionsFilter
-            {
-                From = monthStart,
-                To = monthStart.AddMonths(1).AddDays(-1),
-            };
-            var monthTransactions = await Task.Run(() => store.ReadTransactions(monthFilter, pageSize: 1));
-            if (monthTransactions.TotalCount == 0)
-            {
-                overviewPeriod = OverviewPeriod.Last30Days;
-            }
+        WireLifecycle(directory);
+        KeyDown += async (_, e) => await HandleShortcut(e);
+    }
 
-            await Refresh();
-            await InitializeEncryption();
-        });
+    private void WireLifecycle(string directory)
+    {
+        PositionChanged += (_, _) => windowPositionForPersistence = Position;
+        Opened += async (_, _) =>
+        {
+            ApplyLoadedWindowPosition();
+            timer.Start();
+            await Run(() => LoadLedger(directory));
+        };
         timer.Tick += async (_, _) =>
         {
-            var today = DateOnly.FromDateTime(DateTime.Today);
-            if (!busy && today != displayDate)
+            if (!busy && DateOnly.FromDateTime(DateTime.Today) != displayDate)
             {
                 await Run(Refresh);
             }
         };
-        Opened += (_, _) => timer.Start();
-        Closed += (_, _) => timer.Stop();
-        Closed += (_, _) => SaveWindowSettings();
-        Closed += (_, _) => SaveBackupOnClose();
-        Closed += (_, _) => SaveSnapshotOnClose();
-        Closed += (_, _) => snapshotKey?.Dispose();
         Closing += (_, e) => e.Cancel = busy;
-        KeyDown += async (_, e) =>
+        Closed += (_, _) =>
         {
-            if (e.Handled || busy || snapshot is null ||
-                (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt)) != 0 ||
-                e.Source is TextBox or AutoCompleteBox)
-            {
-                return;
-            }
-
-            switch (e.Key)
-            {
-                case Key.OemPlus or Key.Add:
-                    e.Handled = true;
-                    await EditTransaction(null);
-                    break;
-                case Key.Delete when (TransactionsList?.SelectedItem is TransactionItem item):
-                    e.Handled = true;
-                    await RemoveTransaction(item.Hit.Entry);
-                    break;
-            }
+            timer.Stop();
+            SaveWindowSettings();
+            SaveBackupOnClose();
+            SaveSnapshotOnClose();
+            snapshotKey?.Dispose();
         };
     }
 
-    internal Task Refresh() => RefreshCore(false);
+    private async Task LoadLedger(string directory)
+    {
+        await Task.Run(() =>
+        {
+            Directory.CreateDirectory(directory);
+            Serilog.Log.Information("Initializing ledger, DatabasePath: '{DatabasePath}', SeparateDataFolder: '{SeparateDataFolder}'", DatabasePath, separateDataFolder);
+            store.Initialize();
+            Serilog.Log.Information("Ledger initialized");
+        });
+        var monthStart = new DateOnly(displayDate.Year, displayDate.Month, 1);
+        var monthFilter = new TransactionsFilter
+        {
+            From = monthStart,
+            To = monthStart.AddMonths(1).AddDays(-1),
+        };
+        var monthTransactions = await Task.Run(() => store.ReadTransactions(monthFilter, pageSize: 1));
+        if (monthTransactions.TotalCount == 0)
+        {
+            overviewPeriod = OverviewPeriod.Last30Days;
+        }
+
+        await Refresh();
+        await InitializeEncryption();
+    }
+
+    private async Task HandleShortcut(KeyEventArgs e)
+    {
+        if (e.Handled || busy || snapshot is null ||
+            (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt)) != 0 ||
+            e.Source is TextBox or AutoCompleteBox)
+        {
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case Key.OemPlus or Key.Add:
+                e.Handled = true;
+                await EditTransaction(null);
+                break;
+            case Key.Delete when TransactionsList.SelectedItem is TransactionItem item:
+                e.Handled = true;
+                await RemoveTransaction(item.Hit.Entry);
+                break;
+        }
+    }
+
+    private Task Refresh() => RefreshCore(false);
 
     private async Task RefreshCore(bool updateOverviewInPlace)
     {
         displayDate = DateOnly.FromDateTime(DateTime.Today);
         var (from, to) = OverviewRange();
-        var filter = this.filter with
+        var dateFilter = filter with
         {
-            From = this.filter.From ?? from,
-            To = this.filter.To ?? to
+            From = filter.From ?? from,
+            To = filter.To ?? to
         };
-        snapshot = await Task.Run(() => store.ReadDesktopSnapshotForFilter(filter));
-        reminders = await Task.Run(() => store.ReadReminders());
-        transactions = await Task.Run(() => store.ReadTransactions(filter, offset));
-        overviewAnalytics = await Task.Run(() => store.ReadFlowAnalytics(filter));
+        var pageOffset = offset;
         var averageInterval = overviewPeriod switch
         {
             OverviewPeriod.Day => AverageInterval.Day,
@@ -149,12 +153,23 @@ public partial class MainWindow : Window
             OverviewPeriod.ThisYear => AverageInterval.Year,
             _ => AverageInterval.Month
         };
-        var averageFilter = filter with
+        var averageFilter = dateFilter with
         {
-            From = overviewPeriod == OverviewPeriod.Custom ? filter.From : null
+            From = overviewPeriod == OverviewPeriod.Custom ? dateFilter.From : null
         };
-        averages = await Task.Run(() => store.ReadFlowAverages(averageFilter, averageInterval));
-        analyticsFilter = filter;
+        // Each store call opens its own connection, so the reads can run concurrently.
+        var snapshotRead = Task.Run(() => store.ReadDesktopSnapshotForFilter(dateFilter));
+        var remindersRead = Task.Run(() => store.ReadReminders());
+        var transactionsRead = Task.Run(() => store.ReadTransactions(dateFilter, pageOffset));
+        var analyticsRead = Task.Run(() => store.ReadFlowAnalytics(dateFilter));
+        var averagesRead = Task.Run(() => store.ReadFlowAverages(averageFilter, averageInterval));
+        await Task.WhenAll(snapshotRead, remindersRead, transactionsRead, analyticsRead, averagesRead);
+        snapshot = snapshotRead.Result;
+        reminders = remindersRead.Result;
+        transactions = transactionsRead.Result;
+        overviewAnalytics = analyticsRead.Result;
+        averages = averagesRead.Result;
+        analyticsFilter = dateFilter;
 
         if (updateOverviewInPlace)
         {

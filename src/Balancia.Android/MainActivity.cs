@@ -128,7 +128,7 @@ public partial class MainActivity : Activity
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                Serilog.Log.Warning("Incoming snapshot cleanup failed, FailureType: '{FailureType}'", ex.GetType().Name);
+                Log.Warning("Incoming snapshot cleanup failed, FailureType: '{FailureType}'", ex.GetType().Name);
             }
         }
     }

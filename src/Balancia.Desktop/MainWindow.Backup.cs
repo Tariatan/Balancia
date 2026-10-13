@@ -8,7 +8,7 @@ public partial class MainWindow
 {
     private void SaveBackupOnClose()
     {
-        if (string.IsNullOrWhiteSpace(backupPath))
+        if (string.IsNullOrWhiteSpace(BackupPath))
         {
             return;
         }
@@ -21,10 +21,10 @@ public partial class MainWindow
 
         TrySilently(() =>
         {
-            Directory.CreateDirectory(backupPath);
+            Directory.CreateDirectory(BackupPath);
             var fileName = $"backup-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.balancia";
-            store.ExportSnapshot(Path.Combine(backupPath, fileName), snapshotKey);
-            var backups = Directory.EnumerateFiles(backupPath, "backup-*.balancia")
+            store.ExportSnapshot(Path.Combine(BackupPath, fileName), snapshotKey);
+            var backups = Directory.EnumerateFiles(BackupPath, "backup-*.balancia")
                 .OrderBy(File.GetLastWriteTimeUtc)
                 .ToArray();
             foreach (var oldBackup in backups.Take(Math.Max(0, backups.Length - 10)))
@@ -38,7 +38,7 @@ public partial class MainWindow
 
     private void SaveSnapshotOnClose()
     {
-        if (string.IsNullOrWhiteSpace(snapshotPath))
+        if (string.IsNullOrWhiteSpace(SnapshotPath))
         {
             return;
         }
@@ -51,8 +51,8 @@ public partial class MainWindow
 
         TrySilently(() =>
         {
-            Directory.CreateDirectory(snapshotPath);
-            store.ExportSnapshot(Path.Combine(snapshotPath, "Snapshot.balancia"), snapshotKey);
+            Directory.CreateDirectory(SnapshotPath);
+            store.ExportSnapshot(Path.Combine(SnapshotPath, "Snapshot.balancia"), snapshotKey);
         });
     }
 
@@ -63,7 +63,7 @@ public partial class MainWindow
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            Serilog.Log.Information("Starting shutdown write, Operation: '{Operation}'", operation);
+            Log.Information("Starting shutdown write, Operation: '{Operation}'", operation);
             action();
             Log.Information("Finished shutdown write, Operation: '{Operation}', ElapsedMs: '{ElapsedMs}'", operation, elapsed.ElapsedMilliseconds);
         }

@@ -12,10 +12,10 @@ public partial class MainWindow
     private void LocalizeOverview()
     {
         ToolTip.SetTip(SettingsButton, Get("Open settings"));
-        IncomeTitle.Text = Get("Income");
-        ExpensesTitle.Text = Get("Expenses");
-        AverageIncomeTitle.Text = Get("Average");
-        AverageExpensesTitle.Text = Get("Average");
+        IncomeCard.Title = Get("Income");
+        ExpensesCard.Title = Get("Expenses");
+        AverageIncomeCard.Title = Get("Average");
+        AverageExpensesCard.Title = Get("Average");
         LocalizeFilters();
         LocalizeTransactionsPanel();
         LocalizeTrendPanel();
@@ -25,14 +25,14 @@ public partial class MainWindow
     {
         var label = ScopeLabel();
         SummaryLabel.Text = Get(label);
-        IncomeValue.Text = AmountText(ledgerSnapshot.MonthlyIncome);
-        IncomeScope.Text = Get(label);
-        ExpensesValue.Text = AmountText(ledgerSnapshot.MonthlyExpenses);
-        ExpensesScope.Text = Get(label);
-        AverageIncomeValue.Text = AmountText(averages.Income);
-        AverageIncomeScope.Text = Get(AverageScopeLabel());
-        AverageExpensesValue.Text = AmountText(averages.Expenses);
-        AverageExpensesScope.Text = Get(AverageScopeLabel());
+        IncomeCard.Value = AmountText(ledgerSnapshot.MonthlyIncome);
+        IncomeCard.Scope = Get(label);
+        ExpensesCard.Value = AmountText(ledgerSnapshot.MonthlyExpenses);
+        ExpensesCard.Scope = Get(label);
+        AverageIncomeCard.Value = AmountText(averages.Income);
+        AverageIncomeCard.Scope = Get(AverageScopeLabel());
+        AverageExpensesCard.Value = AmountText(averages.Expenses);
+        AverageExpensesCard.Scope = Get(AverageScopeLabel());
         UpdateAnalyticsCharts();
         UpdateFilterButtons();
         if (renderedCategoryId != filter.CategoryId ||

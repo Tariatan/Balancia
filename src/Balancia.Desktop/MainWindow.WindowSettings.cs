@@ -40,7 +40,7 @@ public partial class MainWindow
         {
             var position = windowPositionForPersistence ?? Position;
             windowSettings = new WindowSettings(Width, Height, position.X, position.Y);
-            SaveApplicationSettings(databasePath);
+            SaveApplicationSettings(DatabasePath);
         }
         catch (IOException ex)
         {

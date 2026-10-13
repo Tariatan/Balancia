@@ -29,7 +29,7 @@ public partial class MainWindow
         }
 
         var dbPath = Path.Combine(directory, "balancia.db");
-        if (string.Equals(dbPath, databasePath, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(dbPath, DatabasePath, StringComparison.OrdinalIgnoreCase))
         {
             SetStatus("This database folder is already active.");
             return;
@@ -42,7 +42,7 @@ public partial class MainWindow
             await Task.Run(replacement.Initialize);
             await Task.Run(() => SaveApplicationSettings(dbPath));
             store = replacement;
-            databasePath = dbPath;
+            DatabasePath = dbPath;
             Serilog.Log.Information("Database location changed, DatabasePath: '{DatabasePath}'", dbPath);
             await Refresh();
         });
@@ -58,8 +58,8 @@ public partial class MainWindow
 
         await Run(async () =>
         {
-            await Task.Run(() => SaveApplicationSettings(databasePath, selected));
-            backupPath = selected;
+            await Task.Run(() => SaveApplicationSettings(DatabasePath, selected));
+            BackupPath = selected;
             Serilog.Log.Information("Backup location changed, BackupPath: '{BackupPath}'", selected);
             await Refresh();
         });
@@ -75,8 +75,8 @@ public partial class MainWindow
 
         await Run(async () =>
         {
-            await Task.Run(() => SaveApplicationSettings(databasePath, backupPath, selected));
-            snapshotPath = selected;
+            await Task.Run(() => SaveApplicationSettings(DatabasePath, BackupPath, selected));
+            SnapshotPath = selected;
             Serilog.Log.Information("Snapshot location changed, SnapshotPath: '{SnapshotPath}'", selected);
             await Refresh();
         });

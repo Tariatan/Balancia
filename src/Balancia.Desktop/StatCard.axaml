@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Balancia.Desktop.StatCard">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.stat-title">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Margin" Value="0,0,0,2" />
+    </Style>
+    <Style Selector="TextBlock.stat-value">
+      <Setter Property="FontSize" Value="23" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.stat-scope">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Foreground" Value="#71838D" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <Border Classes="card" Padding="15,6">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <TextBlock x:Name="TitleText" Classes="stat-title" Grid.Row="0" />
+      <TextBlock x:Name="ValueText" Classes="stat-value" Grid.Row="1" />
+      <TextBlock x:Name="ScopeText" Classes="stat-scope" Grid.Row="2" />
+    </Grid>
+  </Border>
+</UserControl>

@@ -27,7 +27,7 @@ public partial class SettingsWindow : Window
     private void Initialize()
     {
         languagePicker.ItemsSource = MainWindow.Languages;
-        languagePicker.SelectedItem = MainWindow.Languages.Single(option => option.Code == owner.languageCode);
+        languagePicker.SelectedItem = MainWindow.Languages.Single(option => option.Code == owner.LanguageCode);
         languagePicker.ItemTemplate = new FuncDataTemplate<MainWindow.LanguageOption>((option, _) =>
             // Virtualized presenters can request a template with no item while scrolling.
             option is null
@@ -102,9 +102,9 @@ public partial class SettingsWindow : Window
 
     private void RenderLocations()
     {
-        databaseText.Text = owner.databasePath;
-        backupText.Text = owner.backupPath ?? Get("Not configured");
-        snapshotText.Text = owner.snapshotPath ?? Get("Not configured");
+        databaseText.Text = owner.DatabasePath;
+        backupText.Text = owner.BackupPath ?? Get("Not configured");
+        snapshotText.Text = owner.SnapshotPath ?? Get("Not configured");
         encryptionStatus.Text = Get(owner.EncryptionConfigured
             ? "Encrypted snapshots and backups. Key remembered on this Windows account. Local databases and CSV stay unencrypted."
             : "Set a passphrase before exporting snapshots or enabling automatic backups.");
@@ -113,7 +113,7 @@ public partial class SettingsWindow : Window
 
     private async void OnLanguageChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (languagePicker.SelectedItem is not MainWindow.LanguageOption selected || selected.Code == owner.languageCode)
+        if (languagePicker.SelectedItem is not MainWindow.LanguageOption selected || selected.Code == owner.LanguageCode)
         {
             return;
         }
@@ -126,7 +126,7 @@ public partial class SettingsWindow : Window
         catch (Exception ex)
         {
             Serilog.Log.Error(ex, "Language change failed, Language: '{Language}'", selected.Code);
-            languagePicker.SelectedItem = MainWindow.Languages.Single(option => option.Code == owner.languageCode);
+            languagePicker.SelectedItem = MainWindow.Languages.Single(option => option.Code == owner.LanguageCode);
             await owner.ShowErrorDialog("Balancia", MainWindow.FriendlyError(ex));
         }
     }

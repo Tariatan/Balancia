@@ -183,7 +183,7 @@ public partial class MainWindow
                 updatingCategorySuggestions = false;
             }
         };
-        category.AddHandler(InputElement.KeyDownEvent, (_, eventArgs) =>
+        category.AddHandler(KeyDownEvent, (_, eventArgs) =>
         {
             if (categorySuggestions.Count == 0)
             {

@@ -72,8 +72,8 @@ public partial class MainWindow
             var temporaryPath = settingsPath + ".tmp";
             var json = JsonSerializer.Serialize(new ApplicationSettings(
                 dbPath,
-                selectedBackupPath ?? backupPath,
-                selectedSnapshotPath ?? snapshotPath,
+                selectedBackupPath ?? BackupPath,
+                selectedSnapshotPath ?? SnapshotPath,
                 selectedDefaultAccountId ?? defaultAccountId,
                 selectedLanguage ?? languagePreference,
                 windowSettings));

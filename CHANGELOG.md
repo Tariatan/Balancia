@@ -14,6 +14,14 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.12.1] - 2026-10-13
+
+#### Changed
+
+- MainWindow XAML uses shared styles for cards, icon buttons and text roles, and drops unused navigation styles and wrapper panels.
+- MainWindow startup, lifecycle and shortcut handling split out of the constructor; overview data reads run concurrently; unused status field removed.
+- Income, expense and average cards are a reusable StatCard control; reminder row colors and footer totals moved into ReminderPresentation.
+
 ### [2.12.0] - 2026-10-12
 
 #### Changed

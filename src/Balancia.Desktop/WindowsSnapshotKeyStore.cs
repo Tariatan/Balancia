@@ -81,10 +81,10 @@ internal static class WindowsSnapshotKeyStore
         try
         {
             Marshal.Copy(bytes, 0, input.Data, bytes.Length);
-            const uint noUi = 1;
+            const uint NoUi = 1;
             var succeeded = decrypt
-                ? CryptUnprotectData(ref input, 0, 0, 0, 0, noUi, out output)
-                : CryptProtectData(ref input, 0, 0, 0, 0, noUi, out output);
+                ? CryptUnprotectData(ref input, 0, 0, 0, 0, NoUi, out output)
+                : CryptProtectData(ref input, 0, 0, 0, 0, NoUi, out output);
             if (!succeeded)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows could not protect or unlock the snapshot key.");
