@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text.Json;
 using Avalonia.Controls;
+using Balancia.Desktop;
 using Avalonia.Threading;
 using Balancia.Storage;
 
@@ -15,6 +16,9 @@ internal sealed class DesktopWorkspace : IDisposable
     private static readonly TimeSpan LoadTimeout = TimeSpan.FromSeconds(20);
     public DesktopWorkspace()
     {
+        // SetLanguage changes the process-wide culture, and a window without a saved language reads it back at startup.
+        // Reset it so a test that switched language cannot change what the next test sees.
+        Localization.UiText.SetLanguage("en");
         Root = Path.Combine(Path.GetTempPath(), "balancia-ui-" + Guid.NewGuid().ToString("N"));
         DataDirectory = Path.Combine(Root, "data");
         SettingsFile = Path.Combine(Root, "settings", "settings.json");
@@ -33,6 +37,15 @@ internal sealed class DesktopWorkspace : IDisposable
 
     public string SnapshotDirectory { get; }
 
+    /// <summary>The saved window geometry, or null when the settings file has none.</summary>
+    public JsonElement? ReadSavedWindow()
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(SettingsFile));
+        return document.RootElement.TryGetProperty("Window", out var window) && window.ValueKind == JsonValueKind.Object
+            ? window.Clone()
+            : null;
+    }
+
     public string DatabasePath => Path.Combine(DataDirectory, "balancia.db");
 
     /// <summary>Creates the ledger schema and returns a store for seeding data before the window opens.</summary>
@@ -44,7 +57,8 @@ internal sealed class DesktopWorkspace : IDisposable
     }
 
     /// <summary>Writes the settings file the window reads at startup, as a regular (non separate-folder) installation.</summary>
-    public void WriteSettings(string? backupPath = null, string? snapshotPath = null)
+    public void WriteSettings(string? backupPath = null, string? snapshotPath = null, string language = "en",
+        (double Width, double Height, int X, int Y)? window = null)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile)!);
         File.WriteAllText(SettingsFile, JsonSerializer.Serialize(new
@@ -52,17 +66,18 @@ internal sealed class DesktopWorkspace : IDisposable
             DatabasePath,
             BackupPath = backupPath,
             SnapshotPath = snapshotPath,
-            Language = "en",
+            Language = language,
+            Window = window is { } geometry ? new { geometry.Width, geometry.Height, geometry.X, geometry.Y } : null,
         }));
     }
 
     /// <summary>A window in <c>--data-dir</c> mode: settings, backups and snapshots are disabled.</summary>
-    public MainWindow CreateSeparateFolderWindow() => new(DataDirectory, SettingsFile);
+    public MainWindow CreateSeparateFolderWindow(TimeProvider? clock = null) => new(DataDirectory, SettingsFile, clock);
 
     /// <summary>A window configured from <see cref="WriteSettings"/>, with an optional snapshot key already provisioned.</summary>
-    public MainWindow CreateConfiguredWindow(bool withSnapshotKey)
+    public MainWindow CreateConfiguredWindow(bool withSnapshotKey, TimeProvider? clock = null)
     {
-        var window = new MainWindow(null, SettingsFile);
+        var window = new MainWindow(null, SettingsFile, clock);
         if (withSnapshotKey)
         {
             window.UseSnapshotKey(CreateKey());

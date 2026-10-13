@@ -229,7 +229,7 @@ public partial class MainWindow
                     return "Enter an account name.";
                 }
 
-                if (ParseDate(date) > DateOnly.FromDateTime(DateTime.Today))
+                if (ParseDate(date) > Today)
                 {
                     return "Opening date cannot be in the future.";
                 }

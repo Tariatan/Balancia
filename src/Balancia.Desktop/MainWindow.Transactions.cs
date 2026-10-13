@@ -91,7 +91,7 @@ public partial class MainWindow
             SelectedItem = kinds.Single(choice => choice.Value == (existing?.Kind ?? TransactionKind.Expense)),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        var date = DateInput(existing?.Date ?? DateOnly.FromDateTime(DateTime.Today));
+        var date = DateInput(existing?.Date ?? Today);
         var description = Input(existing?.Description ?? "");
         var descriptionHistory = (await Task.Run(() => store.ReadRecentDescriptions())).ToList();
         var descriptionInput = DescriptionInput(description, descriptionHistory);

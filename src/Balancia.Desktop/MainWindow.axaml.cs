@@ -24,9 +24,12 @@ public partial class MainWindow : Window
     private FlowAverages averages = new(Money.Zero, Money.Zero);
     private IReadOnlyList<Reminder> reminders = [];
     private bool busy;
-    private DateOnly displayDate = DateOnly.FromDateTime(DateTime.Today);
+    private readonly TimeProvider timeProvider;
+    private DateOnly displayDate;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
     private string? lastAccountId;
+
+    private DateOnly Today => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
 
     private void SetStatus(string text) => OverviewStatus.Text = Get(text);
 
@@ -36,8 +39,11 @@ public partial class MainWindow : Window
 
     /// <param name="separateDataDirectory">The <c>--data-dir</c> folder. When set, the user's settings are neither read nor written.</param>
     /// <param name="settingsFile">The application settings file; tests point it at a temporary folder.</param>
-    internal MainWindow(string? separateDataDirectory, string settingsFile)
+    /// <param name="timeProvider">The clock behind "today"; tests supply a controllable one. Defaults to the system clock.</param>
+    internal MainWindow(string? separateDataDirectory, string settingsFile, TimeProvider? timeProvider = null)
     {
+        this.timeProvider = timeProvider ?? TimeProvider.System;
+        displayDate = Today;
         InitializeComponent();
         InitializeOverview();
         separateDataFolder = separateDataDirectory is not null;
@@ -79,13 +85,7 @@ public partial class MainWindow : Window
             timer.Start();
             await Run(() => LoadLedger(directory));
         };
-        timer.Tick += async (_, _) =>
-        {
-            if (!busy && DateOnly.FromDateTime(DateTime.Today) != displayDate)
-            {
-                await Run(Refresh);
-            }
-        };
+        timer.Tick += async (_, _) => await RefreshIfDayChanged();
         Closing += (_, e) => e.Cancel = busy;
         Closed += (_, _) =>
         {
@@ -95,6 +95,15 @@ public partial class MainWindow : Window
             SaveSnapshotOnClose();
             snapshotKey?.Dispose();
         };
+    }
+
+    /// <summary>Re-renders the overview once the calendar day changes, so "today" and the month label never go stale.</summary>
+    internal async Task RefreshIfDayChanged()
+    {
+        if (!busy && Today != displayDate)
+        {
+            await Run(Refresh);
+        }
     }
 
     private async Task LoadLedger(string directory)
@@ -148,7 +157,7 @@ public partial class MainWindow : Window
 
     private async Task RefreshCore(bool updateOverviewInPlace)
     {
-        displayDate = DateOnly.FromDateTime(DateTime.Today);
+        displayDate = Today;
         var (from, to) = OverviewRange();
         var dateFilter = filter with
         {
