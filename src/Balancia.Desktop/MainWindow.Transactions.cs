@@ -263,7 +263,8 @@ public partial class MainWindow
                 var categoryPath = type == TransactionKind.Transfer ? null : ReadSelectedCategoryPath();
                 lastAccountId = draft.AccountId;
                 return () => store.SaveTransactionWithCategoryPath(entry?.Id, draft, categoryPath);
-            }, initialFocus: category, onSaveAndContinue: continueAfterSave, validate: ValidateFields);
+            },
+            new DialogOptions(DialogSize.Tall, InitialFocus: category, OnSaveAndContinue: continueAfterSave, Validate: ValidateFields));
         return;
 
         string? ValidateFields()
@@ -385,7 +386,7 @@ public partial class MainWindow
             TransactionRow(new TransactionsHit(entry, null), "(No description)"),
             Text("Remove this transaction? For a transfer, both account movements will be removed together.")
         ],
-        () => () => store.DeleteTransaction(entry.Id), "Remove");
+        () => () => store.DeleteTransaction(entry.Id), DialogOptions.Confirmation("Remove", size: DialogSize.Wide));
 
     private sealed record TransactionItem(TransactionsHit Hit)
     {

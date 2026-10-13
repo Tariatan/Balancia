@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.12.3] - 2026-10-13
+
+#### Changed
+
+- Optimize Accounts class.
+
 ### [2.12.2] - 2026-10-13
 
 #### Added

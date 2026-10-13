@@ -28,7 +28,7 @@ public partial class MainWindow
             var check = new CheckBox
             {
                 Classes = { "compact-filter-checkbox" },
-                IsChecked = filter.AccountId == choice.Value.Id || filter.AccountIds?.Contains(choice.Value.Id) == true,
+                IsChecked = IsAccountFiltered(choice.Value.Id),
             };
             AutomationProperties.SetName(check, choice.Value.Name);
             accountFilterChecks[choice.Value.Id] = check;
@@ -85,8 +85,8 @@ public partial class MainWindow
             }
         };
         AccountAddButton.Click += async (_, _) => await EditAccount(null);
-        AccountArchiveButton.Click += async (_, _) => await ArchiveSelectedAccount(AccountsList);
-        AccountRemoveButton.Click += async (_, _) => await DeleteSelectedAccount(AccountsList);
+        AccountArchiveButton.Click += async (_, _) => await ArchiveSelectedAccount();
+        AccountRemoveButton.Click += async (_, _) => await DeleteSelectedAccount();
     }
 
     private void RenderAccountPanel(LedgerSnapshot ledgerSnapshot)
@@ -108,6 +108,9 @@ public partial class MainWindow
         NetWorthValue.Foreground = BalanceColor(ledgerSnapshot.NetWorth);
     }
 
+    private bool IsAccountFiltered(string id) =>
+        filter.AccountId == id || filter.AccountIds?.Contains(id) == true;
+
     private void SyncAccountFilterChecks()
     {
         var wasUpdating = updatingFilterControls;
@@ -116,7 +119,7 @@ public partial class MainWindow
         {
             foreach (var (id, check) in accountFilterChecks)
             {
-                check.IsChecked = filter.AccountId == id || filter.AccountIds?.Contains(id) == true;
+                check.IsChecked = IsAccountFiltered(id);
             }
         }
         finally
@@ -157,9 +160,9 @@ public partial class MainWindow
         await RequestOverviewFilterRefresh();
     }
 
-    private async Task ArchiveSelectedAccount(ListBox accounts)
+    private async Task ArchiveSelectedAccount()
     {
-        if (accounts.SelectedItem is not Choice<Account> choice)
+        if (AccountsList.SelectedItem is not Choice<Account> choice)
         {
             return;
         }
@@ -169,12 +172,12 @@ public partial class MainWindow
                 Text(Format("Archive '{0}'?", choice.Value.Name))
             ],
             () => () => store.SaveAccount(choice.Value.Id, choice.Value.Name, choice.Value.OpeningDate, choice.Value.OpeningAmount, true),
-            "Archive");
+            DialogOptions.Confirmation("Archive"));
     }
 
-    private async Task DeleteSelectedAccount(ListBox accounts)
+    private async Task DeleteSelectedAccount()
     {
-        if (accounts.SelectedItem is not Choice<Account> choice)
+        if (AccountsList.SelectedItem is not Choice<Account> choice)
         {
             await SelectFirst();
             return;
@@ -184,7 +187,7 @@ public partial class MainWindow
             [
                 Text(Format("Delete '{0}'?", choice.Value.Name))
             ],
-            () => () => store.DeleteAccount(choice.Value.Id), "Delete");
+            () => () => store.DeleteAccount(choice.Value.Id), DialogOptions.Confirmation("Delete"));
     }
 
     private async Task EditAccount(Account? account)
@@ -206,35 +209,31 @@ public partial class MainWindow
             ],
             () =>
             {
-                var values = (name.Text ?? "", ParseDate(date), ParseMoney(amount), account?.Archived ?? false);
+                var accountName = name.Text ?? "";
+                var openingDate = ParseDate(date);
+                var openingAmount = ParseMoney(amount);
+                var archived = account?.Archived ?? false;
                 var useAsDefault = defaultAccount.IsChecked == true;
-                if (useAsDefault && account?.Id is not null)
-                {
-                    defaultAccountId = account.Id;
-                }
 
                 return () =>
                 {
-                    store.SaveAccount(account?.Id, values.Item1, values.Item2, values.Item3, values.Item4);
-                    if (useAsDefault && account?.Id is not null)
+                    var savedId = store.SaveAccount(account?.Id, accountName, openingDate, openingAmount, archived);
+                    if (useAsDefault && savedId != defaultAccountId)
                     {
-                        SaveApplicationSettings(DatabasePath, BackupPath, SnapshotPath, defaultAccountId);
+                        // Persist first so a failed settings write leaves the in-memory default unchanged.
+                        SaveApplicationSettings(DatabasePath, BackupPath, SnapshotPath, savedId);
+                        defaultAccountId = savedId;
                     }
                 };
             },
-            validate: () =>
+            new DialogOptions(Validate: () =>
             {
                 if (string.IsNullOrWhiteSpace(name.Text))
                 {
                     return "Enter an account name.";
                 }
 
-                if (ParseDate(date) > Today)
-                {
-                    return "Opening date cannot be in the future.";
-                }
-
-                return null;
-            });
+                return ParseDate(date) > Today ? "Opening date cannot be in the future." : null;
+            }));
     }
 }

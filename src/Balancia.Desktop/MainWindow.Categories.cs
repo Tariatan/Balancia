@@ -191,7 +191,7 @@ public partial class MainWindow
                 Text("Subcategories will also be archived.")
             ],
             () => () => store.SaveCategory(category.Id, category.Name, category.ParentId, true),
-            "Archive");
+            DialogOptions.Confirmation("Archive"));
     }
 
     private async Task DeleteSelectedCategory(ListBox categories)
@@ -209,8 +209,7 @@ public partial class MainWindow
                 Text("Categories used by transactions or with subcategories must be archived instead.")
             ],
             () => () => store.DeleteCategory(category.Id),
-            "Delete",
-            validate: () =>
+            DialogOptions.Confirmation("Delete", () =>
             {
                 if (store.CategoryHasSubcategories(category.Id))
                 {
@@ -223,7 +222,7 @@ public partial class MainWindow
                 }
 
                 return null;
-            });
+            }));
     }
 
     private async Task EditCategory(Category? category)
@@ -258,7 +257,7 @@ public partial class MainWindow
                 var archived = category?.Archived ?? false;
                 return () => store.SaveCategory(category?.Id, newName, newParentId, archived);
             },
-            validate: () =>
+            new DialogOptions(Validate: () =>
             {
                 var trimmedName = (name.Text ?? "").Trim();
                 if (trimmedName.Length == 0 || trimmedName.Contains('/'))
@@ -285,6 +284,6 @@ public partial class MainWindow
                 }
 
                 return null;
-            });
+            }));
     }
 }

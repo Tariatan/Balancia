@@ -68,8 +68,7 @@ public partial class MainWindow
             }
 
             Directory.CreateDirectory(directory);
-            var settingsPath = applicationSettingsPath;
-            var temporaryPath = settingsPath + ".tmp";
+            var temporaryPath = applicationSettingsPath + ".tmp";
             var json = JsonSerializer.Serialize(new ApplicationSettings(
                 dbPath,
                 selectedBackupPath ?? BackupPath,
@@ -78,7 +77,7 @@ public partial class MainWindow
                 selectedLanguage ?? languagePreference,
                 windowSettings));
             File.WriteAllText(temporaryPath, json);
-            File.Move(temporaryPath, settingsPath, true);
+            File.Move(temporaryPath, applicationSettingsPath, true);
         }
     }
 }

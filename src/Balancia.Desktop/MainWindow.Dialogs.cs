@@ -34,22 +34,34 @@ public partial class MainWindow
     }
 
     // Snapshot inputs on the UI thread, then perform the complete write off-thread.
-    private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, string saveLabel = "Save",
-        InputElement? initialFocus = null, Func<Task>? onSaveAndContinue = null, Func<string?>? validate = null)
+    private Window BuildDialogWindow(string title, DialogSize size)
     {
-        var isRemoval = saveLabel == "Remove";
-        var dialog = new Window
+        var (height, minWidth, minHeight) = size switch
+        {
+            DialogSize.Compact => (200, 430, 240),
+            DialogSize.Wide => (200, 900, 240),
+            DialogSize.Tall => (730, 430, 360),
+            _ => (480, 430, 360)
+        };
+        return new Window
         {
             Title = Get(title),
             Icon = Icon,
             ShowInTaskbar = false,
             Width = 530,
-            Height = isRemoval ? 200 : title.Contains("transaction", StringComparison.OrdinalIgnoreCase) ? 730 : 480,
-            MinWidth = isRemoval ? 900 : 430,
-            MinHeight = isRemoval ? 240 : 360,
+            Height = height,
+            MinWidth = minWidth,
+            MinHeight = minHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Background = Brushes.White
         };
+    }
+
+    private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, DialogOptions? options = null)
+    {
+        options ??= new DialogOptions();
+        var (size, saveLabel, initialFocus, onSaveAndContinue, validate) = options;
+        var dialog = BuildDialogWindow(title, size);
         var body = new StackPanel
         {
             Spacing = 12,
@@ -72,7 +84,7 @@ public partial class MainWindow
         var save = new Button
         {
             Content = Get(saveLabel),
-            IsDefault = saveLabel == "Save" && onSaveAndContinue is null
+            IsDefault = !options.IsConfirmation && onSaveAndContinue is null
         };
         Button? saveAndContinue = null;
         if (onSaveAndContinue is not null)

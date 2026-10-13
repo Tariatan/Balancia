@@ -98,7 +98,7 @@ public partial class MainWindow
                 Text(Format("Delete '{0}'?", choice.Value.Template.Description))
             ],
             () => () => store.DeleteReminder(choice.Value.Template.Id),
-            "Delete");
+            DialogOptions.Confirmation("Delete"));
     }
 
     private static string ReminderText(Reminder reminder) =>
@@ -125,7 +125,7 @@ public partial class MainWindow
                     int.Parse(interval.Text ?? "", CultureInfo.InvariantCulture));
                 return () => store.SaveReminder(template?.Id, values.Item1, values.Item2, values.Item3, values.Item4, template?.Archived ?? false);
             },
-            validate: () =>
+            new DialogOptions(Validate: () =>
             {
                 if (string.IsNullOrWhiteSpace(description.Text))
                 {
@@ -143,6 +143,6 @@ public partial class MainWindow
                 }
 
                 return null;
-            });
+            }));
     }
 }
