@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.13.0] - 2026-10-13
+
+#### Added
+
+- Display the running application version at the right of the top bar, using the same font size and color as the Settings version footer.
+
 ### [2.12.3] - 2026-10-13
 
 #### Changed

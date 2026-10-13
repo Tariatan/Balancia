@@ -45,6 +45,7 @@ public partial class MainWindow : Window
         this.timeProvider = timeProvider ?? TimeProvider.System;
         displayDate = Today;
         InitializeComponent();
+        AppVersionText.Text = typeof(MainWindow).Assembly.GetName().Version!.ToString(3);
         InitializeOverview();
         separateDataFolder = separateDataDirectory is not null;
         applicationSettingsPath = settingsFile;

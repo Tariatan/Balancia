@@ -73,7 +73,10 @@
   </Window.Styles>
   <Grid RowDefinitions="Auto,*">
     <Border Background="#1B303D" Padding="18,9">
-      <TextBlock Text="Balancia" VerticalAlignment="Center" FontSize="19" FontWeight="Bold" Foreground="White" />
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="Balancia" VerticalAlignment="Center" FontSize="19" FontWeight="Bold" Foreground="White" />
+        <TextBlock x:Name="AppVersionText" Grid.Column="1" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" />
+      </Grid>
     </Border>
     <ContentControl x:Name="Overview" Grid.Row="1" Margin="24,0,24,14" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
       <Grid x:Name="OverviewRoot" RowDefinitions="Auto,Auto,*" RowSpacing="11">
