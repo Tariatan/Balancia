@@ -14,6 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.13.2] - 2026-10-14
+
+#### Changed
+
+- Optimize CsvImportPreviewWindow: wire button handlers in XAML, build the preview message from named parts, and disable Cancel while the import runs.
+- Optimize Backup and Categories classes.
+
 ### [2.13.1] - 2026-10-14
 
 #### Changed

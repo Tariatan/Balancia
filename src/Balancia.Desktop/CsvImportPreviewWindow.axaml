@@ -9,8 +9,8 @@
     <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
       <TextBlock x:Name="ErrorText" Foreground="DarkRed" TextWrapping="Wrap" />
       <StackPanel Orientation="Horizontal" Spacing="10">
-        <Button x:Name="ApplyButton" IsDefault="True" />
-        <Button x:Name="CancelButton" IsCancel="True" />
+        <Button x:Name="ApplyButton" IsDefault="True" Click="OnApply" />
+        <Button x:Name="CancelButton" IsCancel="True" Click="OnCancel" />
       </StackPanel>
     </StackPanel>
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">

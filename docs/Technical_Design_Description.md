@@ -538,9 +538,8 @@ file stays scoped to one feature area:
 | `MainWindow.FilterState.cs`         | Owns Overview period and filter state                             |
 | `MainWindow.FiltersPanel.cs`        | Builds the Overview filter row controls                           |
 | `MainWindow.TransactionsPanel.cs`   | Builds the paged transactions card                                 |
-| `MainWindow.CategoriesPanel.cs`     | Builds the largest-expense-categories card                        |
+| `MainWindow.CategoriesPanel.cs`     | Category management, checkbox filtering and top-expenses card     |
 | `MainWindow.Transactions.cs`        | Transaction add/edit/delete dialogs                               |
-| `MainWindow.Categories.cs`          | Category management and checkbox filtering                        |
 | `MainWindow.RemindersPanel.cs`      | Reminders card and template add/edit                              |
 | `MainWindow.Accounts.cs`            | Accounts card and account add/edit/archive                        |
 | `MainWindow.DataTransfer.cs`        | CSV import/export and snapshot export/restore actions             |
