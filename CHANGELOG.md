@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.14.0] - 2026-10-14
+
+#### Changed
+
+- Switch to Cryptography.ProtectedData.
+
 ### [2.13.7] - 2026-10-14
 
 #### Changed

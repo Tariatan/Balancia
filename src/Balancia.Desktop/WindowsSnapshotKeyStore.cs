@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Balancia.Storage;
 
@@ -9,7 +7,6 @@ namespace Balancia.Desktop;
 internal static class WindowsSnapshotKeyStore
 {
     private const int MaxProtectedKeyBytes = 16 * 1024;
-    private const uint CryptProtectUiForbidden = 1;
 
     internal static SnapshotKey? Load(string path)
     {
@@ -73,56 +70,8 @@ internal static class WindowsSnapshotKeyStore
             throw new PlatformNotSupportedException("Remembering snapshot keys requires Windows.");
         }
 
-        // Pinning avoids a second unmanaged copy of the input; callers zero their own buffers.
-        var pinned = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-        DataBlob output = default;
-        try
-        {
-            var input = new DataBlob { Size = bytes.Length, Data = pinned.AddrOfPinnedObject() };
-            var succeeded = decrypt
-                ? CryptUnprotectData(ref input, 0, 0, 0, 0, CryptProtectUiForbidden, out output)
-                : CryptProtectData(ref input, 0, 0, 0, 0, CryptProtectUiForbidden, out output);
-            if (!succeeded)
-            {
-                throw new Win32Exception(Marshal.GetLastPInvokeError(), "Windows could not protect or unlock the snapshot key.");
-            }
-
-            var result = new byte[output.Size];
-            Marshal.Copy(output.Data, result, 0, result.Length);
-            return result;
-        }
-        finally
-        {
-            pinned.Free();
-            if (output.Data != 0)
-            {
-                for (var i = 0; i < output.Size; i++)
-                {
-                    Marshal.WriteByte(output.Data, i, 0);
-                }
-
-                _ = LocalFree(output.Data);
-            }
-        }
+        return decrypt
+            ? ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser)
+            : ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
     }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct DataBlob
-    {
-        public int Size;
-        public nint Data;
-    }
-
-    [DllImport("crypt32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool CryptProtectData(ref DataBlob input, nint description, nint entropy, nint reserved,
-        nint prompt, uint flags, out DataBlob output);
-
-    [DllImport("crypt32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool CryptUnprotectData(ref DataBlob input, nint description, nint entropy, nint reserved,
-        nint prompt, uint flags, out DataBlob output);
-
-    [DllImport("kernel32.dll")]
-    private static extern nint LocalFree(nint memory);
 }
