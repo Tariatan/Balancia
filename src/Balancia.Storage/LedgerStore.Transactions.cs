@@ -1,5 +1,6 @@
 using Balancia.Core;
 using Microsoft.Data.Sqlite;
+using Serilog;
 
 namespace Balancia.Storage;
 
@@ -25,7 +26,18 @@ public sealed partial class LedgerStore
 
     private string SaveTransactionCore(string? id, TransactionDraft draft, string[]? categoryParts)
     {
-        draft.Validate(Today);
+        try
+        {
+            draft.Validate(Today);
+        }
+        catch (ArgumentException exception)
+        {
+            Log.ForContext<LedgerStore>().Information(
+                "Transaction validation rejected, Kind: '{Kind}', AccountId: '{AccountId}', Field: '{Field}', Reason: '{Reason}'",
+                draft.Kind, draft.AccountId, exception.ParamName, exception.Message);
+            throw;
+        }
+
         var key = id ?? Guid.NewGuid().ToString("N");
         Write((c, tx) =>
         {

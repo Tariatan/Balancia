@@ -33,6 +33,15 @@ public class FlowAnalyticsTests
     }
 
     [Fact]
+    public void Trend_UndefinedInterval_ThrowsArgumentOutOfRange()
+    {
+        var date = new DateOnly(2026, 1, 5);
+        var analytics = new FlowAnalytics(date, date, null, null, [], []);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => analytics.Trend((FlowInterval)99));
+    }
+
+    [Fact]
     public void Trend_SingleDayRange_ReturnsOneBucketForEveryInterval()
     {
         var date = new DateOnly(2026, 1, 5);

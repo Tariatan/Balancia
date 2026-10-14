@@ -19,44 +19,73 @@ public static class CategorySuggestionRanking
         var normalizedQuery = query.Trim();
         var matches = categoryPaths
             .Where(path => normalizedQuery.Length == 0 || path.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        var suggestions = new List<CategorySuggestion>();
-        var matchingSet = matches.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var regularMatches = regularCategoryPaths
-            .Where(matchingSet.Contains)
+            .Where(matches.Contains)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(2)
             .ToArray();
         var regularSet = regularMatches.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        suggestions.AddRange(regularMatches.Select((path, index) =>
-            new CategorySuggestion(path, index == 0 ? CategorySuggestionSection.Regular : null)));
-        string? topMatch = null;
+        var others = matches
+            .Where(path => !regularSet.Contains(path))
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var topIndex = FindTopMatchIndex(others, normalizedQuery);
+        var suggestions = new List<CategorySuggestion>(regularMatches.Length + others.Count);
 
-        if (normalizedQuery.Length > 0)
+        foreach (var (index, path) in regularMatches.Index())
         {
-            topMatch = matches
-                .Where(path => !regularSet.Contains(path))
-                .OrderBy(path => MatchRank(path, normalizedQuery))
-                .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
-                .FirstOrDefault();
-            if (topMatch is not null)
-            {
-                suggestions.Add(new CategorySuggestion(topMatch, CategorySuggestionSection.TopMatch));
-            }
+            suggestions.Add(new CategorySuggestion(path, index == 0 ? CategorySuggestionSection.Regular : null));
         }
 
-        var remaining = matches
-            .Where(path => !string.Equals(path, topMatch, StringComparison.OrdinalIgnoreCase) && !regularSet.Contains(path))
-            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        suggestions.AddRange(remaining.Select((path, index) =>
-            new CategorySuggestion(path, index == 0 ? CategorySuggestionSection.Other : null)));
+        if (topIndex >= 0)
+        {
+            suggestions.Add(new CategorySuggestion(others[topIndex], CategorySuggestionSection.TopMatch));
+        }
+
+        var isFirstOther = true;
+
+        foreach (var (index, path) in others.Index())
+        {
+            if (index == topIndex)
+            {
+                continue;
+            }
+
+            suggestions.Add(new CategorySuggestion(path, isFirstOther ? CategorySuggestionSection.Other : null));
+            isFirstOther = false;
+        }
+
         return suggestions;
     }
 
     public static IReadOnlyList<CategorySuggestion> Highlight(IReadOnlyList<CategorySuggestion> suggestions, int selectedIndex) =>
         [.. suggestions.Select((suggestion, index) => suggestion with { IsKeyboardSelected = index == selectedIndex })];
+
+    // Candidates arrive sorted by path, so the first path with the lowest rank wins ties alphabetically.
+    private static int FindTopMatchIndex(List<string> sortedCandidates, string query)
+    {
+        if (query.Length == 0)
+        {
+            return -1;
+        }
+
+        var topIndex = -1;
+        var topRank = int.MaxValue;
+
+        foreach (var (index, path) in sortedCandidates.Index())
+        {
+            var rank = MatchRank(path, query);
+
+            if (rank < topRank)
+            {
+                topIndex = index;
+                topRank = rank;
+            }
+        }
+
+        return topIndex;
+    }
 
     private static int MatchRank(string path, string query)
     {
@@ -70,6 +99,27 @@ public static class CategorySuggestionRanking
             return 1;
         }
 
-        return path.Split('/').Any(part => part.TrimStart().StartsWith(query, StringComparison.OrdinalIgnoreCase)) ? 2 : 3;
+        return AnySegmentStartsWith(path, query) ? 2 : 3;
+    }
+
+    private static bool AnySegmentStartsWith(ReadOnlySpan<char> path, ReadOnlySpan<char> query)
+    {
+        while (true)
+        {
+            var separator = path.IndexOf('/');
+            var segment = separator < 0 ? path : path[..separator];
+
+            if (segment.TrimStart().StartsWith(query, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (separator < 0)
+            {
+                return false;
+            }
+
+            path = path[(separator + 1)..];
+        }
     }
 }

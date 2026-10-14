@@ -17,35 +17,17 @@ public sealed record FlowBucket(DateOnly From, DateOnly To, Money Income, Money 
 public sealed record FlowAnalytics(DateOnly From, DateOnly To, DateOnly? PreviousFrom,
     DateOnly? PreviousTo, IReadOnlyList<DailyFlow> Current, IReadOnlyList<DailyFlow> Previous)
 {
+    /// <exception cref="OverflowException">A bucket total exceeds the monetary limits.</exception>
     public IReadOnlyList<FlowBucket> Trend(FlowInterval interval)
     {
-        try
-        {
-            return BuildTrend(interval);
-        }
-        catch (OverflowException exception)
-        {
-            Serilog.Log.ForContext<FlowAnalytics>().Error(exception,
-                "Flow aggregation exceeded monetary limits, Interval: '{Interval}', From: '{From}', To: '{To}', FlowCount: '{FlowCount}'",
-                interval, From, To, Current.Count);
-            throw;
-        }
-    }
-
-    private IReadOnlyList<FlowBucket> BuildTrend(FlowInterval interval)
-    {
-        var buckets = new List<FlowBucket>();
+        // Current is expected to be sorted by date ascending, so one forward pass fills every bucket.
+        List<FlowBucket> buckets = [];
         var index = 0;
         var start = From;
         while (start <= To)
         {
-            var length = interval switch
-            {
-                FlowInterval.Day => 1,
-                FlowInterval.Week => CalendarWeek.EndOfWeek(start).DayNumber - start.DayNumber + 1,
-                _ => DateTime.DaysInMonth(start.Year, start.Month) - start.Day + 1,
-            };
-            var end = DateOnly.FromDayNumber(Math.Min(To.DayNumber, start.DayNumber + length - 1));
+            var naturalEnd = IntervalEnd(interval, start);
+            var end = naturalEnd < To ? naturalEnd : To;
             var income = Money.Zero;
             var expenses = Money.Zero;
             while (index < Current.Count && Current[index].Date <= end)
@@ -66,4 +48,12 @@ public sealed record FlowAnalytics(DateOnly From, DateOnly To, DateOnly? Previou
 
         return buckets;
     }
+
+    private static DateOnly IntervalEnd(FlowInterval interval, DateOnly start) => interval switch
+    {
+        FlowInterval.Day => start,
+        FlowInterval.Week => CalendarWeek.EndOfWeek(start),
+        FlowInterval.Month => new DateOnly(start.Year, start.Month, DateTime.DaysInMonth(start.Year, start.Month)),
+        _ => throw new ArgumentOutOfRangeException(nameof(interval), interval, "Unknown flow interval."),
+    };
 }

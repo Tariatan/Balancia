@@ -33,6 +33,27 @@ public class AmountExpressionParserTests
         Assert.Throws<FormatException>(() => new AmountExpressionParser(text).Parse());
 
     [Fact]
+    public void Parse_NestingAtLimit_ReturnsValue() =>
+        Assert.Equal(1m, new AmountExpressionParser(Nested(64)).Parse());
+
+    [Fact]
+    public void Parse_NestingBeyondLimit_ThrowsFormatException() =>
+        Assert.Throws<FormatException>(() => new AmountExpressionParser(Nested(65)).Parse());
+
+    [Fact]
+    public void Parse_LongUnaryMinusChain_AppliesParityWithoutStackGrowth()
+    {
+        Assert.Equal(5m, new AmountExpressionParser(new string('-', 100_000) + "5").Parse());
+        Assert.Equal(-5m, new AmountExpressionParser(new string('-', 100_001) + "5").Parse());
+    }
+
+    [Fact]
+    public void Parse_MultiplicationOverflow_ThrowsFormatException() =>
+        Assert.Throws<FormatException>(() => new AmountExpressionParser("79228162514264337593543950335*2").Parse());
+
+    private static string Nested(int depth) => new string('(', depth) + "1" + new string(')', depth);
+
+    [Fact]
     public void Parse_DivisionByZero_ThrowsFormatException() =>
         Assert.Throws<FormatException>(() => new AmountExpressionParser("1/0").Parse());
 

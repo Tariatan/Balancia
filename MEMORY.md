@@ -62,6 +62,13 @@ Historical checks below are recorded evidence, not checks rerun during cleanup.
   a template with no item while scrolling, so `if (choice is null) return null;`
   must stay even though the item type is non-nullable.
 
+- **Date-sorted `FlowAnalytics.Current`**
+  ([FlowAnalytics.cs](src/Balancia.Core/FlowAnalytics.cs)): `BuildTrend` fills
+  buckets in a single forward pass and silently misassigns days if `Current` is
+  not sorted by date ascending. `ReadFlowAnalytics` in
+  [FlowQueries.cs](src/Balancia.Storage/FlowQueries.cs) guarantees the order via
+  `ORDER BY l.date`; keep that clause and sort any other producer.
+
 ## UI tests
 
 - `tests/Balancia.Desktop.Tests` uses Avalonia.Headless.XUnit, which requires xunit v3; all three test projects use xunit.v3.

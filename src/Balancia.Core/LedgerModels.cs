@@ -2,28 +2,15 @@ namespace Balancia.Core;
 
 public enum TransactionKind
 {
-    Expense, Income, Transfer
+    Expense,
+    Income,
+    Transfer,
 }
 
 public sealed record TransactionDraft(TransactionKind Kind, DateOnly Date, string Description,
     Money Amount, string AccountId, string? DestinationId = null, string? CategoryId = null, string Memo = "")
 {
     public void Validate(DateOnly today)
-    {
-        try
-        {
-            ValidateCore(today);
-        }
-        catch (ArgumentException exception)
-        {
-            Serilog.Log.ForContext<TransactionDraft>().Information(
-                "Transaction validation rejected, Kind: '{Kind}', AccountId: '{AccountId}', Field: '{Field}', Reason: '{Reason}'",
-                Kind, AccountId, exception.ParamName, exception.Message);
-            throw;
-        }
-    }
-
-    private void ValidateCore(DateOnly today)
     {
         if (!Enum.IsDefined(Kind))
         {
@@ -65,7 +52,9 @@ public sealed record Account(string Id, string Name, DateOnly OpeningDate, Money
 public sealed record Category(string Id, string Name, string? ParentId, string Path, bool Archived);
 
 public sealed record LedgerEntry(string Id, TransactionDraft Draft, string AccountName, string? DestinationName, string? CategoryPath);
+
 public sealed record CategoryTotal(string Name, Money Amount);
+
 public sealed record LedgerSnapshot(IReadOnlyList<Account> Accounts, IReadOnlyList<Category> Categories,
     IReadOnlyList<LedgerEntry> Entries, Money NetWorth, Money MonthlyIncome, Money MonthlyExpenses,
     IReadOnlyList<CategoryTotal> LargestCategories, long Revision);

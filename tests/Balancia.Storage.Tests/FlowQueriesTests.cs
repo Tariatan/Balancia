@@ -72,6 +72,21 @@ public sealed class FlowQueriesTests : IDisposable
     }
 
     [Fact]
+    public void ReadFlowAnalytics_TransactionsAddedOutOfOrder_ReturnsDaysAscending()
+    {
+        // Arrange
+        Add(new DateOnly(2024, 3, 20), 1m);
+        Add(new DateOnly(2024, 3, 5), 2m);
+        Add(new DateOnly(2024, 3, 12), 3m);
+
+        // Act
+        var data = store.ReadFlowAnalytics(new TransactionsFilter(From: new DateOnly(2024, 3, 1), To: new DateOnly(2024, 3, 31)));
+
+        // Assert
+        Assert.Equal(data.Current.Select(day => day.Date).Order(), data.Current.Select(day => day.Date));
+    }
+
+    [Fact]
     public void Trend_LeapMonthAndEmptyBuckets_PreservesEndpointsAndZeroGaps()
     {
         // Arrange

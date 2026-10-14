@@ -14,6 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.14.1] - 2026-10-14
+
+#### Changed
+
+- Bump Core 2.3.1 and Storage 4.2.1.
+- Log flow-aggregation overflow in the trend chart instead of in Core.
+
 ### [2.14.0] - 2026-10-14
 
 #### Changed
@@ -270,6 +277,15 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [2.3.1] - 2026-10-14
+
+#### Changed
+
+- Optimize Core classes without changing results.
+- Core no longer logs transaction-draft validation rejections and flow-aggregation overflow; Storage and Desktop log them instead.
+- Reject expressions nested deeper than 64 parentheses and parse unary minus chains iteratively.
+- `FlowAnalytics.Trend` throws `ArgumentOutOfRangeException` for an undefined `FlowInterval` instead of falling back to month buckets.
+
 ### [2.3.0] - 2026-10-12
 
 #### Changed
@@ -302,6 +318,13 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [4.2.1] - 2026-10-14
+
+#### Changed
+
+- Log rejected transaction drafts at Information when saving (moved from Core).
+- Document the date-ascending order guarantee of `ReadFlowAnalytics`.
 
 ### [4.2.0] - 2026-10-12
 

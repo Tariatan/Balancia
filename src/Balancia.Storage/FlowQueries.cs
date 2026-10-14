@@ -4,6 +4,13 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
+    /// <summary>
+    /// Reads daily income and expense totals for the filtered period and the equally long period before it.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="FlowAnalytics.Current"/> and <see cref="FlowAnalytics.Previous"/> are guaranteed to be sorted
+    /// by date ascending with one entry per day (<c>GROUP BY l.date ORDER BY l.date</c>).
+    /// </remarks>
     public FlowAnalytics ReadFlowAnalytics(TransactionsFilter filter)
     {
         filter.Validate();

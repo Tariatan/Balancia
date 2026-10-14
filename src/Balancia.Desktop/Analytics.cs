@@ -115,7 +115,19 @@ public partial class MainWindow
 
     private void UpdateTrendChart(FlowAnalytics data, bool incomeOnly, bool expenseOnly, string? empty)
     {
-        var buckets = data.Trend(trendInterval);
+        IReadOnlyList<FlowBucket> buckets;
+        try
+        {
+            buckets = data.Trend(trendInterval);
+        }
+        catch (OverflowException exception)
+        {
+            Serilog.Log.Error(exception,
+                "Flow aggregation exceeded monetary limits, Interval: '{Interval}', From: '{From}', To: '{To}', FlowCount: '{FlowCount}'",
+                trendInterval, data.From, data.To, data.Current.Count);
+            throw;
+        }
+
         IReadOnlyList<FlowChartSeries> trendSeries = incomeOnly
             ? [new FlowChartSeries(Get("Income"), IncomeColor, true)]
             : expenseOnly

@@ -263,7 +263,7 @@
       "balancia.storage": {
         "type": "Project",
         "dependencies": {
-          "Balancia.Core": "[2.3.0, )",
+          "Balancia.Core": "[2.3.1, )",
           "Microsoft.Data.Sqlite": "[10.0.12, )",
           "Serilog": "[4.4.0, )"
         }

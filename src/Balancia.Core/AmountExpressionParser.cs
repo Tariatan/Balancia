@@ -1,16 +1,28 @@
 using System.Globalization;
+using Serilog;
 
 namespace Balancia.Core;
 
 public sealed class AmountExpressionParser(string text)
 {
+    private const int MaxNestingDepth = 64;
+
     private int index;
+    private int depth;
 
     public decimal Parse()
     {
-        var value = ParseExpression();
-        SkipWhitespace();
-        return index == text.Length ? value : throw new FormatException();
+        try
+        {
+            var value = ParseExpression();
+            SkipWhitespace();
+
+            return index == text.Length ? value : throw new FormatException();
+        }
+        catch (Exception exception) when (exception is DivideByZeroException or OverflowException)
+        {
+            throw new FormatException(null, exception);
+        }
     }
 
     public static bool TryEvaluate(string? text, out decimal value)
@@ -26,22 +38,9 @@ public sealed class AmountExpressionParser(string text)
             value = decimal.Round(new AmountExpressionParser(text).Parse(), 2, MidpointRounding.AwayFromZero);
             return true;
         }
-        catch (DivideByZeroException exception)
-        {
-            Serilog.Log.ForContext<AmountExpressionParser>().Debug(
-                "Amount expression rejected, FailureType: '{FailureType}'", exception.GetType().Name);
-            return false;
-        }
         catch (FormatException exception)
         {
-            Serilog.Log.ForContext<AmountExpressionParser>().Debug(
-                "Amount expression rejected, FailureType: '{FailureType}'", exception.GetType().Name);
-            return false;
-        }
-        catch (OverflowException exception)
-        {
-            Serilog.Log.ForContext<AmountExpressionParser>().Debug(
-                "Amount expression rejected, FailureType: '{FailureType}'", exception.GetType().Name);
+            Log.ForContext<AmountExpressionParser>().Debug("Amount expression rejected, FailureType: '{FailureType}'", exception.InnerException?.GetType().Name ?? exception.GetType().Name);
             return false;
         }
     }
@@ -54,11 +53,11 @@ public sealed class AmountExpressionParser(string text)
             SkipWhitespace();
             if (Match('+'))
             {
-                value = Add(value, ParseTerm());
+                value += ParseTerm();
             }
             else if (Match('-'))
             {
-                value = Subtract(value, ParseTerm());
+                value -= ParseTerm();
             }
             else
             {
@@ -75,11 +74,11 @@ public sealed class AmountExpressionParser(string text)
             SkipWhitespace();
             if (Match('*'))
             {
-                value = Multiply(value, ParseUnary());
+                value *= ParseUnary();
             }
             else if (Match('/'))
             {
-                value = Divide(value, ParseUnary());
+                value /= ParseUnary();
             }
             else
             {
@@ -90,6 +89,7 @@ public sealed class AmountExpressionParser(string text)
 
     private decimal ParseUnary()
     {
+        var negative = false;
         while (true)
         {
             SkipWhitespace();
@@ -98,106 +98,65 @@ public sealed class AmountExpressionParser(string text)
                 continue;
             }
 
-            if (Match('-'))
+            if (!Match('-'))
             {
-                return -ParseUnary();
+                break;
             }
 
-            return ParsePrimary();
+            negative = !negative;
         }
+
+        var value = ParsePrimary();
+
+        return negative ? -value : value;
     }
 
     private decimal ParsePrimary()
     {
-        SkipWhitespace();
         if (!Match('('))
         {
             return ParseNumber();
         }
 
+        if (++depth > MaxNestingDepth)
+        {
+            throw new FormatException();
+        }
+
         var value = ParseExpression();
         SkipWhitespace();
+        depth--;
 
         return Match(')') ? value : throw new FormatException();
     }
 
     private decimal ParseNumber()
     {
-        SkipWhitespace();
         var start = index;
         var hasDigits = false;
         var hasDecimalPoint = false;
         while (index < text.Length)
         {
             var character = text[index];
-            if (char.IsDigit(character))
+            if (char.IsAsciiDigit(character))
             {
                 hasDigits = true;
-                index++;
-                continue;
             }
-
-            if (character == '.' && !hasDecimalPoint)
+            else if (character != '.' || hasDecimalPoint)
+            {
+                break;
+            }
+            else
             {
                 hasDecimalPoint = true;
-                index++;
-                continue;
             }
 
-            break;
+            index++;
         }
 
         return hasDigits
-            ? decimal.Parse(text[start..index], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture)
+            ? decimal.Parse(text.AsSpan(start, index - start), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture)
             : throw new FormatException();
-    }
-
-    private static decimal Add(decimal left, decimal right)
-    {
-        try
-        {
-            return left + right;
-        }
-        catch (OverflowException)
-        {
-            throw new FormatException();
-        }
-    }
-
-    private static decimal Subtract(decimal left, decimal right)
-    {
-        try
-        {
-            return left - right;
-        }
-        catch (OverflowException)
-        {
-            throw new FormatException();
-        }
-    }
-
-    private static decimal Multiply(decimal left, decimal right)
-    {
-        try
-        {
-            return left * right;
-        }
-        catch (OverflowException)
-        {
-            throw new FormatException();
-        }
-    }
-
-    private static decimal Divide(decimal left, decimal right)
-    {
-        try
-        {
-            return left / right;
-        }
-        catch (Exception ex) when (ex is DivideByZeroException or OverflowException)
-        {
-            throw new FormatException();
-        }
     }
 
     private bool Match(char character)
