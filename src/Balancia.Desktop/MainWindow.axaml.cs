@@ -224,7 +224,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            LogWorkflowFailure(ex, operationName ?? action.Method.Name);
+            Serilog.Log.Error(ex, "Desktop operation failed, Operation: '{Operation}'", operationName ?? action.Method.Name);
             SetStatus(FriendlyError(ex));
             await ErrorDialog.Show(errorOwner ?? this, "Balancia", FriendlyError(ex));
         }

@@ -64,7 +64,7 @@ internal sealed class LocalizedCalendarDatePicker : CalendarDatePicker
             return;
         }
 
-        if (direction < 0 && selectedDate.Date == DateTime.MinValue.Date ||
+        if (direction < 0 && selectedDate.Date == DateTime.MinValue ||
             direction > 0 && selectedDate.Date == DateTime.MaxValue.Date)
         {
             return;
@@ -108,7 +108,14 @@ internal sealed class LocalizedCalendarDatePicker : CalendarDatePicker
     private static void ApplySelectedCulture()
     {
         var culture = Culture;
-        CultureInfo.CurrentCulture = culture;
-        CultureInfo.CurrentUICulture = culture;
+        if (!ReferenceEquals(CultureInfo.CurrentCulture, culture))
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
+
+        if (!ReferenceEquals(CultureInfo.CurrentUICulture, culture))
+        {
+            CultureInfo.CurrentUICulture = culture;
+        }
     }
 }

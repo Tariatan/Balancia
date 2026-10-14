@@ -9,6 +9,8 @@ using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
+internal sealed record ChartTooltipData(string Heading, IReadOnlyList<ChartTooltipRow> Rows);
+internal sealed record ChartTooltipRow(string Label, string Amount, IBrush Foreground);
 internal sealed record FlowChartSeries(string Name, string Color, bool Bars = false, bool Steps = false);
 internal sealed record FlowChartPoint(double Position, string Label, string Details,
     IReadOnlyList<Money> Values, string? TooltipHeading = null,
@@ -27,6 +29,9 @@ internal sealed class FlowChart : Control
     private IReadOnlyList<FlowChartPoint> points = [];
     private IReadOnlyList<FlowChartSeries> series = [];
     private IBrush[] seriesBrushes = [];
+    private Pen[] seriesPens = [];
+    private (decimal Min, decimal Max, decimal Step) scale = (0m, 1m, 1m);
+    private bool stepped;
     private string? emptyMessage;
     private int hovered = -1;
 
@@ -42,7 +47,10 @@ internal sealed class FlowChart : Control
     {
         points = values;
         series = definitions;
-        seriesBrushes = definitions.Select(item => Brush.Parse(item.Color)).ToArray();
+        seriesBrushes = [.. definitions.Select(item => Brush.Parse(item.Color))];
+        seriesPens = [.. seriesBrushes.Select(brush => new Pen(brush, 1.6))];
+        scale = ComputeScale();
+        stepped = definitions.Any(item => item.Steps);
         emptyMessage = message;
         ToolTip.SetTip(this, null);
         ResetHover();
@@ -55,7 +63,7 @@ internal sealed class FlowChart : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        context.DrawRectangle(Brushes.Transparent, null, Bounds.WithX(0).WithY(0));
+        context.DrawRectangle(Brushes.Transparent, null, new Rect(Bounds.Size));
         if (IsEmpty)
         {
             DrawLabel(context, emptyMessage ?? Get("No matching transactions"), new Point(8, 70));
@@ -63,9 +71,7 @@ internal sealed class FlowChart : Control
         }
 
         var plot = Plot;
-        var (min, max, step) = ComputeScale();
-        double Y(decimal amount) => plot.Bottom - (double)((amount - min) / (max - min)) * plot.Height;
-        double X(FlowChartPoint point) => plot.Left + point.Position * plot.Width;
+        var (min, max, step) = scale;
 
         DrawGrid(context, plot, min, max, step, Y);
         DrawSeries(context, plot, X, Y);
@@ -76,6 +82,12 @@ internal sealed class FlowChart : Control
             var x = X(points[hovered]);
             context.DrawLine(LabelPen, new Point(x, plot.Top), new Point(x, plot.Bottom));
         }
+
+        return;
+
+        double X(FlowChartPoint point) => plot.Left + point.Position * plot.Width;
+
+        double Y(decimal amount) => plot.Bottom - (double)((amount - min) / (max - min)) * plot.Height;
     }
 
     private (decimal Min, decimal Max, decimal Step) ComputeScale()
@@ -135,7 +147,7 @@ internal sealed class FlowChart : Control
         {
             var definition = series[index];
             var brush = seriesBrushes[index];
-            var pen = new Pen(brush, 1.6);
+            var pen = seriesPens[index];
             Point? previous = null;
             foreach (var point in points)
             {
@@ -202,15 +214,14 @@ internal sealed class FlowChart : Control
         if (previousHovered != hovered)
         {
             ToolTip.SetTip(this, BuildTooltip(points[hovered]));
+            InvalidateVisual();
         }
 
         ToolTip.SetIsOpen(this, true);
-        InvalidateVisual();
     }
 
     private int FindNearestPoint(double fraction)
     {
-        var stepped = series.Any(item => item.Steps);
         var best = 0;
         var bestDistance = double.MaxValue;
         for (var index = 0; index < points.Count; index++)

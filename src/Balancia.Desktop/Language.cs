@@ -30,35 +30,33 @@ public partial class MainWindow
         await Refresh();
     }
 
+    private const double FlagWidth = 24;
+    private const double FlagHeight = 16;
+
     internal static Canvas FlagIcon(string language)
     {
         var flag = new Canvas
         {
-            Width = 24,
-            Height = 16,
+            Width = FlagWidth,
+            Height = FlagHeight,
             ClipToBounds = true
         };
         switch (language)
         {
             case "de":
-                Band("#000000", 0, 16d / 3);
-                Band("#DD0000", 16d / 3, 16d / 3);
-                Band("#FFCE00", 32d / 3, 16d / 3);
+                Stripes("#000000", "#DD0000", "#FFCE00");
                 break;
             case "ru":
-                Band("#FFFFFF", 0, 16d / 3);
-                Band("#0039A6", 16d / 3, 16d / 3);
-                Band("#D52B1E", 32d / 3, 16d / 3);
+                Stripes("#FFFFFF", "#0039A6", "#D52B1E");
                 break;
             case "uk":
-                Band("#0057B7", 0, 8);
-                Band("#FFD700", 8, 8);
+                Stripes("#0057B7", "#FFD700");
                 break;
             default:
-                Band("#FFFFFF", 0, 16);
+                Band("#FFFFFF", 0, FlagHeight);
                 for (var index = 0; index < 7; index++)
                 {
-                    Band("#B22234", index * 32d / 13, 16d / 13);
+                    Band("#B22234", index * 2 * FlagHeight / 13, FlagHeight / 13);
                 }
 
                 var canton = new Rectangle
@@ -89,11 +87,20 @@ public partial class MainWindow
 
         return flag;
 
+        void Stripes(params string[] colors)
+        {
+            var height = FlagHeight / colors.Length;
+            foreach (var (index, color) in colors.Index())
+            {
+                Band(color, index * height, height);
+            }
+        }
+
         void Band(string color, double top, double height)
         {
             var band = new Rectangle
             {
-                Width = 24,
+                Width = FlagWidth,
                 Height = height,
                 Fill = Brush.Parse(color)
             };

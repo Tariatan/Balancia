@@ -185,7 +185,7 @@ public partial class MainWindow
             }
             catch (Exception ex)
             {
-                LogWorkflowFailure(ex, title);
+                Serilog.Log.Error(ex, "Desktop operation failed, Operation: '{Operation}'", title);
                 error.Text = FriendlyError(ex);
             }
             finally

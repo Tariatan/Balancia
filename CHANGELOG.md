@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.13.4] - 2026-10-14
+
+#### Changed
+
+- Optimize FlowChart, Language, LocalizedCalendarDatePicker classes.
+
+#### Removed
+
+- Logging helper.
+
 ### [2.13.3] - 2026-10-14
 
 #### Changed

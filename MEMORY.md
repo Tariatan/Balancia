@@ -48,6 +48,20 @@ Historical checks below are recorded evidence, not checks rerun during cleanup.
 - **Repository reference (2026-09-17):** Git was initialized on `main`; the
   recorded private repository is [Tariatan/Balancia](https://github.com/Tariatan/Balancia).
 
+## Code notes that look removable but are not
+
+- **`FirstDayOfWeek` flip in `RefreshCalendarCulture`**
+  ([LocalizedCalendarDatePicker.cs](src/Balancia.Desktop/LocalizedCalendarDatePicker.cs)):
+  when the calendar already holds the target value, it is set to a different day
+  first and then back. The flip forces the calendar to redraw its week header;
+  assigning the same value does nothing.
+- **Null `choice` guard in item templates** (`InitializeAccountPanel` in
+  [Accounts.cs](src/Balancia.Desktop/Accounts.cs), `InitializeCategoryPanel` in
+  [CategoriesPanel.cs](src/Balancia.Desktop/CategoriesPanel.cs); the same comment
+  also appears in `SettingsWindow.axaml.cs`): virtualized presenters can request
+  a template with no item while scrolling, so `if (choice is null) return null;`
+  must stay even though the item type is non-nullable.
+
 ## UI tests
 
 - `tests/Balancia.Desktop.Tests` uses Avalonia.Headless.XUnit, which requires xunit v3; all three test projects use xunit.v3.
