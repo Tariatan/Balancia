@@ -129,6 +129,7 @@
   <data name="Saved locally" xml:space="preserve"><value>Lokal gespeichert</value></data>
   <data name="The ledger could not be loaded. Check the message below and restart after resolving it." xml:space="preserve"><value>Das Kassenbuch konnte nicht geladen werden. Prüfen Sie die Meldung unten und starten Sie danach neu.</value></data>
   <data name="Transfers do not count as income or expenses." xml:space="preserve"><value>Umbuchungen zählen weder als Einnahmen noch als Ausgaben.</value></data>
+  <data name="Current period" xml:space="preserve"><value>Aktueller Zeitraum</value></data>
   <data name="Previous period" xml:space="preserve"><value>Vorheriger Zeitraum</value></data>
   <data name="Choose transactions CSV" xml:space="preserve"><value>Transaktions-CSV auswählen</value></data>
   <data name="Choose a local CSV file." xml:space="preserve"><value>Wählen Sie eine lokale CSV-Datei aus.</value></data>

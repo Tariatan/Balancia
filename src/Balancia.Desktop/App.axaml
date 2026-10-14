@@ -1,11 +1,12 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:Balancia.Desktop"
+             xmlns:converters="using:Avalonia.Data.Converters"
              x:Class="Balancia.Desktop.App" RequestedThemeVariant="Light">
   <Application.DataTemplates>
     <DataTemplate DataType="{x:Type local:ChartTooltipData}" x:DataType="local:ChartTooltipData">
-      <StackPanel Grid.IsSharedSizeScope="True">
-        <TextBlock Text="{Binding Heading}" Margin="0,0,0,8" />
+      <StackPanel Width="{Binding Width}">
+        <TextBlock Text="{Binding Heading}" Margin="0,0,8,8" />
         <ItemsControl ItemsSource="{Binding Rows}" HorizontalAlignment="Stretch">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
@@ -14,14 +15,17 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="local:ChartTooltipRow">
-              <Grid ColumnSpacing="18">
+              <Grid Margin="0,0,8,0">
                 <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
                   <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" SharedSizeGroup="TooltipAmounts" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding Label}" Foreground="{Binding Foreground}" FontWeight="Bold" />
-                <TextBlock Grid.Column="1" Text="{Binding Amount}" Foreground="{Binding Foreground}"
-                           FontWeight="Bold" HorizontalAlignment="Right" />
+                <TextBlock Text="{Binding Label}" Width="{Binding LabelWidth}" Foreground="{Binding Foreground}" FontWeight="Bold" />
+                <TextBlock Grid.Column="1" Text="{Binding Date}" Foreground="{Binding Foreground}"
+                           FontWeight="Bold" Width="90" Margin="0,0,0,0" IsVisible="{Binding Date, Converter={x:Static converters:StringConverters.IsNotNullOrEmpty}}" />
+                <TextBlock Grid.Column="2" Text="{Binding Amount}" Foreground="{Binding Foreground}"
+                           FontWeight="Bold" HorizontalAlignment="Right" Margin="8,0,0,0" />
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

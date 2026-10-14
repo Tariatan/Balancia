@@ -129,6 +129,7 @@
   <data name="Saved locally" xml:space="preserve"><value>Saved locally</value></data>
   <data name="The ledger could not be loaded. Check the message below and restart after resolving it." xml:space="preserve"><value>The ledger could not be loaded. Check the message below and restart after resolving it.</value></data>
   <data name="Transfers do not count as income or expenses." xml:space="preserve"><value>Transfers do not count as income or expenses.</value></data>
+  <data name="Current period" xml:space="preserve"><value>Current period</value></data>
   <data name="Previous period" xml:space="preserve"><value>Previous period</value></data>
   <data name="Choose transactions CSV" xml:space="preserve"><value>Choose transactions CSV</value></data>
   <data name="Choose a local CSV file." xml:space="preserve"><value>Choose a local CSV file.</value></data>

@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.14.2] - 2026-10-14
+
+#### Fixed
+
+- Fine-tune chart tooltip popups.
+
+#### Changed
+
+- Scroll the transactions list to the top when moving to the next or previous page.
+
 ### [2.14.1] - 2026-10-14
 
 #### Changed

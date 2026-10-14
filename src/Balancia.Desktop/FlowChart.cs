@@ -9,15 +9,26 @@ using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
-internal sealed record ChartTooltipData(string Heading, IReadOnlyList<ChartTooltipRow> Rows);
-internal sealed record ChartTooltipRow(string Label, string Amount, IBrush Foreground);
+internal sealed record ChartTooltipData(string Heading, IReadOnlyList<ChartTooltipRow> Rows)
+{
+    public double Width => Rows.Any(row => row.Date is not null) ? 300 : 180;
+}
+internal sealed record ChartTooltipRow(string Label, string Amount, IBrush Foreground, string? Date = null)
+{
+    public double LabelWidth => Date is not null ? 130 : 85;
+}
 internal sealed record FlowChartSeries(string Name, string Color, bool Bars = false, bool Steps = false);
 internal sealed record FlowChartPoint(double Position, string Label, string Details,
     IReadOnlyList<Money> Values, string? TooltipHeading = null,
-    IReadOnlyList<string>? TooltipLabels = null);
+    IReadOnlyList<string>? TooltipLabels = null, IReadOnlyList<string>? TooltipDates = null);
 
 internal sealed class FlowChart : Control
 {
+    private readonly ToolTip chartTooltip = new()
+    {
+        MaxWidth = double.PositiveInfinity,
+        HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+    };
     private const int GridLines = 4;
     private static readonly IBrush AxisBrush = Brush.Parse("#CBD5DC");
     private static readonly IBrush LabelBrush = Brush.Parse("#71838D");
@@ -244,7 +255,7 @@ internal sealed class FlowChart : Control
         return best;
     }
 
-    private object BuildTooltip(FlowChartPoint point)
+    internal object BuildTooltip(FlowChartPoint point)
     {
         if (point.TooltipHeading is null)
         {
@@ -258,10 +269,11 @@ internal sealed class FlowChart : Control
             rows.Add(new ChartTooltipRow(
                 point.TooltipLabels?[index] ?? series[index].Name,
                 point.Values[index].Francs.ToString("N2", AmountCulture),
-                seriesBrushes[index]));
+                seriesBrushes[index], point.TooltipDates?[index]));
         }
 
-        return new ChartTooltipData(point.TooltipHeading, rows);
+        chartTooltip.Content = new ChartTooltipData(point.TooltipHeading, rows);
+        return chartTooltip;
     }
 
     private static void DrawLabel(DrawingContext context, string text, Point origin) => context.DrawText(

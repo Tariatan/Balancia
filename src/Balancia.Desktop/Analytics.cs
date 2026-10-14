@@ -155,6 +155,7 @@ public partial class MainWindow
     {
         // Compare expenses by default, or income when explicitly filtered to income.
         var metric = incomeOnly ? Get("Income") : Get("Expense");
+        var currentLabel = Get("Current period");
         var previousLabel = Get("Previous period");
         var length = data.To.DayNumber - data.From.DayNumber;
         var labelFormat = length > 365 ? "MMM yy" : "dd MMM";
@@ -176,16 +177,18 @@ public partial class MainWindow
 
             var dateText = DayText(date);
             var details = $"{metric} · {dateText}: {AmountText(currentTotal)}";
-            IReadOnlyList<string> tooltipLabels = [dateText];
+            IReadOnlyList<string> tooltipLabels = [currentLabel];
+            IReadOnlyList<string> tooltipDates = [dateText];
             if (previousDate is { } comparisonDate)
             {
                 var previousText = $"{previousLabel} · {DayText(comparisonDate)}";
                 details += $"\n{previousText}: {AmountText(previousTotal)}";
-                tooltipLabels = [dateText, previousText];
+                tooltipLabels = [currentLabel, previousLabel];
+                tooltipDates = [dateText, DayText(comparisonDate)];
             }
 
             timelinePoints.Add(new FlowChartPoint(length == 0 ? 0.5 : dayOffset / (double)length,
-                date.ToString(labelFormat, Culture), details, [currentTotal, previousTotal], metric, tooltipLabels));
+                date.ToString(labelFormat, Culture), details, [currentTotal, previousTotal], metric, tooltipLabels, tooltipDates));
         }
 
         TimelineChart.SetData(timelinePoints,

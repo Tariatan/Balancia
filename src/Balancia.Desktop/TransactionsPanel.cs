@@ -71,6 +71,10 @@ public partial class MainWindow
     {
         offset = Math.Max(0, offset + delta);
         await RequestOverviewFilterRefresh();
+        if (TransactionsList.Scroll is { } scroll)
+        {
+            scroll.Offset = new Vector(scroll.Offset.X, 0);
+        }
     }
 
     private static Grid TransactionRow(TransactionsHit hit, string emptyDescriptionText = "")

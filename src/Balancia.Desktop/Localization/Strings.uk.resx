@@ -129,6 +129,7 @@
   <data name="Saved locally" xml:space="preserve"><value>Збережено локально</value></data>
   <data name="The ledger could not be loaded. Check the message below and restart after resolving it." xml:space="preserve"><value>Не вдалося завантажити журнал. Перевірте повідомлення нижче та перезапустіть програму після усунення проблеми.</value></data>
   <data name="Transfers do not count as income or expenses." xml:space="preserve"><value>Перекази не враховуються як доходи або витрати.</value></data>
+  <data name="Current period" xml:space="preserve"><value>Поточний період</value></data>
   <data name="Previous period" xml:space="preserve"><value>Попередній період</value></data>
   <data name="Choose transactions CSV" xml:space="preserve"><value>Вибрати CSV з операціями</value></data>
   <data name="Choose a local CSV file." xml:space="preserve"><value>Виберіть локальний CSV-файл.</value></data>
