@@ -10,8 +10,11 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private static Control DescriptionInput(TextBox input, List<string> history)
+    private static readonly IBrush SelectedRowBrush = Brush.Parse("#D8ECF3");
+
+    private static Control DescriptionInput(TextBox input, IEnumerable<string> history)
     {
+        var candidates = history.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var rows = new StackPanel();
         var popup = new Popup
         {
@@ -46,9 +49,10 @@ public partial class MainWindow
 
             accepted = null;
             var query = input.Text ?? string.Empty;
-            matches = string.IsNullOrWhiteSpace(query) ? [] : history
+            matches = string.IsNullOrWhiteSpace(query) ? [] : candidates
                 .Where(value => value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
-                .Distinct(StringComparer.OrdinalIgnoreCase).Take(20).ToArray();
+                .Take(20)
+                .ToArray();
             selected = 0;
             Render();
             popup.IsOpen = input.IsFocused && matches.Length > 0;
@@ -56,7 +60,7 @@ public partial class MainWindow
         input.LostFocus += (_, _) => popup.IsOpen = false;
         input.AddHandler(KeyDownEvent, (_, args) =>
         {
-            if (!popup.IsOpen || matches.Length == 0)
+            if (!popup.IsOpen)
             {
                 return;
             }
@@ -90,16 +94,15 @@ public partial class MainWindow
         void Render()
         {
             rows.Children.Clear();
-            for (var index = 0; index < matches.Length; index++)
+            foreach (var (index, value) in matches.Index())
             {
-                var value = matches[index];
                 var button = new Button
                 {
                     Content = value,
                     Focusable = false,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     HorizontalContentAlignment = HorizontalAlignment.Left,
-                    Background = Brush.Parse(index == selected ? "#D8ECF3" : "Transparent")
+                    Background = index == selected ? SelectedRowBrush : Brushes.Transparent
                 };
                 button.Click += (_, _) => Accept(value);
                 rows.Children.Add(button);

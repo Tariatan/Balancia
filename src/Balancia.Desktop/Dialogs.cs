@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Microsoft.Data.Sqlite;
+using Serilog;
 
 using static Balancia.Desktop.Localization.UiText;
 
@@ -33,7 +34,6 @@ public partial class MainWindow
         return Task.CompletedTask;
     }
 
-    // Snapshot inputs on the UI thread, then perform the complete write off-thread.
     private Window BuildDialogWindow(string title, DialogSize size)
     {
         var (height, minWidth, minHeight) = size switch
@@ -45,7 +45,7 @@ public partial class MainWindow
         };
         return new Window
         {
-            Title = Get(title),
+            Title = title,
             Icon = Icon,
             ShowInTaskbar = false,
             Width = 530,
@@ -57,11 +57,13 @@ public partial class MainWindow
         };
     }
 
+    // prepareSave snapshots inputs on the UI thread; the returned action performs the complete write off-thread.
     private async Task EditDialog(string title, Control[] fields, Func<Action> prepareSave, DialogOptions? options = null)
     {
         options ??= new DialogOptions();
         var (size, saveLabel, initialFocus, onSaveAndContinue, validate) = options;
-        var dialog = BuildDialogWindow(title, size);
+        var localizedTitle = Get(title);
+        var dialog = BuildDialogWindow(localizedTitle, size);
         var body = new StackPanel
         {
             Spacing = 12,
@@ -69,7 +71,7 @@ public partial class MainWindow
         };
         body.Children.Add(new TextBlock
         {
-            Text = Get(title),
+            Text = localizedTitle,
             FontSize = 24,
             FontWeight = FontWeight.SemiBold
         });
@@ -86,15 +88,13 @@ public partial class MainWindow
             Content = Get(saveLabel),
             IsDefault = !options.IsConfirmation && onSaveAndContinue is null
         };
-        Button? saveAndContinue = null;
-        if (onSaveAndContinue is not null)
-        {
-            saveAndContinue = new Button
+        var saveAndContinue = onSaveAndContinue is null
+            ? null
+            : new Button
             {
                 Content = Get("Add another transaction"),
                 IsDefault = true
             };
-        }
 
         var cancel = new Button
         {
@@ -133,8 +133,7 @@ public partial class MainWindow
                 initialFocus.Focus();
                 return;
             }
-            if ((fields.Length > 0 ? fields[0] : null) is StackPanel panel &&
-                (panel.Children.Count > 0 ? panel.Children[^1] : null) is InputElement input)
+            if (fields is [StackPanel { Children: { Count: > 0 } children }, ..] && children[^1] is InputElement input)
             {
                 input.Focus();
             }
@@ -166,9 +165,9 @@ public partial class MainWindow
                 saving = true;
                 body.IsEnabled = false;
                 error.Text = Get("Saving…");
-                Serilog.Log.Information("Saving dialog changes, Operation: '{Operation}'", title);
+                Log.Information("Saving dialog changes, Operation: '{Operation}'", title);
                 await Task.Run(action);
-                Serilog.Log.Information("Dialog changes saved, Operation: '{Operation}'", title);
+                Log.Information("Dialog changes saved, Operation: '{Operation}'", title);
                 if (continueEditing)
                 {
                     await Run(Refresh, false);

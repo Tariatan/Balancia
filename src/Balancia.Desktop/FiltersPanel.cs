@@ -11,29 +11,25 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private static readonly (OverviewPeriod Period, string TitleKey)[] OverviewPeriods =
+    private static readonly IBrush FilledFilterBrush = Brush.Parse("#263C48");
+    private static readonly IBrush EmptyFilterBrush = Brush.Parse("#71838D");
+
+    private (OverviewPeriod Period, Button Button, string TitleKey)[] OverviewPeriodButtons =>
     [
-        (OverviewPeriod.All, "All"),
-        (OverviewPeriod.Day, "Today"),
-        (OverviewPeriod.ThisWeek, "Week"),
-        (OverviewPeriod.ThisMonth, "Month"),
-        (OverviewPeriod.ThisYear, "Year"),
-        (OverviewPeriod.Last30Days, "Last 30 days"),
+        (OverviewPeriod.All, FilterButtonAll, "All"),
+        (OverviewPeriod.Day, FilterButtonToday, "Today"),
+        (OverviewPeriod.ThisWeek, FilterButtonWeek, "Week"),
+        (OverviewPeriod.ThisMonth, FilterButtonMonth, "Month"),
+        (OverviewPeriod.ThisYear, FilterButtonYear, "Year"),
+        (OverviewPeriod.Last30Days, FilterButtonLast30Days, "Last 30 days"),
     ];
 
     private void InitializeOverviewFilters()
     {
         overviewFiltersVisible = true;
         overviewPeriodButtons.Clear();
-        var buttons = new[]
+        foreach (var (period, button, _) in OverviewPeriodButtons)
         {
-            FilterButtonAll, FilterButtonToday, FilterButtonWeek,
-            FilterButtonMonth, FilterButtonYear, FilterButtonLast30Days
-        };
-        for (var i = 0; i < OverviewPeriods.Length; i++)
-        {
-            var period = OverviewPeriods[i].Period;
-            var button = buttons[i];
             overviewPeriodButtons.Add(period, button);
             button.Click += async (_, _) => await SelectOverviewPeriod(period);
         }
@@ -53,16 +49,11 @@ public partial class MainWindow
                 await ApplyOverviewFilterValues();
             }
         };
-        FilterSearch.TextChanged += (_, _) =>
-            UpdateFilterTone(FilterSearch, !string.IsNullOrWhiteSpace(FilterSearch.Text));
-        FilterMinimum.TextChanged += (_, _) =>
-            UpdateFilterTone(FilterMinimum, !string.IsNullOrWhiteSpace(FilterMinimum.Text));
-        FilterMaximum.TextChanged += (_, _) =>
-            UpdateFilterTone(FilterMaximum, !string.IsNullOrWhiteSpace(FilterMaximum.Text));
-        FilterFrom.SelectedDateChanged += (_, _) =>
-            UpdateFilterTone(FilterFrom, FilterFrom.SelectedDate is not null);
-        FilterTo.SelectedDateChanged += (_, _) =>
-            UpdateFilterTone(FilterTo, FilterTo.SelectedDate is not null);
+        FilterSearch.TextChanged += (_, _) => UpdateTextFilterTone(FilterSearch);
+        FilterMinimum.TextChanged += (_, _) => UpdateTextFilterTone(FilterMinimum);
+        FilterMaximum.TextChanged += (_, _) => UpdateTextFilterTone(FilterMaximum);
+        FilterFrom.SelectedDateChanged += (_, _) => UpdateDateFilterTone(FilterFrom);
+        FilterTo.SelectedDateChanged += (_, _) => UpdateDateFilterTone(FilterTo);
 
         FilterClearSearch.Click += async (_, _) =>
         {
@@ -73,21 +64,20 @@ public partial class MainWindow
 
         SyncOverviewFilterInputs();
         SyncOverviewFilterDates();
-        UpdateFilterTone(FilterSearch, !string.IsNullOrWhiteSpace(FilterSearch.Text));
-        UpdateFilterTone(FilterMinimum, !string.IsNullOrWhiteSpace(FilterMinimum.Text));
-        UpdateFilterTone(FilterMaximum, !string.IsNullOrWhiteSpace(FilterMaximum.Text));
-        UpdateFilterTone(FilterFrom, FilterFrom.SelectedDate is not null);
-        UpdateFilterTone(FilterTo, FilterTo.SelectedDate is not null);
+        UpdateTextFilterTone(FilterSearch);
+        UpdateTextFilterTone(FilterMinimum);
+        UpdateTextFilterTone(FilterMaximum);
+        UpdateDateFilterTone(FilterFrom);
+        UpdateDateFilterTone(FilterTo);
     }
 
     private void LocalizeFilters()
     {
-        FilterButtonAll.Content = Get("All");
-        FilterButtonToday.Content = Get("Today");
-        FilterButtonWeek.Content = Get("Week");
-        FilterButtonMonth.Content = Get("Month");
-        FilterButtonYear.Content = Get("Year");
-        FilterButtonLast30Days.Content = Get("Last 30 days");
+        foreach (var (_, button, titleKey) in OverviewPeriodButtons)
+        {
+            button.Content = Get(titleKey);
+        }
+
         FilterFrom.PlaceholderText = Get("Select a date");
         FilterTo.PlaceholderText = Get("Select a date");
         FilterSearch.PlaceholderText = Get("Description");
@@ -97,22 +87,13 @@ public partial class MainWindow
         ToolTip.SetTip(FilterClearAll, Get("Clear filters"));
     }
 
-    private static void UpdateFilterTone(Control control, bool hasValue)
-    {
-        var foreground = Brush.Parse(hasValue ? "#263C48" : "#71838D");
-        switch (control)
-        {
-            case TextBox textBox:
-                textBox.Foreground = foreground;
-                break;
-            case ComboBox comboBox:
-                comboBox.Foreground = foreground;
-                break;
-            case CalendarDatePicker datePicker:
-                datePicker.Foreground = foreground;
-                break;
-        }
-    }
+    private static void UpdateTextFilterTone(TextBox input) =>
+        input.Foreground = ToneBrush(!string.IsNullOrWhiteSpace(input.Text));
+
+    private static void UpdateDateFilterTone(CalendarDatePicker input) =>
+        input.Foreground = ToneBrush(input.SelectedDate is not null);
+
+    private static IBrush ToneBrush(bool hasValue) => hasValue ? FilledFilterBrush : EmptyFilterBrush;
 
     private void SyncOverviewFilterInputs()
     {

@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.13.3] - 2026-10-14
+
+#### Changed
+
+- Optimize DataTransfer, DescriptionSuggestions, Dialogs, Encryption, FiltersPanel, FilterState classes.
+
 ### [2.13.2] - 2026-10-14
 
 #### Changed

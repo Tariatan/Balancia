@@ -32,7 +32,8 @@ public partial class MainWindow
 
     private bool updatingFilterControls;
 
-    private Task RefreshFilteredOverview() => RefreshCore(true);
+    private static readonly IBrush SelectedPeriodBackground = Brush.Parse("#D8ECF3");
+    private static readonly IBrush SelectedPeriodForeground = Brush.Parse("#1C627E");
 
     private async Task RequestOverviewFilterRefresh()
     {
@@ -42,7 +43,7 @@ public partial class MainWindow
             return;
         }
 
-        await Run(RefreshFilteredOverview, false);
+        await Run(() => RefreshCore(true), false);
     }
 
     private (DateOnly? From, DateOnly? To) OverviewRange() => overviewPeriod switch
@@ -50,22 +51,23 @@ public partial class MainWindow
         OverviewPeriod.All => (null, null),
         OverviewPeriod.Day => (displayDate, displayDate),
         OverviewPeriod.ThisWeek => (CalendarWeek.StartOfWeek(displayDate), CalendarWeek.EndOfWeek(displayDate)),
-        OverviewPeriod.ThisMonth => (new DateOnly(displayDate.Year, displayDate.Month, 1),
-            new DateOnly(displayDate.Year, displayDate.Month, 1).AddMonths(1).AddDays(-1)),
+        OverviewPeriod.ThisMonth => (
+            new DateOnly(displayDate.Year, displayDate.Month, 1),
+            new DateOnly(displayDate.Year, displayDate.Month, DateTime.DaysInMonth(displayDate.Year, displayDate.Month))),
         OverviewPeriod.ThisYear => (new DateOnly(displayDate.Year, 1, 1), new DateOnly(displayDate.Year, 12, 31)),
         OverviewPeriod.Last30Days => (displayDate.AddDays(-29), displayDate),
-        _ => (_customFrom: customFrom, _customTo: customTo)
+        _ => (customFrom, customTo)
     };
 
     private string OverviewPeriodLabel() => overviewPeriod switch
     {
         OverviewPeriod.All => "All dates",
-        OverviewPeriod.Day => displayDate.ToString("dd MMM yyyy", Culture),
+        OverviewPeriod.Day => DayText(displayDate),
         OverviewPeriod.ThisWeek => "This week",
         OverviewPeriod.ThisMonth => displayDate.ToString("MMMM yyyy", Culture),
         OverviewPeriod.ThisYear => displayDate.Year.ToString(Culture),
         OverviewPeriod.Last30Days => "Last 30 days",
-        _ => $"{customFrom?.ToString("dd MMM yyyy", Culture)} – {customTo?.ToString("dd MMM yyyy", Culture)}"
+        _ => $"{customFrom?.ToString(DayFormat, Culture)} – {customTo?.ToString(DayFormat, Culture)}"
     };
 
     private string ScopeLabel()
@@ -90,7 +92,7 @@ public partial class MainWindow
 
     private void UpdateFilterButtons()
     {
-        var current = (_overviewPeriod: overviewPeriod, _overviewFiltersVisible: overviewFiltersVisible);
+        var current = (overviewPeriod, overviewFiltersVisible);
         if (renderedPeriodState == current)
         {
             return;
@@ -99,11 +101,11 @@ public partial class MainWindow
         foreach (var (period, button) in overviewPeriodButtons)
         {
             var selected = period == overviewPeriod ||
-                period == OverviewPeriod.Custom && overviewFiltersVisible;
+                (period == OverviewPeriod.Custom && overviewFiltersVisible);
             if (selected)
             {
-                button.Background = Brush.Parse("#D8ECF3");
-                button.Foreground = Brush.Parse("#1C627E");
+                button.Background = SelectedPeriodBackground;
+                button.Foreground = SelectedPeriodForeground;
                 button.FontWeight = FontWeight.SemiBold;
             }
             else

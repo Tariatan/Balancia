@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia.Controls;
 using Balancia.Storage;
 using Serilog;
@@ -9,9 +10,9 @@ namespace Balancia.Desktop;
 public partial class MainWindow
 {
     private SnapshotKey? snapshotKey;
-    private string SnapshotKeyPath => separateDataFolder
-        ? Path.Combine(Path.GetDirectoryName(DatabasePath)!, "snapshot-key.dpapi")
-        : Path.Combine(Path.GetDirectoryName(applicationSettingsPath)!, "snapshot-key.dpapi");
+    private string SnapshotKeyPath => Path.Combine(
+        Path.GetDirectoryName(separateDataFolder ? DatabasePath : applicationSettingsPath)!,
+        "snapshot-key.dpapi");
     internal bool EncryptionConfigured => snapshotKey is not null;
 
     /// <summary>Provides the snapshot key without the Windows key store or the passphrase dialog; used by UI tests.</summary>
@@ -29,20 +30,16 @@ public partial class MainWindow
             snapshotKey ??= await Task.Run(() => WindowsSnapshotKeyStore.Load(SnapshotKeyPath));
             Log.Information("Windows snapshot key load completed, KeyAvailable: '{KeyAvailable}'", snapshotKey is not null);
         }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or
-            UnauthorizedAccessException or InvalidDataException)
+        catch (Exception ex) when (ex is Win32Exception or IOException or UnauthorizedAccessException or InvalidDataException)
         {
             Log.Warning("Remembered snapshot key unavailable, FailureType: '{FailureType}', HResult: '{HResult}'", ex.GetType().Name, ex.HResult);
-            await ShowErrorDialog("Snapshot encryption", Get("The remembered snapshot key is unavailable. Set up encryption again before exporting."));
+            await ShowEncryptionError(this, "The remembered snapshot key is unavailable. Set up encryption again before exporting.");
         }
 
-        if (snapshotKey is null && (BackupPath is not null || SnapshotPath is not null))
+        if (snapshotKey is null && (BackupPath is not null || SnapshotPath is not null) && !await ConfigureEncryption(this))
         {
-            if (!await ConfigureEncryption(this))
-            {
-                Log.Information("Automatic snapshot and backup exports paused; encryption is not configured");
-                await ShowErrorDialog("Snapshot encryption", Get("Automatic backups and snapshots are paused until a passphrase is configured in Settings."));
-            }
+            Log.Information("Automatic snapshot and backup exports paused; encryption is not configured");
+            await ShowEncryptionError(this, "Automatic backups and snapshots are paused until a passphrase is configured in Settings.");
         }
     }
 
@@ -73,7 +70,7 @@ public partial class MainWindow
         {
             Log.Error("Snapshot encryption setup failed; previous settings retained, FailureType: '{FailureType}', HResult: '{HResult}', ElapsedMs: '{ElapsedMs}'",
                 ex.GetType().Name, ex.HResult, elapsed.ElapsedMilliseconds);
-            await ErrorDialog.Show(dialogOwner, Get("Snapshot encryption"), Get("The snapshot key could not be saved. Encryption settings were kept."));
+            await ShowEncryptionError(dialogOwner, "The snapshot key could not be saved. Encryption settings were kept.");
             return false;
         }
         finally
@@ -81,6 +78,9 @@ public partial class MainWindow
             replacement?.Dispose();
         }
     }
+
+    private static Task ShowEncryptionError(Window dialogOwner, string message) =>
+        ErrorDialog.Show(dialogOwner, Get("Snapshot encryption"), Get(message));
 
     private async Task<bool> EnsureEncryption(Window dialogOwner) => snapshotKey is not null || await ConfigureEncryption(dialogOwner);
 }

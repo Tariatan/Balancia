@@ -1,6 +1,7 @@
 using Avalonia.Platform.Storage;
 using Avalonia.Controls;
 using Balancia.Storage;
+using Serilog;
 
 using static Balancia.Desktop.Localization.UiText;
 
@@ -8,20 +9,19 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
+    private static FilePickerFileType CsvFileType => new("CSV") { Patterns = ["*.csv"] };
+
+    private static FilePickerFileType SnapshotFileType => new(Get("Balancia snapshot")) { Patterns = ["*.balancia"] };
+
     internal async Task ImportCsv()
     {
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = Get("Choose transactions CSV"),
-            AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("CSV") { Patterns = ["*.csv"] }]
-        });
-        if (files.Count == 0)
+        var file = await PickOpenFile(Get("Choose transactions CSV"), CsvFileType);
+        if (file is null)
         {
             return;
         }
 
-        var path = files[0].TryGetLocalPath();
+        var path = file.TryGetLocalPath();
         if (path is null)
         {
             SetStatus("Choose a local CSV file.");
@@ -40,12 +40,7 @@ public partial class MainWindow
 
     internal async Task ExportCsv()
     {
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = Get("Export CSV"),
-            SuggestedFileName = $"balancia-{DateTime.Today:yyyyMMdd}.csv",
-            FileTypeChoices = [new FilePickerFileType("CSV") { Patterns = ["*.csv"] }]
-        });
+        var file = await PickSaveFile(Get("Export CSV"), $"balancia-{DateTime.Today:yyyyMMdd}.csv", CsvFileType);
         var path = file?.TryGetLocalPath();
         if (path is null)
         {
@@ -61,22 +56,17 @@ public partial class MainWindow
 
     internal async Task ExportSnapshot(Window? dialogOwner = null)
     {
-        Serilog.Log.Information("Manual snapshot export requested");
+        Log.Information("Manual snapshot export requested");
         if (!await EnsureEncryption(dialogOwner ?? this))
         {
             return;
         }
 
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = Get("Export Balancia snapshot"),
-            SuggestedFileName = $"balancia-{DateTime.Today:yyyyMMdd}.balancia",
-            FileTypeChoices = [new FilePickerFileType(Get("Balancia snapshot")) { Patterns = ["*.balancia"] }]
-        });
+        var file = await PickSaveFile(Get("Export Balancia snapshot"), $"balancia-{DateTime.Today:yyyyMMdd}.balancia", SnapshotFileType);
         var path = file?.TryGetLocalPath();
         if (path is null)
         {
-            Serilog.Log.Information("Manual snapshot export canceled; no local destination selected");
+            Log.Information("Manual snapshot export canceled; no local destination selected");
             return;
         }
 
@@ -89,35 +79,30 @@ public partial class MainWindow
 
     internal async Task RestoreSnapshot(Window? dialogOwner = null)
     {
-        Serilog.Log.Information("Manual snapshot restore requested");
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = Get("Choose Balancia snapshot"),
-            AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType(Get("Balancia snapshot")) { Patterns = ["*.balancia"] }]
-        });
-        var path = (files.Count > 0 ? files[0] : null)?.TryGetLocalPath();
+        Log.Information("Manual snapshot restore requested");
+        var file = await PickOpenFile(Get("Choose Balancia snapshot"), SnapshotFileType);
+        var path = file?.TryGetLocalPath();
         if (path is null)
         {
-            Serilog.Log.Information("Manual snapshot restore canceled; no local source selected");
+            Log.Information("Manual snapshot restore canceled; no local source selected");
             return;
         }
 
         await Run(async () =>
         {
             var info = await Task.Run(() => SnapshotEncryption.ReadInfo(path));
-            Serilog.Log.Information("Restore snapshot format detected, Encrypted: '{Encrypted}'", info is not null);
+            Log.Information("Restore snapshot format detected, Encrypted: '{Encrypted}'", info is not null);
             SnapshotKey? temporaryKey = null;
             try
             {
                 var key = snapshotKey;
                 if (info is not null && (key is null || !key.Matches(info)))
                 {
-                    Serilog.Log.Information("Snapshot restore requires passphrase entry");
+                    Log.Information("Snapshot restore requires passphrase entry");
                     var passphrase = await SnapshotPassphraseWindow.Ask(dialogOwner ?? this, setup: false);
                     if (passphrase is null)
                     {
-                        Serilog.Log.Information("Snapshot restore unlock canceled; current ledger unchanged");
+                        Log.Information("Snapshot restore unlock canceled; current ledger unchanged");
                         return;
                     }
 
@@ -126,7 +111,7 @@ public partial class MainWindow
                 }
                 else if (info is not null)
                 {
-                    Serilog.Log.Information("Snapshot restore using remembered key");
+                    Log.Information("Snapshot restore using remembered key");
                 }
 
                 var result = await Task.Run(() => store.RestoreSnapshot(path, key));
@@ -139,4 +124,24 @@ public partial class MainWindow
             }
         }, errorOwner: dialogOwner, operationName: "Snapshot restore");
     }
+
+    private async Task<IStorageFile?> PickOpenFile(string title, FilePickerFileType fileType)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = [fileType]
+        });
+
+        return files.FirstOrDefault();
+    }
+
+    private Task<IStorageFile?> PickSaveFile(string title, string suggestedFileName, FilePickerFileType fileType) =>
+        StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggestedFileName,
+            FileTypeChoices = [fileType]
+        });
 }
