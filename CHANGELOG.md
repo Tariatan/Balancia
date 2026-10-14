@@ -19,6 +19,7 @@ Versioning rule:
 #### Changed
 
 - Rename classes.
+- Optimize Analytics class: split chart updates into focused methods and resolve the income/expense focus in a single pass.
 
 ### [2.13.0] - 2026-10-13
 

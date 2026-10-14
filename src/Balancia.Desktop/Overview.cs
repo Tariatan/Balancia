@@ -18,7 +18,7 @@ public partial class MainWindow
         AverageExpensesCard.Title = Get("Average");
         LocalizeFilters();
         LocalizeTransactionsPanel();
-        LocalizeTrendPanel();
+        RefreshTrendIntervalLabel();
     }
 
     private void RenderOverview(LedgerSnapshot ledgerSnapshot)
