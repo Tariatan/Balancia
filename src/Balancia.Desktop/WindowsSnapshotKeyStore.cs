@@ -8,14 +8,18 @@ namespace Balancia.Desktop;
 /// <summary>Current-user DPAPI protection, without a plaintext key or password in settings.</summary>
 internal static class WindowsSnapshotKeyStore
 {
+    private const int MaxProtectedKeyBytes = 16 * 1024;
+    private const uint CryptProtectUiForbidden = 1;
+
     internal static SnapshotKey? Load(string path)
     {
-        if (!File.Exists(path))
+        var file = new FileInfo(path);
+        if (!file.Exists)
         {
             return null;
         }
 
-        if (new FileInfo(path).Length > 16 * 1024)
+        if (file.Length > MaxProtectedKeyBytes)
         {
             throw new InvalidDataException("The remembered snapshot key is invalid. Enter the passphrase again.");
         }
@@ -58,10 +62,7 @@ internal static class WindowsSnapshotKeyStore
         }
         finally
         {
-            if (File.Exists(temporary))
-            {
-                File.Delete(temporary);
-            }
+            File.Delete(temporary);
         }
     }
 
@@ -72,22 +73,18 @@ internal static class WindowsSnapshotKeyStore
             throw new PlatformNotSupportedException("Remembering snapshot keys requires Windows.");
         }
 
-        var input = new DataBlob
-        {
-            Size = bytes.Length,
-            Data = Marshal.AllocHGlobal(bytes.Length)
-        };
+        // Pinning avoids a second unmanaged copy of the input; callers zero their own buffers.
+        var pinned = GCHandle.Alloc(bytes, GCHandleType.Pinned);
         DataBlob output = default;
         try
         {
-            Marshal.Copy(bytes, 0, input.Data, bytes.Length);
-            const uint NoUi = 1;
+            var input = new DataBlob { Size = bytes.Length, Data = pinned.AddrOfPinnedObject() };
             var succeeded = decrypt
-                ? CryptUnprotectData(ref input, 0, 0, 0, 0, NoUi, out output)
-                : CryptProtectData(ref input, 0, 0, 0, 0, NoUi, out output);
+                ? CryptUnprotectData(ref input, 0, 0, 0, 0, CryptProtectUiForbidden, out output)
+                : CryptProtectData(ref input, 0, 0, 0, 0, CryptProtectUiForbidden, out output);
             if (!succeeded)
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows could not protect or unlock the snapshot key.");
+                throw new Win32Exception(Marshal.GetLastPInvokeError(), "Windows could not protect or unlock the snapshot key.");
             }
 
             var result = new byte[output.Size];
@@ -96,12 +93,7 @@ internal static class WindowsSnapshotKeyStore
         }
         finally
         {
-            for (var i = 0; i < input.Size; i++)
-            {
-                Marshal.WriteByte(input.Data, i, 0);
-            }
-
-            Marshal.FreeHGlobal(input.Data);
+            pinned.Free();
             if (output.Data != 0)
             {
                 for (var i = 0; i < output.Size; i++)

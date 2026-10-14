@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.13.7] - 2026-10-14
+
+#### Changed
+
+- Optimize TransactionsPanel, UiHelpers, WindowSettings, WindowsSnapshotKeyStore classes.
+
 ### [2.13.6] - 2026-10-14
 
 #### Changed

@@ -5,15 +5,15 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
+    private const double MaxWindowDimension = 10000;
+
     private sealed record WindowSettings(double Width, double Height, int X, int Y);
     private WindowSettings? windowSettings;
-    private PixelPoint? loadedWindowPosition;
     private PixelPoint? windowPositionForPersistence;
 
     private void LoadWindowSettings(ApplicationSettings? settings)
     {
-        var geometry = settings?.Window;
-        if (geometry is null || !IsValidWindowSize(geometry.Width, geometry.Height))
+        if (settings?.Window is not { } geometry || !IsValidWindowSize(geometry.Width, geometry.Height))
         {
             return;
         }
@@ -21,16 +21,16 @@ public partial class MainWindow
         windowSettings = geometry;
         Width = geometry.Width;
         Height = geometry.Height;
-        loadedWindowPosition = new PixelPoint(geometry.X, geometry.Y);
-        windowPositionForPersistence = loadedWindowPosition;
+        windowPositionForPersistence = new PixelPoint(geometry.X, geometry.Y);
         WindowStartupLocation = WindowStartupLocation.Manual;
     }
 
+    // Called from Opened: restores the position stored in the loaded settings (windowSettings is only replaced on close).
     private void ApplyLoadedWindowPosition()
     {
-        if (loadedWindowPosition is { } position)
+        if (windowSettings is { } geometry)
         {
-            Position = position;
+            Position = new PixelPoint(geometry.X, geometry.Y);
         }
     }
 
@@ -42,11 +42,7 @@ public partial class MainWindow
             windowSettings = new WindowSettings(Width, Height, position.X, position.Y);
             SaveApplicationSettings(DatabasePath);
         }
-        catch (IOException ex)
-        {
-            Serilog.Log.Warning(ex, "Unable to save window settings, SettingsPath: '{SettingsPath}'", applicationSettingsPath);
-        }
-        catch (UnauthorizedAccessException ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Serilog.Log.Warning(ex, "Unable to save window settings, SettingsPath: '{SettingsPath}'", applicationSettingsPath);
         }
@@ -55,5 +51,5 @@ public partial class MainWindow
     private bool IsValidWindowSize(double width, double height) =>
         double.IsFinite(width) && double.IsFinite(height) &&
         width >= MinWidth && height >= MinHeight &&
-        width <= 10000 && height <= 10000;
+        width <= MaxWindowDimension && height <= MaxWindowDimension;
 }

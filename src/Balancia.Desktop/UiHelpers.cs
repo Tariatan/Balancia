@@ -11,15 +11,14 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
+    private static readonly IBrush MutedTextBrush = Brush.Parse("#71838D");
+    private static readonly IBrush BodyTextBrush = Brush.Parse("#344D44");
+    private static readonly IBrush PositiveBrush = Brush.Parse("#2C8B6D");
+    private static readonly IBrush NegativeBrush = Brush.Parse("#B95D4D");
+
     private static void AddColumn(Grid grid, Control control, int column)
     {
         Grid.SetColumn(control, column);
-        grid.Children.Add(control);
-    }
-
-    private static void AddRow(Grid grid, Control control, int row)
-    {
-        Grid.SetRow(control, row);
         grid.Children.Add(control);
     }
 
@@ -27,11 +26,11 @@ public partial class MainWindow
     {
         Text = Get(content),
         FontSize = size,
-        Foreground = Brush.Parse("#71838D"),
+        Foreground = MutedTextBrush,
         VerticalAlignment = VerticalAlignment.Center
     };
 
-    private static IBrush BalanceColor(Money amount) => Brush.Parse(amount > Money.Zero ? "#2C8B6D" : "#B95D4D");
+    private static IBrush BalanceColor(Money amount) => amount > Money.Zero ? PositiveBrush : NegativeBrush;
 
     private static CalendarDatePicker DateInput(DateOnly? date) => new LocalizedCalendarDatePicker
     {
@@ -42,16 +41,18 @@ public partial class MainWindow
         FontSize = 13,
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
+
     private static TextBox Input(string text) => new()
     {
         Text = text,
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
+
     private static TextBlock Text(string text) => new()
     {
         Text = Get(text),
         TextWrapping = TextWrapping.Wrap,
-        Foreground = Brush.Parse("#344D44")
+        Foreground = BodyTextBrush
     };
 
     private static StackPanel Field(string label, Control input)
@@ -63,6 +64,7 @@ public partial class MainWindow
             Children = { Text(label), input }
         };
     }
+
     private static WrapPanel Row(params Control[] controls)
     {
         var row = new WrapPanel();
@@ -72,13 +74,6 @@ public partial class MainWindow
             row.Children.Add(control);
         }
         return row;
-    }
-
-    private static Button ActionButton(string title, Func<Task> action)
-    {
-        var button = new Button { Content = Get(title) };
-        button.Click += async (_, _) => await action();
-        return button;
     }
 
     private sealed record Choice<T>(T Value, string Label)
