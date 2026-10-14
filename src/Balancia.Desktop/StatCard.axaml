@@ -1,6 +1,9 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Balancia.Desktop.StatCard">
+             xmlns:local="clr-namespace:Balancia.Desktop"
+             x:Class="Balancia.Desktop.StatCard"
+             x:DataType="local:StatCard"
+             x:Name="Root">
   <UserControl.Styles>
     <Style Selector="TextBlock.stat-title">
       <Setter Property="FontSize" Value="11" />
@@ -21,9 +24,9 @@
   </UserControl.Styles>
   <Border Classes="card" Padding="15,6">
     <Grid RowDefinitions="Auto,*,Auto">
-      <TextBlock x:Name="TitleText" Classes="stat-title" Grid.Row="0" />
-      <TextBlock x:Name="ValueText" Classes="stat-value" Grid.Row="1" />
-      <TextBlock x:Name="ScopeText" Classes="stat-scope" Grid.Row="2" />
+      <TextBlock Classes="stat-title" Grid.Row="0" Text="{Binding Title, ElementName=Root}" />
+      <TextBlock Classes="stat-value" Grid.Row="1" Text="{Binding Value, ElementName=Root}" />
+      <TextBlock Classes="stat-scope" Grid.Row="2" Text="{Binding Scope, ElementName=Root}" />
     </Grid>
   </Border>
 </UserControl>

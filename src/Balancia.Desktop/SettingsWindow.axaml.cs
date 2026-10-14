@@ -14,7 +14,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        versionText.Text = $"Balancia {typeof(SettingsWindow).Assembly.GetName().Version!.ToString(3)}";
+        VersionText.Text = $"Balancia {typeof(SettingsWindow).Assembly.GetName().Version!.ToString(3)}";
     }
 
     public static Task ShowFor(MainWindow owner)
@@ -26,9 +26,9 @@ public partial class SettingsWindow : Window
 
     private void Initialize()
     {
-        languagePicker.ItemsSource = MainWindow.Languages;
-        languagePicker.SelectedItem = MainWindow.Languages.Single(option => option.Code == owner.LanguageCode);
-        languagePicker.ItemTemplate = new FuncDataTemplate<MainWindow.LanguageOption>((option, _) =>
+        LanguagePicker.ItemsSource = MainWindow.Languages;
+        SelectCurrentLanguage();
+        LanguagePicker.ItemTemplate = new FuncDataTemplate<MainWindow.LanguageOption>((option, _) =>
             // Virtualized presenters can request a template with no item while scrolling.
             option is null
                 ? null
@@ -39,27 +39,27 @@ public partial class SettingsWindow : Window
                     Children =
                     {
                         MainWindow.FlagIcon(option.Code),
-                        new TextBlock { Text = option.NativeName, VerticalAlignment = VerticalAlignment.Center }
-                    }
+                        new TextBlock { Text = option.NativeName, VerticalAlignment = VerticalAlignment.Center },
+                    },
                 });
-        languagePicker.SelectionChanged += OnLanguageChanged;
+        LanguagePicker.SelectionChanged += OnLanguageChanged;
 
-        databaseButton.Click += async (_, _) => await Perform(owner.ChangeDatabaseLocation);
-        backupButton.Click += async (_, _) => await Perform(() => owner.ChooseBackupLocation(this));
-        snapshotButton.Click += async (_, _) => await Perform(() => owner.ChooseSnapshotLocation(this));
-        encryptionButton.Click += async (_, _) => await Perform(async () =>
-        {
-            await owner.ConfigureEncryption(this);
-        });
-        importCsvButton.Click += async (_, _) => await Perform(owner.ImportCsv);
-        exportCsvButton.Click += async (_, _) => await Perform(owner.ExportCsv);
-        restoreSnapshotButton.Click += async (_, _) => await Perform(() => owner.RestoreSnapshot(this));
-        exportSnapshotButton.Click += async (_, _) => await Perform(() => owner.ExportSnapshot(this));
-        closeButton.Click += (_, _) => Close();
+        DatabaseButton.Click += async (_, _) => await Perform(owner.ChangeDatabaseLocation);
+        BackupButton.Click += async (_, _) => await Perform(() => owner.ChooseBackupLocation(this));
+        SnapshotButton.Click += async (_, _) => await Perform(() => owner.ChooseSnapshotLocation(this));
+        EncryptionButton.Click += async (_, _) => await Perform(() => owner.ConfigureEncryption(this));
+        ImportCsvButton.Click += async (_, _) => await Perform(owner.ImportCsv);
+        ExportCsvButton.Click += async (_, _) => await Perform(owner.ExportCsv);
+        RestoreSnapshotButton.Click += async (_, _) => await Perform(() => owner.RestoreSnapshot(this));
+        ExportSnapshotButton.Click += async (_, _) => await Perform(() => owner.ExportSnapshot(this));
+        CloseButton.Click += (_, _) => Close();
         Closing += (_, e) => e.Cancel = operationInProgress;
 
         Localize();
     }
+
+    private void SelectCurrentLanguage() =>
+        LanguagePicker.SelectedItem = MainWindow.Languages.Single(option => option.Code == owner.LanguageCode);
 
     private async Task Perform(Func<Task> action)
     {
@@ -69,51 +69,60 @@ public partial class SettingsWindow : Window
         }
 
         operationInProgress = true;
-        ((Control)Content!).IsEnabled = false;
+        ContentRoot.IsEnabled = false;
         try
         {
             await action();
-            RenderLocations();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Settings operation failed");
+            await owner.ShowErrorDialog("Balancia", MainWindow.FriendlyError(ex));
         }
         finally
         {
+            RenderLocations();
             operationInProgress = false;
-            ((Control)Content!).IsEnabled = true;
+            ContentRoot.IsEnabled = true;
         }
     }
 
     private void Localize()
     {
-        Title = Get("Settings");
-        heading.Text = Get("Settings");
-        languageLabel.Text = Get("Language");
-        databaseButton.Content = Get("Database folder");
-        backupButton.Content = Get("Backup folder");
-        snapshotButton.Content = Get("Snapshot folder");
-        encryptionHeading.Text = Get("Snapshot encryption");
-        dataTransferHeading.Text = Get("Data transfer");
-        importCsvButton.Content = Get("Import CSV");
-        exportCsvButton.Content = Get("Export CSV");
-        restoreSnapshotButton.Content = Get("Restore snapshot");
-        exportSnapshotButton.Content = Get("Export snapshot");
-        closeButton.Content = Get("Close");
+        var settings = Get("Settings");
+        Title = settings;
+        Heading.Text = settings;
+        LanguageLabel.Text = Get("Language");
+        DatabaseButton.Content = Get("Database folder");
+        BackupButton.Content = Get("Backup folder");
+        SnapshotButton.Content = Get("Snapshot folder");
+        EncryptionHeading.Text = Get("Snapshot encryption");
+        DataTransferHeading.Text = Get("Data transfer");
+        ImportCsvButton.Content = Get("Import CSV");
+        ExportCsvButton.Content = Get("Export CSV");
+        RestoreSnapshotButton.Content = Get("Restore snapshot");
+        ExportSnapshotButton.Content = Get("Export snapshot");
+        CloseButton.Content = Get("Close");
         RenderLocations();
     }
 
     private void RenderLocations()
     {
-        databaseText.Text = owner.DatabasePath;
-        backupText.Text = owner.BackupPath ?? Get("Not configured");
-        snapshotText.Text = owner.SnapshotPath ?? Get("Not configured");
-        encryptionStatus.Text = Get(owner.EncryptionConfigured
+        var notConfigured = Get("Not configured");
+        var encryptionConfigured = owner.EncryptionConfigured;
+
+        DatabaseText.Text = owner.DatabasePath;
+        BackupText.Text = owner.BackupPath ?? notConfigured;
+        SnapshotText.Text = owner.SnapshotPath ?? notConfigured;
+        EncryptionStatus.Text = Get(encryptionConfigured
             ? "Encrypted snapshots and backups. Key remembered on this Windows account. Local databases and CSV stay unencrypted."
             : "Set a passphrase before exporting snapshots or enabling automatic backups.");
-        encryptionButton.Content = Get(owner.EncryptionConfigured ? "Change passphrase" : "Set passphrase");
+        EncryptionButton.Content = Get(encryptionConfigured ? "Change passphrase" : "Set passphrase");
     }
 
     private async void OnLanguageChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (languagePicker.SelectedItem is not MainWindow.LanguageOption selected || selected.Code == owner.LanguageCode)
+        if (LanguagePicker.SelectedItem is not MainWindow.LanguageOption selected || selected.Code == owner.LanguageCode)
         {
             return;
         }
@@ -126,7 +135,7 @@ public partial class SettingsWindow : Window
         catch (Exception ex)
         {
             Serilog.Log.Error(ex, "Language change failed, Language: '{Language}'", selected.Code);
-            languagePicker.SelectedItem = MainWindow.Languages.Single(option => option.Code == owner.LanguageCode);
+            SelectCurrentLanguage();
             await owner.ShowErrorDialog("Balancia", MainWindow.FriendlyError(ex));
         }
     }

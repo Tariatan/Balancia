@@ -2,18 +2,19 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Balancia.Desktop.SnapshotPassphraseWindow"
         Width="530" Height="480" CanResize="False" ShowInTaskbar="False"
-        Icon="avares://Balancia.Desktop/Balancia.ico" WindowStartupLocation="CenterOwner">
+        Icon="avares://Balancia.Desktop/Balancia.ico" WindowStartupLocation="CenterOwner"
+        Opened="OnOpened" Closed="OnClosed">
   <StackPanel Margin="24" Spacing="12">
-    <TextBlock x:Name="heading" FontSize="23" FontWeight="SemiBold" />
-    <TextBlock x:Name="explanation" TextWrapping="Wrap" />
-    <TextBlock x:Name="passphraseLabel" />
-    <TextBox x:Name="passphrase" PasswordChar="●" />
-    <TextBlock x:Name="confirmLabel" />
-    <TextBox x:Name="confirmation" PasswordChar="●" />
-    <TextBlock x:Name="error" Foreground="DarkRed" TextWrapping="Wrap" />
+    <TextBlock x:Name="Heading" FontSize="23" FontWeight="SemiBold" />
+    <TextBlock x:Name="Explanation" TextWrapping="Wrap" />
+    <TextBlock x:Name="PassphraseLabel" />
+    <TextBox x:Name="Passphrase" PasswordChar="●" />
+    <TextBlock x:Name="ConfirmLabel" />
+    <TextBox x:Name="Confirmation" PasswordChar="●" />
+    <TextBlock x:Name="Error" Foreground="DarkRed" TextWrapping="Wrap" />
     <StackPanel Orientation="Horizontal" Spacing="12">
-      <Button x:Name="accept" IsDefault="True" />
-      <Button x:Name="cancel" IsCancel="True" />
+      <Button x:Name="Accept" IsDefault="True" Click="OnAccept" />
+      <Button x:Name="Cancel" IsCancel="True" Click="OnCancel" />
     </StackPanel>
   </StackPanel>
 </Window>

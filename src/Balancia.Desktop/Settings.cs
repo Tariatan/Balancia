@@ -48,26 +48,29 @@ public partial class MainWindow
         });
     }
 
-    internal async Task ChooseBackupLocation(Avalonia.Controls.Window? dialogOwner = null)
-    {
-        var selected = await PickFolder("Choose backup folder");
-        if (selected is null || !await EnsureEncryption(dialogOwner ?? this))
+    internal Task ChooseBackupLocation(Avalonia.Controls.Window? dialogOwner = null) => ChooseEncryptedLocation(
+        "Choose backup folder",
+        dialogOwner,
+        selected => SaveApplicationSettings(DatabasePath, selected),
+        selected =>
         {
-            return;
-        }
-
-        await Run(async () =>
-        {
-            await Task.Run(() => SaveApplicationSettings(DatabasePath, selected));
             BackupPath = selected;
             Serilog.Log.Information("Backup location changed, BackupPath: '{BackupPath}'", selected);
-            await Refresh();
         });
-    }
 
-    internal async Task ChooseSnapshotLocation(Avalonia.Controls.Window? dialogOwner = null)
+    internal Task ChooseSnapshotLocation(Avalonia.Controls.Window? dialogOwner = null) => ChooseEncryptedLocation(
+        "Choose snapshot folder",
+        dialogOwner,
+        selected => SaveApplicationSettings(DatabasePath, BackupPath, selected),
+        selected =>
+        {
+            SnapshotPath = selected;
+            Serilog.Log.Information("Snapshot location changed, SnapshotPath: '{SnapshotPath}'", selected);
+        });
+
+    private async Task ChooseEncryptedLocation(string title, Avalonia.Controls.Window? dialogOwner, Action<string> save, Action<string> apply)
     {
-        var selected = await PickFolder("Choose snapshot folder");
+        var selected = await PickFolder(title);
         if (selected is null || !await EnsureEncryption(dialogOwner ?? this))
         {
             return;
@@ -75,9 +78,8 @@ public partial class MainWindow
 
         await Run(async () =>
         {
-            await Task.Run(() => SaveApplicationSettings(DatabasePath, BackupPath, selected));
-            SnapshotPath = selected;
-            Serilog.Log.Information("Snapshot location changed, SnapshotPath: '{SnapshotPath}'", selected);
+            await Task.Run(() => save(selected));
+            apply(selected);
             await Refresh();
         });
     }
