@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.13.1] - 2026-10-14
+
+#### Changed
+
+- Rename classes.
+
 ### [2.13.0] - 2026-10-13
 
 #### Added
