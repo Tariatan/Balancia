@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [2.13.5] - 2026-10-14
+
+#### Changed
+
+- Optimize Overview, ReminderPresentation, RemindersPanel classes.
+
 ### [2.13.4] - 2026-10-14
 
 #### Changed

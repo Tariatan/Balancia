@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using Balancia.Core;
 
+using static Balancia.Desktop.InputParsing;
 using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
@@ -14,6 +15,8 @@ namespace Balancia.Desktop;
 public partial class MainWindow
 {
     private readonly Dictionary<string, CheckBox> categoryFilterChecks = [];
+    private IReadOnlyList<CategoryTotal> renderedCategories = [];
+    private string? renderedCategoryId;
 
     private Category? SelectedCategory => (CategoriesList.SelectedItem as Choice<Category>)?.Value;
 

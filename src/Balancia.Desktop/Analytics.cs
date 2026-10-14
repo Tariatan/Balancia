@@ -1,6 +1,7 @@
 using Balancia.Core;
 using Balancia.Storage;
 
+using static Balancia.Desktop.InputParsing;
 using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;

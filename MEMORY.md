@@ -58,7 +58,7 @@ Historical checks below are recorded evidence, not checks rerun during cleanup.
 - **Null `choice` guard in item templates** (`InitializeAccountPanel` in
   [Accounts.cs](src/Balancia.Desktop/Accounts.cs), `InitializeCategoryPanel` in
   [CategoriesPanel.cs](src/Balancia.Desktop/CategoriesPanel.cs); the same comment
-  also appears in `SettingsWindow.axaml.cs`): virtualized presenters can request
+  also appears in `SettingsWindow.axaml.cs` and `RemindersPanel.cs`): virtualized presenters can request
   a template with no item while scrolling, so `if (choice is null) return null;`
   must stay even though the item type is non-nullable.
 

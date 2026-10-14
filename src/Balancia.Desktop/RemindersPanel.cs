@@ -5,67 +5,65 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Balancia.Core;
 
+using static Balancia.Desktop.InputParsing;
 using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
+    private Reminder? SelectedReminder => (RemindersList.SelectedItem as Choice<Reminder>)?.Value;
+
     private void InitializeRemindersPanel()
     {
         RemindersList.ItemTemplate = new FuncDataTemplate<Choice<Reminder>>((choice, _) =>
         {
-            var row = new Grid
+            // Virtualized presenters can request a template with no item while scrolling.
+            if (choice is null)
             {
-                ColumnDefinitions = new ColumnDefinitions("50,*,Auto"),
-                ColumnSpacing = 10,
-                MinHeight = 20
-            };
+                return null;
+            }
+
             var reminder = choice.Value;
             var emphasize = ReminderPresentation.IsEmphasized(reminder, displayDate);
             var foreground = Brush.Parse(ReminderPresentation.ColorFor(reminder, displayDate));
 
-            AddColumn(row, new TextBlock
-            {
-                Text = reminder.Occurrence.ToString("dd MMM", Culture),
-                FontSize = 12,
-                FontWeight = emphasize ? FontWeight.Bold : FontWeight.Normal,
-                Foreground = foreground,
-                VerticalAlignment = VerticalAlignment.Center
-            }, 0);
-            AddColumn(row, new TextBlock
-            {
-                Text = reminder.Template.Description,
-                FontSize = 12,
-                FontWeight = emphasize ? FontWeight.Bold : FontWeight.Normal,
-                Foreground = foreground,
-                VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis
-            }, 1);
+            var description = Cell(reminder.Template.Description, FontWeight.Normal);
+            description.TextTrimming = TextTrimming.CharacterEllipsis;
 
-            var amount = new TextBlock
+            var amount = Cell(AmountText(reminder.Template.IndicativeAmount), FontWeight.SemiBold);
+            amount.HorizontalAlignment = HorizontalAlignment.Right;
+
+            var row = new Grid
             {
-                Text = AmountText(reminder.Template.IndicativeAmount),
-                FontSize = 12,
-                Foreground = foreground,
-                FontWeight = emphasize ? FontWeight.Bold : FontWeight.SemiBold,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
+                ColumnDefinitions = new ColumnDefinitions("50,*,Auto"),
+                ColumnSpacing = 10,
+                MinHeight = 20,
             };
-
+            AddColumn(row, Cell(reminder.Occurrence.ToString("dd MMM", Culture), FontWeight.Normal), 0);
+            AddColumn(row, description, 1);
             AddColumn(row, amount, 2);
             return row;
+
+            TextBlock Cell(string text, FontWeight weight) => new()
+            {
+                Text = text,
+                FontSize = 12,
+                FontWeight = emphasize ? FontWeight.Bold : weight,
+                Foreground = foreground,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
         },
         true);
         RemindersList.DoubleTapped += async (_, _) =>
         {
-            if (RemindersList.SelectedItem is Choice<Reminder> selected)
+            if (SelectedReminder is { } reminder)
             {
-                await EditReminder(selected.Value);
+                await EditReminder(reminder);
             }
         };
         ReminderAddButton.Click += async (_, _) => await EditReminder(null);
-        ReminderRemoveButton.Click += async (_, _) => await DeleteSelectedReminder(RemindersList);
+        ReminderRemoveButton.Click += async (_, _) => await DeleteSelectedReminder();
     }
 
     private void RenderRemindersPanel()
@@ -74,7 +72,7 @@ public partial class MainWindow
         ToolTip.SetTip(ReminderAddButton, Get("Add reminder"));
         ToolTip.SetTip(ReminderRemoveButton, Get("Delete selected reminder"));
 
-        RemindersList.ItemsSource = reminders.Select(r => new Choice<Reminder>(r, ReminderText(r))).ToArray();
+        RemindersList.ItemsSource = reminders.Select(r => new Choice<Reminder>(r, r.Template.Description)).ToArray();
         RemindersEmpty.Text = Get("No reminders yet");
         RemindersEmpty.IsVisible = reminders.Count == 0;
 
@@ -85,9 +83,9 @@ public partial class MainWindow
         ReminderTotalUpcomingValue.Text = AmountText(totals.Upcoming);
     }
 
-    private async Task DeleteSelectedReminder(ListBox remindersList)
+    private async Task DeleteSelectedReminder()
     {
-        if (remindersList.SelectedItem is not Choice<Reminder> choice)
+        if (SelectedReminder is not { } reminder)
         {
             await SelectFirst();
             return;
@@ -95,14 +93,11 @@ public partial class MainWindow
 
         await EditDialog("Delete reminder",
             [
-                Text(Format("Delete '{0}'?", choice.Value.Template.Description))
+                Text(Format("Delete '{0}'?", reminder.Template.Description))
             ],
-            () => () => store.DeleteReminder(choice.Value.Template.Id),
+            () => () => store.DeleteReminder(reminder.Template.Id),
             DialogOptions.Confirmation("Delete"));
     }
-
-    private static string ReminderText(Reminder reminder) =>
-        $"{(reminder.Overdue ? Get("OVERDUE · ") : "")}{reminder.Occurrence:yyyy-MM-dd} · {reminder.Template.Description} · {AmountText(reminder.Template.IndicativeAmount)} · {Format("every {0} month(s)", reminder.Template.IntervalMonths)}";
 
     private async Task EditReminder(Reminder? reminder)
     {
@@ -121,9 +116,9 @@ public partial class MainWindow
             ],
             () =>
             {
-                var values = (description.Text ?? "", ParseDate(date), ParseMoney(amount),
+                var (text, expectedDate, indicativeAmount, intervalMonths) = (description.Text ?? "", ParseDate(date), ParseMoney(amount),
                     int.Parse(interval.Text ?? "", CultureInfo.InvariantCulture));
-                return () => store.SaveReminder(template?.Id, values.Item1, values.Item2, values.Item3, values.Item4, template?.Archived ?? false);
+                return () => store.SaveReminder(template?.Id, text, expectedDate, indicativeAmount, intervalMonths, template?.Archived ?? false);
             },
             new DialogOptions(Validate: () =>
             {

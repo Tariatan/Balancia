@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Balancia.Core;
+using static Balancia.Desktop.InputParsing;
 using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
