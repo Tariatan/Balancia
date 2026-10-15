@@ -14,6 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.1.0] - 2026-10-15
+
+#### Added
+
+- Group transaction history visually by day with alternating pale blue and ivory row backgrounds, preserving selection and hover highlights.
+- Shade reminders through next month pale ivory and later reminders pale blue. Alternate ivory and blue category bands by parent, with children sharing their parent's background.
+
 ### [3.0.2] - 2026-10-15
 
 #### Fixed

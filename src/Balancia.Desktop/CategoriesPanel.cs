@@ -2,8 +2,11 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Balancia.Core;
 
@@ -15,6 +18,7 @@ namespace Balancia.Desktop;
 public partial class MainWindow
 {
     private readonly Dictionary<string, CheckBox> categoryFilterChecks = [];
+    private readonly Dictionary<string, IBrush> categoryGroupBrushes = [];
     private IReadOnlyList<CategoryTotal> renderedCategories = [];
     private string? renderedCategoryId;
 
@@ -28,6 +32,18 @@ public partial class MainWindow
 
     private void InitializeCategoryPanel()
     {
+        CategoriesList.Styles.Add(new Style(selector => selector.OfType<ListBoxItem>())
+        {
+            Setters =
+            {
+                new Setter(BackgroundProperty, new Binding(".")
+                {
+                    Converter = new FuncValueConverter<Choice<Category>, IBrush>(choice =>
+                        choice is not null && categoryGroupBrushes.TryGetValue(choice.Value.ParentId ?? choice.Value.Id, out var brush)
+                            ? brush : DayIvoryBrush),
+                }),
+            },
+        });
         CategoriesList.ItemTemplate = new FuncDataTemplate<Choice<Category>>((choice, _) =>
         {
             // Virtualized presenters can request a template with no item while scrolling.
@@ -93,6 +109,11 @@ public partial class MainWindow
         ToolTip.SetTip(CategoryRemoveButton, Get("Delete selected category"));
 
         categoryFilterChecks.Clear();
+        categoryGroupBrushes.Clear();
+        foreach (var category in ledgerSnapshot.Categories.Where(category => category.ParentId is null))
+        {
+            categoryGroupBrushes[category.Id] = categoryGroupBrushes.Count % 2 == 0 ? DayIvoryBrush : DayBlueBrush;
+        }
         CategoriesList.ItemsSource = ledgerSnapshot.Categories
             .Select(category => new Choice<Category>(category,
                 WithArchivedMarker(category.Path, category.Archived)))

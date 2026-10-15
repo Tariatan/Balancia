@@ -1,8 +1,11 @@
 using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Balancia.Core;
 
 using static Balancia.Desktop.InputParsing;
@@ -16,6 +19,18 @@ public partial class MainWindow
 
     private void InitializeRemindersPanel()
     {
+        RemindersList.Styles.Add(new Style(selector => selector.OfType<ListBoxItem>())
+        {
+            Setters =
+            {
+                new Setter(BackgroundProperty, new Binding(".")
+                {
+                    Converter = new FuncValueConverter<Choice<Reminder>, IBrush>(choice =>
+                        choice is not null && choice.Value.Occurrence >= new DateOnly(displayDate.Year, displayDate.Month, 1).AddMonths(2)
+                            ? DayBlueBrush : DayIvoryBrush),
+                }),
+            },
+        });
         RemindersList.ItemTemplate = new FuncDataTemplate<Choice<Reminder>>((choice, _) =>
         {
             // Virtualized presenters can request a template with no item while scrolling.

@@ -3,11 +3,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.Styling;
 using Balancia.Core;
 using Balancia.Storage;
 
@@ -22,6 +24,8 @@ public partial class MainWindow
 
     private static readonly IBrush RowTextBrush = Brush.Parse("#263C48");
     private static readonly IBrush RowHeaderBrush = Brush.Parse("#71838D");
+    private static readonly IBrush DayBlueBrush = Brush.Parse("#F3F8FA");
+    private static readonly IBrush DayIvoryBrush = Brush.Parse("#FCF8F0");
     private static readonly IBrush IncomeBrush = Brush.Parse("#2C8B6D");
     private static readonly IBrush ExpenseBrush = Brush.Parse("#B95D4D");
     private static readonly IBrush TransferBrush = Brush.Parse("#1B4F72");
@@ -35,6 +39,10 @@ public partial class MainWindow
 
     private void InitializeTransactionsPanel()
     {
+        TransactionsList.Styles.Add(new Style(selector => selector.OfType<ListBoxItem>())
+        {
+            Setters = { new Setter(BackgroundProperty, new Binding(nameof(TransactionItem.Background))) }
+        });
         TransactionsList.ItemTemplate = new FuncDataTemplate<TransactionItem>((item, _) => TransactionRow(item.Hit), true);
         TransactionsList.DoubleTapped += async (_, _) =>
         {
@@ -457,8 +465,10 @@ public partial class MainWindow
         ],
         () => () => store.DeleteTransaction(entry.Id), DialogOptions.Confirmation("Remove", size: DialogSize.Wide));
 
-    private sealed record TransactionItem(TransactionsHit Hit)
+    private sealed record TransactionItem(TransactionsHit Hit, bool AlternateDay)
     {
+        public IBrush Background => AlternateDay ? DayIvoryBrush : DayBlueBrush;
+
         public override string ToString()
         {
             var entry = Hit.Entry;

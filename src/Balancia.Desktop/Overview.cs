@@ -63,7 +63,18 @@ public partial class MainWindow
         TransactionsHeading.Text = $"{Get("Transactions")} · {first:N0}-{offset + shown:N0} / {total:N0}";
         TransactionsEmpty.IsVisible = total == 0;
 
-        var nextItems = page?.Hits.Select(hit => new TransactionItem(hit)).ToArray() ?? [];
+        DateOnly? previousDate = null;
+        var alternateDay = false;
+        var nextItems = page?.Hits.Select(hit =>
+        {
+            var date = hit.Entry.Draft.Date;
+            if (previousDate is not null && previousDate != date)
+            {
+                alternateDay = !alternateDay;
+            }
+            previousDate = date;
+            return new TransactionItem(hit, alternateDay);
+        }).ToArray() ?? [];
         var currentItems = TransactionsList.ItemsSource?.OfType<TransactionItem>() ?? [];
         if (!currentItems.SequenceEqual(nextItems))
         {
