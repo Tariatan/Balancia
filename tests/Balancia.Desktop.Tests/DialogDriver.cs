@@ -38,6 +38,8 @@ internal static class DialogDriver
         }
     }
 
+    public static void Fill(this Window dialog, string label, DateOnly value) => dialog.Fill(label, value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
     public static string TextOf(this Window dialog, string label) => dialog.Field(label) switch
     {
         TextBox box => box.Text ?? "",
@@ -53,7 +55,7 @@ internal static class DialogDriver
     public static async Task WaitUntilClosedAsync(this Window owner) =>
         await DesktopWorkspace.WaitUntilAsync(() => owner.OwnedWindows.Count == 0, "the dialog to close");
 
-    /// <summary>Opens a dialog from a panel button, fills it in with <paramref name="fill"/>, and returns it without saving.</summary>
+    /// <summary>Clicks a panel button and returns the dialog it opens, still unsaved.</summary>
     public static async Task<Window> OpenDialogAsync(this Window owner, string buttonName, string title)
     {
         owner.Click(buttonName);

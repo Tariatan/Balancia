@@ -14,6 +14,14 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.0.1] - 2026-10-15
+
+#### Changed
+
+- Tests only, no production change: Core, Storage and Desktop test projects use Arrange/Act/Assert with `Method_Precondition_Outcome` names, with repeated cases merged into theories.
+- Desktop tests open windows through shared workspace helpers and close them on dispose, so a failing test cannot leave a window open.
+- Storage tests share `SqliteScript` and `TestClock` helpers; the opt-in performance test skips instead of passing when `BALANCIA_PERF` is not set.
+
 ### [3.0.0] - 2026-10-15
 
 #### Changed

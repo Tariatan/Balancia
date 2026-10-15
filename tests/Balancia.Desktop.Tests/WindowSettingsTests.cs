@@ -13,8 +13,7 @@ public sealed class WindowSettingsTests
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
         workspace.WriteSettings();
-        var window = workspace.CreateConfiguredWindow(withSnapshotKey: false);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: false);
         window.Width = 1500;
         window.Height = 900;
 
@@ -35,8 +34,7 @@ public sealed class WindowSettingsTests
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
         workspace.WriteSettings();
-        var window = workspace.CreateConfiguredWindow(withSnapshotKey: false);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: false);
         window.Position = new PixelPoint(210, 140);
 
         // Act
@@ -65,7 +63,6 @@ public sealed class WindowSettingsTests
         Assert.Equal(1500, window.Width);
         Assert.Equal(900, window.Height);
         Assert.Equal(new PixelPoint(120, 80), window.Position);
-        window.Close();
     }
 
     [AvaloniaTheory]

@@ -7,18 +7,11 @@ namespace Balancia.Desktop.Tests;
 
 public sealed class ReminderDialogTests
 {
-    private static async Task<MainWindow> OpenAsync(DesktopWorkspace workspace)
-    {
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
-        return window;
-    }
-
     private static async Task<Window> OpenAddDialogAsync(MainWindow window)
     {
         var dialog = await window.OpenDialogAsync("ReminderAddButton", "Add reminder");
         dialog.Fill("Description (exact match)", "Rent");
-        dialog.Fill("Expected date", LedgerSeed.Today.AddDays(3).ToString("yyyy-MM-dd"));
+        dialog.Fill("Expected date", LedgerSeed.Today.AddDays(3));
         dialog.Fill("Amount", "1500");
         dialog.Fill("Repeat every N months", "1");
         return dialog;
@@ -30,7 +23,7 @@ public sealed class ReminderDialogTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         var dialog = await OpenAddDialogAsync(window);
 
         // Act
@@ -44,7 +37,6 @@ public sealed class ReminderDialogTests
         Assert.Equal(1, template.IntervalMonths);
         Assert.Equal(LedgerSeed.Today.AddDays(3), template.ExpectedDate);
         Assert.False(window.Find<TextBlock>("RemindersEmpty").IsVisible);
-        window.Close();
     }
 
     [AvaloniaTheory]
@@ -56,7 +48,7 @@ public sealed class ReminderDialogTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         var dialog = await OpenAddDialogAsync(window);
         dialog.Fill(label, value);
 
@@ -66,8 +58,6 @@ public sealed class ReminderDialogTests
         // Assert
         Assert.Equal(expectedError, error);
         Assert.Empty(store.ReadReminders());
-        await dialog.CancelAsync(window);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -77,7 +67,7 @@ public sealed class ReminderDialogTests
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
         store.SaveReminder(null, "Rent", LedgerSeed.Today.AddDays(3), Money.FromFrancs(1500m), 1, false);
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         var list = window.Find<ListBox>("RemindersList");
 
         // Act
@@ -90,7 +80,6 @@ public sealed class ReminderDialogTests
         // Assert
         Assert.Equal("1500.00", shownAmount);
         Assert.Equal(Money.FromFrancs(1600m), Assert.Single(store.ReadReminders()).Template.IndicativeAmount);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -100,7 +89,7 @@ public sealed class ReminderDialogTests
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
         store.SaveReminder(null, "Rent", LedgerSeed.Today.AddDays(3), Money.FromFrancs(1500m), 1, false);
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         window.Find<ListBox>("RemindersList").SelectedIndex = 0;
         var dialog = await window.OpenDialogAsync("ReminderRemoveButton", "Delete reminder");
 
@@ -110,7 +99,6 @@ public sealed class ReminderDialogTests
 
         // Assert
         Assert.Empty(store.ReadReminders());
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -119,7 +107,7 @@ public sealed class ReminderDialogTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore().SaveReminder(null, "Rent", LedgerSeed.Today.AddDays(3), Money.FromFrancs(1500m), 1, false);
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
 
         // Act
         window.Click("ReminderRemoveButton");
@@ -127,6 +115,5 @@ public sealed class ReminderDialogTests
 
         // Assert
         Assert.Empty(window.OwnedWindows);
-        window.Close();
     }
 }

@@ -62,6 +62,16 @@ internal static class WindowDriver
         }
     }
 
+    public static Task WaitForTransactionsAsync(this Window window, int count, string description) =>
+        DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == count, description);
+
+    /// <summary>Switches the period filter to "All" and waits until the list holds <paramref name="expectedCount"/> rows.</summary>
+    public static async Task ShowAllTransactionsAsync(this Window window, int expectedCount)
+    {
+        window.Click("FilterButtonAll");
+        await window.WaitForTransactionsAsync(expectedCount, $"all {expectedCount} transactions");
+    }
+
     public static int TransactionCount(this Window window) => window.Find<ListBox>("TransactionsList").ItemCount;
 
     public static string TransactionsHeading(this Window window) => window.Find<TextBlock>("TransactionsHeading").Text ?? "";

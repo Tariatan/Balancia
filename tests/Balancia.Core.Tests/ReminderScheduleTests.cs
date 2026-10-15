@@ -4,35 +4,24 @@ namespace Balancia.Core.Tests;
 
 public class ReminderScheduleTests
 {
-    [Fact]
-    public void AddMonthsClamped_DesiredDayFitsTargetMonth_KeepsDesiredDay() =>
-        Assert.Equal(new DateOnly(2026, 2, 15), ReminderSchedule.AddMonthsClamped(new DateOnly(2026, 1, 15), 1, 15));
+    [Theory]
+    [InlineData("2026-01-15", 1, 15, "2026-02-15")] // desired day fits the target month
+    [InlineData("2026-12-15", 1, 15, "2027-01-15")] // crosses the year boundary
+    [InlineData("2026-01-31", 3, 31, "2026-04-30")] // multi-month interval skips intermediate months
+    [InlineData("2026-01-31", 1, 31, "2026-02-28")] // non-leap February clamps to 28
+    [InlineData("2028-01-31", 1, 31, "2028-02-29")] // leap February clamps to 29
+    [InlineData("2026-02-28", 1, 31, "2026-03-31")] // desired day restored after a clamped month
+    [InlineData("2028-02-29", 12, 29, "2029-02-28")] // annual Feb 29 clamps in a non-leap year
+    [InlineData("2031-02-28", 12, 29, "2032-02-29")] // annual Feb 29 restored on the next leap year
+    public void AddMonthsClamped_DesiredDay_ClampsToTargetMonthLength(string start, int months, int desiredDay, string expected)
+    {
+        // Arrange
+        var startDate = DateOnly.Parse(start);
 
-    [Fact]
-    public void AddMonthsClamped_CrossesYearBoundary_AdvancesYear() =>
-        Assert.Equal(new DateOnly(2027, 1, 15), ReminderSchedule.AddMonthsClamped(new DateOnly(2026, 12, 15), 1, 15));
+        // Act
+        var result = ReminderSchedule.AddMonthsClamped(startDate, months, desiredDay);
 
-    [Fact]
-    public void AddMonthsClamped_MultiMonthInterval_SkipsIntermediateMonths() =>
-        Assert.Equal(new DateOnly(2026, 4, 30), ReminderSchedule.AddMonthsClamped(new DateOnly(2026, 1, 31), 3, 31));
-
-    [Fact]
-    public void AddMonthsClamped_JanuaryThirtyFirstIntoNonLeapFebruary_ClampsToTwentyEight() =>
-        Assert.Equal(new DateOnly(2026, 2, 28), ReminderSchedule.AddMonthsClamped(new DateOnly(2026, 1, 31), 1, 31));
-
-    [Fact]
-    public void AddMonthsClamped_AfterClampedFebruary_RestoresThirtyFirstInMarch() =>
-        Assert.Equal(new DateOnly(2026, 3, 31), ReminderSchedule.AddMonthsClamped(new DateOnly(2026, 2, 28), 1, 31));
-
-    [Fact]
-    public void AddMonthsClamped_JanuaryThirtyFirstIntoLeapFebruary_ClampsToTwentyNine() =>
-        Assert.Equal(new DateOnly(2028, 2, 29), ReminderSchedule.AddMonthsClamped(new DateOnly(2028, 1, 31), 1, 31));
-
-    [Fact]
-    public void AddMonthsClamped_AnnualFebruaryTwentyNinthIntoNonLeapYear_ClampsToTwentyEight() =>
-        Assert.Equal(new DateOnly(2029, 2, 28), ReminderSchedule.AddMonthsClamped(new DateOnly(2028, 2, 29), 12, 29));
-
-    [Fact]
-    public void AddMonthsClamped_AnnualFebruaryTwentyNinthAfterTwoNonLeapYears_RestoresOnNextLeapYear() =>
-        Assert.Equal(new DateOnly(2032, 2, 29), ReminderSchedule.AddMonthsClamped(new DateOnly(2031, 2, 28), 12, 29));
+        // Assert
+        Assert.Equal(DateOnly.Parse(expected), result);
+    }
 }

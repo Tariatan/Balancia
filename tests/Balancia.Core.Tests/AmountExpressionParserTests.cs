@@ -4,6 +4,8 @@ namespace Balancia.Core.Tests;
 
 public class AmountExpressionParserTests
 {
+    private const int MaxNesting = 64;
+
     [Theory]
     [InlineData("12.50", 12.50)]
     [InlineData("  12.50  ", 12.50)]
@@ -17,8 +19,17 @@ public class AmountExpressionParserTests
     [InlineData("--5", 5)]
     [InlineData("-(2+3)", -5)]
     [InlineData("+5", 5)]
-    public void Parse_ValidExpressions_ReturnsComputedValue(string text, decimal expected) =>
-        Assert.Equal(expected, new AmountExpressionParser(text).Parse());
+    public void Parse_ValidExpression_ReturnsComputedValue(string text, decimal expected)
+    {
+        // Arrange
+        var parser = new AmountExpressionParser(text);
+
+        // Act
+        var result = parser.Parse();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
 
     [Theory]
     [InlineData("")]
@@ -29,39 +40,68 @@ public class AmountExpressionParserTests
     [InlineData("1+2)")]
     [InlineData("1 2")]
     [InlineData("1.2.3")]
-    public void Parse_MalformedExpressions_ThrowsFormatException(string text) =>
-        Assert.Throws<FormatException>(() => new AmountExpressionParser(text).Parse());
-
-    [Fact]
-    public void Parse_NestingAtLimit_ReturnsValue() =>
-        Assert.Equal(1m, new AmountExpressionParser(Nested(64)).Parse());
-
-    [Fact]
-    public void Parse_NestingBeyondLimit_ThrowsFormatException() =>
-        Assert.Throws<FormatException>(() => new AmountExpressionParser(Nested(65)).Parse());
-
-    [Fact]
-    public void Parse_LongUnaryMinusChain_AppliesParityWithoutStackGrowth()
+    [InlineData("1/0")]
+    [InlineData("79228162514264337593543950335*2")]
+    public void Parse_InvalidExpression_ThrowsFormatException(string text)
     {
-        Assert.Equal(5m, new AmountExpressionParser(new string('-', 100_000) + "5").Parse());
-        Assert.Equal(-5m, new AmountExpressionParser(new string('-', 100_001) + "5").Parse());
+        // Arrange
+        var parser = new AmountExpressionParser(text);
+
+        // Act
+        Action parse = () => parser.Parse();
+
+        // Assert
+        Assert.Throws<FormatException>(parse);
     }
 
     [Fact]
-    public void Parse_MultiplicationOverflow_ThrowsFormatException() =>
-        Assert.Throws<FormatException>(() => new AmountExpressionParser("79228162514264337593543950335*2").Parse());
+    public void Parse_NestingAtLimit_ReturnsValue()
+    {
+        // Arrange
+        var parser = new AmountExpressionParser(Nested(MaxNesting));
 
-    private static string Nested(int depth) => new string('(', depth) + "1" + new string(')', depth);
+        // Act
+        var result = parser.Parse();
+
+        // Assert
+        Assert.Equal(1m, result);
+    }
 
     [Fact]
-    public void Parse_DivisionByZero_ThrowsFormatException() =>
-        Assert.Throws<FormatException>(() => new AmountExpressionParser("1/0").Parse());
+    public void Parse_NestingBeyondLimit_ThrowsFormatException()
+    {
+        // Arrange
+        var parser = new AmountExpressionParser(Nested(MaxNesting + 1));
+
+        // Act
+        Action parse = () => parser.Parse();
+
+        // Assert
+        Assert.Throws<FormatException>(parse);
+    }
+
+    [Theory]
+    [InlineData(100_000, 5)]
+    [InlineData(100_001, -5)]
+    public void Parse_LongUnaryMinusChain_AppliesParityWithoutStackGrowth(int minusCount, decimal expected)
+    {
+        // Arrange
+        var parser = new AmountExpressionParser(new string('-', minusCount) + "5");
+
+        // Act
+        var result = parser.Parse();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
 
     [Fact]
     public void TryEvaluate_ValidExpression_RoundsToCentimesAwayFromZero()
     {
+        // Act
         var evaluated = AmountExpressionParser.TryEvaluate("1/3", out var value);
 
+        // Assert
         Assert.True(evaluated);
         Assert.Equal(0.33m, value);
     }
@@ -74,9 +114,13 @@ public class AmountExpressionParserTests
     [InlineData("1/0")]
     public void TryEvaluate_InvalidInput_ReturnsFalseWithoutThrowing(string? text)
     {
+        // Act
         var evaluated = AmountExpressionParser.TryEvaluate(text, out var value);
 
+        // Assert
         Assert.False(evaluated);
         Assert.Equal(0, value);
     }
+
+    private static string Nested(int depth) => new string('(', depth) + "1" + new string(')', depth);
 }

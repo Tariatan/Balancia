@@ -1,25 +1,19 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Balancia.Core;
 using Xunit;
 
 namespace Balancia.Desktop.Tests;
 
 public sealed class CategoryDialogTests
 {
-    private static async Task<MainWindow> OpenAsync(DesktopWorkspace workspace)
-    {
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
-        return window;
-    }
-
     [AvaloniaFact]
     public async Task Add_TopLevelCategory_AppearsInTheList()
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         var dialog = await window.OpenDialogAsync("CategoryAddButton", "Add category");
         dialog.Fill("Name", "Food");
 
@@ -31,7 +25,6 @@ public sealed class CategoryDialogTests
         var category = Assert.Single(store.ReadSnapshot().Categories);
         Assert.Equal("Food", category.Name);
         Assert.Null(category.ParentId);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -41,7 +34,7 @@ public sealed class CategoryDialogTests
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
         var food = store.SaveCategory(null, "Food", null);
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         var dialog = await window.OpenDialogAsync("CategoryAddButton", "Add category");
         dialog.Fill("Name", "Groceries");
         dialog.Fill("Parent category", "Food");
@@ -53,7 +46,6 @@ public sealed class CategoryDialogTests
         var child = Assert.Single(store.ReadSnapshot().Categories, category => category.Name == "Groceries");
         Assert.Equal(food, child.ParentId);
         Assert.Equal("Food/Groceries", child.Path.Replace(" / ", "/"));
-        window.Close();
     }
 
     [AvaloniaTheory]
@@ -65,7 +57,7 @@ public sealed class CategoryDialogTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         var dialog = await window.OpenDialogAsync("CategoryAddButton", "Add category");
         dialog.Fill("Name", name);
 
@@ -75,8 +67,6 @@ public sealed class CategoryDialogTests
         // Assert
         Assert.Equal("Enter a category name without '/'; choose its parent separately.", error);
         Assert.Empty(store.ReadSnapshot().Categories);
-        await dialog.CancelAsync(window);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -86,7 +76,7 @@ public sealed class CategoryDialogTests
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
         store.SaveCategory(null, "Food", null);
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         var list = window.Find<ListBox>("CategoriesList");
         list.SelectedIndex = 0;
 
@@ -100,7 +90,6 @@ public sealed class CategoryDialogTests
         // Assert
         Assert.Equal("Food", shownName);
         Assert.Equal("Groceries", Assert.Single(store.ReadSnapshot().Categories).Name);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -110,7 +99,7 @@ public sealed class CategoryDialogTests
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
         store.SaveCategory(null, "Food", null);
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         window.Find<ListBox>("CategoriesList").SelectedIndex = 0;
         var dialog = await window.OpenDialogAsync("CategoryArchiveButton", "Archive category");
 
@@ -119,7 +108,6 @@ public sealed class CategoryDialogTests
 
         // Assert
         Assert.True(Assert.Single(store.ReadSnapshot().Categories).Archived);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -129,7 +117,7 @@ public sealed class CategoryDialogTests
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
         store.SaveCategory(null, "Food", null);
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         window.Find<ListBox>("CategoriesList").SelectedIndex = 0;
         var dialog = await window.OpenDialogAsync("CategoryRemoveButton", "Delete category");
 
@@ -138,7 +126,6 @@ public sealed class CategoryDialogTests
 
         // Assert
         Assert.Empty(store.ReadSnapshot().Categories);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -149,7 +136,7 @@ public sealed class CategoryDialogTests
         var store = workspace.SeedStore();
         var food = store.SaveCategory(null, "Food", null);
         store.SaveCategory(null, "Groceries", food);
-        var window = await OpenAsync(workspace);
+        var window = await workspace.OpenWindowAsync();
         var list = window.Find<ListBox>("CategoriesList");
         list.SelectedItem = list.Items.Cast<object>().First(item => item.ToString() == "Food");
         var dialog = await window.OpenDialogAsync("CategoryRemoveButton", "Delete category");
@@ -160,8 +147,6 @@ public sealed class CategoryDialogTests
         // Assert
         Assert.Equal("A category with subcategories cannot be deleted. Archive it instead.", error);
         Assert.Equal(2, store.ReadSnapshot().Categories.Count);
-        await dialog.CancelAsync(window);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -171,9 +156,9 @@ public sealed class CategoryDialogTests
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
         var food = store.SaveCategory(null, "Food", null);
-        store.SaveTransaction(null, new Balancia.Core.TransactionDraft(Balancia.Core.TransactionKind.Expense, LedgerSeed.Today,
-            "Lunch", Balancia.Core.Money.FromFrancs(5m), LedgerSeed.Account(store), CategoryId: food));
-        var window = await OpenAsync(workspace);
+        store.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, LedgerSeed.Today,
+            "Lunch", Money.FromFrancs(5m), LedgerSeed.Account(store), CategoryId: food));
+        var window = await workspace.OpenWindowAsync();
         window.Find<ListBox>("CategoriesList").SelectedIndex = 0;
         var dialog = await window.OpenDialogAsync("CategoryRemoveButton", "Delete category");
 
@@ -183,7 +168,5 @@ public sealed class CategoryDialogTests
         // Assert
         Assert.Equal("A category used by transactions cannot be deleted. Archive it instead.", error);
         Assert.Single(store.ReadSnapshot().Categories);
-        await dialog.CancelAsync(window);
-        window.Close();
     }
 }

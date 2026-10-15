@@ -17,8 +17,7 @@ public sealed class PaginationTests
             LedgerSeed.Expense(store, account, $"Purchase {index:000}", LedgerSeed.Today);
         }
 
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenWindowAsync();
         return window;
     }
 
@@ -36,7 +35,6 @@ public sealed class PaginationTests
         Assert.Contains("1-100 / 150", window.TransactionsHeading());
         Assert.False(window.Find<Button>("TransactionsPreviousPage").IsEnabled);
         Assert.True(window.Find<Button>("TransactionsNextPage").IsEnabled);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -48,13 +46,12 @@ public sealed class PaginationTests
 
         // Act
         window.Click("TransactionsNextPage");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 50, "the second page");
+        await window.WaitForTransactionsAsync(50, "the second page");
 
         // Assert
         Assert.Contains("101-150 / 150", window.TransactionsHeading());
         Assert.True(window.Find<Button>("TransactionsPreviousPage").IsEnabled);
         Assert.False(window.Find<Button>("TransactionsNextPage").IsEnabled);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -64,15 +61,14 @@ public sealed class PaginationTests
         using var workspace = new DesktopWorkspace();
         var window = await OpenWithManyTransactionsAsync(workspace);
         window.Click("TransactionsNextPage");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 50, "the second page");
+        await window.WaitForTransactionsAsync(50, "the second page");
 
         // Act
         window.Click("TransactionsPreviousPage");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 100, "the first page");
+        await window.WaitForTransactionsAsync(100, "the first page");
 
         // Assert
         Assert.Contains("1-100 / 150", window.TransactionsHeading());
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -82,14 +78,13 @@ public sealed class PaginationTests
         using var workspace = new DesktopWorkspace();
         var window = await OpenWithManyTransactionsAsync(workspace);
         window.Click("TransactionsNextPage");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 50, "the second page");
+        await window.WaitForTransactionsAsync(50, "the second page");
 
         // Act
         window.EnterText("FilterSearch", "Purchase 12");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 10, "the search to apply");
+        await window.WaitForTransactionsAsync(10, "the search to apply");
 
         // Assert
         Assert.Contains("1-10 / 10", window.TransactionsHeading());
-        window.Close();
     }
 }

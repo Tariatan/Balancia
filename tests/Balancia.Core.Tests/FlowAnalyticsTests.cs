@@ -7,52 +7,72 @@ public class FlowAnalyticsTests
     [Fact]
     public void Trend_Week_SplitsIntoCalendarWeeksAlignedToMonday()
     {
+        // Arrange
         // Range spans a partial week (Thu-Sun), a full week (Mon-Sun), and a partial week (Mon-Tue).
         var from = new DateOnly(2026, 1, 1); // Thursday
         var to = new DateOnly(2026, 1, 13); // Tuesday
-        var current = new[]
-        {
-            new DailyFlow(new DateOnly(2026, 1, 1), Money.FromFrancs(10), Money.Zero),
-            new DailyFlow(new DateOnly(2026, 1, 5), Money.FromFrancs(20), Money.Zero), // Monday of full week
-            new DailyFlow(new DateOnly(2026, 1, 13), Money.FromFrancs(30), Money.Zero),
-        };
+        DailyFlow[] current =
+        [
+            new(new DateOnly(2026, 1, 1), Money.FromFrancs(10), Money.Zero),
+            new(new DateOnly(2026, 1, 5), Money.FromFrancs(20), Money.Zero), // Monday of full week
+            new(new DateOnly(2026, 1, 13), Money.FromFrancs(30), Money.Zero),
+        ];
         var analytics = new FlowAnalytics(from, to, null, null, current, []);
 
+        // Act
         var buckets = analytics.Trend(FlowInterval.Week);
 
-        Assert.Equal(3, buckets.Count);
-        Assert.Equal(new DateOnly(2026, 1, 1), buckets[0].From);
-        Assert.Equal(new DateOnly(2026, 1, 4), buckets[0].To);
-        Assert.Equal(Money.FromFrancs(10), buckets[0].Income);
-        Assert.Equal(new DateOnly(2026, 1, 5), buckets[1].From);
-        Assert.Equal(new DateOnly(2026, 1, 11), buckets[1].To);
-        Assert.Equal(Money.FromFrancs(20), buckets[1].Income);
-        Assert.Equal(new DateOnly(2026, 1, 12), buckets[2].From);
-        Assert.Equal(new DateOnly(2026, 1, 13), buckets[2].To);
-        Assert.Equal(Money.FromFrancs(30), buckets[2].Income);
+        // Assert
+        Assert.Equal(
+            [
+                (new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 4), Money.FromFrancs(10)),
+                (new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 11), Money.FromFrancs(20)),
+                (new DateOnly(2026, 1, 12), new DateOnly(2026, 1, 13), Money.FromFrancs(30)),
+            ],
+            buckets.Select(bucket => (bucket.From, bucket.To, bucket.Income)));
     }
 
     [Fact]
     public void Trend_UndefinedInterval_ThrowsArgumentOutOfRange()
     {
+        // Arrange
         var date = new DateOnly(2026, 1, 5);
         var analytics = new FlowAnalytics(date, date, null, null, [], []);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => analytics.Trend((FlowInterval)99));
+        // Act
+        var trend = () => analytics.Trend((FlowInterval)99);
+
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(trend);
     }
 
-    [Fact]
-    public void Trend_SingleDayRange_ReturnsOneBucketForEveryInterval()
+    [Theory]
+    [InlineData(FlowInterval.Day)]
+    [InlineData(FlowInterval.Week)]
+    [InlineData(FlowInterval.Month)]
+    public void Trend_SingleDayRange_ReturnsOneBucket(FlowInterval interval)
     {
+        // Arrange
         var date = new DateOnly(2026, 1, 5);
         var analytics = new FlowAnalytics(date, date, null, null, [], []);
 
-        Assert.Single(analytics.Trend(FlowInterval.Day));
-        Assert.Single(analytics.Trend(FlowInterval.Week));
-        Assert.Single(analytics.Trend(FlowInterval.Month));
+        // Act
+        var buckets = analytics.Trend(interval);
+
+        // Assert
+        Assert.Single(buckets);
     }
 
     [Fact]
-    public void FlowBucket_Savings_IsIncomeMinusExpenses() =>
-        Assert.Equal(Money.FromFrancs(-5), new FlowBucket(default, default, Money.FromFrancs(10), Money.FromFrancs(15)).Savings);
+    public void Savings_IncomeAndExpenses_IsIncomeMinusExpenses()
+    {
+        // Arrange
+        var bucket = new FlowBucket(default, default, Money.FromFrancs(10), Money.FromFrancs(15));
+
+        // Act
+        var savings = bucket.Savings;
+
+        // Assert
+        Assert.Equal(Money.FromFrancs(-5), savings);
+    }
 }

@@ -27,8 +27,7 @@ public sealed class DayRolloverTests
         using var workspace = new DesktopWorkspace();
         SeedMarchTransaction(workspace);
         var clock = new ManualClock(LastDayOfMarch);
-        var window = workspace.CreateSeparateFolderWindow(clock);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenWindowAsync(clock);
         var summary = window.Find<TextBlock>("SummaryLabel");
         Assert.StartsWith("March", summary.Text);
 
@@ -38,7 +37,6 @@ public sealed class DayRolloverTests
 
         // Assert
         Assert.StartsWith("April", summary.Text);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -48,8 +46,7 @@ public sealed class DayRolloverTests
         using var workspace = new DesktopWorkspace();
         var (day, account) = SeedMarchTransaction(workspace);
         var clock = new ManualClock(LastDayOfMarch);
-        var window = workspace.CreateSeparateFolderWindow(clock);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenWindowAsync(clock);
         LedgerSeed.Expense(workspace.SeedStore(), account, "Added behind the window", day);
 
         // Act
@@ -58,7 +55,6 @@ public sealed class DayRolloverTests
 
         // Assert
         Assert.Equal(1, window.TransactionCount());
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -68,11 +64,9 @@ public sealed class DayRolloverTests
         using var workspace = new DesktopWorkspace();
         var (day, account) = SeedMarchTransaction(workspace);
         var clock = new ManualClock(LastDayOfMarch);
-        var window = workspace.CreateSeparateFolderWindow(clock);
-        await DesktopWorkspace.OpenAsync(window);
-        window.Click("FilterButtonAll");
+        var window = await workspace.OpenWindowAsync(clock);
         // "All" adds the older transaction, so waiting for the second row also waits for that refresh to finish.
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 2, "the full list");
+        await window.ShowAllTransactionsAsync(2);
         LedgerSeed.Expense(workspace.SeedStore(), account, "Added behind the window", day);
 
         // Act
@@ -81,6 +75,5 @@ public sealed class DayRolloverTests
 
         // Assert
         Assert.Equal(3, window.TransactionCount());
-        window.Close();
     }
 }

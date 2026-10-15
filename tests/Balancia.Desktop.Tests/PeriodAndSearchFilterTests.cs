@@ -19,7 +19,6 @@ public sealed class PeriodAndSearchFilterTests
 
         // Assert
         Assert.Equal(1, window.TransactionCount());
-        window.Close();
     }
 
     [AvaloniaTheory]
@@ -32,18 +31,15 @@ public sealed class PeriodAndSearchFilterTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         LedgerSeed.ThreeEras(workspace.SeedStore());
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
-        window.Click("FilterButtonAll");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 3, "all three transactions");
+        var window = await workspace.OpenWindowAsync();
+        await window.ShowAllTransactionsAsync(3);
 
         // Act
         window.Click(buttonName);
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 1, "the period to narrow the list");
+        await window.WaitForTransactionsAsync(1, "the period to narrow the list");
 
         // Assert
         Assert.Contains("1-1 / 1", window.TransactionsHeading());
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -52,10 +48,8 @@ public sealed class PeriodAndSearchFilterTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         LedgerSeed.ThreeEras(workspace.SeedStore());
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
-        window.Click("FilterButtonAll");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 3, "all three transactions");
+        var window = await workspace.OpenWindowAsync();
+        await window.ShowAllTransactionsAsync(3);
 
         // Act
         window.Click("FilterButtonYear");
@@ -63,7 +57,6 @@ public sealed class PeriodAndSearchFilterTests
 
         // Assert
         Assert.InRange(window.TransactionCount(), 1, 2);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -72,18 +65,15 @@ public sealed class PeriodAndSearchFilterTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         LedgerSeed.ThreeEras(workspace.SeedStore());
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
-        window.Click("FilterButtonAll");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 3, "all three transactions");
+        var window = await workspace.OpenWindowAsync();
+        await window.ShowAllTransactionsAsync(3);
 
         // Act
         window.EnterText("FilterSearch", "COFFEE");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 2, "the search to apply");
+        await window.WaitForTransactionsAsync(2, "the search to apply");
 
         // Assert
         Assert.Contains("1-2 / 2", window.TransactionsHeading());
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -92,17 +82,15 @@ public sealed class PeriodAndSearchFilterTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         LedgerSeed.ThreeEras(workspace.SeedStore());
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenWindowAsync();
 
         // Act
         window.EnterText("FilterSearch", "no such description");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 0, "the search to apply");
+        await window.WaitForTransactionsAsync(0, "the search to apply");
 
         // Assert
         Assert.True(window.Find<TextBlock>("TransactionsEmpty").IsVisible);
         Assert.Contains("0-0 / 0", window.TransactionsHeading());
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -111,20 +99,17 @@ public sealed class PeriodAndSearchFilterTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         LedgerSeed.ThreeEras(workspace.SeedStore());
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
-        window.Click("FilterButtonAll");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 3, "all three transactions");
+        var window = await workspace.OpenWindowAsync();
+        await window.ShowAllTransactionsAsync(3);
         window.EnterText("FilterSearch", "coffee");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 2, "the search to apply");
+        await window.WaitForTransactionsAsync(2, "the search to apply");
 
         // Act
         window.Click("FilterClearSearch");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 3, "the search to clear");
+        await window.WaitForTransactionsAsync(3, "the search to clear");
 
         // Assert
         Assert.Equal("", window.Find<TextBox>("FilterSearch").Text);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -133,19 +118,16 @@ public sealed class PeriodAndSearchFilterTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         LedgerSeed.ThreeEras(workspace.SeedStore());
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
-        window.Click("FilterButtonAll");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 3, "all three transactions");
+        var window = await workspace.OpenWindowAsync();
+        await window.ShowAllTransactionsAsync(3);
         window.EnterText("FilterSearch", "coffee");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 2, "the search to apply");
+        await window.WaitForTransactionsAsync(2, "the search to apply");
 
         // Act
         window.Click("FilterClearAll");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 3, "the filters to clear");
+        await window.WaitForTransactionsAsync(3, "the filters to clear");
 
         // Assert
         Assert.Equal("", window.Find<TextBox>("FilterSearch").Text);
-        window.Close();
     }
 }

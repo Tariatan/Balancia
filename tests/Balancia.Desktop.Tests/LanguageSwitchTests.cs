@@ -14,8 +14,7 @@ public sealed class LanguageSwitchTests
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
         workspace.WriteSettings();
-        var window = workspace.CreateConfiguredWindow(withSnapshotKey: false);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: false);
         var englishAllButton = window.Find<Button>("FilterButtonAll").Content;
 
         // Act
@@ -27,7 +26,6 @@ public sealed class LanguageSwitchTests
         Assert.Equal("de", window.LanguageCode);
         using var saved = JsonDocument.Parse(File.ReadAllText(workspace.SettingsFile));
         Assert.Equal("de", saved.RootElement.GetProperty("Language").GetString());
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -45,6 +43,5 @@ public sealed class LanguageSwitchTests
         // Assert
         Assert.Equal("de", window.LanguageCode);
         Assert.StartsWith("Buchungen", window.TransactionsHeading());
-        window.Close();
     }
 }

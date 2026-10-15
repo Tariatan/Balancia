@@ -1,7 +1,6 @@
 using System.Buffers.Binary;
 using System.Text.Json;
 using Avalonia.Controls;
-using Balancia.Desktop;
 using Avalonia.Threading;
 using Balancia.Storage;
 
@@ -10,10 +9,13 @@ namespace Balancia.Desktop.Tests;
 /// <summary>
 /// A temporary data folder plus settings file, so a <see cref="MainWindow"/> never reads or writes the user's real settings.
 /// The language is pinned to English so text assertions do not depend on the machine culture.
+/// Windows created through the workspace are closed on dispose, so a failing test cannot leave one open.
 /// </summary>
 internal sealed class DesktopWorkspace : IDisposable
 {
     private static readonly TimeSpan LoadTimeout = TimeSpan.FromSeconds(20);
+    private readonly List<MainWindow> windows = [];
+
     public DesktopWorkspace()
     {
         // SetLanguage changes the process-wide culture, and a window without a saved language reads it back at startup.
@@ -46,6 +48,12 @@ internal sealed class DesktopWorkspace : IDisposable
             : null;
     }
 
+    private MainWindow Track(MainWindow window)
+    {
+        windows.Add(window);
+        return window;
+    }
+
     public string DatabasePath => Path.Combine(DataDirectory, "balancia.db");
 
     /// <summary>Creates the ledger schema and returns a store for seeding data before the window opens.</summary>
@@ -72,17 +80,33 @@ internal sealed class DesktopWorkspace : IDisposable
     }
 
     /// <summary>A window in <c>--data-dir</c> mode: settings, backups and snapshots are disabled.</summary>
-    public MainWindow CreateSeparateFolderWindow(TimeProvider? clock = null) => new(DataDirectory, SettingsFile, clock);
+    public MainWindow CreateSeparateFolderWindow(TimeProvider? clock = null) => Track(new MainWindow(DataDirectory, SettingsFile, clock));
+
+    /// <summary>Creates a <see cref="CreateSeparateFolderWindow"/> and waits until it finished loading.</summary>
+    public async Task<MainWindow> OpenWindowAsync(TimeProvider? clock = null)
+    {
+        var window = CreateSeparateFolderWindow(clock);
+        await OpenAsync(window);
+        return window;
+    }
 
     /// <summary>A window configured from <see cref="WriteSettings"/>, with an optional snapshot key already provisioned.</summary>
     public MainWindow CreateConfiguredWindow(bool withSnapshotKey, TimeProvider? clock = null)
     {
-        var window = new MainWindow(null, SettingsFile, clock);
+        var window = Track(new MainWindow(null, SettingsFile, clock));
         if (withSnapshotKey)
         {
             window.UseSnapshotKey(CreateKey());
         }
 
+        return window;
+    }
+
+    /// <summary>Creates a <see cref="CreateConfiguredWindow"/> and waits until it finished loading.</summary>
+    public async Task<MainWindow> OpenConfiguredWindowAsync(bool withSnapshotKey, TimeProvider? clock = null)
+    {
+        var window = CreateConfiguredWindow(withSnapshotKey, clock);
+        await OpenAsync(window);
         return window;
     }
 
@@ -114,7 +138,13 @@ internal sealed class DesktopWorkspace : IDisposable
     public static async Task OpenAsync(MainWindow window)
     {
         window.Show();
-        var overview = window.FindControl<ContentControl>("Overview")!;
+        await WaitForOverviewAsync(window);
+    }
+
+    /// <summary>Waits until the startup load finished and the overview is interactive.</summary>
+    public static async Task WaitForOverviewAsync(MainWindow window)
+    {
+        var overview = window.Find<ContentControl>("Overview");
         await WaitUntilAsync(() => overview.IsVisible && overview.IsEnabled, "the overview to finish loading");
     }
 
@@ -135,9 +165,19 @@ internal sealed class DesktopWorkspace : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(Root))
+        try
         {
-            Directory.Delete(Root, true);
+            foreach (var window in windows.Where(window => window.IsVisible))
+            {
+                window.Close();
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(Root))
+            {
+                Directory.Delete(Root, true);
+            }
         }
     }
 }

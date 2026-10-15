@@ -13,14 +13,13 @@ public sealed class WindowLifecycleTests
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
         var window = workspace.CreateSeparateFolderWindow();
-        var overview = window.Find<ContentControl>("Overview");
         window.Show();
-        Assert.False(overview.IsEnabled); // the startup load is running
+        Assert.False(window.Find<ContentControl>("Overview").IsEnabled); // the startup load is running
 
         // Act
         window.Close();
         var stayedOpenWhileLoading = window.IsVisible;
-        await DesktopWorkspace.WaitUntilAsync(() => overview.IsVisible && overview.IsEnabled, "the overview to finish loading");
+        await DesktopWorkspace.WaitForOverviewAsync(window);
         window.Close();
 
         // Assert
@@ -36,7 +35,6 @@ public sealed class WindowLifecycleTests
         workspace.SeedStore();
         workspace.WriteSettings(backupPath: workspace.BackupDirectory);
         var window = workspace.CreateConfiguredWindow(withSnapshotKey: true);
-        var overview = window.Find<ContentControl>("Overview");
         window.Show();
 
         // Act
@@ -44,7 +42,7 @@ public sealed class WindowLifecycleTests
         var backupsWhileLoading = Directory.Exists(workspace.BackupDirectory)
             ? Directory.GetFiles(workspace.BackupDirectory).Length
             : 0;
-        await DesktopWorkspace.WaitUntilAsync(() => overview.IsVisible && overview.IsEnabled, "the overview to finish loading");
+        await DesktopWorkspace.WaitForOverviewAsync(window);
         window.Close();
 
         // Assert

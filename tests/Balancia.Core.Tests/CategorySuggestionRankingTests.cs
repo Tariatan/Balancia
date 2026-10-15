@@ -5,92 +5,84 @@ namespace Balancia.Core.Tests;
 public class CategorySuggestionRankingTests
 {
     [Fact]
-    public void Build_RanksExactMatchAboveWordPrefixAboveSegmentMatch()
+    public void Build_ExactWordPrefixAndSegmentMatches_RanksExactAboveWordPrefixAboveSegment()
     {
-        var suggestions = CategorySuggestionRanking.Build(
-            ["Food/Lunch", "Lunch", "Lunch Break", "Groceries"], [], "Lunch");
+        // Arrange
+        string[] categories = ["Food/Lunch", "Lunch", "Lunch Break", "Groceries"];
 
-        Assert.Collection(suggestions,
-            first =>
-            {
-                Assert.Equal("Lunch", first.Path);
-                Assert.Equal(CategorySuggestionSection.TopMatch, first.Section);
-            },
-            second =>
-            {
-                Assert.Equal("Food/Lunch", second.Path);
-                Assert.Equal(CategorySuggestionSection.Other, second.Section);
-            },
-            third =>
-            {
-                Assert.Equal("Lunch Break", third.Path);
-                Assert.Null(third.Section);
-            });
+        // Act
+        var suggestions = CategorySuggestionRanking.Build(categories, [], "Lunch");
+
+        // Assert
+        Assert.Equal(
+            [
+                ("Lunch", CategorySuggestionSection.TopMatch),
+                ("Food/Lunch", CategorySuggestionSection.Other),
+                ("Lunch Break", null),
+            ],
+            Project(suggestions));
     }
 
     [Fact]
-    public void Build_MatchIsCaseInsensitive()
+    public void Build_LowercaseQuery_MatchesCaseInsensitively()
     {
+        // Act
         var suggestions = CategorySuggestionRanking.Build(["Groceries"], [], "grocer");
 
-        var topMatch = Assert.Single(suggestions);
-        Assert.Equal("Groceries", topMatch.Path);
-        Assert.Equal(CategorySuggestionSection.TopMatch, topMatch.Section);
+        // Assert
+        Assert.Equal([("Groceries", CategorySuggestionSection.TopMatch)], Project(suggestions));
     }
 
     [Fact]
-    public void Build_RegularMatchesPrecedeTopMatchWithoutDuplicates()
+    public void Build_UsedCategories_PlacesRegularMatchesBeforeTopMatchWithoutDuplicates()
     {
-        var suggestions = CategorySuggestionRanking.Build(
-            ["Alpha", "Beta", "Gamma"], ["Gamma", "Beta"], "a");
+        // Act
+        var suggestions = CategorySuggestionRanking.Build(["Alpha", "Beta", "Gamma"], ["Gamma", "Beta"], "a");
 
-        Assert.Collection(suggestions,
-            first =>
-            {
-                Assert.Equal("Gamma", first.Path);
-                Assert.Equal(CategorySuggestionSection.Regular, first.Section);
-            },
-            second =>
-            {
-                Assert.Equal("Beta", second.Path);
-                Assert.Null(second.Section);
-            },
-            third =>
-            {
-                Assert.Equal("Alpha", third.Path);
-                Assert.Equal(CategorySuggestionSection.TopMatch, third.Section);
-            });
+        // Assert
+        Assert.Equal(
+            [
+                ("Gamma", CategorySuggestionSection.Regular),
+                ("Beta", null),
+                ("Alpha", CategorySuggestionSection.TopMatch),
+            ],
+            Project(suggestions));
     }
 
     [Fact]
     public void Build_EmptyQuery_ReturnsAllPathsWithoutTopMatch()
     {
+        // Act
         var suggestions = CategorySuggestionRanking.Build(["Beta", "Alpha"], [], "");
 
-        Assert.Collection(suggestions,
-            first =>
-            {
-                Assert.Equal("Alpha", first.Path);
-                Assert.Equal(CategorySuggestionSection.Other, first.Section);
-            },
-            second =>
-            {
-                Assert.Equal("Beta", second.Path);
-                Assert.Null(second.Section);
-            });
+        // Assert
+        Assert.Equal(
+            [
+                ("Alpha", CategorySuggestionSection.Other),
+                ("Beta", null),
+            ],
+            Project(suggestions));
     }
 
     [Fact]
-    public void Build_DuplicatePathsDifferingByCase_AreCollapsed()
+    public void Build_DuplicatePathsDifferingByCase_CollapsesToOne()
     {
+        // Act
         var suggestions = CategorySuggestionRanking.Build(["Food", "food"], [], "foo");
 
+        // Assert
         Assert.Single(suggestions);
     }
 
     [Fact]
-    public void Build_NoMatch_ReturnsEmpty() =>
-        Assert.Empty(CategorySuggestionRanking.Build(["Groceries"], [], "zzz"));
+    public void Build_NoMatch_ReturnsEmpty()
+    {
+        // Act
+        var suggestions = CategorySuggestionRanking.Build(["Groceries"], [], "zzz");
+
+        // Assert
+        Assert.Empty(suggestions);
+    }
 
     [Theory]
     [InlineData("shop", "Shop / Misc")]
@@ -107,9 +99,7 @@ public class CategorySuggestionRankingTests
         var suggestions = CategorySuggestionRanking.Build(categories, categories, query);
 
         // Assert
-        var suggestion = Assert.Single(suggestions);
-        Assert.Equal(path, suggestion.Path);
-        Assert.Equal(CategorySuggestionSection.Regular, suggestion.Section);
+        Assert.Equal([(path, CategorySuggestionSection.Regular)], Project(suggestions));
     }
 
     [Fact]
@@ -122,21 +112,30 @@ public class CategorySuggestionRankingTests
         var suggestions = CategorySuggestionRanking.Build(categories, categories.Take(4), "misc");
 
         // Assert
-        Assert.Equal(["Shop / Misc", "Misc / Misc", "Other / Misc", "Unused / Misc"], suggestions.Select(suggestion => suggestion.Path));
-        Assert.Equal(CategorySuggestionSection.Regular, suggestions[0].Section);
-        Assert.Null(suggestions[1].Section);
-        Assert.Equal(CategorySuggestionSection.TopMatch, suggestions[2].Section);
-        Assert.Equal(CategorySuggestionSection.Other, suggestions[3].Section);
+        Assert.Equal(
+            [
+                ("Shop / Misc", CategorySuggestionSection.Regular),
+                ("Misc / Misc", null),
+                ("Other / Misc", CategorySuggestionSection.TopMatch),
+                ("Unused / Misc", CategorySuggestionSection.Other),
+            ],
+            Project(suggestions));
     }
 
     [Fact]
-    public void Highlight_MarksOnlySelectedIndexAsKeyboardSelected()
+    public void Highlight_SelectedIndex_MarksOnlyThatSuggestionAsKeyboardSelected()
     {
+        // Arrange
         var suggestions = CategorySuggestionRanking.Build(["Alpha", "Beta"], [], "");
 
+        // Act
         var highlighted = CategorySuggestionRanking.Highlight(suggestions, 1);
 
-        Assert.False(highlighted[0].IsKeyboardSelected);
-        Assert.True(highlighted[1].IsKeyboardSelected);
+        // Assert
+        Assert.Equal([false, true], highlighted.Select(suggestion => suggestion.IsKeyboardSelected));
     }
+
+    private static IEnumerable<(string Path, CategorySuggestionSection? Section)> Project(
+        IEnumerable<CategorySuggestion> suggestions) =>
+        suggestions.Select(suggestion => (suggestion.Path, suggestion.Section));
 }

@@ -10,6 +10,7 @@ public sealed class CsvImportTests : IDisposable
     private readonly string dir = Path.Combine(Path.GetTempPath(), "balancia-import-" + Guid.NewGuid().ToString("N"));
     private readonly LedgerStore store;
     private readonly string csv;
+    private string DatabasePath => Path.Combine(dir, "test.db");
     private const string Header = "ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo\n";
     private const string Rows =
         "o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,,\n" +
@@ -22,9 +23,10 @@ public sealed class CsvImportTests : IDisposable
     {
         Directory.CreateDirectory(dir);
         csv = Path.Combine(dir, "source.csv");
-        store = new LedgerStore(Path.Combine(dir, "test.db"), new FixedClock());
+        store = new LedgerStore(DatabasePath, new TestClock(new DateTimeOffset(2026, 9, 30, 12, 0, 0, TimeSpan.Zero)));
         store.Initialize();
     }
+
     private void Csv(string rows) => File.WriteAllText(csv, Header + rows, new UTF8Encoding(true));
 
     [Fact]
@@ -73,28 +75,74 @@ public sealed class CsvImportTests : IDisposable
     }
 
     [Fact]
-    public void I01_I02_I03_I07_QuotedTextOpeningsTransfersAndIdempotency()
+    public void PreviewCsvImport_ValidExport_SummarizesRowsByKind()
     {
+        // Arrange
         Csv(Rows);
+
+        // Act
         var preview = store.PreviewCsvImport(csv);
+
+        // Assert
         Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Select(x => x.Message)));
         Assert.Equal(5, preview.Summary.Rows);
         Assert.Equal(2, preview.Summary.Openings);
         Assert.Equal(1, preview.Summary.Transfers);
-        Assert.Equal(5, store.ApplyCsvImport(preview).Added);
-        var s = store.ReadSnapshot();
-        Assert.Equal(11110, s.NetWorth.Centimes);
-        Assert.Equal(120, s.MonthlyIncome.Centimes);
-        Assert.Equal(1010, s.MonthlyExpenses.Centimes);
-        Assert.Equal(3, s.Entries.Count);
-        Assert.Contains("\n", s.Entries.Single(e => e.Draft.Kind == TransactionKind.Expense).Draft.Description);
-        Assert.Equal("note, preserved", s.Entries.Single(e => e.Draft.Kind == TransactionKind.Expense).Draft.Memo);
-        var revision = s.Revision;
-        Assert.Equal(0, store.ApplyCsvImport(store.PreviewCsvImport(csv)).Added);
-        Assert.Equal(5, store.ApplyCsvImport(store.PreviewCsvImport(csv)).Unchanged);
+    }
+
+    [Fact]
+    public void ApplyCsvImport_ValidExport_ImportsBalancesTotalsAndMultilineText()
+    {
+        // Arrange
+        Csv(Rows);
+        var preview = store.PreviewCsvImport(csv);
+
+        // Act
+        var result = store.ApplyCsvImport(preview);
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        var expense = snapshot.Entries.Single(e => e.Draft.Kind == TransactionKind.Expense);
+        Assert.Equal(5, result.Added);
+        Assert.Equal(11110, snapshot.NetWorth.Centimes);
+        Assert.Equal(120, snapshot.MonthlyIncome.Centimes);
+        Assert.Equal(1010, snapshot.MonthlyExpenses.Centimes);
+        Assert.Equal(3, snapshot.Entries.Count);
+        Assert.Contains("\n", expense.Draft.Description);
+        Assert.Equal("note, preserved", expense.Draft.Memo);
+    }
+
+    [Fact]
+    public void ApplyCsvImport_SameFileTwice_AddsNothingAndKeepsRevision()
+    {
+        // Arrange
+        Csv(Rows);
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+        var revision = store.ReadSnapshot().Revision;
+
+        // Act
+        var second = store.ApplyCsvImport(store.PreviewCsvImport(csv));
+
+        // Assert
+        Assert.Equal(0, second.Added);
+        Assert.Equal(5, second.Unchanged);
         Assert.Equal(revision, store.ReadSnapshot().Revision);
+    }
+
+    [Fact]
+    public void ApplyCsvImport_KnownIdWithChangedAmount_ThrowsAndKeepsNetWorth()
+    {
+        // Arrange
+        Csv(Rows);
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
         Csv(Rows.Replace("-10.10", "-11.10"));
-        Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(store.PreviewCsvImport(csv)));
+        var preview = store.PreviewCsvImport(csv);
+
+        // Act
+        void Act() => store.ApplyCsvImport(preview);
+
+        // Assert
+        Assert.Throws<InvalidOperationException>(Act);
         Assert.Equal(11110, store.ReadSnapshot().NetWorth.Centimes);
     }
 
@@ -103,10 +151,15 @@ public sealed class CsvImportTests : IDisposable
     [InlineData("Expense,Income", "1.00")]
     [InlineData(" Expense", "-1.00")]
     [InlineData("expense", "-1.00")]
-    public void NonExactTypeIsRejected(string type, string amount)
+    public void PreviewCsvImport_NonExactType_ReportsUnsupportedType(string type, string amount)
     {
+        // Arrange
         Csv($"o1,2026-09-01,OpeningBalance,Opening balance,10.00,A,,,\nx1,2026-09-02,\"{type}\",X,{amount},A,,,\n");
+
+        // Act
         var preview = store.PreviewCsvImport(csv);
+
+        // Assert
         Assert.False(preview.CanApply);
         Assert.Contains(preview.Issues, issue => issue.Line == 3 && issue.Message == "Unsupported transaction type.");
     }
@@ -125,160 +178,211 @@ public sealed class CsvImportTests : IDisposable
     [InlineData("x1,2026-09-02,Expense,X,-1.00,A,,A/B/C,\n")]
     [InlineData("x1,2026-09-02,Expense,X,-1.00,A,,A/,\n")]
     [InlineData("x1,2026-09-02,Income,X,79228162514264337593543950335,A,,,\n")]
-    public void I04_InvalidRowsBlockImport(string row)
+    public void ApplyCsvImport_InvalidRow_BlocksImportWithoutWrites(string row)
     {
+        // Arrange
         Csv(row);
         var preview = store.PreviewCsvImport(csv);
+
+        // Act
+        void Act() => store.ApplyCsvImport(preview);
+
+        // Assert
         Assert.False(preview.CanApply);
-        Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(preview));
+        Assert.Throws<InvalidOperationException>(Act);
         Assert.Empty(store.ReadSnapshot().Accounts);
     }
 
     [Fact]
-    public void UnexpectedHeaderBlocksImport()
+    public void PreviewCsvImport_UnexpectedHeader_ReportsColumnCountOnFirstLine()
     {
+        // Arrange
         File.WriteAllText(csv, "ID,Date,Description\nx1,02-09-26,X\n");
+
+        // Act
         var preview = store.PreviewCsvImport(csv);
+
+        // Assert
         Assert.False(preview.CanApply);
         Assert.Contains(preview.Issues, i => i.Line == 1 && i.Message.Contains("9 Balancia export columns"));
     }
 
     [Fact]
-    public void WrongColumnCountBlocksImport()
+    public void PreviewCsvImport_WrongColumnCount_BlocksImport()
     {
+        // Arrange
         Csv("x1,2026-09-02,Expense,X,-1.00,A,,\n");
+
+        // Act
         var preview = store.PreviewCsvImport(csv);
+
+        // Assert
         Assert.False(preview.CanApply);
         Assert.Contains(preview.Issues, i => i.Message.Contains("Expected 9 columns"));
     }
 
     [Fact]
-    public void MalformedQuotingBlocksImport()
+    public void PreviewCsvImport_MalformedQuoting_BlocksImport()
     {
+        // Arrange
         Csv("x1,2026-09-02,Expense,\"unterminated,-1.00,A,,,\n");
+
+        // Act
         var preview = store.PreviewCsvImport(csv);
+
+        // Assert
         Assert.False(preview.CanApply);
         Assert.Contains(preview.Issues, i => i.Message.Contains("Malformed CSV quoting"));
     }
 
-    [Fact]
-    public void CategorizedOpeningBalanceBlocksImport()
+    [Theory]
+    [InlineData("o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,Cash,\n")]
+    [InlineData("t1,2026-09-04,Transfer,Transfer,5.00,A,B,Cash,\n")]
+    public void PreviewCsvImport_CategoryOnOpeningOrTransfer_BlocksImport(string row)
     {
-        Csv("o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,Cash,\n");
+        // Arrange
+        Csv(row);
+
+        // Act
         var preview = store.PreviewCsvImport(csv);
+
+        // Assert
         Assert.False(preview.CanApply);
         Assert.Contains(preview.Issues, i => i.Message.Contains("cannot have a category"));
     }
 
     [Fact]
-    public void CategorizedTransferBlocksImport()
+    public void PreviewCsvImport_MixedCaseCategoryPaths_ListsDistinctSortedPaths()
     {
-        Csv("t1,2026-09-04,Transfer,Transfer,5.00,A,B,Cash,\n");
-        var preview = store.PreviewCsvImport(csv);
-        Assert.False(preview.CanApply);
-        Assert.Contains(preview.Issues, i => i.Message.Contains("cannot have a category"));
-    }
-
-    [Fact]
-    public void SummaryListsDistinctSortedCategoryPaths()
-    {
+        // Arrange
         Csv("o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,,\n" +
             "x1,2026-09-02,Expense,X,-1.00,A,,Food / Lunch,\n" +
             "x2,2026-09-03,Expense,Y,-2.00,A,,food / dinner,\n" +
             "x3,2026-09-04,Expense,Z,-3.00,A,,Transport,\n");
+
+        // Act
         var preview = store.PreviewCsvImport(csv);
+
+        // Assert
         Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Select(x => x.Message)));
         Assert.Equal(["food / dinner", "Food / Lunch", "Transport"], preview.Summary.Categories);
     }
 
     [Fact]
-    public void ArchivedCategoryBlocksImport()
+    public void ApplyCsvImport_ArchivedCategory_ThrowsAndWritesNothing()
     {
+        // Arrange
         var categoryId = store.SaveCategory(null, "Groceries", null);
         store.SaveCategory(categoryId, "Groceries", null, archived: true);
         Csv("o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,,\n" +
             "x1,2026-09-02,Expense,X,-1.00,A,,Groceries,\n");
         var preview = store.PreviewCsvImport(csv);
-        Assert.True(preview.CanApply);
+
+        // Act
         var error = Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(preview));
+
+        // Assert
+        Assert.True(preview.CanApply);
         Assert.Contains("archived", error.Message);
         Assert.Empty(store.ReadSnapshot().Accounts);
     }
 
     [Fact]
-    public void DuplicateOpeningBalancesForOneAccountAreFlagged()
+    public void PreviewCsvImport_TwoOpeningBalancesForOneAccount_FlagsSingleIssue()
     {
+        // Arrange
         Csv("o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,,\n" +
             "o1b,2026-09-01,OpeningBalance,Opening balance,50.00,A,,,\n");
+
+        // Act
         var preview = store.PreviewCsvImport(csv);
+
+        // Assert
         Assert.False(preview.CanApply);
         Assert.All(preview.Issues, issue => Assert.Contains("exactly one OpeningBalance", issue.Message));
         Assert.Single(preview.Issues);
     }
 
     [Fact]
-    public void I05_ChangedFileAndFailedBatchLeaveLedgerUntouched()
+    public void ApplyCsvImport_FileChangedAfterPreview_ThrowsAndWritesNothing()
     {
+        // Arrange
         Csv(Rows);
         var preview = store.PreviewCsvImport(csv);
         File.AppendAllText(csv, "\n");
-        Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(preview));
-        Assert.Empty(store.ReadSnapshot().Accounts);
-        Csv(Rows);
-        preview = store.PreviewCsvImport(csv);
-        using (var c = new SqliteConnectionFactory(Path.Combine(dir, "test.db")).Open())
-        using (var cmd = c.CreateCommand())
-        {
-            cmd.CommandText = "CREATE TRIGGER reject_import BEFORE INSERT ON import_sources WHEN NEW.external_id='t1' BEGIN SELECT RAISE(ABORT,'test rollback'); END;";
-            cmd.ExecuteNonQuery();
-        }
-        Assert.Throws<SqliteException>(() => store.ApplyCsvImport(preview));
+
+        // Act
+        void Act() => store.ApplyCsvImport(preview);
+
+        // Assert
+        Assert.Throws<InvalidOperationException>(Act);
         Assert.Empty(store.ReadSnapshot().Accounts);
     }
 
     [Fact]
-    public void LocalEditBecomesExplicitReimportConflict()
+    public void ApplyCsvImport_FailureMidBatch_RollsBackEveryRow()
     {
+        // Arrange
+        Csv(Rows);
+        var preview = store.PreviewCsvImport(csv);
+        SqliteScript.Execute(DatabasePath, "CREATE TRIGGER reject_import BEFORE INSERT ON import_sources WHEN NEW.external_id='t1' BEGIN SELECT RAISE(ABORT,'test rollback'); END;");
+
+        // Act
+        void Act() => store.ApplyCsvImport(preview);
+
+        // Assert
+        Assert.Throws<SqliteException>(Act);
+        Assert.Empty(store.ReadSnapshot().Accounts);
+    }
+
+    [Fact]
+    public void PreviewCsvImport_LocallyEditedImportedEntry_BecomesReimportConflict()
+    {
+        // Arrange
         Csv(Rows);
         store.ApplyCsvImport(store.PreviewCsvImport(csv));
         var entry = store.ReadSnapshot().Entries.Single(e => e.Draft.Kind == TransactionKind.Income);
-        store.SaveTransaction(entry.Id, entry.Draft with
-        {
-            Description = "edited"
-        });
-        Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(store.PreviewCsvImport(csv)));
+        store.SaveTransaction(entry.Id, entry.Draft with { Description = "edited" });
+        var preview = store.PreviewCsvImport(csv);
+
+        // Act
+        void Act() => store.ApplyCsvImport(preview);
+
+        // Assert
+        Assert.Throws<InvalidOperationException>(Act);
     }
 
     [Fact]
-    public void PriorProvenanceLabelsStillMatchRepeatedImports()
+    public void ApplyCsvImport_PriorProvenanceLabels_StillMatchesRepeatedImport()
     {
+        // Arrange
         Csv(Rows);
         store.ApplyCsvImport(store.PreviewCsvImport(csv));
-        using (var c = new SqliteConnectionFactory(Path.Combine(dir, "test.db")).Open())
-        using (var cmd = c.CreateCommand())
-        {
-            cmd.CommandText = "UPDATE import_sources SET source='LegacySource'";
-            cmd.ExecuteNonQuery();
-        }
+        SqliteScript.Execute(DatabasePath, "UPDATE import_sources SET source='LegacySource'");
 
+        // Act
         var result = store.ApplyCsvImport(store.PreviewCsvImport(csv));
 
+        // Assert
         Assert.Equal(0, result.Added);
         Assert.Equal(5, result.Unchanged);
     }
 
     [Fact]
-    public void I06_PrivateExportReconcilesWhenExplicitlyProvided()
+    public void ApplyCsvImport_PrivateExport_ReconcilesAccountTotalsWhenProvided()
     {
         var source = Environment.GetEnvironmentVariable("BALANCIA_PRIVATE_IMPORT_PATH");
-        if (source is null)
-        {
-            return;
-        }
+        Assert.SkipWhen(source is null, "Set BALANCIA_PRIVATE_IMPORT_PATH to reconcile a private export.");
 
-        var preview = store.PreviewCsvImport(source);
-        Assert.True(preview.CanApply, $"Private export has {preview.Issues.Count} import issues; first line: {preview.Issues.FirstOrDefault()?.Line}.");
+        // Arrange
+        var preview = store.PreviewCsvImport(source!);
+
+        // Act
         var applied = store.ApplyCsvImport(preview);
+        var again = store.ApplyCsvImport(store.PreviewCsvImport(source!));
+
+        // Assert
+        Assert.True(preview.CanApply, $"Private export has {preview.Issues.Count} import issues; first line: {preview.Issues.FirstOrDefault()?.Line}.");
         Assert.Equal(preview.Summary.Expenses + preview.Summary.Incomes + preview.Summary.Transfers + preview.Summary.Openings, applied.Added);
         var accounts = store.ReadSnapshot().Accounts;
         foreach (var expected in preview.Summary.AccountTotals)
@@ -286,16 +390,8 @@ public sealed class CsvImportTests : IDisposable
             Assert.Equal(expected.Centimes, accounts.Single(a => a.Name == expected.Account).Balance.Centimes);
         }
 
-        Assert.Equal(0, store.ApplyCsvImport(store.PreviewCsvImport(source)).Added);
+        Assert.Equal(0, again.Added);
     }
 
-    public void Dispose()
-    {
-        Directory.Delete(dir, true);
-    }
-
-    private sealed class FixedClock : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => new(2026, 9, 30, 12, 0, 0, TimeSpan.Zero);
-    }
+    public void Dispose() => Directory.Delete(dir, true);
 }

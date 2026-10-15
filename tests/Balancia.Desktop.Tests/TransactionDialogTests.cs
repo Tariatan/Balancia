@@ -14,14 +14,12 @@ public sealed class TransactionDialogTests
         workspace.SeedStore().ReadTransactions(new TransactionsFilter()).Hits.Select(hit => hit.Entry).ToArray();
 
     /// <summary>A ledger with one account and a Food category, opened in a window.</summary>
-    private static async Task<(MainWindow Window, LedgerStore Store, string Account)> OpenWithAccountAsync(DesktopWorkspace workspace)
+    private static async Task<MainWindow> OpenWithAccountAsync(DesktopWorkspace workspace)
     {
         var store = workspace.SeedStore();
-        var account = LedgerSeed.Account(store);
+        LedgerSeed.Account(store);
         store.SaveCategory(null, "Food", null);
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
-        return (window, store, account);
+        return await workspace.OpenWindowAsync();
     }
 
     [AvaloniaFact]
@@ -29,7 +27,7 @@ public sealed class TransactionDialogTests
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
-        var (window, _, _) = await OpenWithAccountAsync(workspace);
+        var window = await OpenWithAccountAsync(workspace);
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "12.50");
         dialog.Fill("Description", "Lunch");
@@ -37,7 +35,7 @@ public sealed class TransactionDialogTests
 
         // Act
         await dialog.SaveAndCloseAsync(window);
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 1, "the transaction to appear");
+        await window.WaitForTransactionsAsync(1, "the transaction to appear");
 
         // Assert
         var entry = Assert.Single(SavedEntries(workspace));
@@ -46,7 +44,6 @@ public sealed class TransactionDialogTests
         Assert.Equal("Lunch", entry.Draft.Description);
         Assert.Equal("Food", entry.CategoryPath);
         Assert.Equal(LedgerSeed.Today, entry.Draft.Date);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -54,7 +51,7 @@ public sealed class TransactionDialogTests
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
-        var (window, _, _) = await OpenWithAccountAsync(workspace);
+        var window = await OpenWithAccountAsync(workspace);
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "10+2.5");
         dialog.Fill("Description", "Split bill");
@@ -64,7 +61,6 @@ public sealed class TransactionDialogTests
 
         // Assert
         Assert.Equal(Money.FromFrancs(12.50m), Assert.Single(SavedEntries(workspace)).Draft.Amount);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -72,7 +68,7 @@ public sealed class TransactionDialogTests
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
-        var (window, _, _) = await OpenWithAccountAsync(workspace);
+        var window = await OpenWithAccountAsync(workspace);
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Type", "Income");
         dialog.Fill("Amount (positive)", "500");
@@ -85,46 +81,26 @@ public sealed class TransactionDialogTests
         var entry = Assert.Single(SavedEntries(workspace));
         Assert.Equal(TransactionKind.Income, entry.Draft.Kind);
         Assert.Equal(Money.FromFrancs(500m), entry.Draft.Amount);
-        window.Close();
     }
 
-    [AvaloniaFact]
-    public async Task Add_WithoutAnAmount_ShowsAnErrorAndSavesNothing()
+    [AvaloniaTheory]
+    [InlineData("Amount (positive)", "", "Check the date (YYYY-MM-DD) and amount (for example 12.50).")]
+    [InlineData(CategoryLabel, "Nonexistent", "Choose an existing category path.")]
+    public async Task Add_WithAnInvalidValue_ShowsAnErrorAndSavesNothing(string label, string value, string expectedError)
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
-        var (window, _, _) = await OpenWithAccountAsync(workspace);
-        var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
-        dialog.Fill("Description", "No amount");
-
-        // Act
-        var error = await dialog.SaveExpectingErrorAsync();
-
-        // Assert
-        Assert.Equal("Check the date (YYYY-MM-DD) and amount (for example 12.50).", error);
-        Assert.Empty(SavedEntries(workspace));
-        await dialog.CancelAsync(window);
-        window.Close();
-    }
-
-    [AvaloniaFact]
-    public async Task Add_WithAnUnknownCategory_ShowsAnErrorAndSavesNothing()
-    {
-        // Arrange
-        using var workspace = new DesktopWorkspace();
-        var (window, _, _) = await OpenWithAccountAsync(workspace);
+        var window = await OpenWithAccountAsync(workspace);
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "5");
-        dialog.Fill(CategoryLabel, "Nonexistent");
+        dialog.Fill(label, value);
 
         // Act
         var error = await dialog.SaveExpectingErrorAsync();
 
         // Assert
-        Assert.Equal("Choose an existing category path.", error);
+        Assert.Equal(expectedError, error);
         Assert.Empty(SavedEntries(workspace));
-        await dialog.CancelAsync(window);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -132,10 +108,10 @@ public sealed class TransactionDialogTests
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
-        var (window, _, _) = await OpenWithAccountAsync(workspace);
+        var window = await OpenWithAccountAsync(workspace);
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "5");
-        dialog.Fill("Date", LedgerSeed.Today.AddDays(-600).ToString("yyyy-MM-dd"));
+        dialog.Fill("Date", LedgerSeed.Today.AddDays(-600));
 
         // Act
         var error = await dialog.SaveExpectingErrorAsync();
@@ -143,8 +119,6 @@ public sealed class TransactionDialogTests
         // Assert
         Assert.Equal("Transaction date precedes the account's opening date.", error);
         Assert.Empty(SavedEntries(workspace));
-        await dialog.CancelAsync(window);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -155,8 +129,7 @@ public sealed class TransactionDialogTests
         var store = workspace.SeedStore();
         var everyday = LedgerSeed.Account(store, "Everyday");
         var savings = LedgerSeed.Account(store, "Savings");
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenWindowAsync();
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Type", "Transfer");
         dialog.Fill("Account", "Everyday");
@@ -172,7 +145,6 @@ public sealed class TransactionDialogTests
         Assert.Equal(everyday, entry.Draft.AccountId);
         Assert.Equal(savings, entry.Draft.DestinationId);
         Assert.Null(entry.CategoryPath);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -180,7 +152,7 @@ public sealed class TransactionDialogTests
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
-        var (window, _, _) = await OpenWithAccountAsync(workspace);
+        var window = await OpenWithAccountAsync(workspace);
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "5");
         dialog.Fill("Description", "Coffee");
@@ -196,8 +168,6 @@ public sealed class TransactionDialogTests
         Assert.Single(SavedEntries(workspace));
         Assert.Equal("", dialog.TextOf("Description"));
         Assert.Single(window.OwnedWindows);
-        await dialog.CancelAsync(window);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -205,7 +175,7 @@ public sealed class TransactionDialogTests
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
-        var (window, _, _) = await OpenWithAccountAsync(workspace);
+        var window = await OpenWithAccountAsync(workspace);
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "5");
 
@@ -214,7 +184,6 @@ public sealed class TransactionDialogTests
 
         // Assert
         Assert.Empty(SavedEntries(workspace));
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -224,8 +193,7 @@ public sealed class TransactionDialogTests
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
         LedgerSeed.Expense(store, LedgerSeed.Account(store), "Lunch", LedgerSeed.Today, francs: 12.50m);
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenWindowAsync();
         var list = window.Find<ListBox>("TransactionsList");
 
         // Act
@@ -243,7 +211,6 @@ public sealed class TransactionDialogTests
         var entry = Assert.Single(SavedEntries(workspace));
         Assert.Equal(Money.FromFrancs(15m), entry.Draft.Amount);
         Assert.Equal("Late lunch", entry.Draft.Description);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -252,8 +219,7 @@ public sealed class TransactionDialogTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenWindowAsync();
 
         // Act
         window.Click("TransactionsAddButton");
@@ -262,6 +228,5 @@ public sealed class TransactionDialogTests
 
         // Assert
         Assert.Empty(window.OwnedWindows);
-        window.Close();
     }
 }

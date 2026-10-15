@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Balancia.Storage;
 using Xunit;
 
 namespace Balancia.Desktop.Tests;
@@ -11,8 +12,7 @@ public sealed class KeyboardShortcutTests
     {
         var store = workspace.SeedStore();
         LedgerSeed.Expense(store, LedgerSeed.Account(store), "Coffee beans", LedgerSeed.Today);
-        var window = workspace.CreateSeparateFolderWindow();
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenWindowAsync();
         return window;
     }
 
@@ -27,13 +27,12 @@ public sealed class KeyboardShortcutTests
         // Act
         window.PressKey(Key.Delete);
         var dialog = await window.WaitForDialogAsync("Remove transaction");
-        dialog.ClickDialogButton("Remove");
-        await DesktopWorkspace.WaitUntilAsync(() => window.TransactionCount() == 0, "the transaction to be removed");
+        await dialog.SaveAndCloseAsync(window, "Remove");
+        await window.WaitForTransactionsAsync(0, "the transaction to be removed");
 
         // Assert
         Assert.True(window.Find<TextBlock>("TransactionsEmpty").IsVisible);
-        Assert.Empty(workspace.SeedStore().ReadTransactions(new Balancia.Storage.TransactionsFilter()).Hits);
-        window.Close();
+        Assert.Empty(workspace.SeedStore().ReadTransactions(new TransactionsFilter()).Hits);
     }
 
     [AvaloniaFact]
@@ -47,12 +46,10 @@ public sealed class KeyboardShortcutTests
         // Act
         window.PressKey(Key.Delete);
         var dialog = await window.WaitForDialogAsync("Remove transaction");
-        dialog.ClickDialogButton("Cancel");
-        await DesktopWorkspace.WaitUntilAsync(() => window.OwnedWindows.Count == 0, "the dialog to close");
+        await dialog.CancelAsync(window);
 
         // Assert
         Assert.Equal(1, window.TransactionCount());
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -68,7 +65,6 @@ public sealed class KeyboardShortcutTests
 
         // Assert
         Assert.Empty(window.OwnedWindows);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -81,12 +77,10 @@ public sealed class KeyboardShortcutTests
         // Act
         window.PressKey(Key.OemPlus);
         var dialog = await window.WaitForDialogAsync("Add transaction");
-        dialog.ClickDialogButton("Cancel");
-        await DesktopWorkspace.WaitUntilAsync(() => window.OwnedWindows.Count == 0, "the dialog to close");
+        await dialog.CancelAsync(window);
 
         // Assert
         Assert.Equal(1, window.TransactionCount());
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -102,7 +96,6 @@ public sealed class KeyboardShortcutTests
 
         // Assert
         Assert.Empty(window.OwnedWindows);
-        window.Close();
     }
 
     [AvaloniaFact]
@@ -118,6 +111,5 @@ public sealed class KeyboardShortcutTests
 
         // Assert
         Assert.Empty(window.OwnedWindows);
-        window.Close();
     }
 }

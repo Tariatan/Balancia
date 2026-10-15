@@ -8,7 +8,7 @@ public sealed class LedgerStoreTests : IDisposable
 {
     private readonly string path = Path.Combine(Path.GetTempPath(), $"balancia-ledger-{Guid.NewGuid():N}.db");
     private readonly LedgerStore store;
-    private readonly FixedClock clock = new();
+    private readonly TestClock clock = new(new DateTimeOffset(2026, 9, 18, 12, 0, 0, TimeSpan.Zero));
     private static readonly DateOnly Start = new(2026, 9, 1);
 
     public LedgerStoreTests()
@@ -16,67 +16,109 @@ public sealed class LedgerStoreTests : IDisposable
         store = new LedgerStore(path, clock);
         store.Initialize();
     }
+
     private string Account(string name, decimal opening = 0) => store.SaveAccount(null, name, Start, Money.FromFrancs(opening));
+
     private static TransactionDraft Draft(string account, TransactionKind kind, decimal amount, string? to = null) =>
         new(kind, Start.AddDays(1), "Synthetic payment", Money.FromFrancs(amount), account, to);
 
     [Fact]
-    public void L01_OpeningsAreExcludedFromFlowsAndReopenPreservesData()
+    public void Initialize_ReopenedLedger_PreservesDataAndExcludesOpeningsFromFlows()
     {
+        // Arrange
         var a = Account("A", 1000);
         store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 20));
         store.SaveTransaction(null, Draft(a, TransactionKind.Income, 50));
         var reopened = new LedgerStore(path, clock);
         reopened.Initialize();
-        var s = reopened.ReadSnapshot();
-        Assert.Equal(103000, s.NetWorth.Centimes);
-        Assert.Equal(5000, s.MonthlyIncome.Centimes);
-        Assert.Equal(2000, s.MonthlyExpenses.Centimes);
-        Assert.Equal(2, s.Entries.Count);
-        Assert.Equal(3, s.Revision);
+
+        // Act
+        var snapshot = reopened.ReadSnapshot();
+
+        // Assert
+        Assert.Equal(103000, snapshot.NetWorth.Centimes);
+        Assert.Equal(5000, snapshot.MonthlyIncome.Centimes);
+        Assert.Equal(2000, snapshot.MonthlyExpenses.Centimes);
+        Assert.Equal(2, snapshot.Entries.Count);
+        Assert.Equal(3, snapshot.Revision);
     }
 
     [Fact]
-    public void L02_L03_TransferCreateEditAndDeleteRemainBalanced()
+    public void SaveTransaction_NewTransfer_MovesAmountBetweenAccountsWithoutChangingFlows()
     {
+        // Arrange
+        var a = Account("A", 1000);
+        var b = Account("B");
+
+        // Act
+        store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 100, b));
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        Assert.Equal(90000, snapshot.Accounts.Single(x => x.Id == a).Balance.Centimes);
+        Assert.Equal(10000, snapshot.Accounts.Single(x => x.Id == b).Balance.Centimes);
+        Assert.Equal(100000, snapshot.NetWorth.Centimes);
+        Assert.Equal(0, snapshot.MonthlyIncome.Centimes);
+        Assert.Equal(0, snapshot.MonthlyExpenses.Centimes);
+        Assert.Single(snapshot.Entries);
+    }
+
+    [Fact]
+    public void SaveTransaction_EditedTransfer_RebalancesAllThreeAccounts()
+    {
+        // Arrange
         var a = Account("A", 1000);
         var b = Account("B");
         var c = Account("C");
         var id = store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 100, b));
-        var s = store.ReadSnapshot();
-        Assert.Equal(90000, s.Accounts.Single(x => x.Id == a).Balance.Centimes);
-        Assert.Equal(10000, s.Accounts.Single(x => x.Id == b).Balance.Centimes);
-        Assert.Equal(100000, s.NetWorth.Centimes);
-        Assert.Equal(0, s.MonthlyIncome.Centimes);
-        Assert.Equal(0, s.MonthlyExpenses.Centimes);
-        Assert.Single(s.Entries);
-        store.SaveTransaction(id, Draft(b, TransactionKind.Transfer, 75, c) with
-        {
-            Date = Start.AddDays(3)
-        });
-        s = store.ReadSnapshot();
-        Assert.Equal(100000, s.Accounts.Single(x => x.Id == a).Balance.Centimes);
-        Assert.Equal(-7500, s.Accounts.Single(x => x.Id == b).Balance.Centimes);
-        Assert.Equal(7500, s.Accounts.Single(x => x.Id == c).Balance.Centimes);
-        Assert.Equal(Start.AddDays(3), s.Entries.Single().Draft.Date);
+
+        // Act
+        store.SaveTransaction(id, Draft(b, TransactionKind.Transfer, 75, c) with { Date = Start.AddDays(3) });
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        Assert.Equal(100000, snapshot.Accounts.Single(x => x.Id == a).Balance.Centimes);
+        Assert.Equal(-7500, snapshot.Accounts.Single(x => x.Id == b).Balance.Centimes);
+        Assert.Equal(7500, snapshot.Accounts.Single(x => x.Id == c).Balance.Centimes);
+        Assert.Equal(Start.AddDays(3), snapshot.Entries.Single().Draft.Date);
+    }
+
+    [Fact]
+    public void DeleteTransaction_Transfer_RestoresBalancesAndLeavesOnlyOpeningMovements()
+    {
+        // Arrange
+        var a = Account("A", 1000);
+        var b = Account("B");
+        Account("C");
+        var id = store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 100, b));
+
+        // Act
         store.DeleteTransaction(id);
-        s = store.ReadSnapshot();
-        Assert.Empty(s.Entries);
-        Assert.Equal(100000, s.NetWorth.Centimes);
-        Assert.Equal(3L, Scalar("SELECT COUNT(*) FROM movements")); // Only openings remain.
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        Assert.Empty(snapshot.Entries);
+        Assert.Equal(100000, snapshot.NetWorth.Centimes);
+        Assert.Equal(3L, SqliteScript.Scalar(path, "SELECT COUNT(*) FROM movements"));
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void L04_MidTransferFailureRollsBackCreationOrEdit(bool edit)
+    public void SaveTransaction_FailureMidTransfer_RollsBackCreationOrEdit(bool edit)
     {
+        // Arrange
         var a = Account("A", 1000);
         var b = Account("B");
         var id = edit ? store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 10, b)) : null;
         var before = store.ReadSnapshot();
-        Sql("CREATE TRIGGER fail_second BEFORE INSERT ON movements WHEN NEW.amount>0 AND NEW.transaction_id NOT LIKE 'opening:%' BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
-        Assert.Throws<SqliteException>(() => store.SaveTransaction(id, Draft(a, TransactionKind.Transfer, 100, b)));
+        SqliteScript.Execute(path, "CREATE TRIGGER fail_second BEFORE INSERT ON movements WHEN NEW.amount>0 AND NEW.transaction_id NOT LIKE 'opening:%' BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
+
+        // Act
+        void Act() => store.SaveTransaction(id, Draft(a, TransactionKind.Transfer, 100, b));
+
+        // Assert
+        Assert.Throws<SqliteException>(Act);
         var after = store.ReadSnapshot();
         Assert.Equal(before.Revision, after.Revision);
         Assert.Equal(before.Accounts.ToArray(), after.Accounts.ToArray());
@@ -84,167 +126,415 @@ public sealed class LedgerStoreTests : IDisposable
     }
 
     [Fact]
-    public void FailedDeleteRollsBackBothSides()
+    public void DeleteTransaction_FailureMidTransfer_RollsBackBothSides()
     {
+        // Arrange
         var a = Account("A", 1000);
         var b = Account("B");
         var id = store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 10, b));
         var before = store.ReadSnapshot();
-        Sql("CREATE TRIGGER fail_delete BEFORE DELETE ON movements WHEN OLD.amount>0 BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
-        Assert.Throws<SqliteException>(() => store.DeleteTransaction(id));
-        Assert.Equal(before.Entries.ToArray(), store.ReadSnapshot().Entries.ToArray());
-        Assert.Equal(before.Revision, store.ReadSnapshot().Revision);
+        SqliteScript.Execute(path, "CREATE TRIGGER fail_delete BEFORE DELETE ON movements WHEN OLD.amount>0 BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
+
+        // Act
+        void Act() => store.DeleteTransaction(id);
+
+        // Assert
+        Assert.Throws<SqliteException>(Act);
+        var after = store.ReadSnapshot();
+        Assert.Equal(before.Entries.ToArray(), after.Entries.ToArray());
+        Assert.Equal(before.Revision, after.Revision);
     }
 
     [Fact]
-    public void L05_ExactMoneyAndValidation()
+    public void SaveTransaction_DecimalFrancs_SumsExactly()
     {
+        // Arrange
         var a = Account("A");
+
+        // Act
         store.SaveTransaction(null, Draft(a, TransactionKind.Income, .1m));
         store.SaveTransaction(null, Draft(a, TransactionKind.Income, .2m));
+
+        // Assert
         Assert.Equal(30, store.ReadSnapshot().NetWorth.Centimes);
-        Assert.Throws<ArgumentException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Income, 0)));
-        Assert.Throws<ArgumentException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, -1)));
-        Assert.Throws<ArgumentException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 1, a)));
-        Assert.Throws<ArgumentException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 1) with { Date = new DateOnly(2027, 1, 1) }));
     }
 
     [Fact]
-    public void L06_OpeningEditCannotDoubleCountOrMovePastHistory()
+    public void SaveTransaction_ZeroAmount_ThrowsArgumentException()
     {
+        // Arrange
+        var a = Account("A");
+
+        // Act
+        void Act() => store.SaveTransaction(null, Draft(a, TransactionKind.Income, 0));
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void SaveTransaction_NegativeAmount_ThrowsArgumentException()
+    {
+        // Arrange
+        var a = Account("A");
+
+        // Act
+        void Act() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, -1));
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void SaveTransaction_TransferToSameAccount_ThrowsArgumentException()
+    {
+        // Arrange
+        var a = Account("A");
+
+        // Act
+        void Act() => store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 1, a));
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void SaveTransaction_FutureDate_ThrowsArgumentException()
+    {
+        // Arrange
+        var a = Account("A");
+
+        // Act
+        void Act() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 1) with { Date = new DateOnly(2027, 1, 1) });
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void SaveAccount_EditedOpening_DoesNotDoubleCountExistingHistory()
+    {
+        // Arrange
         var a = Account("A", 100);
         store.SaveTransaction(null, Draft(a, TransactionKind.Income, 10));
+
+        // Act
         store.SaveAccount(a, "Renamed", Start.AddDays(-1), Money.FromFrancs(200));
-        Assert.Equal(21000, store.ReadSnapshot().NetWorth.Centimes);
-        Assert.Equal(1000, store.ReadSnapshot().MonthlyIncome.Centimes);
-        Assert.Throws<ArgumentException>(() => store.SaveAccount(a, "A", Start.AddDays(3), new Money(0)));
-        Assert.Throws<ArgumentException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 1) with { Date = Start.AddDays(-2) }));
-        Assert.Throws<ArgumentException>(() => store.DeleteTransaction("opening:" + a));
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        Assert.Equal(21000, snapshot.NetWorth.Centimes);
+        Assert.Equal(1000, snapshot.MonthlyIncome.Centimes);
     }
 
     [Fact]
-    public void CategoriesRemainTwoLevelsAndRenamesPreserveAssignments()
+    public void SaveAccount_OpeningDateAfterFirstTransaction_ThrowsArgumentException()
     {
+        // Arrange
+        var a = Account("A", 100);
+        store.SaveTransaction(null, Draft(a, TransactionKind.Income, 10));
+
+        // Act
+        void Act() => store.SaveAccount(a, "A", Start.AddDays(3), new Money(0));
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void SaveTransaction_DateBeforeAccountOpening_ThrowsArgumentException()
+    {
+        // Arrange
+        var a = Account("A", 100);
+
+        // Act
+        void Act() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 1) with { Date = Start.AddDays(-2) });
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void DeleteTransaction_OpeningBalanceId_ThrowsArgumentException()
+    {
+        // Arrange
+        var a = Account("A", 100);
+
+        // Act
+        void Act() => store.DeleteTransaction("opening:" + a);
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void SaveCategory_ParentRename_PreservesAssignmentsAndPaths()
+    {
+        // Arrange
         var a = Account("A");
         var parent = store.SaveCategory(null, "Food", null);
         var child = store.SaveCategory(null, "Lunch", parent);
-        var id = store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 20) with
-        {
-            CategoryId = child
-        });
+        store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 20) with { CategoryId = child });
+
+        // Act
         store.SaveCategory(parent, "Meals", null);
-        Assert.Equal("Meals / Lunch", store.ReadSnapshot().Entries.Single().CategoryPath);
-        Assert.Equal("Meals", store.ReadSnapshot().LargestCategories.Single().Name);
-        Assert.Throws<ArgumentException>(() => store.SaveCategory(null, "Third", child));
-        Assert.Throws<ArgumentException>(() => store.SaveCategory(parent, "Cycle", child));
-        store.SaveCategory(parent, "Meals", null, true);
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        Assert.Equal("Meals / Lunch", snapshot.Entries.Single().CategoryPath);
+        Assert.Equal("Meals", snapshot.LargestCategories.Single().Name);
+    }
+
+    [Fact]
+    public void SaveCategory_ThirdLevel_ThrowsArgumentException()
+    {
+        // Arrange
+        var parent = store.SaveCategory(null, "Food", null);
+        var child = store.SaveCategory(null, "Lunch", parent);
+
+        // Act
+        void Act() => store.SaveCategory(null, "Third", child);
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void SaveCategory_ParentUnderOwnChild_ThrowsArgumentException()
+    {
+        // Arrange
+        var parent = store.SaveCategory(null, "Food", null);
+        var child = store.SaveCategory(null, "Lunch", parent);
+
+        // Act
+        void Act() => store.SaveCategory(parent, "Cycle", child);
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void SaveCategory_ArchivedParent_ArchivesChildrenAndRejectsNewAssignmentsButKeepsExisting()
+    {
+        // Arrange
+        var a = Account("A");
+        var parent = store.SaveCategory(null, "Food", null);
+        var child = store.SaveCategory(null, "Lunch", parent);
+        var id = store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 20) with { CategoryId = child });
+
+        // Act
+        store.SaveCategory(parent, "Food", null, true);
+        void AssignNew() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 1) with { CategoryId = child });
+        store.SaveTransaction(id, Draft(a, TransactionKind.Expense, 25) with { CategoryId = child });
+
+        // Assert
         Assert.All(store.ReadSnapshot().Categories, c => Assert.True(c.Archived));
-        Assert.Throws<ArgumentException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 1) with { CategoryId = child }));
-        store.SaveTransaction(id, Draft(a, TransactionKind.Expense, 25) with
-        {
-            CategoryId = child
-        });
+        Assert.Throws<ArgumentException>(AssignNew);
         Assert.Equal(2500, store.ReadSnapshot().MonthlyExpenses.Centimes);
     }
 
     [Fact]
-    public void TypedCategoryPathRequiresExistingCategoryAndLeavesLedgerUnchangedOnFailure()
+    public void SaveTransactionWithCategoryPath_ExistingPath_AssignsCaseInsensitivelyWithoutNewCategories()
     {
+        // Arrange
         var account = Account("Synthetic account", 100);
         var draft = Draft(account, TransactionKind.Expense, 10);
-        var parent = store.SaveCategory(null, "Travel", null);
-        store.SaveCategory(null, "Rail", parent);
-        store.SaveCategory(null, "Taxi", parent);
-        store.SaveCategory(null, "Parking", null);
-        var first = store.SaveTransactionWithCategoryPath(null, draft, "Travel / Rail");
-        var initial = store.ReadSnapshot();
-        Assert.Equal("Travel / Rail", initial.Entries.Single().CategoryPath);
-        Assert.Equal(4, initial.Categories.Count);
+        SeedTravelCategories();
 
+        // Act
+        store.SaveTransactionWithCategoryPath(null, draft, "Travel / Rail");
         store.SaveTransactionWithCategoryPath(null, draft, "travel / rail");
-        var reused = store.ReadSnapshot();
-        Assert.Equal(4, reused.Categories.Count);
-        Assert.Equal(2, reused.Entries.Count);
 
-        store.SaveTransactionWithCategoryPath(first, draft, "Travel / Taxi");
-        var edited = store.ReadSnapshot();
-        Assert.Equal("Travel / Taxi", edited.Entries.Single(entry => entry.Id == first).CategoryPath);
-        Assert.Equal(4, edited.Categories.Count);
-
-        store.SaveTransactionWithCategoryPath(null, draft, "Parking");
-        store.SaveTransactionWithCategoryPath(null, draft, " ");
-        var beforeUnknownPath = store.ReadSnapshot();
-        Assert.Contains(beforeUnknownPath.Entries, entry => entry.CategoryPath is null);
-        Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Unmatched free-text category"));
-        Assert.Equal(beforeUnknownPath.Revision, store.ReadSnapshot().Revision);
-
-        var beforeFailure = beforeUnknownPath.Revision;
-        Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null,
-            draft with
-            {
-                AccountId = "missing-account"
-            }, "New / Subcategory"));
-        var afterFailure = store.ReadSnapshot();
-        Assert.Equal(beforeFailure, afterFailure.Revision);
-        Assert.DoesNotContain(afterFailure.Categories, category => category.Name == "New");
-        Assert.DoesNotContain(afterFailure.Entries, entry => entry.CategoryPath == "New / Subcategory");
-
-        Sql("CREATE TRIGGER fail_typed_path BEFORE INSERT ON movements WHEN NEW.transaction_id NOT LIKE 'opening:%' BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
-        Assert.Throws<SqliteException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Travel / Rail"));
-        var afterInjectedFailure = store.ReadSnapshot();
-        Assert.Equal(beforeFailure, afterInjectedFailure.Revision);
-        Assert.Equal(4, afterInjectedFailure.Categories.Count);
-
-        Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Travel / Missing"));
-        Assert.Equal(beforeFailure, store.ReadSnapshot().Revision);
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        Assert.Equal(4, snapshot.Categories.Count);
+        Assert.Equal(2, snapshot.Entries.Count);
+        Assert.All(snapshot.Entries, entry => Assert.Equal("Travel / Rail", entry.CategoryPath));
     }
 
     [Fact]
-    public void TypedCategoryPathPreservesExistingArchivedAssignmentButRejectsNewUse()
+    public void SaveTransactionWithCategoryPath_EditingEntry_ReassignsCategory()
     {
+        // Arrange
+        var account = Account("Synthetic account", 100);
+        var draft = Draft(account, TransactionKind.Expense, 10);
+        SeedTravelCategories();
+        var first = store.SaveTransactionWithCategoryPath(null, draft, "Travel / Rail");
+
+        // Act
+        store.SaveTransactionWithCategoryPath(first, draft, "Travel / Taxi");
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        Assert.Equal("Travel / Taxi", snapshot.Entries.Single(entry => entry.Id == first).CategoryPath);
+        Assert.Equal(4, snapshot.Categories.Count);
+    }
+
+    [Fact]
+    public void SaveTransactionWithCategoryPath_BlankPath_SavesUncategorizedEntry()
+    {
+        // Arrange
+        var account = Account("Synthetic account", 100);
+        var draft = Draft(account, TransactionKind.Expense, 10);
+        SeedTravelCategories();
+
+        // Act
+        store.SaveTransactionWithCategoryPath(null, draft, "Parking");
+        store.SaveTransactionWithCategoryPath(null, draft, " ");
+
+        // Assert
+        Assert.Contains(store.ReadSnapshot().Entries, entry => entry.CategoryPath is null);
+    }
+
+    [Theory]
+    [InlineData("Unmatched free-text category")]
+    [InlineData("Travel / Missing")]
+    public void SaveTransactionWithCategoryPath_UnknownPath_ThrowsAndKeepsRevision(string categoryPath)
+    {
+        // Arrange
+        var account = Account("Synthetic account", 100);
+        var draft = Draft(account, TransactionKind.Expense, 10);
+        SeedTravelCategories();
+        var revision = store.ReadSnapshot().Revision;
+
+        // Act
+        void Act() => store.SaveTransactionWithCategoryPath(null, draft, categoryPath);
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+        Assert.Equal(revision, store.ReadSnapshot().Revision);
+    }
+
+    [Fact]
+    public void SaveTransactionWithCategoryPath_MissingAccount_RollsBackWithoutCreatingCategories()
+    {
+        // Arrange
+        var account = Account("Synthetic account", 100);
+        var draft = Draft(account, TransactionKind.Expense, 10);
+        var revision = store.ReadSnapshot().Revision;
+
+        // Act
+        void Act() => store.SaveTransactionWithCategoryPath(null, draft with { AccountId = "missing-account" }, "New / Subcategory");
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+        var after = store.ReadSnapshot();
+        Assert.Equal(revision, after.Revision);
+        Assert.DoesNotContain(after.Categories, category => category.Name == "New");
+        Assert.DoesNotContain(after.Entries, entry => entry.CategoryPath == "New / Subcategory");
+    }
+
+    [Fact]
+    public void SaveTransactionWithCategoryPath_FailureInsertingMovement_RollsBack()
+    {
+        // Arrange
+        var account = Account("Synthetic account", 100);
+        var draft = Draft(account, TransactionKind.Expense, 10);
+        SeedTravelCategories();
+        var revision = store.ReadSnapshot().Revision;
+        SqliteScript.Execute(path, "CREATE TRIGGER fail_typed_path BEFORE INSERT ON movements WHEN NEW.transaction_id NOT LIKE 'opening:%' BEGIN SELECT RAISE(ABORT,'injected failure'); END;");
+
+        // Act
+        void Act() => store.SaveTransactionWithCategoryPath(null, draft, "Travel / Rail");
+
+        // Assert
+        Assert.Throws<SqliteException>(Act);
+        var after = store.ReadSnapshot();
+        Assert.Equal(revision, after.Revision);
+        Assert.Equal(4, after.Categories.Count);
+    }
+
+    [Fact]
+    public void SaveTransactionWithCategoryPath_ArchivedCategoryOnExistingEntry_KeepsAssignment()
+    {
+        // Arrange
         var account = Account("Synthetic account");
         var draft = Draft(account, TransactionKind.Expense, 10);
         var parentId = store.SaveCategory(null, "Home", null);
         var childId = store.SaveCategory(null, "Utilities", parentId);
         var entryId = store.SaveTransaction(null, draft with { CategoryId = childId });
-        var parent = store.ReadSnapshot().Categories.Single(category => category.Name == "Home");
-        store.SaveCategory(parent.Id, parent.Name, null, true);
+        store.SaveCategory(parentId, "Home", null, true);
 
-        store.SaveTransactionWithCategoryPath(entryId, draft with
-        {
-            Amount = Money.FromFrancs(11)
-        }, "Home / Utilities");
-        Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Home / Utilities"));
-        Assert.Throws<ArgumentException>(() => store.SaveTransactionWithCategoryPath(null, draft, "Home / Other"));
+        // Act
+        store.SaveTransactionWithCategoryPath(entryId, draft with { Amount = Money.FromFrancs(11) }, "Home / Utilities");
+
+        // Assert
+        Assert.Equal("Home / Utilities", store.ReadSnapshot().Entries.Single().CategoryPath);
+    }
+
+    [Theory]
+    [InlineData("Home / Utilities")]
+    [InlineData("Home / Other")]
+    public void SaveTransactionWithCategoryPath_ArchivedCategoryOnNewEntry_ThrowsWithoutCreatingCategory(string categoryPath)
+    {
+        // Arrange
+        var account = Account("Synthetic account");
+        var draft = Draft(account, TransactionKind.Expense, 10);
+        var parentId = store.SaveCategory(null, "Home", null);
+        store.SaveCategory(null, "Utilities", parentId);
+        store.SaveCategory(parentId, "Home", null, true);
+
+        // Act
+        void Act() => store.SaveTransactionWithCategoryPath(null, draft, categoryPath);
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
         Assert.DoesNotContain(store.ReadSnapshot().Categories, category => category.Name == "Other");
     }
 
     [Fact]
-    public void ArchivedAccountsKeepBalancesButRejectNewMovements()
+    public void SaveTransaction_ArchivedAccount_KeepsBalanceAndAllowsEditingExistingEntry()
     {
+        // Arrange
         var a = Account("A", 100);
         var id = store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 10));
         store.SaveAccount(a, "A", Start, Money.FromFrancs(100), true);
-        Assert.Equal(9000, store.ReadSnapshot().NetWorth.Centimes);
-        Assert.Throws<ArgumentException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Income, 1)));
+
+        // Act
         store.SaveTransaction(id, Draft(a, TransactionKind.Expense, 20));
+
+        // Assert
         Assert.Equal(8000, store.ReadSnapshot().NetWorth.Centimes);
+    }
+
+    [Fact]
+    public void SaveTransaction_NewEntryOnArchivedAccount_ThrowsArgumentException()
+    {
+        // Arrange
+        var a = Account("A", 100);
+        store.SaveAccount(a, "A", Start, Money.FromFrancs(100), true);
+
+        // Act
+        void Act() => store.SaveTransaction(null, Draft(a, TransactionKind.Income, 1));
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
     }
 
     [Fact]
     public void DeleteAccount_NoTransactions_RemovesAccountAndOpeningBalance()
     {
+        // Arrange
         var a = Account("A", 100);
+
+        // Act
         store.DeleteAccount(a);
+
+        // Assert
         Assert.Empty(store.ReadSnapshot().Accounts);
     }
 
     [Fact]
     public void DeleteAccount_HasOwnTransaction_ThrowsAndKeepsAccountAndTransaction()
     {
+        // Arrange
         var a = Account("A", 100);
         store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 10));
+
+        // Act
         var error = Assert.Throws<InvalidOperationException>(() => store.DeleteAccount(a));
+
+        // Assert
         Assert.Contains("cannot be deleted", error.Message);
         var snapshot = store.ReadSnapshot();
         Assert.Single(snapshot.Accounts);
@@ -254,10 +544,15 @@ public sealed class LedgerStoreTests : IDisposable
     [Fact]
     public void DeleteAccount_UsedAsTransferDestination_ThrowsAndKeepsBothAccounts()
     {
+        // Arrange
         var a = Account("A", 100);
         var b = Account("B", 0);
         store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 20, b));
+
+        // Act
         var error = Assert.Throws<InvalidOperationException>(() => store.DeleteAccount(b));
+
+        // Assert
         Assert.Contains("cannot be deleted", error.Message);
         Assert.Equal(2, store.ReadSnapshot().Accounts.Count);
     }
@@ -265,8 +560,14 @@ public sealed class LedgerStoreTests : IDisposable
     [Fact]
     public void DeleteAccount_UnknownId_ThrowsWithoutChangingLedger()
     {
+        // Arrange
         var before = store.ReadSnapshot();
-        Assert.Throws<ArgumentException>(() => store.DeleteAccount(Guid.NewGuid().ToString("N")));
+
+        // Act
+        void Act() => store.DeleteAccount(Guid.NewGuid().ToString("N"));
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
         Assert.Equal(before.Revision, store.ReadSnapshot().Revision);
     }
 
@@ -380,67 +681,90 @@ public sealed class LedgerStoreTests : IDisposable
     }
 
     [Fact]
-    public void OverflowAbortsWriteAndRevision()
+    public void SaveTransaction_IncomeOverflowingNetWorth_ThrowsAndKeepsRevision()
     {
+        // Arrange
         var a = store.SaveAccount(null, "A", Start, new Money(long.MaxValue));
         var before = store.ReadSnapshot();
-        Assert.Throws<OverflowException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Income, .01m)));
-        Assert.Equal(before.Revision, store.ReadSnapshot().Revision);
-        Assert.Equal(long.MaxValue, store.ReadSnapshot().NetWorth.Centimes);
+
+        // Act
+        void Act() => store.SaveTransaction(null, Draft(a, TransactionKind.Income, .01m));
+
+        // Assert
+        Assert.Throws<OverflowException>(Act);
+        var after = store.ReadSnapshot();
+        Assert.Equal(before.Revision, after.Revision);
+        Assert.Equal(long.MaxValue, after.NetWorth.Centimes);
     }
 
     [Fact]
-    public void MonthlyTotalsAreCheckedAgainstTheLimitExactly()
+    public void SaveTransaction_MonthlyExpensesExactlyAtLimit_SucceedsAndNextCentimeOverflows()
     {
+        // Arrange
         var a = store.SaveAccount(null, "A", Start, new Money(long.MaxValue));
         store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 46116860184273879.04m));
         store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 46116860184273879.03m));
         var before = store.ReadSnapshot();
+
+        // Act
+        void Act() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, .01m));
+
+        // Assert
         Assert.Equal(long.MaxValue, before.MonthlyExpenses.Centimes);
         Assert.Equal(0, before.NetWorth.Centimes);
-        Assert.Throws<OverflowException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, .01m)));
+        Assert.Throws<OverflowException>(Act);
         Assert.Equal(before.Revision, store.ReadSnapshot().Revision);
     }
 
     [Fact]
-    public void ClockControlsCurrentMonthTotals()
+    public void ReadSnapshot_ClockMovesToNextMonth_ResetsMonthlyIncomeButKeepsNetWorth()
     {
+        // Arrange
         var a = Account("A");
         store.SaveTransaction(null, Draft(a, TransactionKind.Income, 50));
+
+        // Act
         clock.Now = new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
-        Assert.Equal(0, store.ReadSnapshot().MonthlyIncome.Centimes);
-        Assert.Equal(5000, store.ReadSnapshot().NetWorth.Centimes);
+        var snapshot = store.ReadSnapshot();
+
+        // Assert
+        Assert.Equal(0, snapshot.MonthlyIncome.Centimes);
+        Assert.Equal(5000, snapshot.NetWorth.Centimes);
     }
 
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(4)]
-    public void UnsupportedSchemaVersionIsRejectedWithoutModification(int version)
+    public void Initialize_UnsupportedSchemaVersion_ThrowsWithoutModification(int version)
     {
-        Sql($"PRAGMA user_version={version};");
-        Assert.Throws<InvalidOperationException>(() => store.Initialize());
-        Assert.Equal((long)version, Scalar("PRAGMA user_version"));
+        // Arrange
+        SqliteScript.Execute(path, $"PRAGMA user_version={version};");
+
+        // Act
+        void Act() => store.Initialize();
+
+        // Assert
+        Assert.Throws<InvalidOperationException>(Act);
+        Assert.Equal((long)version, SqliteScript.Scalar(path, "PRAGMA user_version"));
     }
 
     [Fact]
-    public void NonEmptyUnversionedFileIsRejectedWithoutModification()
+    public void Initialize_NonEmptyUnversionedFile_ThrowsWithoutModification()
     {
+        // Arrange
         var foreignPath = path + ".foreign";
         try
         {
-            using (var c = new SqliteConnectionFactory(foreignPath).Open())
-            using (var cmd = c.CreateCommand())
-            {
-                cmd.CommandText = "CREATE TABLE foreign_table(id INTEGER)";
-                cmd.ExecuteNonQuery();
-            }
+            SqliteScript.Execute(foreignPath, "CREATE TABLE foreign_table(id INTEGER)");
+            var foreignStore = new LedgerStore(foreignPath, clock);
 
-            Assert.Throws<InvalidOperationException>(() => new LedgerStore(foreignPath, clock).Initialize());
-            using var check = new SqliteConnectionFactory(foreignPath).Open();
-            using var count = check.CreateCommand();
-            count.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name='accounts'";
-            Assert.Equal(0L, Convert.ToInt64(count.ExecuteScalar()));
+            // Act
+            void Act() => foreignStore.Initialize();
+
+            // Assert
+            Assert.Throws<InvalidOperationException>(Act);
+            Assert.Equal(0L, Convert.ToInt64(SqliteScript.Scalar(foreignPath, "SELECT COUNT(*) FROM sqlite_master WHERE name='accounts'")));
         }
         finally
         {
@@ -448,25 +772,13 @@ public sealed class LedgerStoreTests : IDisposable
         }
     }
 
-    private object? Scalar(string sql)
+    private void SeedTravelCategories()
     {
-        using var c = new SqliteConnectionFactory(path).Open();
-        using var cmd = c.CreateCommand();
-        cmd.CommandText = sql;
-        return cmd.ExecuteScalar();
+        var parent = store.SaveCategory(null, "Travel", null);
+        store.SaveCategory(null, "Rail", parent);
+        store.SaveCategory(null, "Taxi", parent);
+        store.SaveCategory(null, "Parking", null);
     }
-    private void Sql(string sql)
-    {
-        using var c = new SqliteConnectionFactory(path).Open();
-        using var cmd = c.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.ExecuteNonQuery();
-    }
+
     public void Dispose() => File.Delete(path);
-    private sealed class FixedClock : TimeProvider
-    {
-        public DateTimeOffset Now { get; set; } = new(2026, 9, 18, 12, 0, 0, TimeSpan.Zero);
-        public override DateTimeOffset GetUtcNow() => Now;
-        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
-    }
 }

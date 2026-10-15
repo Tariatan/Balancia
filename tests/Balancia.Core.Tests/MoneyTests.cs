@@ -6,65 +6,156 @@ namespace Balancia.Core.Tests;
 public class MoneyTests
 {
     [Fact]
-    public void DecimalAdditionIsExact() => Assert.Equal(new Money(30), Money.FromFrancs(0.10m) + Money.FromFrancs(0.20m));
+    public void Add_DecimalFrancs_IsExact()
+    {
+        // Arrange
+        var first = Money.FromFrancs(0.10m);
+        var second = Money.FromFrancs(0.20m);
+
+        // Act
+        var sum = first + second;
+
+        // Assert
+        Assert.Equal(new Money(30), sum);
+    }
 
     [Theory]
     [InlineData("0")]
     [InlineData("-123.45")]
     [InlineData("92233720368547758.07")]
     [InlineData("-92233720368547758.08")]
-    public void SupportedAmountsRoundTrip(string text)
+    public void FromFrancs_SupportedAmount_RoundTrips(string text)
     {
+        // Arrange
         var value = decimal.Parse(text, CultureInfo.InvariantCulture);
-        Assert.Equal(value, Money.FromFrancs(value).Francs);
+
+        // Act
+        var francs = Money.FromFrancs(value).Francs;
+
+        // Assert
+        Assert.Equal(value, francs);
     }
 
     [Fact]
-    public void FractionalCentimesAreRejected() => Assert.Throws<ArgumentException>(() => Money.FromFrancs(0.001m));
-
-    [Fact]
-    public void ConversionOverflowIsRejected() => Assert.Throws<OverflowException>(() => Money.FromFrancs(92233720368547758.08m));
-
-    [Fact]
-    public void ArithmeticOverflowIsRejected()
+    public void FromFrancs_FractionalCentimes_ThrowsArgumentException()
     {
-        Assert.Throws<OverflowException>(() => new Money(long.MaxValue) + new Money(1));
-        Assert.Throws<OverflowException>(() => new Money(long.MinValue) - new Money(1));
+        // Act
+        Action convert = () => _ = Money.FromFrancs(0.001m);
+
+        // Assert
+        Assert.Throws<ArgumentException>(convert);
     }
 
     [Fact]
-    public void UnaryMinusNegatesCentimes() => Assert.Equal(new Money(-30), -new Money(30));
+    public void FromFrancs_AboveMaximum_ThrowsOverflowException()
+    {
+        // Act
+        Action convert = () => _ = Money.FromFrancs(92233720368547758.08m);
+
+        // Assert
+        Assert.Throws<OverflowException>(convert);
+    }
 
     [Fact]
-    public void UnaryMinusOverflowIsRejected() =>
-        Assert.Throws<OverflowException>(() => -new Money(long.MinValue));
+    public void Add_PastMaximum_ThrowsOverflowException()
+    {
+        // Arrange
+        var maximum = new Money(long.MaxValue);
+
+        // Act
+        Action add = () => _ = maximum + new Money(1);
+
+        // Assert
+        Assert.Throws<OverflowException>(add);
+    }
+
+    [Fact]
+    public void Subtract_PastMinimum_ThrowsOverflowException()
+    {
+        // Arrange
+        var minimum = new Money(long.MinValue);
+
+        // Act
+        Action subtract = () => _ = minimum - new Money(1);
+
+        // Assert
+        Assert.Throws<OverflowException>(subtract);
+    }
+
+    [Fact]
+    public void Negate_PositiveAmount_ReturnsNegativeAmount()
+    {
+        // Arrange
+        var amount = new Money(30);
+
+        // Act
+        var result = -amount;
+
+        // Assert
+        Assert.Equal(new Money(-30), result);
+    }
+
+    [Fact]
+    public void Negate_MinimumAmount_ThrowsOverflowException()
+    {
+        // Arrange
+        var minimum = new Money(long.MinValue);
+
+        // Act
+        Action negate = () => _ = -minimum;
+
+        // Assert
+        Assert.Throws<OverflowException>(negate);
+    }
 
     [Theory]
     [InlineData(30, 30)]
     [InlineData(-30, 30)]
     [InlineData(0, 0)]
-    public void AbsReturnsMagnitude(long centimes, long expected) => Assert.Equal(new Money(expected), new Money(centimes).Abs());
-
-    [Fact]
-    public void ComparisonOperatorsOrderByCentimes()
+    public void Abs_AnyAmount_ReturnsMagnitude(long centimes, long expected)
     {
-        var small = new Money(10);
-        var sameAsSmall = new Money(10);
-        var large = new Money(20);
+        // Arrange
+        var amount = new Money(centimes);
 
-        Assert.True(small < large);
-        Assert.True(large > small);
-        Assert.True(small <= sameAsSmall);
-        Assert.True(small >= sameAsSmall);
-        Assert.False(large < small);
-        Assert.False(small > large);
+        // Act
+        var result = amount.Abs();
+
+        // Assert
+        Assert.Equal(new Money(expected), result);
     }
 
-    [Fact]
-    public void CompareToOrdersByCentimes()
+    [Theory]
+    [InlineData(10, 20, true, false, true, false)]
+    [InlineData(20, 10, false, true, false, true)]
+    [InlineData(10, 10, false, false, true, true)]
+    public void ComparisonOperators_TwoAmounts_OrderByCentimes(
+        long left, long right, bool less, bool greater, bool lessOrEqual, bool greaterOrEqual)
     {
-        Assert.True(new Money(10).CompareTo(new Money(20)) < 0);
-        Assert.True(new Money(20).CompareTo(new Money(10)) > 0);
-        Assert.Equal(0, new Money(10).CompareTo(new Money(10)));
+        // Arrange
+        var leftAmount = new Money(left);
+        var rightAmount = new Money(right);
+
+        // Act
+        var results = (IsLess: leftAmount < rightAmount, IsGreater: leftAmount > rightAmount, IsLessOrEqual: leftAmount <= rightAmount, IsGreaterOrEqual: leftAmount >= rightAmount);
+
+        // Assert
+        Assert.Equal((less, greater, lessOrEqual, greaterOrEqual), results);
+    }
+
+    [Theory]
+    [InlineData(10, 20, -1)]
+    [InlineData(20, 10, 1)]
+    [InlineData(10, 10, 0)]
+    public void CompareTo_TwoAmounts_ReturnsSignOfCentimeDifference(long left, long right, int expectedSign)
+    {
+        // Arrange
+        var leftAmount = new Money(left);
+        var rightAmount = new Money(right);
+
+        // Act
+        var result = leftAmount.CompareTo(rightAmount);
+
+        // Assert
+        Assert.Equal(expectedSign, Math.Sign(result));
     }
 }

@@ -13,8 +13,7 @@ public sealed class BackupOnCloseTests
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
         workspace.WriteSettings(backupPath: workspace.BackupDirectory);
-        var window = workspace.CreateConfiguredWindow(withSnapshotKey: true);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
 
         // Act
         window.Close();
@@ -31,8 +30,7 @@ public sealed class BackupOnCloseTests
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
         workspace.WriteSettings();
-        var window = workspace.CreateConfiguredWindow(withSnapshotKey: true);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
 
         // Act
         window.Close();
@@ -73,8 +71,7 @@ public sealed class BackupOnCloseTests
             File.SetLastWriteTimeUtc(path, new DateTime(2020, 1, index, 0, 0, 0, DateTimeKind.Utc));
             return path;
         }).ToArray();
-        var window = workspace.CreateConfiguredWindow(withSnapshotKey: true);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
 
         // Act
         window.Close();
@@ -97,8 +94,7 @@ public sealed class BackupOnCloseTests
         File.WriteAllText(blocker, "a file where the backup folder should go");
         var unreachable = Path.Combine(blocker, "backups");
         workspace.WriteSettings(backupPath: unreachable);
-        var window = workspace.CreateConfiguredWindow(withSnapshotKey: true);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
 
         // Act
         var closing = Record.Exception(window.Close);
@@ -116,8 +112,7 @@ public sealed class BackupOnCloseTests
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
         workspace.WriteSettings(snapshotPath: workspace.SnapshotDirectory);
-        var window = workspace.CreateConfiguredWindow(withSnapshotKey: true);
-        await DesktopWorkspace.OpenAsync(window);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
 
         // Act
         window.Close();
