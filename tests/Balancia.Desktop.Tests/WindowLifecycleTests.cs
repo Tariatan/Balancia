@@ -20,6 +20,7 @@ public sealed class WindowLifecycleTests
         window.Close();
         var stayedOpenWhileLoading = window.IsVisible;
         await DesktopWorkspace.WaitForOverviewAsync(window);
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
         window.Close();
 
         // Assert
@@ -43,6 +44,7 @@ public sealed class WindowLifecycleTests
             ? Directory.GetFiles(workspace.BackupDirectory).Length
             : 0;
         await DesktopWorkspace.WaitForOverviewAsync(window);
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
         window.Close();
 
         // Assert

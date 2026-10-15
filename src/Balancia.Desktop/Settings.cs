@@ -42,6 +42,7 @@ public partial class MainWindow
             await Task.Run(replacement.Initialize);
             await Task.Run(() => SaveApplicationSettings(dbPath));
             store = replacement;
+            backupBaseline = store.ReadLiveMetadata();
             DatabasePath = dbPath;
             Serilog.Log.Information("Database location changed, DatabasePath: '{DatabasePath}'", dbPath);
             await Refresh();

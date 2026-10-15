@@ -57,7 +57,7 @@ public sealed partial class LedgerStore
         }
     }
 
-    private (string DatasetId, long Revision) ReadLiveMetadata()
+    public (string DatasetId, long Revision) ReadLiveMetadata()
     {
         using var connection = connections.Open();
         return ReadMetadata(connection) ?? throw new InvalidOperationException("Ledger metadata is missing.");

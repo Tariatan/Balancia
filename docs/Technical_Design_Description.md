@@ -468,7 +468,7 @@ Desktop -> Desktop : Encrypt ZIP + authenticate header\nAES-256-GCM
 Desktop -> Snap : Atomically replace encrypted archive
 note right of Desktop
   Also written on clean close to the
-  rolling backup folder (10 newest kept)
+  rolling backup folder (3 per local day, 21 overall)
 end note
 
 Snap -> Drive : synced manually by the owner
@@ -490,8 +490,9 @@ of an open WAL database. Metadata is read from the backed-up database so the
 manifest and ledger represent the same revision. The plaintext database is
 staged in the local temporary directory and removed on success/failure; the
 ZIP is encrypted in memory. Destination staging contains only ciphertext and
-is flushed before atomic replacement. Close-time backup retention remains ten
-files, deleting older backups only after a successful export. The snapshot
+is flushed before atomic replacement. Close-time backups are written only when
+the active ledger dataset/revision changed during the session. Keep the newest three backups per local calendar day and
+21 overall, deleting older backups only after a successful export. The snapshot
 folder contains one overwritten `Snapshot.balancia` file.
 
 The encrypted envelope version 1 has an authenticated 60-byte header:
@@ -735,8 +736,7 @@ The following are acknowledged as unresolved implementation choices rather
 than accepted design decisions:
 
 - Windows distribution/update method and Android sideload packaging.
-- Backup retention policy beyond the current fixed count,
-  and a full end-to-end restore UX.
+- A full end-to-end restore UX.
 - Android document-provider compatibility across devices, and whether
   automatic (rather than manual, close-triggered) export adds value.
 - End-to-end UI latency at 50,000 rows, beyond the measured storage/query

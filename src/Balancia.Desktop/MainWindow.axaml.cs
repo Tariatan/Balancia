@@ -114,6 +114,7 @@ public partial class MainWindow : Window
             Directory.CreateDirectory(directory);
             Serilog.Log.Information("Initializing ledger, DatabasePath: '{DatabasePath}', SeparateDataFolder: '{SeparateDataFolder}'", DatabasePath, separateDataFolder);
             store.Initialize();
+            backupBaseline = store.ReadLiveMetadata();
             Serilog.Log.Information("Ledger initialized");
         });
         var monthStart = new DateOnly(displayDate.Year, displayDate.Month, 1);

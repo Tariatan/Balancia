@@ -14,6 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.0.2] - 2026-10-15
+
+#### Fixed
+
+- Create close-time backups only when the active ledger changed during the session. Keep the newest three backups per local calendar day and 21 overall, pruning only after a successful encrypted export.
+- Bump Storage to 5.0.1.
+
 ### [3.0.1] - 2026-10-15
 
 #### Changed
@@ -215,7 +222,6 @@ Versioning rule:
 
 - CSV import preview now shows a separate reminder count. Reminder validation and conflict messages are translated into English, German, Russian, and Ukrainian.
 
-
 ### [2.7.0] - 2026-10-02
 
 #### Changed
@@ -236,7 +242,6 @@ Versioning rule:
 
 - Application logging with Serilog: daily append-only files in `%LOCALAPPDATA%\Balancia\log` beside `settings.json`, retaining the latest 10 files. Restarts share the day's file; no size-based splitting occurs.
 - Logs for startup/shutdown, dialog saves, imports, location/language changes, settings failures, shutdown backups/snapshots, and unhandled application/UI/background-task exceptions. Expected validation rejections use Information; unexpected failures include exception details; unrecoverable application failures use Fatal.
-
 
 ### [2.4.0] - 2026-10-02
 
@@ -334,7 +339,6 @@ Versioning rule:
 
 - Structured logging for transaction-validation rejections, Debug diagnostics for rejected amount expressions, and Error details for monetary overflow during flow aggregation. Financial descriptions, notes, amounts, and expression input are not dumped; Core does not configure log files.
 
-
 ### [2.0.0] - 2026-09-30
 
 #### Changed
@@ -348,6 +352,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [5.0.1] - 2026-10-15
+
+#### Added
+
+- Expose the ledger dataset ID and revision for backup change detection.
 
 ### [5.0.0] - 2026-10-15
 
@@ -408,7 +418,6 @@ Versioning rule:
 - CSV export/import now includes reminder templates, preserving expected-date anchors, exact descriptions, indicative amounts, repeat intervals, and archived state. Reminder rows use the existing nine-column header, with schedule metadata in Memo; export reads reminders and ledger data from one consistent SQLite transaction.
 - Reminder imports commit atomically with transactions, exclude reminder amounts from account totals, detect duplicate active descriptions and conflicting schedules, and track unchanged reimports. Local edits or deletion of an imported reminder prevent a later import from silently replacing that change.
 
-
 ### [3.2.0] - 2026-10-02
 
 #### Added
@@ -416,20 +425,17 @@ Versioning rule:
 - Structured start/completion/failure logging with operation IDs and elapsed time for ledger writes, initialization, CSV preview/reconciliation, and snapshot export/validation/restore.
 - Schema-ready, import result, and snapshot-restore milestones. Expected validation/import rejections use Information; unexpected failures include exceptions at Error. Storage uses the application logger without owning a file sink.
 
-
 ### [3.1.0] - 2026-10-02
 
 #### Added
 
 - Added `ReadRecentDescriptions` to retrieve distinct nonempty transaction descriptions for autocomplete, excluding opening balances and deduplicating case-insensitively. Results are ordered by latest transaction date, then ledger insertion order, using existing ledger records without a separate history table.
 
-
 ### [3.0.1] - 2026-10-02
 
 #### Fixed
 
 - Advance satisfied reminder occurrences regardless of whether their expected date has passed. An exact-description payment on October 2 now advances an October 10 monthly occurrence to November 10; matching still uses calendar month/year and ignores day and amount.
-
 
 ### [3.0.0] - 2026-10-02
 

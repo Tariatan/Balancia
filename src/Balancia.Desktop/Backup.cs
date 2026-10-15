@@ -8,7 +8,9 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private const int MaxRetainedBackups = 10;
+    private const int MaxRetainedBackups = 21;
+    private const int MaxDailyBackups = 3;
+    private (string DatasetId, long Revision)? backupBaseline;
 
     private void SaveBackupOnClose()
     {
@@ -25,16 +27,31 @@ public partial class MainWindow
 
         TrySilently(() =>
         {
+            if (backupBaseline is null || store.ReadLiveMetadata() == backupBaseline)
+            {
+                Log.Information("Shutdown backup skipped; ledger has not changed");
+                return;
+            }
+
             Directory.CreateDirectory(BackupPath);
-            var fileName = $"backup-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.balancia";
+            var fileName = $"backup-{timeProvider.GetUtcNow():yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.balancia";
             store.ExportSnapshot(Path.Combine(BackupPath, fileName), snapshotKey);
             var backups = Directory.EnumerateFiles(BackupPath, "backup-*.balancia")
-                .OrderBy(File.GetLastWriteTimeUtc)
+                .Select(path => new FileInfo(path))
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .ThenByDescending(file => file.Name, StringComparer.Ordinal)
                 .ToArray();
-            var removedCount = Math.Max(0, backups.Length - MaxRetainedBackups);
-            foreach (var oldBackup in backups.Take(removedCount))
+            var retained = backups
+                .GroupBy(file => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(file.LastWriteTimeUtc, timeProvider.LocalTimeZone)))
+                .SelectMany(day => day.Take(MaxDailyBackups))
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .ThenByDescending(file => file.Name, StringComparer.Ordinal)
+                .Take(MaxRetainedBackups)
+                .ToHashSet();
+            var removedCount = backups.Length - retained.Count;
+            foreach (var oldBackup in backups.Where(file => !retained.Contains(file)))
             {
-                File.Delete(oldBackup);
+                oldBackup.Delete();
             }
             Log.Information("Backup retention applied after successful export, RemovedCount: '{RemovedCount}', RetainedCount: '{RetainedCount}'",
                 removedCount, backups.Length - removedCount);

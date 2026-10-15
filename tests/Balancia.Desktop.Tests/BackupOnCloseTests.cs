@@ -7,6 +7,117 @@ namespace Balancia.Desktop.Tests;
 public sealed class BackupOnCloseTests
 {
     [AvaloniaFact]
+    public async Task Close_FourChangedSessionsOnSameDay_ReplacesEarliestBackup()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var store = workspace.SeedStore();
+        workspace.WriteSettings(backupPath: workspace.BackupDirectory);
+        string? firstBackup = null;
+
+        // Act
+        for (var index = 0; index < 4; index++)
+        {
+            var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
+            LedgerSeed.Account(store, $"Account {index}");
+            window.Close();
+            if (index == 0)
+            {
+                firstBackup = Assert.Single(Directory.GetFiles(workspace.BackupDirectory));
+            }
+        }
+
+        // Assert
+        var remaining = Directory.GetFiles(workspace.BackupDirectory);
+        Assert.Equal(3, remaining.Length);
+        Assert.DoesNotContain(firstBackup!, remaining);
+        Assert.All(remaining, path => Assert.NotNull(workspace.ValidateExport(path)));
+    }
+
+    [AvaloniaFact]
+    public async Task Close_WhenExportFails_PreservesAllExistingBackups()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var store = workspace.SeedStore();
+        workspace.WriteSettings(backupPath: workspace.BackupDirectory);
+        Directory.CreateDirectory(workspace.BackupDirectory);
+        var existing = Enumerable.Range(0, 24).Select(index =>
+        {
+            var path = Path.Combine(workspace.BackupDirectory, $"backup-existing-{index}.balancia");
+            File.WriteAllText(path, "old");
+            return path;
+        }).ToArray();
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
+        var disposedKey = DesktopWorkspace.CreateKey();
+        window.UseSnapshotKey(disposedKey);
+        disposedKey.Dispose();
+
+        // Act
+        LedgerSeed.Account(store);
+        window.Close();
+
+        // Assert
+        Assert.Equal(existing.Order(), Directory.GetFiles(workspace.BackupDirectory).Order());
+        Assert.All(existing, path => Assert.Equal("old", File.ReadAllText(path)));
+    }
+
+    [AvaloniaFact]
+    public async Task Close_AcrossRepeatedUnchangedSessions_PreservesExistingBackups()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        workspace.SeedStore();
+        workspace.WriteSettings(backupPath: workspace.BackupDirectory);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
+        window.Close();
+        var backup = Assert.Single(Directory.GetFiles(workspace.BackupDirectory));
+        var bytes = File.ReadAllBytes(backup);
+
+        // Act
+        for (var index = 0; index < 4; index++)
+        {
+            var reopened = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
+            reopened.Close();
+        }
+
+        // Assert
+        Assert.Equal(backup, Assert.Single(Directory.GetFiles(workspace.BackupDirectory)));
+        Assert.Equal(bytes, File.ReadAllBytes(backup));
+    }
+
+    [AvaloniaFact]
+    public async Task Close_WithMultipleBackupsPerDay_KeepsNewestThreeForEachDay()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        workspace.SeedStore();
+        workspace.WriteSettings(backupPath: workspace.BackupDirectory);
+        Directory.CreateDirectory(workspace.BackupDirectory);
+        var existing = Enumerable.Range(0, 8).Select(index =>
+        {
+            var path = Path.Combine(workspace.BackupDirectory, $"backup-existing-{index}.balancia");
+            File.WriteAllText(path, "old");
+            File.SetLastWriteTimeUtc(path, new DateTime(2020, 1, 1 + index / 4, index % 4, 0, 0, DateTimeKind.Utc));
+            return path;
+        }).ToArray();
+        var clock = new ManualClock(DateTimeOffset.UtcNow);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true, clock);
+
+        // Act
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
+        window.Close();
+
+        // Assert
+        var remaining = Directory.GetFiles(workspace.BackupDirectory, "backup-*.balancia");
+        Assert.Equal(7, remaining.Length);
+        Assert.DoesNotContain(existing[0], remaining);
+        Assert.DoesNotContain(existing[4], remaining);
+        Assert.All(existing.Where((_, index) => index % 4 != 0), path => Assert.Contains(path, remaining));
+    }
+
+    [AvaloniaFact]
     public async Task Close_WithBackupFolderAndKey_WritesOneValidEncryptedBackup()
     {
         // Arrange
@@ -16,6 +127,7 @@ public sealed class BackupOnCloseTests
         var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
 
         // Act
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
         window.Close();
 
         // Assert
@@ -33,6 +145,7 @@ public sealed class BackupOnCloseTests
         var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
 
         // Act
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
         window.Close();
 
         // Assert
@@ -49,6 +162,7 @@ public sealed class BackupOnCloseTests
         var window = workspace.CreateConfiguredWindow(withSnapshotKey: false);
 
         // Act
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
         window.Close();
 
         // Assert
@@ -57,14 +171,14 @@ public sealed class BackupOnCloseTests
     }
 
     [AvaloniaFact]
-    public async Task Close_WithTwelveExistingBackups_KeepsTheTenNewest()
+    public async Task Close_WithTwentyFourExistingBackups_KeepsTheTwentyOneNewest()
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
         workspace.WriteSettings(backupPath: workspace.BackupDirectory);
         Directory.CreateDirectory(workspace.BackupDirectory);
-        var existing = Enumerable.Range(1, 12).Select(index =>
+        var existing = Enumerable.Range(1, 24).Select(index =>
         {
             var path = Path.Combine(workspace.BackupDirectory, $"backup-existing-{index:00}.balancia");
             File.WriteAllText(path, "old");
@@ -74,13 +188,14 @@ public sealed class BackupOnCloseTests
         var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
 
         // Act
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
         window.Close();
 
         // Assert
         var remaining = Directory.GetFiles(workspace.BackupDirectory, "backup-*.balancia");
-        Assert.Equal(10, remaining.Length);
-        Assert.All(existing.Take(3), path => Assert.DoesNotContain(path, remaining));
-        Assert.All(existing.Skip(3), path => Assert.Contains(path, remaining));
+        Assert.Equal(21, remaining.Length);
+        Assert.All(existing.Take(4), path => Assert.DoesNotContain(path, remaining));
+        Assert.All(existing.Skip(4), path => Assert.Contains(path, remaining));
         Assert.Single(remaining.Except(existing));
     }
 
@@ -115,6 +230,7 @@ public sealed class BackupOnCloseTests
         var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
 
         // Act
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
         window.Close();
 
         // Assert
@@ -134,6 +250,7 @@ public sealed class BackupOnCloseTests
         await DesktopWorkspace.OpenAsync(window);
 
         // Act
+        LedgerSeed.Account(new Balancia.Storage.LedgerStore(workspace.DatabasePath));
         window.Close();
 
         // Assert
