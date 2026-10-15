@@ -4,24 +4,43 @@ internal static class CsvImportSummaryBuilder
 {
     public static ImportSummary Build(List<CsvImportRow> rows, List<CsvImportGroup> groups, int sourceRows)
     {
-        var totals = groups.Where(group => group.Kind != "Reminder").SelectMany(group => group.Rows)
-            .GroupBy(r => r.Account, StringComparer.OrdinalIgnoreCase)
-            .Select(g => new ImportAccountTotal(g.Key, checked((long)g.Sum(r => (decimal)r.Amount))))
-            .OrderBy(x => x.Account)
+        var kindCounts = new int[Enum.GetValues<CsvRowType>().Length];
+        var accountTotals = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in groups)
+        {
+            kindCounts[(int)group.Kind]++;
+
+            if (group.Kind == CsvRowType.Reminder)
+            {
+                continue;
+            }
+
+            foreach (var row in group.Rows)
+            {
+                accountTotals[row.Account] = accountTotals.GetValueOrDefault(row.Account) + row.Amount;
+            }
+        }
+
+        var totals = accountTotals
+            .Select(pair => new ImportAccountTotal(pair.Key, (long)pair.Value))
+            .OrderBy(total => total.Account)
             .ToArray();
         var categories = rows
-            .Where(r => r.Category.Length > 0)
-            .Select(r => r.Category.Trim())
+            .Where(row => row.Category.Length > 0)
+            .Select(row => row.Category.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(s => s)
+            .OrderBy(category => category)
             .ToArray();
+
         return new ImportSummary(
             sourceRows,
-            groups.Count(g => g.Kind == "Expense"),
-            groups.Count(g => g.Kind == "Income"),
-            groups.Count(g => g.Kind == "Transfer"),
-            groups.Count(g => g.Kind == "OpeningBalance"),
+            kindCounts[(int)CsvRowType.Expense],
+            kindCounts[(int)CsvRowType.Income],
+            kindCounts[(int)CsvRowType.Transfer],
+            kindCounts[(int)CsvRowType.OpeningBalance],
             totals,
-            categories, groups.Count(group => group.Kind == "Reminder"));
+            categories,
+            kindCounts[(int)CsvRowType.Reminder]);
     }
 }

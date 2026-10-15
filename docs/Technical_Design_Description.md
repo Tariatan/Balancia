@@ -10,6 +10,7 @@
 - **V1.0:** by shyshkiv `28-Sep-2026`: **Initial version**.
 - **V1.1:** `02-Oct-2026`: **Consolidated desktop settings persistence**.
 - **V1.2:** `03-Oct-2026`: **Encrypted snapshots and backups, protected device keys**.
+- **V1.3:** `15-Oct-2026`: **Removed schema migrations and plaintext snapshot support**.
 
 ## Table of Contents <!-- omit from toc -->
 
@@ -27,7 +28,7 @@
   - [Domain Model](#domain-model)
   - [Money and Transfer Invariants](#money-and-transfer-invariants)
 - [Storage Context (Balancia.Storage)](#storage-context-balanciastorage)
-  - [Schema and Migrations](#schema-and-migrations)
+  - [Schema and Version Check](#schema-and-version-check)
   - [Ledger Write Lifecycle](#ledger-write-lifecycle)
   - [Read Queries and Indexing](#read-queries-and-indexing)
   - [CSV Import and Export](#csv-import-and-export)
@@ -66,7 +67,7 @@ This TDD covers all projects in the `Balancia.slnx` solution:
 
 - **Balancia.Core** — domain rules and application operations, free of
   Avalonia, SQLite, file-picker, and cloud dependencies
-- **Balancia.Storage** — SQLite schema, migrations, queries, CSV import/export,
+- **Balancia.Storage** — SQLite schema, queries, CSV import/export,
   and snapshot storage
 - **Balancia.Desktop** — the Avalonia Windows application (full read/write UI)
 - **Balancia.Android** — a read-only native Android shell
@@ -139,9 +140,10 @@ source and any live database/backup/snapshot files are excluded from source
 control by ignore rules; committed tests use only synthetic financial data.
 Snapshots and rolling backups encrypt the whole archive with AES-256-GCM,
 including the manifest. Authentication detects modification before extracting
-the embedded database. Local databases, local migration/pre-restore recovery
-copies, and CSV exports remain plaintext by the owner's choice. Previously
-exported plaintext files and any Drive version history are not rewritten.
+the embedded database. Local databases, local pre-restore recovery copies, and
+CSV exports remain plaintext by the owner's choice. Previously exported
+plaintext files and any Drive version history are not rewritten, and plaintext
+snapshots can no longer be imported.
 
 ### Considerations for Localization
 
@@ -291,11 +293,15 @@ operations directly against SQLite — there is no generic repository for every
 table. It owns the schema, all parameterized queries, CSV import/export, the
 reminder calculation, and snapshot lifecycle.
 
-### Schema and Migrations
+### Schema and Version Check
 
-A consistent SQLite backup is written beside the database before any
-migration runs. Opening a database with an unsupported (newer) schema version
-fails without changing it. Every logical write happens inside a database
+`Initialize` creates the full schema in an empty database file and stamps
+`PRAGMA user_version` with `LedgerStore.SchemaVersion` (3, also checked against
+the snapshot manifest). There are no migrations: the owner is the only user and
+always runs the latest version. A file whose `user_version` differs from
+`SchemaVersion` (older or newer), or a non-empty file without a version, is
+rejected without being changed. A future schema change needs a new migration path
+or a deliberate version bump. Every logical write happens inside a database
 transaction with foreign keys and uniqueness/check constraints enforced;
 cross-row invariants (balances, monthly totals) are verified before commit.
 
@@ -497,7 +503,8 @@ the 32-byte key from the exact passphrase with 600,000 iterations and a random
 salt at setup; every export generates a fresh random nonce. Readers accept
 600,000–2,000,000 iterations, cap ZIP/ciphertext at 256 MiB, the manifest at
 64 KiB, and the extracted database at 512 MiB. Authentication precedes ZIP or
-SQLite parsing. A legacy plaintext ZIP remains importable after normal validation.
+SQLite parsing. A plaintext ZIP (no `BALENC01` header) is rejected as an
+unsupported format; every restore, validation, and import requires a `SnapshotKey`.
 
 Settings asks for a passphrase and confirmation (minimum 12 characters). Keep
 it separately for device replacement/reinstallation: remembered keys are a
@@ -517,8 +524,8 @@ pauses automatic exports; no plaintext fallback is permitted. Wrong passphrases,
 unsupported versions, tampering, truncation, and failed database validation
 preserve the last usable ledger/viewer and surface an error. Windows restore
 still requires matching dataset identity and rejects an older revision. Before
-a successful restore or schema migration, a local plaintext recovery copy is
-written beside the database.
+a successful restore, a local plaintext recovery copy is written beside the
+database.
 
 ## Desktop Context (Balancia.Desktop)
 
@@ -708,7 +715,7 @@ The app reopens its saved local database on restart. Encrypted import prompts
 for the Windows export passphrase only when the Keystore-protected remembered
 key is absent or does not match the file's salt/KDF parameters. Canceling leaves
 the saved copy unchanged. Reinstallation or a passphrase change requires pairing
-again; older plaintext imports remain supported.
+again. Plaintext imports are rejected as an unsupported format.
 
 ## Non-Functional Considerations
 

@@ -14,6 +14,21 @@ Historical checks below are recorded evidence, not checks rerun during cleanup.
 
 ## Decisions worth retaining
 
+- **No schema migrations (2026-10-15):** the owner is the only user and always
+  runs the latest version, so the v1 to v2 and v2 to v3 migrations, the
+  `.pre-v2-*.bak` backup, and their two tests were removed from
+  [Schema.cs](src/Balancia.Storage/Schema.cs). `Initialize` now creates the full
+  schema in an empty file and rejects any other `user_version` than
+  `LedgerStore.SchemaVersion` (3, also used by the snapshot manifest check).
+  The version stayed at 3 so existing databases and snapshots remain valid; a
+  database still at version 1 or 2 no longer opens. Any future schema change
+  needs a new migration path or a deliberate bump of `SchemaVersion`. Verified
+  with the Core, Storage, and Desktop test projects, not a native run.
+- **CSV Type matching (2026-10-15):** `CsvImportRowValidator.ParseType` matches
+  member names exactly. `Enum.TryParse` is unsafe here because it accepts numeric
+  text, comma lists and padded names. The same enum names are written by export, so
+  renaming a `CsvRowType` member changes the file format. Desktop went to 3.0.0
+  because plaintext restore and schema 1/2 databases are no longer supported.
 - **Regular suggestions trial (2026-10-12):** the owner rejected unlimited
   persisted Recent because it would gradually include nearly every category.
   Regular instead tries two matching category paths ranked by saved transaction
@@ -35,7 +50,9 @@ Historical checks below are recorded evidence, not checks rerun during cleanup.
   backups are encrypted; canceling key setup pauses exports without a plaintext
   fallback. Changing the passphrase affects future exports, while older files
   retain their old phrase. See the TDD's snapshot lifecycle and Desktop 2.9.0 /
-  Storage 4.0.0 entries in the changelog.
+  Storage 4.0.0 entries in the changelog. Plaintext (unencrypted ZIP) snapshots
+  are no longer supported since Storage 5.0.0 (2026-10-15): they are rejected as
+  an unsupported format and every restore or import requires a matching key.
 - **Dialog layout decision (2026-09-28):** fixed-shape Settings, Error, and CSV
   preview dialogs moved to AXAML. The shared `EditDialog` remains code-built
   because each caller supplies different fields. Client-derivable validation is
@@ -121,7 +138,7 @@ Historical checks below are recorded evidence, not checks rerun during cleanup.
 - **First:** verify Windows passphrase Save, encrypted export, and restore via
   the picker; then run [Android device acceptance](docs/ANDROID.md) for initial
   pairing, same-key reimport, restart, changed phrase, wrong phrase, Cancel,
-  damaged archives, legacy plaintext import, runtime logs, and Keystore outcomes.
+  damaged archives, runtime logs, and Keystore outcomes.
 - **Categories and transactions:** populated parent/child filtering; repeated
   Add another transaction entry after Category reset; Description suggestion
   click/Tab acceptance. The earlier UI tool could not reliably target the owned

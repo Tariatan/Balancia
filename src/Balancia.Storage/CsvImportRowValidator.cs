@@ -10,111 +10,143 @@ internal static class CsvImportRowValidator
 
     private const int IdIndex = 0;
     private const int DateIndex = 1;
+    private const int TypeIndex = 2;
     private const int DescriptionIndex = 3;
     private const int AmountIndex = 4;
-    private const int TypeIndex = 2;
-    private const int CategoryIndex = 7;
     private const int AccountIndex = 5;
     private const int DestinationIndex = 6;
+    private const int CategoryIndex = 7;
     private const int MemoIndex = 8;
 
-    public static (CsvImportRow? Row, List<string> Errors) Validate(string[] f, long line)
+    public static (CsvImportRow? Row, List<string> Errors) Validate(string[] fields, long line)
     {
+        var id = fields[IdIndex];
+        var description = fields[DescriptionIndex];
+        var account = fields[AccountIndex];
+        var destination = fields[DestinationIndex];
+        var category = fields[CategoryIndex];
+        var memo = fields[MemoIndex];
         var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(f[IdIndex]))
+
+        if (string.IsNullOrWhiteSpace(id))
         {
             errors.Add("Missing source ID.");
         }
 
-        if (!DateOnly.TryParseExact(f[DateIndex], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        if (!DateOnly.TryParseExact(fields[DateIndex], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
         {
             errors.Add("Date must be YYYY-MM-DD.");
         }
 
-        long amount = 0;
-        var amountValid = decimal.TryParse(f[AmountIndex], NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                CultureInfo.InvariantCulture, out var parsed) &&
-            parsed >= long.MinValue / 100m && parsed <= long.MaxValue / 100m &&
-            parsed * 100 == decimal.Truncate(parsed * 100);
+        var amountValid = TryParseCentimes(fields[AmountIndex], out var amount);
         if (!amountValid)
         {
             errors.Add("Amount must be an exact CHF centime within Int64 range.");
         }
-        else
-        {
-            amount = (long)(parsed * 100);
-        }
 
-        if (f[TypeIndex] == "Reminder")
+        CsvRowType? type = ParseType(fields[TypeIndex]);
+
+        if (type == CsvRowType.Reminder)
         {
-            if (!f[IdIndex].StartsWith("reminder:", StringComparison.Ordinal) || f[IdIndex].Length <= 9 ||
-                string.IsNullOrWhiteSpace(f[DescriptionIndex]) || amount <= 0 ||
-                f[AccountIndex].Length > 0 || f[DestinationIndex].Length > 0 || f[CategoryIndex].Length > 0)
+            if (!id.StartsWith(LedgerStore.ReminderIdPrefix, StringComparison.Ordinal) || id.Length <= LedgerStore.ReminderIdPrefix.Length ||
+                string.IsNullOrWhiteSpace(description) || amount <= 0 ||
+                account.Length > 0 || destination.Length > 0 || category.Length > 0)
             {
                 errors.Add("Invalid reminder fields.");
             }
 
-            try
-            {
-                var options = JsonSerializer.Deserialize<CsvReminderOptions>(f[MemoIndex]);
-                using var metadata = JsonDocument.Parse(f[MemoIndex]);
-                if (options is null || options.IntervalMonths <= 0 ||
-                    !metadata.RootElement.TryGetProperty("Archived", out var archived) ||
-                    archived.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
-                {
-                    errors.Add("Invalid reminder schedule.");
-                }
-            }
-            catch (Exception exception) when (exception is JsonException or InvalidOperationException)
+            if (!IsValidReminderSchedule(memo))
             {
                 errors.Add("Invalid reminder schedule.");
             }
 
             return (errors.Count == 0
-                ? new CsvImportRow(line, f[IdIndex], date, f[DescriptionIndex], amount, "Reminder", "", "", f[MemoIndex], f, "")
+                ? new CsvImportRow(line, id, date, description, amount, CsvRowType.Reminder, string.Empty, string.Empty, memo, fields, string.Empty)
                 : null, errors);
         }
 
-        if (f[TypeIndex] is not ("Expense" or "Income" or "Transfer" or "OpeningBalance"))
+        if (type is null)
         {
             errors.Add("Unsupported transaction type.");
         }
 
-        if (amountValid && (f[TypeIndex] == "Expense" && (amount >= 0 || amount == long.MinValue) ||
-            f[TypeIndex] is "Income" or "Transfer" && amount <= 0))
+        if (amountValid && (type == CsvRowType.Expense && amount is >= 0 or long.MinValue ||
+            type is CsvRowType.Income or CsvRowType.Transfer && amount <= 0))
         {
             errors.Add("Amount sign or zero conflicts with transaction type.");
         }
 
-        if (string.IsNullOrWhiteSpace(f[AccountIndex]))
+        if (string.IsNullOrWhiteSpace(account))
         {
             errors.Add("Account is required.");
         }
 
-        if (f[TypeIndex] == "Transfer" && (string.IsNullOrWhiteSpace(f[DestinationIndex]) ||
-            string.Equals(f[AccountIndex], f[DestinationIndex], StringComparison.OrdinalIgnoreCase)))
+        if (type == CsvRowType.Transfer && (string.IsNullOrWhiteSpace(destination) ||
+            string.Equals(account, destination, StringComparison.OrdinalIgnoreCase)))
         {
             errors.Add("A transfer requires two different accounts.");
         }
-        else if (f[TypeIndex] != "Transfer" && f[DestinationIndex].Length > 0)
+        else if (type != CsvRowType.Transfer && destination.Length > 0)
         {
             errors.Add("Only transfers may have a destination account.");
         }
 
-        var categoryParts = f[CategoryIndex].Split('/');
-        if (categoryParts.Length > 2 || f[CategoryIndex].Length > 0 && categoryParts.Any(string.IsNullOrWhiteSpace))
+        var categoryParts = category.Split('/');
+        if (categoryParts.Length > 2 || category.Length > 0 && categoryParts.Any(string.IsNullOrWhiteSpace))
         {
             errors.Add("Category must be a standalone category or Parent / Child.");
         }
 
-        if (f[TypeIndex] is "Transfer" or "OpeningBalance" && f[CategoryIndex].Length > 0)
+        if (type is CsvRowType.Transfer or CsvRowType.OpeningBalance && category.Length > 0)
         {
             errors.Add("Transfers and opening balances cannot have a category.");
         }
 
         var row = errors.Count == 0
-            ? new CsvImportRow(line, f[IdIndex], date, f[DescriptionIndex], amount, f[TypeIndex], f[CategoryIndex], f[AccountIndex], f[MemoIndex], f, f[DestinationIndex])
+            ? new CsvImportRow(line, id, date, description, amount, type!.Value, category, account, memo, fields, destination)
             : null;
         return (row, errors);
+    }
+
+    /// <summary>Exact, case-sensitive member name only; <c>Enum.TryParse</c> would also accept numbers, comma lists and padded text.</summary>
+    private static CsvRowType? ParseType(string text) =>
+        Enum.GetNames<CsvRowType>().Contains(text, StringComparer.Ordinal) ? Enum.Parse<CsvRowType>(text) : null;
+
+    private static bool TryParseCentimes(string text, out long centimes)
+    {
+        centimes = 0;
+        if (!decimal.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out var francs) ||
+            francs < long.MinValue / 100m || francs > long.MaxValue / 100m)
+        {
+            return false;
+        }
+
+        var scaled = francs * 100;
+        if (scaled != decimal.Truncate(scaled))
+        {
+            return false;
+        }
+
+        centimes = (long)scaled;
+        return true;
+    }
+
+    private static bool IsValidReminderSchedule(string memo)
+    {
+        try
+        {
+            using var metadata = JsonDocument.Parse(memo);
+            var root = metadata.RootElement;
+            return root.ValueKind == JsonValueKind.Object &&
+                root.TryGetProperty(nameof(CsvReminderOptions.IntervalMonths), out var interval) &&
+                interval.ValueKind == JsonValueKind.Number && interval.TryGetInt32(out var months) && months > 0 &&
+                root.TryGetProperty(nameof(CsvReminderOptions.Archived), out var archived) &&
+                archived.ValueKind is JsonValueKind.True or JsonValueKind.False;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 }

@@ -390,6 +390,19 @@ public sealed class LedgerStoreTests : IDisposable
     }
 
     [Fact]
+    public void MonthlyTotalsAreCheckedAgainstTheLimitExactly()
+    {
+        var a = store.SaveAccount(null, "A", Start, new Money(long.MaxValue));
+        store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 46116860184273879.04m));
+        store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 46116860184273879.03m));
+        var before = store.ReadSnapshot();
+        Assert.Equal(long.MaxValue, before.MonthlyExpenses.Centimes);
+        Assert.Equal(0, before.NetWorth.Centimes);
+        Assert.Throws<OverflowException>(() => store.SaveTransaction(null, Draft(a, TransactionKind.Expense, .01m)));
+        Assert.Equal(before.Revision, store.ReadSnapshot().Revision);
+    }
+
+    [Fact]
     public void ClockControlsCurrentMonthTotals()
     {
         var a = Account("A");
@@ -399,12 +412,40 @@ public sealed class LedgerStoreTests : IDisposable
         Assert.Equal(5000, store.ReadSnapshot().NetWorth.Centimes);
     }
 
-    [Fact]
-    public void NewerSchemaIsRejectedWithoutModification()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(4)]
+    public void UnsupportedSchemaVersionIsRejectedWithoutModification(int version)
     {
-        Sql("PRAGMA user_version=4;");
+        Sql($"PRAGMA user_version={version};");
         Assert.Throws<InvalidOperationException>(() => store.Initialize());
-        Assert.Equal(4L, Scalar("PRAGMA user_version"));
+        Assert.Equal((long)version, Scalar("PRAGMA user_version"));
+    }
+
+    [Fact]
+    public void NonEmptyUnversionedFileIsRejectedWithoutModification()
+    {
+        var foreignPath = path + ".foreign";
+        try
+        {
+            using (var c = new SqliteConnectionFactory(foreignPath).Open())
+            using (var cmd = c.CreateCommand())
+            {
+                cmd.CommandText = "CREATE TABLE foreign_table(id INTEGER)";
+                cmd.ExecuteNonQuery();
+            }
+
+            Assert.Throws<InvalidOperationException>(() => new LedgerStore(foreignPath, clock).Initialize());
+            using var check = new SqliteConnectionFactory(foreignPath).Open();
+            using var count = check.CreateCommand();
+            count.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name='accounts'";
+            Assert.Equal(0L, Convert.ToInt64(count.ExecuteScalar()));
+        }
+        finally
+        {
+            File.Delete(foreignPath);
+        }
     }
 
     private object? Scalar(string sql)

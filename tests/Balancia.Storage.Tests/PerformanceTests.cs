@@ -93,6 +93,6 @@ public sealed class PerformanceTests(ITestOutputHelper output)
                 output.WriteLine($"{name}: p95={samples[28]:F1} ms, median={samples[15]:F1} ms");
             }
         }
-        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+        finally { File.Delete(path); }
     }
 }

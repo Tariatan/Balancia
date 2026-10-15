@@ -10,7 +10,10 @@ public enum AverageInterval
     Year,
 }
 
-public sealed record FlowAverages(Money Income, Money Expenses);
+public sealed record FlowAverages(Money Income, Money Expenses)
+{
+    public static FlowAverages Zero { get; } = new(Money.Zero, Money.Zero);
+}
 
 public sealed partial class LedgerStore
 {
@@ -20,17 +23,17 @@ public sealed partial class LedgerStore
 
         using var connection = connections.Open();
         using var transaction = connection.BeginTransaction(deferred: true);
-        if (Scalar(connection, transaction,
+        if (LedgerSql.Scalar(connection, transaction,
                 "SELECT MIN(date) FROM ledger WHERE kind IN ('Income','Expense')") is not string earliest)
         {
-            return new FlowAverages(Money.Zero, Money.Zero);
+            return FlowAverages.Zero;
         }
 
-        var from = filter.From ?? ParseDate(earliest);
+        var from = filter.From ?? LedgerSql.ParseDate(earliest);
         var to = filter.To ?? Today;
         if (from > to)
         {
-            return new FlowAverages(Money.Zero, Money.Zero);
+            return FlowAverages.Zero;
         }
 
         var periodCount = PeriodCount(from, to, interval);
@@ -46,8 +49,8 @@ public sealed partial class LedgerStore
 
         Money Average(string kind)
         {
-            var total = Convert.ToDecimal(ReadAbsoluteFlowTotal(connection, transaction, values, kind));
-            return new Money(checked((long)decimal.Round(total / periodCount, 0, MidpointRounding.AwayFromZero)));
+            var total = Convert.ToInt64(ReadAbsoluteFlowTotal(connection, transaction, values, kind));
+            return new Money((long)decimal.Round((decimal)total / periodCount, 0, MidpointRounding.AwayFromZero));
         }
     }
 

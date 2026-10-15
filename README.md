@@ -45,7 +45,7 @@ A gear icon opens **Settings** for the database/backup/snapshot folder pickers, 
 | Project                                                     | Purpose                                                                                |
 |:----------------------------------------------------------- |:-------------------------------------------------------------------------------------- |
 | `src/Balancia.Core`                                         | Domain rules and application operations; no Avalonia, SQLite, or platform dependencies |
-| `src/Balancia.Storage`                                      | SQLite schema, migrations, queries, CSV import/export, and snapshot storage            |
+| `src/Balancia.Storage`                                      | SQLite schema, queries, CSV import/export, and snapshot storage                        |
 | `src/Balancia.Desktop`                                      | The Avalonia Windows application (full read/write UI)                                  |
 | `src/Balancia.Android`                                      | The read-only native Android shell                                                     |
 | `tests/Balancia.Core.Tests`, `tests/Balancia.Storage.Tests` | Unit and SQLite integration tests                                                      |
@@ -90,9 +90,10 @@ enter the same passphrase once; Android Keystore protects the remembered key for
 later imports. Install the updated Android viewer before using encrypted exports.
 
 Keep the passphrase separately for a new/reinstalled device. Changing it affects
-future exports; older files still need their original phrase. Existing plaintext
-snapshots remain importable. Encryption does not rewrite old local or Drive copies.
-The working databases, local `.bak` recovery copies, and CSV exports remain
+future exports; older files still need their original phrase. Encryption does not
+rewrite old local or Drive copies. Plaintext (unencrypted ZIP) snapshots from
+earlier versions can no longer be restored or imported; export a new encrypted
+snapshot instead. The working databases, local `.bak` recovery copies, and CSV exports remain
 plaintext. Canceling setup with existing automatic destinations pauses exports
 until a passphrase is configured.
 

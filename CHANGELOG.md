@@ -14,6 +14,18 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.0.0] - 2026-10-15
+
+#### Changed
+
+- **Breaking:** snapshot restore always requires the matching passphrase; plaintext snapshots are rejected and the unencrypted-snapshot branch is removed.
+- **Breaking:** databases at schema version 1 or 2 no longer open, because the migrations are removed.
+- Bump Storage 5.0.0.
+
+#### Fixed
+
+- CSV import accepts only exact `Type` names; numeric text, comma lists, padded and differently cased values are rejected as an unsupported transaction type.
+
 ### [2.14.2] - 2026-10-14
 
 #### Fixed
@@ -329,6 +341,22 @@ Versioning rule:
 
 ## Balancia.Storage
 
+### [5.0.0] - 2026-10-15
+
+#### Changed
+
+- **Breaking:** plaintext ZIP snapshots are no longer importable and are rejected as an unsupported format. `SnapshotEncryption.ReadInfo` returns a non-null `SnapshotEncryptionInfo`, and `RestoreSnapshot`, `ValidateSnapshot` and `SnapshotImporter.Import` require a `SnapshotKey`.
+- **Breaking:** schema migrations and the `.pre-v2-*.bak` backup are removed. `LedgerStore.Initialize` creates the full schema in an empty file and rejects any `user_version` other than `SchemaVersion` (3), so a database still at version 1 or 2 no longer opens.
+- Optimize `SnapshotKey`: named layout constants, a single salt decoder, and malformed salts reported as `InvalidDataException`.
+- Split `LedgerStore` partials by feature (`Accounts`, `Categories`, `Descriptions`, `FullSnapshot`, `Reminders`, `Schema`, `Transactions`, `Logging`) and move the shared SQL helpers into `LedgerSql`.
+- Ledger total validation sums per account and per month inside SQLite instead of reading every movement, with the same 64-bit overflow rejection.
+- Flow analytics read the current and previous period with one query; the CSV import is split into focused helpers, with a typed `CsvRowType` replacing type strings.
+- A viewer import no longer fails when its staging file cannot be deleted; the cleanup failure is logged.
+
+#### Fixed
+
+- CSV import matches the `Type` column by exact member name; `Enum.TryParse` had begun accepting numeric text, comma lists and padded names.
+
 ### [4.2.1] - 2026-10-14
 
 #### Changed
@@ -423,6 +451,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.3.2] - 2026-10-15
+
+#### Changed
+
+- Snapshot import always unlocks with a key; the unencrypted-snapshot path is removed. Bump Storage 5.0.0.
 
 ### [0.3.1] - 2026-10-03
 

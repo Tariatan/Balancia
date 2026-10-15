@@ -5,10 +5,21 @@ namespace Balancia.Storage;
 
 internal static class CsvImportParser
 {
+    private static readonly string HeaderMismatchMessage =
+        $"Expected the {CsvImportRowValidator.Header.Length} Balancia export columns in their original order: {string.Join(',', CsvImportRowValidator.Header)}.";
+
     public static (List<CsvImportGroup> Groups, List<ImportIssue> Issues, ImportSummary Summary) Parse(byte[] bytes)
     {
         var issues = new List<ImportIssue>();
         var rows = new List<CsvImportRow>();
+        var sourceRows = ReadRows(bytes, rows, issues);
+        var groups = CsvImportGroupBuilder.Build(rows, issues);
+        var summary = CsvImportSummaryBuilder.Build(rows, groups, sourceRows);
+        return (groups, issues, summary);
+    }
+
+    private static int ReadRows(byte[] bytes, List<CsvImportRow> rows, List<ImportIssue> issues)
+    {
         var sourceRows = 0;
         using var stream = new MemoryStream(bytes);
         using var reader = new StreamReader(stream, new UTF8Encoding(false, true), true);
@@ -22,43 +33,42 @@ internal static class CsvImportParser
             var header = parser.ReadFields();
             if (header is null || !header.SequenceEqual(CsvImportRowValidator.Header))
             {
-                issues.Add(new ImportIssue(1, "Expected the 9 Balancia export columns in their original order: ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo."));
+                issues.Add(new ImportIssue(1, HeaderMismatchMessage));
+                return 0;
             }
 
-            if (issues.Count == 0)
+            while (!parser.EndOfData)
             {
-                while (!parser.EndOfData)
+                var line = parser.LineNumber;
+                string[]? fields;
+                try
                 {
-                    var line = parser.LineNumber;
-                    string[]? f;
-                    try
-                    {
-                        f = parser.ReadFields();
-                    }
-                    catch (MalformedLineException ex)
-                    {
-                        issues.Add(new ImportIssue(line, "Malformed CSV quoting: " + ex.Message));
-                        break;
-                    }
+                    fields = parser.ReadFields();
+                }
+                catch (MalformedLineException ex)
+                {
+                    issues.Add(new ImportIssue(line, "Malformed CSV quoting: " + ex.Message));
+                    break;
+                }
 
-                    if (f is null)
-                    {
-                        break;
-                    }
+                if (fields is null)
+                {
+                    break;
+                }
 
-                    sourceRows++;
-                    if (f.Length != CsvImportRowValidator.Header.Length)
-                    {
-                        issues.Add(new ImportIssue(line, $"Expected 9 columns; found {f.Length}."));
-                        continue;
-                    }
+                sourceRows++;
+                if (fields.Length != CsvImportRowValidator.Header.Length)
+                {
+                    issues.Add(new ImportIssue(line, $"Expected {CsvImportRowValidator.Header.Length} columns; found {fields.Length}."));
+                    continue;
+                }
 
-                    var (row, errors) = CsvImportRowValidator.Validate(f, line);
-                    issues.AddRange(errors.Select(error => new ImportIssue(line, error)));
-                    if (row is not null)
-                    {
-                        rows.Add(row);
-                    }
+                var (row, errors) = CsvImportRowValidator.Validate(fields, line);
+                issues.AddRange(errors.Select(error => new ImportIssue(line, error)));
+
+                if (row is not null)
+                {
+                    rows.Add(row);
                 }
             }
         }
@@ -71,8 +81,6 @@ internal static class CsvImportParser
             issues.Add(new ImportIssue(1, "Malformed CSV header: " + ex.Message));
         }
 
-        var groups = CsvImportGroupBuilder.Build(rows, issues);
-        var summary = CsvImportSummaryBuilder.Build(rows, groups, sourceRows);
-        return (groups, issues, summary);
+        return sourceRows;
     }
 }

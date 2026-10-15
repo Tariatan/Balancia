@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -7,76 +8,74 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
+    private static readonly SearchValues<char> CsvSpecialChars = SearchValues.Create(",\"\r\n");
+
     public int ExportCsv(string exportPath) => LogOperation(() => ExportCsvCore(exportPath));
 
     private int ExportCsvCore(string exportPath)
     {
-        using var connection = connections.Open();
-        using var transaction = connection.BeginTransaction(deferred: true);
-        var snapshot = ReadSnapshot(connection, transaction);
-        var templates = new List<ReminderTemplate>();
-        using (var command = Command(connection, transaction,
-            "SELECT id,description,expected_date,indicative_amount,interval_months,archived FROM reminder_templates ORDER BY expected_date,id"))
-        using (var reader = command.ExecuteReader())
+        LedgerSnapshot snapshot;
+        List<ReminderTemplate> templates = [];
+        using (var connection = connections.Open())
+        using (var transaction = connection.BeginTransaction(deferred: true))
         {
-            while (reader.Read())
+            snapshot = ReadSnapshot(connection, transaction);
+            using (var command = LedgerSql.Command(connection, transaction,
+                "SELECT id,description,expected_date,indicative_amount,interval_months,archived FROM reminder_templates ORDER BY expected_date,id"))
+            using (var reader = command.ExecuteReader())
             {
-                templates.Add(new ReminderTemplate(reader.GetString(0), reader.GetString(1),
-                    ParseDate(reader.GetString(2)), new Money(reader.GetInt64(3)), reader.GetInt32(4), reader.GetBoolean(5)));
+                while (reader.Read())
+                {
+                    templates.Add(ReadTemplate(reader));
+                }
             }
+
+            transaction.Commit();
         }
-        transaction.Commit();
+
         AtomicFileWriter.Write(exportPath, stream =>
         {
             using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
-            WriteCsvRow(
-                writer,
-                CsvImportRowValidator.Header);
-
-            foreach (var account in snapshot.Accounts)
-            {
-                WriteCsvRow(
-                    writer,
-                    "opening:" + account.Id,
-                    account.OpeningDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    "OpeningBalance",
-                    "Opening balance",
-                    AmountCsv(account.OpeningAmount),
-                    account.Name,
-                    "",
-                    "",
-                    "");
-            }
-
-            foreach (var (id, draft, accountName, destinationName, categoryPath) in snapshot.Entries)
-            {
-                var signed = draft.Kind == TransactionKind.Expense ? -draft.Amount : draft.Amount;
-                WriteCsvRow(
-                    writer,
-                    id,
-                    draft.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    draft.Kind.ToString(),
-                    draft.Description,
-                    AmountCsv(signed),
-                    accountName,
-                    destinationName ?? "",
-                    categoryPath ?? "",
-                    draft.Memo);
-            }
-            foreach (var template in templates)
-            {
-                WriteCsvRow(writer, "reminder:" + template.Id, DateText(template.ExpectedDate), "Reminder",
-                    template.Description, AmountCsv(template.IndicativeAmount), "", "", "",
-                    JsonSerializer.Serialize(new CsvReminderOptions(template.IntervalMonths, template.Archived)));
-            }
-            writer.Flush();
+            WriteCsvRow(writer, CsvImportRowValidator.Header);
+            WriteAccountRows(writer, snapshot.Accounts);
+            WriteEntryRows(writer, snapshot.Entries);
+            WriteReminderRows(writer, templates);
         });
         return snapshot.Accounts.Count + snapshot.Entries.Count + templates.Count;
     }
 
+    private static void WriteAccountRows(TextWriter writer, IEnumerable<Account> accounts)
+    {
+        foreach (var account in accounts)
+        {
+            WriteCsvRow(writer, OpeningId(account.Id), LedgerSql.DateText(account.OpeningDate), nameof(CsvRowType.OpeningBalance), "Opening balance",
+                AmountCsv(account.OpeningAmount), account.Name, "", "", "");
+        }
+    }
+
+    private static void WriteEntryRows(TextWriter writer, IEnumerable<LedgerEntry> entries)
+    {
+        foreach (var (id, draft, accountName, destinationName, categoryPath) in entries)
+        {
+            var signed = draft.Kind == TransactionKind.Expense ? -draft.Amount : draft.Amount;
+            WriteCsvRow(writer, id, LedgerSql.DateText(draft.Date), draft.Kind.ToString(), draft.Description, AmountCsv(signed),
+                accountName, destinationName ?? "", categoryPath ?? "", draft.Memo);
+        }
+    }
+
+    private static void WriteReminderRows(TextWriter writer, IEnumerable<ReminderTemplate> templates)
+    {
+        foreach (var template in templates)
+        {
+            WriteCsvRow(writer, ReminderSourceId(template.Id), LedgerSql.DateText(template.ExpectedDate), nameof(CsvRowType.Reminder), template.Description,
+                AmountCsv(template.IndicativeAmount), "", "", "",
+                JsonSerializer.Serialize(new CsvReminderOptions(template.IntervalMonths, template.Archived)));
+        }
+    }
+
     private static string AmountCsv(Money amount) => amount.Francs.ToString("0.00", CultureInfo.InvariantCulture);
 
-    private static void WriteCsvRow(TextWriter writer, params string[] cells)
+    private static void WriteCsvRow(TextWriter writer, params ReadOnlySpan<string> cells)
     {
         for (var i = 0; i < cells.Length; i++)
         {
@@ -85,13 +84,22 @@ public sealed partial class LedgerStore
                 writer.Write(',');
             }
 
-            writer.Write(CsvCell(cells[i]));
+            WriteCsvCell(writer, cells[i]);
         }
 
         writer.WriteLine();
     }
 
-    private static string CsvCell(string value) => value.IndexOfAny([',', '"', '\r', '\n']) >= 0
-        ? "\"" + value.Replace("\"", "\"\"") + "\""
-        : value;
+    private static void WriteCsvCell(TextWriter writer, string value)
+    {
+        if (value.AsSpan().IndexOfAny(CsvSpecialChars) < 0)
+        {
+            writer.Write(value);
+            return;
+        }
+
+        writer.Write('"');
+        writer.Write(value.Replace("\"", "\"\""));
+        writer.Write('"');
+    }
 }

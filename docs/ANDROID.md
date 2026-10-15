@@ -22,7 +22,8 @@ copy also reopens after restarting the app.
 A wrong phrase or damaged file keeps the previous database intact and shows an
 error. Canceling unlock leaves it unchanged. Reinstalling the app, invalidating
 the device key, or changing the Windows export phrase requires entering the
-phrase again. Older plaintext snapshots still import. Local viewer databases
+phrase again. Plaintext snapshots are rejected as an unsupported format (Android
+0.3.2); export a new encrypted snapshot from Windows. Local viewer databases
 remain plaintext, as agreed; this feature protects the transported snapshot.
 
 Android 0.3.1 adds daily diagnostics in app-private
@@ -42,6 +43,7 @@ dotnet publish src/Balancia.Android/Balancia.Android.csproj -c Release --no-rest
 Device acceptance: import an encrypted snapshot; verify wrong phrase and Cancel
 retain the previous copy; enter the correct phrase; restart; import a fresh
 snapshot with the same export key and verify no prompt; change the Windows
-passphrase and verify one new prompt; also import a legacy plaintext snapshot.
+passphrase and verify one new prompt; also verify that a legacy plaintext snapshot
+is rejected as unsupported and leaves the previous copy intact.
 Check device logs during this sequence: expected unlock/validation rejections
 should be Information, and Keystore cache failures should be Warning.

@@ -7,11 +7,11 @@ namespace Balancia.Storage;
 /// <summary>Validates and applies a snapshot archive as a fresh local database, for read-only viewers (e.g. Android).</summary>
 public static class SnapshotImporter
 {
-    public static (LedgerStore Store, SnapshotManifest Manifest) Import(string archivePath, string dbPath, SnapshotKey? key = null)
+    public static (LedgerStore Store, SnapshotManifest Manifest) Import(string archivePath, string dbPath, SnapshotKey key)
     {
         var operationId = Guid.NewGuid().ToString("N");
         using var context = LogContext.PushProperty("OperationId", operationId);
-        var logger = Log.ForContext(typeof(SnapshotImporter)).ForContext("OperationId", operationId);
+        var logger = Log.ForContext(typeof(SnapshotImporter));
         var elapsed = Stopwatch.StartNew();
         var databaseReplaced = false;
         logger.Information("Starting viewer snapshot import, OperationId: '{OperationId}'", operationId);
@@ -41,19 +41,21 @@ public static class SnapshotImporter
         }
         finally
         {
-            if (File.Exists(staged))
-            {
-                try
-                {
-                    File.Delete(staged);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                    logger.Warning("Viewer snapshot staging cleanup failed, OperationId: '{OperationId}', FailureType: '{FailureType}', HResult: '{HResult}'",
-                        operationId, ex.GetType().Name, ex.HResult);
-                    throw;
-                }
-            }
+            DeleteStaged(staged, logger, operationId);
+        }
+    }
+
+    /// <summary>Removes the staging file; a cleanup failure is logged and never masks the import outcome.</summary>
+    private static void DeleteStaged(string staged, ILogger logger, string operationId)
+    {
+        try
+        {
+            File.Delete(staged);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.Warning("Viewer snapshot staging cleanup failed, OperationId: '{OperationId}', FailureType: '{FailureType}', HResult: '{HResult}'",
+                operationId, ex.GetType().Name, ex.HResult);
         }
     }
 }

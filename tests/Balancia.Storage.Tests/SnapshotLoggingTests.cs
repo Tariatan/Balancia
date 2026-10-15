@@ -83,7 +83,8 @@ public sealed class SnapshotLoggingTests : IDisposable
 
         // Act
         Assert.Throws<InvalidDataException>(() => SnapshotImporter.Import(ArchivePath, ViewerPath, wrongKey));
-        Assert.Throws<InvalidOperationException>(() => store.ValidateSnapshot(ArchivePath));
+        using var otherKey = SnapshotKey.Create("synthetic other passphrase");
+        Assert.Throws<InvalidOperationException>(() => store.ValidateSnapshot(ArchivePath, otherKey));
 
         // Assert
         Assert.Equal(previous, File.ReadAllBytes(ViewerPath));
@@ -98,15 +99,15 @@ public sealed class SnapshotLoggingTests : IDisposable
     public void Import_WithMalformedManifest_LogsExpectedRejectionWithoutParserInput()
     {
         // Arrange
-        using (var archive = ZipFile.Open(ArchivePath, ZipArchiveMode.Create))
+        EncryptedArchive.Write(ArchivePath, key, archive =>
         {
             using var writer = new StreamWriter(archive.CreateEntry("manifest.json").Open());
             writer.Write("{\"SchemaVersion\":\"" + Description + "\"}");
-        }
+        });
         sink.Events.Clear();
 
         // Act
-        Assert.Throws<System.Text.Json.JsonException>(() => SnapshotImporter.Import(ArchivePath, ViewerPath));
+        Assert.Throws<System.Text.Json.JsonException>(() => SnapshotImporter.Import(ArchivePath, ViewerPath, key));
 
         // Assert
         Assert.DoesNotContain(sink.Events, e => e.Level >= LogEventLevel.Warning || e.Exception is not null);

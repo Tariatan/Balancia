@@ -99,6 +99,19 @@ public sealed class CsvImportTests : IDisposable
     }
 
     [Theory]
+    [InlineData("1", "1.00")]
+    [InlineData("Expense,Income", "1.00")]
+    [InlineData(" Expense", "-1.00")]
+    [InlineData("expense", "-1.00")]
+    public void NonExactTypeIsRejected(string type, string amount)
+    {
+        Csv($"o1,2026-09-01,OpeningBalance,Opening balance,10.00,A,,,\nx1,2026-09-02,\"{type}\",X,{amount},A,,,\n");
+        var preview = store.PreviewCsvImport(csv);
+        Assert.False(preview.CanApply);
+        Assert.Contains(preview.Issues, issue => issue.Line == 3 && issue.Message == "Unsupported transaction type.");
+    }
+
+    [Theory]
     [InlineData("t1,2026-09-04,Transfer,Transfer,5.00,A,,,\n")]
     [InlineData("t1,2026-09-04,Transfer,Transfer,5.00,A,a,,\n")]
     [InlineData("x1,2026-09-02,Expense,X,-1.001,A,,,\n")]
@@ -276,47 +289,8 @@ public sealed class CsvImportTests : IDisposable
         Assert.Equal(0, store.ApplyCsvImport(store.PreviewCsvImport(source)).Added);
     }
 
-    [Fact]
-    public void V1MigrationCreatesRecoverableBackupAndKeepsBalances()
-    {
-        var id = store.SaveAccount(null, "A", new DateOnly(2026, 9, 1), Money.FromFrancs(12));
-        var db = Path.Combine(dir, "test.db");
-        using (var c = new SqliteConnectionFactory(db).Open())
-        using (var cmd = c.CreateCommand())
-        {
-            cmd.CommandText = "DROP TABLE import_sources; DROP TABLE reminder_templates; PRAGMA user_version=1";
-            cmd.ExecuteNonQuery();
-        }
-        store.Initialize();
-        Assert.Equal(1200, store.ReadSnapshot().Accounts.Single(a => a.Id == id).Balance.Centimes);
-        var backup = Assert.Single(Directory.GetFiles(dir, "test.db.pre-v2-*.bak"));
-        using var restored = new SqliteConnectionFactory(backup).Open();
-        using var check = restored.CreateCommand();
-        check.CommandText = "PRAGMA user_version";
-        Assert.Equal(1L, Convert.ToInt64(check.ExecuteScalar()));
-    }
-
-    [Fact]
-    public void V1MigrationReachesCurrentSchemaInOneInitializeCall()
-    {
-        var db = Path.Combine(dir, "test.db");
-        using (var c = new SqliteConnectionFactory(db).Open())
-        using (var cmd = c.CreateCommand())
-        {
-            cmd.CommandText = "DROP TABLE import_sources; DROP TABLE reminder_templates; PRAGMA user_version=1";
-            cmd.ExecuteNonQuery();
-        }
-        store.Initialize();
-        store.SaveReminder(null, "Rent", new DateOnly(2026, 10, 1), Money.FromFrancs(1), 1);
-        using var c2 = new SqliteConnectionFactory(db).Open();
-        using var check = c2.CreateCommand();
-        check.CommandText = "PRAGMA user_version";
-        Assert.Equal(3L, Convert.ToInt64(check.ExecuteScalar()));
-    }
-
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
         Directory.Delete(dir, true);
     }
 

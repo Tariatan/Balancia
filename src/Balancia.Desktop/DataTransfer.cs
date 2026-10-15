@@ -91,12 +91,11 @@ public partial class MainWindow
         await Run(async () =>
         {
             var info = await Task.Run(() => SnapshotEncryption.ReadInfo(path));
-            Log.Information("Restore snapshot format detected, Encrypted: '{Encrypted}'", info is not null);
             SnapshotKey? temporaryKey = null;
             try
             {
                 var key = snapshotKey;
-                if (info is not null && (key is null || !key.Matches(info)))
+                if (key is null || !key.Matches(info))
                 {
                     Log.Information("Snapshot restore requires passphrase entry");
                     var passphrase = await SnapshotPassphraseWindow.Ask(dialogOwner ?? this, setup: false);
@@ -109,7 +108,7 @@ public partial class MainWindow
                     temporaryKey = await Task.Run(() => SnapshotKey.Derive(passphrase, info));
                     key = temporaryKey;
                 }
-                else if (info is not null)
+                else
                 {
                     Log.Information("Snapshot restore using remembered key");
                 }

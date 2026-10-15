@@ -1,4 +1,4 @@
-using System.Globalization;
+using System.Runtime.CompilerServices;
 using Microsoft.Data.Sqlite;
 
 namespace Balancia.Storage;
@@ -11,92 +11,74 @@ public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
     private readonly TimeProvider clock = clock ?? TimeProvider.System;
     private DateOnly Today => DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
 
-    private void Write(Action<SqliteConnection, SqliteTransaction> action,
-        [System.Runtime.CompilerServices.CallerMemberName] string operation = "")
-    {
+    private void Write(Action<SqliteConnection, SqliteTransaction> action, [CallerMemberName] string operation = "") =>
         LogOperation(() =>
         {
-            WriteCore(action);
-            return true;
+            using var c = connections.Open();
+            using var tx = c.BeginTransaction();
+            action(c, tx);
+            ValidateLedgerTotals(c, tx);
+            LedgerSql.Execute(c, tx, "UPDATE metadata SET revision=revision+1 WHERE id=1");
+            tx.Commit();
         }, operation);
-    }
 
-    private void WriteCore(Action<SqliteConnection, SqliteTransaction> action)
-    {
-        using var c = connections.Open();
-        using var tx = c.BeginTransaction();
-        action(c, tx);
-        ValidateLedgerTotals(c, tx);
-        Execute(c, tx, "UPDATE metadata SET revision=revision+1 WHERE id=1");
-        tx.Commit();
-    }
-
+    /// <summary>Rejects a write whose account or monthly totals no longer fit in 64-bit centimes; sums are exact decimals so overflow surfaces as <see cref="OverflowException"/>.</summary>
     private static void ValidateLedgerTotals(SqliteConnection c, SqliteTransaction tx)
     {
-        var accountTotals = new Dictionary<string, decimal>();
-        using (var cmd = Command(c, tx, "SELECT account_id,amount FROM movements"))
-        using (var reader = cmd.ExecuteReader())
-        {
-            while (reader.Read())
-            {
-                var id = reader.GetString(0);
-                accountTotals[id] = accountTotals.GetValueOrDefault(id) + reader.GetInt64(1);
-            }
-        }
-
-        foreach (var total in accountTotals.Values)
-        {
-            _ = checked((long)total);
-        }
-
-        _ = checked((long)accountTotals.Values.Sum());
-        var monthly = new Dictionary<(string, string), decimal>();
-        using (var cmd = Command(c, tx, "SELECT substr(l.date,1,7),l.kind,m.amount FROM ledger l JOIN movements m ON m.transaction_id=l.id WHERE l.kind IN ('Expense','Income')"))
-        using (var reader = cmd.ExecuteReader())
-        {
-            while (reader.Read())
-            {
-                var key = (reader.GetString(0), reader.GetString(1));
-                monthly[key] = monthly.GetValueOrDefault(key) + Math.Abs((decimal)reader.GetInt64(2));
-            }
-        }
-
-        foreach (var total in monthly.Values)
-        {
-            _ = checked((long)total);
-        }
+        var accountTotals = ReadAccountTotals(c, tx).Values;
+        EnsureFitsInLong(accountTotals);
+        _ = (long)accountTotals.Sum();
+        EnsureFitsInLong(ReadMonthlyTotals(c, tx).Values);
     }
 
-    private static void Require(SqliteConnection c, SqliteTransaction tx, string sql, string id, string error)
+    /// <summary>
+    /// Sums per account inside SQLite so only one row per account crosses into .NET. SQLite's own <c>SUM</c> throws on 64-bit overflow,
+    /// so each amount is split into a signed high half and an unsigned low half whose sums cannot overflow and are recombined as exact decimals.
+    /// </summary>
+    private static Dictionary<string, decimal> ReadAccountTotals(SqliteConnection c, SqliteTransaction tx)
     {
-        if (Scalar(c, tx, sql, ("$id", id)) is null)
+        var totals = new Dictionary<string, decimal>();
+        using var cmd = LedgerSql.Command(c, tx, "SELECT account_id,SUM(amount>>32),SUM(amount&4294967295) FROM movements GROUP BY account_id");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
         {
-            throw new ArgumentException(error);
-        }
-    }
-    private static SqliteCommand Command(SqliteConnection c, SqliteTransaction tx, string sql, params (string, object?)[] parameters)
-    {
-        var cmd = c.CreateCommand();
-        cmd.Transaction = tx;
-        cmd.CommandText = sql;
-        foreach (var (name, value) in parameters)
-        {
-            cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+            totals[reader.GetString(0)] = Combine(reader.GetInt64(1), reader.GetInt64(2));
         }
 
-        return cmd;
+        return totals;
     }
-    private static object? Scalar(SqliteConnection c, SqliteTransaction tx, string sql, params (string, object?)[] parameters)
+
+    /// <summary>Sums absolute income and expense amounts per month and kind, split like <see cref="ReadAccountTotals"/> (positives and negatives apart, since <c>abs</c> overflows on the minimum value).</summary>
+    private static Dictionary<(string Month, string Kind), decimal> ReadMonthlyTotals(SqliteConnection c, SqliteTransaction tx)
     {
-        using var cmd = Command(c, tx, sql, parameters);
-        var result = cmd.ExecuteScalar();
-        return result is DBNull ? null : result;
+        var totals = new Dictionary<(string Month, string Kind), decimal>();
+        using var cmd = LedgerSql.Command(c, tx, """
+            SELECT substr(l.date,1,7),l.kind,
+                   SUM(CASE WHEN m.amount>0 THEN m.amount>>32 ELSE 0 END),
+                   SUM(CASE WHEN m.amount>0 THEN m.amount&4294967295 ELSE 0 END),
+                   SUM(CASE WHEN m.amount<0 THEN m.amount>>32 ELSE 0 END),
+                   SUM(CASE WHEN m.amount<0 THEN m.amount&4294967295 ELSE 0 END)
+            FROM ledger l JOIN movements m ON m.transaction_id=l.id
+            WHERE l.kind IN ('Expense','Income')
+            GROUP BY 1,2
+            """);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            totals[(reader.GetString(0), reader.GetString(1))] =
+                Combine(reader.GetInt64(2), reader.GetInt64(3)) - Combine(reader.GetInt64(4), reader.GetInt64(5));
+        }
+
+        return totals;
     }
-    private static void Execute(SqliteConnection c, SqliteTransaction tx, string sql, params (string, object?)[] parameters)
+
+    private static decimal Combine(long high, long low) => high * 4294967296m + low;
+
+    private static void EnsureFitsInLong(IEnumerable<decimal> totals)
     {
-        using var cmd = Command(c, tx, sql, parameters);
-        cmd.ExecuteNonQuery();
+        foreach (var total in totals)
+        {
+            _ = (long)total;
+        }
     }
-    private static string DateText(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-    private static DateOnly ParseDate(string date) => DateOnly.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 }

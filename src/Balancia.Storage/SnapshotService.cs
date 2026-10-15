@@ -10,13 +10,18 @@ public sealed record SnapshotRestoreResult(string BackupPath, SnapshotManifest M
 
 public sealed partial class LedgerStore
 {
-    public SnapshotRestoreResult RestoreSnapshot(string source, SnapshotKey? key = null) => LogOperation(() => RestoreSnapshotCore(source, key));
+    private const string SnapshotFormat = "balancia-snapshot-1";
+    private const string MetadataSql = "SELECT dataset_id,revision FROM metadata WHERE id=1";
+    private const int MaxManifestBytes = 64 * 1024;
+    private const long MaxDatabaseBytes = 512L * 1024 * 1024;
 
-    private SnapshotRestoreResult RestoreSnapshotCore(string source, SnapshotKey? key)
+    public SnapshotRestoreResult RestoreSnapshot(string source, SnapshotKey key) => LogOperation(() => RestoreSnapshotCore(source, key));
+
+    private SnapshotRestoreResult RestoreSnapshotCore(string source, SnapshotKey key)
     {
         using var archive = SnapshotEncryption.OpenArchive(Path.GetFullPath(source), key);
         var manifest = ReadManifestEntry(archive);
-        var (datasetId, revision) = ReadDatasetIdAndRevision();
+        var (datasetId, revision) = ReadLiveMetadata();
         if (manifest.DatasetId != datasetId)
         {
             throw new InvalidDataException("Snapshot belongs to a different ledger dataset.");
@@ -42,38 +47,33 @@ public sealed partial class LedgerStore
 
             Serilog.Log.ForContext<LedgerStore>().Information("Restore recovery copy saved before replacement");
 
-            SqliteConnection.ClearAllPools();
             File.Move(staged, path, true);
             Serilog.Log.ForContext<LedgerStore>().Information("Snapshot restored, Revision: '{Revision}', BackupPath: '{BackupPath}'", manifest.Revision, backup);
             return new SnapshotRestoreResult(backup, manifest);
         }
         finally
         {
-            if (File.Exists(staged))
-            {
-                File.Delete(staged);
-            }
+            File.Delete(staged);
         }
     }
 
-    private (string DatasetId, long Revision) ReadDatasetIdAndRevision()
+    private (string DatasetId, long Revision) ReadLiveMetadata()
     {
-        using var c = connections.Open();
-        using var tx = c.BeginTransaction(deferred: true);
-        using var cmd = c.CreateCommand();
-        cmd.Transaction = tx;
-        cmd.CommandText = "SELECT dataset_id,revision FROM metadata WHERE id=1";
-        using var reader = cmd.ExecuteReader();
-        reader.Read();
-        var result = (reader.GetString(0), reader.GetInt64(1));
-        reader.Close();
-        tx.Commit();
-        return result;
+        using var connection = connections.Open();
+        return ReadMetadata(connection) ?? throw new InvalidOperationException("Ledger metadata is missing.");
     }
 
-    public SnapshotManifest ValidateSnapshot(string source, SnapshotKey? key = null) => LogOperation(() => ValidateSnapshotCore(source, key));
+    private static (string DatasetId, long Revision)? ReadMetadata(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = MetadataSql;
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? (reader.GetString(0), reader.GetInt64(1)) : null;
+    }
 
-    private SnapshotManifest ValidateSnapshotCore(string source, SnapshotKey? key)
+    public SnapshotManifest ValidateSnapshot(string source, SnapshotKey key) => LogOperation(() => ValidateSnapshotCore(source, key));
+
+    private SnapshotManifest ValidateSnapshotCore(string source, SnapshotKey key)
     {
         var temporary = path + ".snapshot-check-" + Guid.NewGuid().ToString("N");
         try
@@ -82,14 +82,11 @@ public sealed partial class LedgerStore
         }
         finally
         {
-            if (File.Exists(temporary))
-            {
-                File.Delete(temporary);
-            }
+            File.Delete(temporary);
         }
     }
 
-    internal static SnapshotManifest ExtractValidatedSnapshot(string source, string destination, SnapshotKey? key)
+    internal static SnapshotManifest ExtractValidatedSnapshot(string source, string destination, SnapshotKey key)
     {
         using var archive = SnapshotEncryption.OpenArchive(Path.GetFullPath(source), key);
         var manifest = ReadManifestEntry(archive);
@@ -101,7 +98,7 @@ public sealed partial class LedgerStore
     private static SnapshotManifest ReadManifestEntry(ZipArchive archive)
     {
         var manifestEntry = archive.GetEntry("manifest.json") ?? throw new InvalidDataException("Snapshot manifest is missing.");
-        if (manifestEntry.Length > 64 * 1024)
+        if (manifestEntry.Length > MaxManifestBytes)
         {
             throw new InvalidDataException("Snapshot manifest exceeds the supported size.");
         }
@@ -109,11 +106,11 @@ public sealed partial class LedgerStore
         using (var input = manifestEntry.Open())
         using (var buffer = new MemoryStream())
         {
-            CopyBounded(input, buffer, 64 * 1024);
+            CopyBounded(input, buffer, MaxManifestBytes);
             manifest = JsonSerializer.Deserialize<SnapshotManifest>(buffer.GetBuffer().AsSpan(0, checked((int)buffer.Length)));
         }
 
-        if (manifest is null || manifest.Format != "balancia-snapshot-1" || manifest.SchemaVersion != 3)
+        if (manifest is null || manifest.Format != SnapshotFormat || manifest.SchemaVersion != SchemaVersion)
         {
             throw new InvalidDataException("Snapshot format or schema version is unsupported.");
         }
@@ -124,13 +121,13 @@ public sealed partial class LedgerStore
     private static void ExtractDatabaseEntry(ZipArchive archive, string destination)
     {
         var database = archive.GetEntry("ledger.db") ?? throw new InvalidDataException("Snapshot database is missing.");
-        if (database.Length > 512L * 1024 * 1024)
+        if (database.Length > MaxDatabaseBytes)
         {
             throw new InvalidDataException("Snapshot database exceeds the supported size.");
         }
         using var input = database.Open();
         using var output = File.Create(destination);
-        CopyBounded(input, output, 512L * 1024 * 1024);
+        CopyBounded(input, output, MaxDatabaseBytes);
     }
 
     private static void CopyBounded(Stream input, Stream output, long maximum)
@@ -169,9 +166,7 @@ public sealed partial class LedgerStore
 
         command.CommandText = "PRAGMA user_version";
         var version = Convert.ToInt64(command.ExecuteScalar());
-        command.CommandText = "SELECT dataset_id,revision FROM metadata WHERE id=1";
-        using var row = command.ExecuteReader();
-        if (!row.Read() || version != manifest.SchemaVersion || row.GetString(0) != manifest.DatasetId || row.GetInt64(1) != manifest.Revision)
+        if (version != manifest.SchemaVersion || ReadMetadata(connection) != (manifest.DatasetId, manifest.Revision))
         {
             throw new InvalidDataException("Snapshot manifest does not match its database.");
         }
@@ -193,15 +188,8 @@ public sealed partial class LedgerStore
             using (var backup = new SqliteConnectionFactory(temporary).Open())
             {
                 source.BackupDatabase(backup);
-                using var command = backup.CreateCommand();
-                command.CommandText = "SELECT dataset_id,revision FROM metadata WHERE id=1";
-                using var reader = command.ExecuteReader();
-                if (!reader.Read())
-                {
-                    throw new InvalidOperationException("Ledger metadata is missing.");
-                }
-
-                manifest = new SnapshotManifest("balancia-snapshot-1", 3, reader.GetString(0), reader.GetInt64(1), DateTimeOffset.UtcNow);
+                var (datasetId, revision) = ReadMetadata(backup) ?? throw new InvalidOperationException("Ledger metadata is missing.");
+                manifest = new SnapshotManifest(SnapshotFormat, SchemaVersion, datasetId, revision, DateTimeOffset.UtcNow);
             }
 
             using var buffer = new MemoryStream();
@@ -227,10 +215,7 @@ public sealed partial class LedgerStore
         }
         finally
         {
-            if (File.Exists(temporary))
-            {
-                File.Delete(temporary);
-            }
+            File.Delete(temporary);
         }
     }
 }

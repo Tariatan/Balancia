@@ -6,36 +6,62 @@ namespace Balancia.Storage;
 
 internal static class CsvImportGroupBuilder
 {
-    public static List<CsvImportGroup> Build(List<CsvImportRow> rows, List<ImportIssue> issues)
+    public static List<CsvImportGroup> Build(IReadOnlyList<CsvImportRow> rows, List<ImportIssue> issues)
+    {
+        var groups = BuildGroups(rows, issues);
+        ReportDuplicateReminders(rows, issues);
+        ReportOpeningBalanceIssues(groups, issues);
+        return groups;
+    }
+
+    private static List<CsvImportGroup> BuildGroups(IReadOnlyList<CsvImportRow> rows, List<ImportIssue> issues)
     {
         var groups = new List<CsvImportGroup>();
-        foreach (var grouping in rows.GroupBy(r => r.Id, StringComparer.Ordinal))
+        foreach (var grouping in rows.GroupBy(row => row.Id, StringComparer.Ordinal))
         {
             var first = grouping.First();
-            if (grouping.Count() != 1)
+            if (grouping.Skip(1).Any())
             {
                 issues.Add(new ImportIssue(first.Line, "Each Balancia export ID must occur exactly once."));
                 continue;
             }
 
-            string[][] canonical = [first.Fields];
-            var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(canonical))));
-            CsvImportRow[] movements = first.Type == "Transfer"
+            CsvImportRow[] movements = first.Type == CsvRowType.Transfer
                 ? [first with { Amount = checked(-first.Amount) }, first with { Account = first.DestinationAccount }]
                 : [first];
-            groups.Add(new CsvImportGroup(grouping.Key, first.Type, movements, fingerprint));
+            groups.Add(new CsvImportGroup(grouping.Key, first.Type, movements, Fingerprint(first)));
         }
 
-        foreach (var duplicate in rows.Where(row => row.Type == "Reminder" &&
-                !JsonSerializer.Deserialize<CsvReminderOptions>(row.Memo)!.Archived)
-            .GroupBy(row => row.Description.Trim(), StringComparer.OrdinalIgnoreCase).Where(group => group.Count() > 1))
-        {
-            issues.Add(new ImportIssue(duplicate.First().Line, "Duplicate reminder description."));
-        }
+        return groups;
+    }
 
-        foreach (var account in groups.Where(group => group.Kind != "Reminder").SelectMany(group => group.Rows).GroupBy(row => row.Account, StringComparer.OrdinalIgnoreCase))
+    private static string Fingerprint(CsvImportRow row)
+    {
+        string[][] canonical = [row.Fields];
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(canonical))));
+    }
+
+    private static void ReportDuplicateReminders(IReadOnlyList<CsvImportRow> rows, List<ImportIssue> issues)
+    {
+        var duplicates = rows
+            .Where(row => row.Type == CsvRowType.Reminder && !JsonSerializer.Deserialize<CsvReminderOptions>(row.Memo)!.Archived)
+            .GroupBy(row => row.Description.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Skip(1).Any());
+
+        issues.AddRange(duplicates.Select(duplicate
+            => new ImportIssue(duplicate.First().Line, "Duplicate reminder description.")));
+    }
+
+    private static void ReportOpeningBalanceIssues(List<CsvImportGroup> groups, List<ImportIssue> issues)
+    {
+        var accounts = groups
+            .Where(group => group.Kind != CsvRowType.Reminder)
+            .SelectMany(group => group.Rows)
+            .GroupBy(row => row.Account, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var account in accounts)
         {
-            var openings = account.Where(row => row.Type == "OpeningBalance").ToArray();
+            var openings = account.Where(row => row.Type == CsvRowType.OpeningBalance).ToArray();
             if (openings.Length != 1)
             {
                 issues.Add(new ImportIssue(account.First().Line, "Each account requires exactly one OpeningBalance row."));
@@ -45,6 +71,5 @@ internal static class CsvImportGroupBuilder
                 issues.Add(new ImportIssue(openings[0].Line, "Opening balance must be on or before the account's first transaction."));
             }
         }
-        return groups;
     }
 }

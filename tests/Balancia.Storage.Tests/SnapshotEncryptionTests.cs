@@ -27,7 +27,7 @@ public sealed class SnapshotEncryptionTests : IDisposable
     public void PassphraseDerivedOnAnotherDeviceUnlocksWholeArchive()
     {
         var manifest = store.ExportSnapshot(SnapshotPath, key);
-        var info = SnapshotEncryption.ReadInfo(SnapshotPath)!;
+        var info = SnapshotEncryption.ReadInfo(SnapshotPath);
         using var portableKey = SnapshotKey.Derive(Passphrase, info);
 
         Assert.Equal(manifest, store.ValidateSnapshot(SnapshotPath, portableKey));
@@ -60,8 +60,9 @@ public sealed class SnapshotEncryptionTests : IDisposable
         var liveHash = SHA256.HashData(File.ReadAllBytes(Path.Combine(directory, "ledger.db")));
         var viewerHash = SHA256.HashData(File.ReadAllBytes(viewerPath));
         using var wrongKey = SnapshotKey.Derive("wrong synthetic passphrase", key.Info);
+        using var otherKey = SnapshotKey.Create("other synthetic passphrase");
 
-        Assert.Throws<InvalidOperationException>(() => store.RestoreSnapshot(SnapshotPath));
+        Assert.Throws<InvalidOperationException>(() => store.RestoreSnapshot(SnapshotPath, otherKey));
         Assert.Throws<InvalidDataException>(() => store.RestoreSnapshot(SnapshotPath, wrongKey));
         Assert.Throws<InvalidDataException>(() => SnapshotImporter.Import(SnapshotPath, viewerPath, wrongKey));
         Assert.Equal(liveHash, SHA256.HashData(File.ReadAllBytes(Path.Combine(directory, "ledger.db"))));
@@ -124,28 +125,25 @@ public sealed class SnapshotEncryptionTests : IDisposable
         using var replacement = SnapshotKey.Create("new synthetic test passphrase");
         var newPath = Path.Combine(directory, "new.balancia");
         store.ExportSnapshot(newPath, replacement);
-        using var old = SnapshotKey.Derive(Passphrase, SnapshotEncryption.ReadInfo(SnapshotPath)!);
+        using var old = SnapshotKey.Derive(Passphrase, SnapshotEncryption.ReadInfo(SnapshotPath));
         store.ValidateSnapshot(SnapshotPath, old);
         Assert.Throws<InvalidOperationException>(() => store.ValidateSnapshot(newPath, old));
     }
 
     [Fact]
-    public void LegacyPlaintextSnapshotStillImportsAndRestores()
+    public void PlaintextSnapshotIsRejected()
     {
         var manifest = store.ExportSnapshot(SnapshotPath, key);
-        var legacyPath = Path.Combine(directory, "legacy.balancia");
-        using (var archive = ZipFile.Open(legacyPath, ZipArchiveMode.Create))
+        var plaintextPath = Path.Combine(directory, "plaintext.balancia");
+        using (var archive = ZipFile.Open(plaintextPath, ZipArchiveMode.Create))
         {
             archive.CreateEntryFromFile(Path.Combine(directory, "ledger.db"), "ledger.db");
             using var writer = new StreamWriter(archive.CreateEntry("manifest.json").Open());
             writer.Write(JsonSerializer.Serialize(manifest));
         }
 
-        Assert.Null(SnapshotEncryption.ReadInfo(legacyPath));
-        Assert.Equal(manifest, store.ValidateSnapshot(legacyPath));
-        var (viewer, _) = SnapshotImporter.Import(legacyPath, Path.Combine(directory, "viewer.db"));
-        Assert.Equal(12000, viewer.ReadSnapshot().NetWorth.Centimes);
-        Assert.Equal(manifest, store.RestoreSnapshot(legacyPath).Manifest);
+        Assert.Throws<InvalidDataException>(() => SnapshotEncryption.ReadInfo(plaintextPath));
+        Assert.Throws<InvalidDataException>(() => store.ValidateSnapshot(plaintextPath, key));
     }
 
     [Fact]
@@ -156,7 +154,7 @@ public sealed class SnapshotEncryptionTests : IDisposable
         SnapshotImporter.Import(SnapshotPath, viewerPath, key);
         var previous = File.ReadAllBytes(viewerPath);
         var malformed = Path.Combine(directory, "malformed.balancia");
-        using (var archive = ZipFile.Open(malformed, ZipArchiveMode.Create))
+        EncryptedArchive.Write(malformed, key, archive =>
         {
             using (var writer = new StreamWriter(archive.CreateEntry("manifest.json").Open()))
             {
@@ -165,9 +163,9 @@ public sealed class SnapshotEncryptionTests : IDisposable
 
             using var database = new StreamWriter(archive.CreateEntry("ledger.db").Open());
             database.Write("not a sqlite database");
-        }
+        });
 
-        Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => SnapshotImporter.Import(malformed, viewerPath));
+        Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => SnapshotImporter.Import(malformed, viewerPath, key));
         Assert.Equal(previous, File.ReadAllBytes(viewerPath));
         Assert.Empty(Directory.GetFiles(directory, "*.staged-*"));
     }

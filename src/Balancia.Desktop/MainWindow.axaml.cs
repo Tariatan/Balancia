@@ -21,7 +21,7 @@ public partial class MainWindow : Window
     internal string LanguageCode;
     private string? languagePreference;
     private LedgerSnapshot? snapshot;
-    private FlowAverages averages = new(Money.Zero, Money.Zero);
+    private FlowAverages averages = FlowAverages.Zero;
     private IReadOnlyList<Reminder> reminders = [];
     private bool busy;
     private readonly TimeProvider timeProvider;

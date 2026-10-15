@@ -32,7 +32,14 @@ public sealed record TransactionsPage(IReadOnlyList<TransactionsHit> Hits, long 
 
 public sealed partial class LedgerStore
 {
-    private const string TransactionsFrom = """
+    private const string SharedFilters = """
+          AND ($description IS NULL OR contains_ci(l.description,$description))
+          AND ($accounts IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id IN (SELECT value FROM json_each($accounts))))
+          AND ($kind IS NULL OR l.kind=$kind)
+          AND ($from IS NULL OR l.date>=$from)
+          AND ($to IS NULL OR l.date<=$to)
+        """;
+    private const string TransactionsFrom = $"""
         FROM ledger l
         JOIN movements m ON m.transaction_id=l.id AND (l.kind<>'Transfer' OR m.amount<0)
         JOIN accounts a ON a.id=m.account_id
@@ -41,28 +48,26 @@ public sealed partial class LedgerStore
         LEFT JOIN categories category ON category.id=l.category_id
         LEFT JOIN categories parent ON parent.id=category.parent_id
         WHERE l.kind<>'OpeningBalance'
-          AND ($description IS NULL OR contains_ci(l.description,$description))
-          AND ($accounts IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id IN (SELECT value FROM json_each($accounts))))
-          AND ($kind IS NULL OR l.kind=$kind)
+        {SharedFilters}
           AND ($categories IS NULL OR l.category_id IN (SELECT value FROM json_each($categories))
                OR category.parent_id IN (SELECT value FROM json_each($categories)))
-          AND ($from IS NULL OR l.date>=$from)
-          AND ($to IS NULL OR l.date<=$to)
           AND ($minimum IS NULL OR abs(m.amount)>=$minimum)
           AND ($maximum IS NULL OR abs(m.amount)<=$maximum)
         """;
-    private const string TransactionsCount = """
+    private const string TransactionsCount = $"""
         SELECT COUNT(*) FROM ledger l WHERE l.kind<>'OpeningBalance'
-          AND ($description IS NULL OR contains_ci(l.description,$description))
-          AND ($accounts IS NULL OR EXISTS(SELECT 1 FROM movements matched WHERE matched.transaction_id=l.id AND matched.account_id IN (SELECT value FROM json_each($accounts))))
-          AND ($kind IS NULL OR l.kind=$kind)
+        {SharedFilters}
           AND ($categories IS NULL OR l.category_id IN (SELECT value FROM json_each($categories))
                OR EXISTS(SELECT 1 FROM categories child WHERE child.id=l.category_id
                          AND child.parent_id IN (SELECT value FROM json_each($categories))))
-          AND ($from IS NULL OR l.date>=$from)
-          AND ($to IS NULL OR l.date<=$to)
           AND ($minimum IS NULL OR EXISTS(SELECT 1 FROM movements amount WHERE amount.transaction_id=l.id AND abs(amount.amount)>=$minimum))
           AND ($maximum IS NULL OR EXISTS(SELECT 1 FROM movements amount WHERE amount.transaction_id=l.id AND abs(amount.amount)<=$maximum))
+        """;
+    private const string TransactionsSelect = """
+        SELECT l.id,l.kind,l.date,l.description,l.category_id,l.memo,m.account_id,m.amount,
+               d.account_id,a.name,destination.name,
+               CASE WHEN category.id IS NULL THEN NULL WHEN parent.id IS NULL THEN category.name ELSE parent.name || ' / ' || category.name END,
+               d.amount
         """;
 
     public TransactionsPage ReadTransactions(TransactionsFilter filter, int offset = 0, int pageSize = 100)
@@ -76,9 +81,9 @@ public sealed partial class LedgerStore
         ArgumentException.ThrowIfNullOrWhiteSpace(transactionId);
         using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
-        var date = Scalar(c, tx, "SELECT date FROM ledger WHERE id=$id AND kind<>'OpeningBalance'", ("$id", transactionId)) as string
+        var date = LedgerSql.Scalar(c, tx, "SELECT date FROM ledger WHERE id=$id AND kind<>'OpeningBalance'", ("$id", transactionId)) as string
             ?? throw new ArgumentException("The selected transaction no longer exists.", nameof(transactionId));
-        var offset = Convert.ToInt64(Scalar(c, tx, """
+        var offset = Convert.ToInt64(LedgerSql.Scalar(c, tx, """
             SELECT COUNT(*) FROM ledger
             WHERE kind<>'OpeningBalance' AND (date>$date OR (date=$date AND id>$id))
             """, ("$date", date), ("$id", transactionId)));
@@ -94,7 +99,8 @@ public sealed partial class LedgerStore
 
     private TransactionsPage ReadTransactionsCore(TransactionsFilter filter, int offset, int? pageSize, DateOnly? afterDate, string? afterId)
     {
-        if (offset < 0 || pageSize is < 1 or > 1000)
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        if (pageSize is < 1 or > 1000)
         {
             throw new ArgumentOutOfRangeException(nameof(pageSize));
         }
@@ -104,17 +110,12 @@ public sealed partial class LedgerStore
         using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
         var values = FilterParameters(filter);
-        var count = Convert.ToInt64(Scalar(c, tx, TransactionsCount, values));
+        var count = Convert.ToInt64(LedgerSql.Scalar(c, tx, TransactionsCount, values));
         var hits = new List<TransactionsHit>();
-        using (var cmd = Command(c, tx, """
-            SELECT l.id,l.kind,l.date,l.description,l.category_id,l.memo,m.account_id,m.amount,
-                   d.account_id,a.name,destination.name,
-                   CASE WHEN category.id IS NULL THEN NULL WHEN parent.id IS NULL THEN category.name ELSE parent.name || ' / ' || category.name END,
-                   d.amount
-            """ + " " + TransactionsFrom +
+        using (var cmd = LedgerSql.Command(c, tx, TransactionsSelect + " " + TransactionsFrom +
             " AND ($cursorDate IS NULL OR l.date<$cursorDate OR (l.date=$cursorDate AND l.id<$cursorId))" +
             " ORDER BY l.date DESC,l.id DESC LIMIT $limit OFFSET $offset",
-            [.. values, ("$cursorDate", afterDate is null ? null : DateText(afterDate.Value)),
+            [.. values, ("$cursorDate", afterDate is null ? null : LedgerSql.DateText(afterDate.Value)),
                 ("$cursorId", afterId), ("$limit", pageSize ?? -1), ("$offset", offset)]))
         using (var reader = cmd.ExecuteReader())
         {
@@ -124,7 +125,7 @@ public sealed partial class LedgerStore
                 var destination = reader.IsDBNull(8) ? null : reader.GetString(8);
                 var amount = reader.GetInt64(7);
                 var draft = new TransactionDraft(Enum.Parse<TransactionKind>(reader.GetString(1)),
-                    ParseDate(reader.GetString(2)), reader.GetString(3), new Money(Math.Abs(amount)),
+                    LedgerSql.ParseDate(reader.GetString(2)), reader.GetString(3), new Money(Math.Abs(amount)),
                     source, destination, reader.IsDBNull(4) ? null : reader.GetString(4), reader.GetString(5));
                 var entry = new LedgerEntry(reader.GetString(0), draft, reader.GetString(9),
                     reader.IsDBNull(10) ? null : reader.GetString(10), reader.IsDBNull(11) ? null : reader.GetString(11));
@@ -133,7 +134,7 @@ public sealed partial class LedgerStore
             }
         }
 
-        var revision = Convert.ToInt64(Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1"));
+        var revision = Convert.ToInt64(LedgerSql.Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1"));
         tx.Commit();
         return new TransactionsPage(hits, count, offset, pageSize ?? hits.Count, revision);
     }
@@ -141,21 +142,21 @@ public sealed partial class LedgerStore
     // Shared by DesktopSnapshot.ReadDesktopSnapshotForFilter and FlowAverages.ReadFlowAverages, which both
     // need the absolute Income/Expense total for the same filtered period.
     private static object? ReadAbsoluteFlowTotal(SqliteConnection c, SqliteTransaction tx, (string, object?)[] filterValues, string kind) =>
-        Scalar(c, tx, "SELECT COALESCE(SUM(abs(m.amount)),0) " + TransactionsFrom + " AND l.kind=$flowKind",
+        LedgerSql.Scalar(c, tx, "SELECT COALESCE(SUM(abs(m.amount)),0) " + TransactionsFrom + " AND l.kind=$flowKind",
             [.. filterValues, ("$flowKind", kind)]);
 
     private static (string, object?)[] FilterParameters(TransactionsFilter filter) =>
     [
         ("$description", string.IsNullOrEmpty(filter.Description) ? null : filter.Description),
-        ("$accounts", filter.HasAccountFilter ? JsonSerializer.Serialize((filter.AccountIds ?? []).Concat(filter.AccountId is { } accountId ? [accountId] : []).Distinct()) : null),
+        ("$accounts", filter.HasAccountFilter ? JsonIds(filter.AccountIds, filter.AccountId) : null),
         ("$kind", filter.Kind?.ToString()),
         ("$category", filter.CategoryId),
-        ("$categories", filter.HasCategoryFilter
-            ? JsonSerializer.Serialize((filter.CategoryIds ?? []).Concat(filter.CategoryId is { } id ? [id] : []).Distinct())
-            : null),
-        ("$from", filter.From is null ? null : DateText(filter.From.Value)),
-        ("$to", filter.To is null ? null : DateText(filter.To.Value)),
+        ("$categories", filter.HasCategoryFilter ? JsonIds(filter.CategoryIds, filter.CategoryId) : null),
+        ("$from", filter.From is null ? null : LedgerSql.DateText(filter.From.Value)),
+        ("$to", filter.To is null ? null : LedgerSql.DateText(filter.To.Value)),
         ("$minimum", filter.Minimum?.Centimes),
         ("$maximum", filter.Maximum?.Centimes)
     ];
+    private static string JsonIds(IReadOnlyList<string>? ids, string? id) =>
+        JsonSerializer.Serialize((ids ?? []).Concat(id is null ? [] : [id]).Distinct());
 }

@@ -30,8 +30,7 @@ public sealed class SqliteConnectionFactory
         try
         {
             connection.Open();
-            connection.CreateFunction<string?, string?, bool>("contains_ci", (value, term) =>
-                value?.Contains(term ?? "", StringComparison.OrdinalIgnoreCase) ?? false);
+            connection.CreateFunction<string?, string?, bool>("contains_ci", ContainsIgnoreCase, isDeterministic: true);
             return connection;
         }
         catch
@@ -40,4 +39,7 @@ public sealed class SqliteConnectionFactory
             throw;
         }
     }
+
+    private static bool ContainsIgnoreCase(string? value, string? term) =>
+        value?.Contains(term ?? "", StringComparison.OrdinalIgnoreCase) ?? false;
 }
