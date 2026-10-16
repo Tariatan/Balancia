@@ -2,19 +2,14 @@
 
 A personal finance ledger for Windows, with a read-only Android companion. Record income, expenses, and transfers across local accounts; browse and filter history; watch account balances, spending trends, and upcoming reminders — all from one local SQLite ledger, with no server and no subscription.
 
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-blue)
-![Framework](https://img.shields.io/badge/.NET-10-purple)
-![UI](https://img.shields.io/badge/UI-Avalonia-8A2BE2)
-![Language](https://img.shields.io/badge/language-C%23-239120)
-
-**Status:** the Windows ledger, CSV import/export, reminders, snapshot backup/restore, and the read-only Android viewer are implemented. Release polish and distribution remain — see [docs/PLAN.md](docs/PLAN.md).
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-blue) ![Framework](https://img.shields.io/badge/.NET-10-purple) ![UI](https://img.shields.io/badge/UI-Avalonia-8A2BE2) ![Language](https://img.shields.io/badge/language-C%23-239120)
 
 ## What it does
 
 1. Records expenses, income, and transfers against local accounts, with dated opening balances and up to two levels of categories.
 2. Shows net worth, income/expense trends, and a cumulative timeline for whatever period and filters are currently selected — day, week, month, year, or a custom range.
 3. Tracks reminders for repeating payments (rent, subscriptions, insurance) by description and due month, surfacing overdue and upcoming occurrences without ever creating a transaction automatically.
-4. Imports the owner's existing CSV export once — matching transfers, opening balances, and categories — and exports the ledger back to CSV at any time.
+4. Imports the owner's existing CSV export — matching transfers, opening balances, and categories — and exports the ledger back to CSV at any time.
 5. Backs up and restores consistent local snapshots, and hands a read-only, validated copy to the Android companion for balance and history lookups on the go.
 
 The Windows desktop is the only writer; Android never opens or synchronizes the live database. See [docs/Technical_Design_Description.md](docs/Technical_Design_Description.md) for how that boundary — and the rest of the design — works.
@@ -53,10 +48,7 @@ A gear icon opens **Settings** for the database/backup/snapshot folder pickers, 
 
 ## Documentation
 
-Windows diagnostics are in `%LOCALAPPDATA%\Balancia\log\balancia-yyyyMMdd.log`.
-Android diagnostics are in app-private `NoBackupFilesDir/log`. Both keep ten daily
-files and append across restarts. Encryption, snapshot/backup outcomes, and
-remembered-key failures are logged without passphrases, keys, or financial content.
+Windows diagnostics are in `%LOCALAPPDATA%\Balancia\log\balancia-yyyyMMdd.log`. Android diagnostics are in app-private `NoBackupFilesDir/log`.
 
 - [`docs/Technical_Design_Description.md`](docs/Technical_Design_Description.md) — architecture, context diagrams, and design decisions; the primary entry point for the project
 - [`docs/PLAN.md`](docs/PLAN.md) — remaining/upcoming tasks
@@ -65,7 +57,7 @@ remembered-key failures are logged without passphrases, keys, or financial conte
 
 ## Getting started
 
-Install .NET SDK **10.0.201**, pinned by `global.json`. All projects target `net10.0`; direct package versions are pinned in project files and `packages.lock.json` locks the transitive graph.
+All projects target `net10.0`; direct package versions are pinned in project files and `packages.lock.json` locks the transitive graph.
 
 ```powershell
 dotnet restore Balancia.slnx --locked-mode
@@ -78,23 +70,12 @@ dotnet run --project src/Balancia.Desktop -c Release --no-build --no-restore
 
 For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--` in the `dotnet run` command — the app creates that directory and its schema on first run.
 
-The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db` by default. CSV import accepts only Balancia's own export format: `ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo`, with `YYYY-MM-DD` dates. Open Settings, choose **Import CSV**, inspect the preview, and apply it; a repeated identical import is a no-op, and a changed row under the same ID surfaces as a conflict instead of a silent overwrite. **Export CSV** writes the current ledger, including explicit opening balances and one row per transfer. The former eleven-column CSV format is no longer supported.
+The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db` by default. CSV import accepts only Balancia's own export format: `ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo`, with `YYYY-MM-DD` dates. Open Settings, choose **Import CSV**, inspect the preview, and apply it; a repeated identical import is a no-op, and a changed row under the same ID surfaces as a conflict instead of a silent overwrite. **Export CSV** writes the current ledger, including explicit opening balances and one row per transfer.
 
 ## Private data
 
-Snapshots and rolling backups are encrypted. In Settings, choose **Set passphrase**
-under **Snapshot encryption** (minimum 12 characters, entered twice). Windows
-remembers the key using current-user DPAPI and encrypts manual exports and both
-close-time destinations automatically. On Android, import the new snapshot and
-enter the same passphrase once; Android Keystore protects the remembered key for
-later imports. Install the updated Android viewer before using encrypted exports.
+Snapshots and rolling backups are encrypted. In Settings, choose **Set passphrase** under **Snapshot encryption** (minimum 12 characters, entered twice). Windows remembers the key using current-user DPAPI and encrypts manual exports and both close-time destinations automatically. On Android, import the new snapshot and enter the same passphrase once; Android Keystore protects the remembered key for later imports.
 
-Keep the passphrase separately for a new/reinstalled device. Changing it affects
-future exports; older files still need their original phrase. Encryption does not
-rewrite old local or Drive copies. Plaintext (unencrypted ZIP) snapshots from
-earlier versions can no longer be restored or imported; export a new encrypted
-snapshot instead. The working databases, local `.bak` recovery copies, and CSV exports remain
-plaintext. Canceling setup with existing automatic destinations pauses exports
-until a passphrase is configured.
+Keep the passphrase separately for a new/reinstalled device. Changing it affects future exports; older files still need their original phrase. The working databases, local `.bak` recovery copies, and CSV exports remain plaintext.
 
-Committed tests use only synthetic fixtures. For a one-off reconciliation test against a real export, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute path before running the test command, then unset it. Ignore rules do not encrypt data or remove files already tracked elsewhere.
+Committed tests use only synthetic fixtures. For a one-off reconciliation test against a real export, set `BALANCIA_PRIVATE_IMPORT_PATH` to its absolute path before running the test command, then unset it.

@@ -1,163 +1,32 @@
 # Balancia project memory
 
-Last tidied: 2026-10-08. Scope: this repository only.
-Historical checks below are recorded evidence, not checks rerun during cleanup.
+Scope: this repository only. Entries are `- YYYY-MM: fact and why` with the annotations defined by the edit-memory-file skill. Verification notes record evidence from the date shown, not rerun checks.
 
 ## Read first
 
-- [Technical Design Description](docs/Technical_Design_Description.md) owns
-  product behavior and design decisions.
-- [AGENTS.md](AGENTS.md) owns operational rules, including versioning and
-  documentation ownership; [README.md](README.md) owns build/run commands.
+- [Technical Design Description](docs/Technical_Design_Description.md) owns product behavior and design decisions.
+- [AGENTS.md](AGENTS.md) owns operational rules, including versioning and documentation ownership; [README.md](README.md) owns build/run commands.
 - [CHANGELOG.md](CHANGELOG.md) records releases and implemented changes.
 - [PLAN.md](docs/PLAN.md) is maintained exclusively by the user.
 
-## Decisions worth retaining
+## Decisions
 
-- **No schema migrations (2026-10-15):** the owner is the only user and always
-  runs the latest version, so the v1 to v2 and v2 to v3 migrations, the
-  `.pre-v2-*.bak` backup, and their two tests were removed from
-  [Schema.cs](src/Balancia.Storage/Schema.cs). `Initialize` now creates the full
-  schema in an empty file and rejects any other `user_version` than
-  `LedgerStore.SchemaVersion` (3, also used by the snapshot manifest check).
-  The version stayed at 3 so existing databases and snapshots remain valid; a
-  database still at version 1 or 2 no longer opens. Any future schema change
-  needs a new migration path or a deliberate bump of `SchemaVersion`. Verified
-  with the Core, Storage, and Desktop test projects, not a native run.
-- **CSV Type matching (2026-10-15):** `CsvImportRowValidator.ParseType` matches
-  member names exactly. `Enum.TryParse` is unsafe here because it accepts numeric
-  text, comma lists and padded names. The same enum names are written by export, so
-  renaming a `CsvRowType` member changes the file format. Desktop went to 3.0.0
-  because plaintext restore and schema 1/2 databases are no longer supported.
-- **Regular suggestions trial (2026-10-12):** the owner rejected unlimited
-  persisted Recent because it would gradually include nearly every category.
-  Regular instead tries two matching category paths ranked by saved transaction
-  frequency over 35 days, using transaction dates; 35 rather than 30 gives
-  monthly and slightly delayed payments a chance. The owner explicitly wants
-  to try this in daily use and may revise it; usefulness is not yet established.
-  Next: check whether Regular surfaces the expected monthly/ordinary choices
-  and whether two entries suffice before changing its window or ranking.
-  Native `misc` rendering was checked, but Tab and save-and-continue interaction
-  remain unverified because automation targeted the owner window. Sources:
-  the owner's October 12 decision, the TDD's Transaction category suggestions,
-  and Desktop 2.12.0 in [CHANGELOG.md](CHANGELOG.md).
-- **Usage agreement:** Windows is the only writer; Android is a read-only
-  balance/history viewer. Stale snapshots and manual refresh are acceptable.
-  Google Drive is user-managed snapshot transport. Android transport/device
-  acceptance remains open. See the TDD's Android context.
-- **Encryption boundary (2026-10-03):** the owner chose to leave local databases,
-  recovery copies, and CSV exports plaintext. Transported snapshots and rolling
-  backups are encrypted; canceling key setup pauses exports without a plaintext
-  fallback. Changing the passphrase affects future exports, while older files
-  retain their old phrase. See the TDD's snapshot lifecycle and Desktop 2.9.0 /
-  Storage 4.0.0 entries in the changelog. Plaintext (unencrypted ZIP) snapshots
-  are no longer supported since Storage 5.0.0 (2026-10-15): they are rejected as
-  an unsupported format and every restore or import requires a matching key.
-- **Dialog layout decision (2026-09-28):** fixed-shape Settings, Error, and CSV
-  preview dialogs moved to AXAML. The shared `EditDialog` remains code-built
-  because each caller supplies different fields. Client-derivable validation is
-  shown inline before saving; uniqueness and concurrent-edit checks remain in
-  Storage. Source: [MainWindow.Dialogs.cs](src/Balancia.Desktop/MainWindow.Dialogs.cs).
-- **Date navigation correction (2026-10-02):** the user requested Up / wheel up
-  to advance one day and Down / wheel down to go back. Native checks confirmed
-  Up moved October 1 to 2 and wheel up moved October 2 to 3 after the correction.
-  See the TDD's Window Composition section and Desktop 2.1.0 changelog entry.
-- **Repository reference (2026-09-17):** Git was initialized on `main`; the
-  recorded private repository is [Tariatan/Balancia](https://github.com/Tariatan/Balancia).
+- 2026-10: `CsvImportRowValidator.ParseType` matches `CsvRowType` member names exactly. `Enum.TryParse` is unsafe here because it accepts numeric text, comma lists and padded names. Export writes the same enum names, so renaming a member changes the file format. [stable]
+- 2026-10: Regular suggestions use two matching category paths ranked by saved transaction frequency over 35 days (transaction dates; 35 rather than 30 gives monthly and slightly delayed payments a chance). The owner rejected unlimited persisted Recent because it would gradually include nearly every category, and wants to try Regular in daily use. Success: Regular surfaces the expected monthly and ordinary choices and two entries suffice; otherwise revise the window or ranking. [TRIAL: 2026-10 - 2026-12]
+- 2026-10: Windows is the only writer; Android is a read-only balance/history viewer. Stale snapshots and manual refresh are acceptable, and Google Drive is user-managed snapshot transport. Android transport/device acceptance remains open (see [Android Context](docs/Technical_Design_Description.md)). [stable]
+- 2026-10: The owner chose to leave local databases, recovery copies and CSV exports plaintext. Transported snapshots and rolling backups are encrypted; canceling key setup pauses exports with no plaintext fallback. Changing the passphrase affects future exports only, older files keep their old phrase. See the TDD's snapshot lifecycle and the Desktop 2.9.0 / Storage 4.0.0 changelog entries. [stable]
 
-## Code notes that look removable but are not
+## Code that looks removable but is not
 
-- **`FirstDayOfWeek` flip in `RefreshCalendarCulture`**
-  ([LocalizedCalendarDatePicker.cs](src/Balancia.Desktop/LocalizedCalendarDatePicker.cs)):
-  when the calendar already holds the target value, it is set to a different day
-  first and then back. The flip forces the calendar to redraw its week header;
-  assigning the same value does nothing.
-- **Null `choice` guard in item templates** (`InitializeAccountPanel` in
-  [Accounts.cs](src/Balancia.Desktop/Accounts.cs), `InitializeCategoryPanel` in
-  [CategoriesPanel.cs](src/Balancia.Desktop/CategoriesPanel.cs); the same comment
-  also appears in `SettingsWindow.axaml.cs` and `RemindersPanel.cs`): virtualized presenters can request
-  a template with no item while scrolling, so `if (choice is null) return null;`
-  must stay even though the item type is non-nullable.
-
-- **Date-sorted `FlowAnalytics.Current`**
-  ([FlowAnalytics.cs](src/Balancia.Core/FlowAnalytics.cs)): `BuildTrend` fills
-  buckets in a single forward pass and silently misassigns days if `Current` is
-  not sorted by date ascending. `ReadFlowAnalytics` in
-  [FlowQueries.cs](src/Balancia.Storage/FlowQueries.cs) guarantees the order via
-  `ORDER BY l.date`; keep that clause and sort any other producer.
+- 2026-10: `RefreshCalendarCulture` in [LocalizedCalendarDatePicker.cs](src/Balancia.Desktop/LocalizedCalendarDatePicker.cs) sets `FirstDayOfWeek` to a different day and back when the calendar already holds the target value. Assigning the same value does not redraw the week header. [stable]
+- 2026-10: The `if (choice is null) return null;` guard in item templates (`InitializeAccountPanel` in [Accounts.cs](src/Balancia.Desktop/Accounts.cs), `InitializeCategoryPanel` in [CategoriesPanel.cs](src/Balancia.Desktop/CategoriesPanel.cs), also `RemindersPanel.cs` and `SettingsWindow.axaml.cs`) must stay although the item type is non-nullable: virtualized presenters can request a template with no item while scrolling. [stable]
+- 2026-10: `FlowAnalytics.Current` ([FlowAnalytics.cs](src/Balancia.Core/FlowAnalytics.cs)) must be sorted by date ascending, because `BuildTrend` fills buckets in one forward pass and silently misassigns days otherwise. `ReadFlowAnalytics` in [FlowQueries.cs](src/Balancia.Storage/FlowQueries.cs) guarantees it with `ORDER BY l.date`; keep that clause and sort any other producer. [stable]
 
 ## UI tests
 
-- `tests/Balancia.Desktop.Tests` uses Avalonia.Headless.XUnit, which requires xunit v3; all three test projects use xunit.v3.
-  `MainWindow(separateDataDirectory, settingsFile)` and `UseSnapshotKey` are the internal seams; the DPAPI key store is Windows-only, so tests inject the key.
-- Opening a window with a backup or snapshot folder and no key shows the passphrase dialog, which blocks a headless test.
-  Close such a window without showing it.
+- 2026-10: Avalonia.Headless.XUnit in `tests/Balancia.Desktop.Tests` requires xunit v3, so all three test projects use xunit.v3. The DPAPI key store is Windows-only; tests inject the key through `UseSnapshotKey`. [stable]
+- 2026-10: Opening a window with a backup or snapshot folder and no key shows the passphrase dialog, which blocks a headless test. Close such a window without showing it. [stable]
 
-## Recorded verification
+## Open work
 
-### Encryption and diagnostics — 2026-10-03
-
-- Locked restore and the full Release solution build passed with zero warnings
-  or errors; 79 Core and 100 Storage tests passed, including privacy,
-  correlation, and logging severity checks. Earlier encryption coverage recorded
-  79 Core / 95 Storage tests and synthetic DPAPI save/load/tampered-cache checks.
-- Actual shutdown methods were exercised through a source-linked synthetic
-  harness: ten encrypted backups, one overwritten snapshot, retention after
-  successful export, and preservation on missing/disposed keys and failures.
-- Native Windows startup, remembered-key load, and normal-close logging passed.
-  Settings/passphrase layout and Cancel were checked with a separate database.
-- Android 0.3.1 APK was published and hash-checked (application version 5,
-  target API 36). This established packaging only; device behavior remains open.
-- Sources: the prior repository handoff; Desktop 2.9.0–2.9.1, Storage
-  4.0.0–4.0.1, and Android 0.3.0–0.3.1 entries in [CHANGELOG.md](CHANGELOG.md).
-
-### CSV — 2026-10-02 to 2026-10-03
-
-- Nine-column ledger export/import was covered by fresh-ledger roundtrip,
-  unchanged reimport, invalid format/IDs/amounts, and atomic rollback checks;
-  82 Storage tests, Desktop Release build, and diff checks passed on October 2.
-  The owner separately confirmed the Windows CSV export/import workflow.
-- Reminder rows were added on October 3; locked restore and Release build passed.
-  Their runtime roundtrip remains unverified. Sources: the prior handoff and
-  Desktop 2.8.0 / Storage 3.3.0 changelog entries.
-
-### Desktop interaction — 2026-09-28 to 2026-10-05
-
-- Settings extraction was manually verified on September 28. Later settings
-  persistence consolidation and version-footer layout still need interaction
-  review; the earlier check does not cover those revisions.
-- Category `#` button accessibility and an empty-list click were checked in a
-  separate sample ledger on October 4; populated parent/child selection remains
-  unverified. Locked restore, full Release build, and diff check passed.
-- Other recorded Desktop changes passed Release builds and, where recorded,
-  locked restore/diff checks. Outstanding native checks are grouped below rather
-  than repeated per release. Source: the prior repository handoff.
-
-## Open verification and next step
-
-- **First:** verify Windows passphrase Save, encrypted export, and restore via
-  the picker; then run [Android device acceptance](docs/ANDROID.md) for initial
-  pairing, same-key reimport, restart, changed phrase, wrong phrase, Cancel,
-  damaged archives, runtime logs, and Keystore outcomes.
-- **Categories and transactions:** populated parent/child filtering; repeated
-  Add another transaction entry after Category reset; Description suggestion
-  click/Tab acceptance. The earlier UI tool could not reliably target the owned
-  Description dialog, so opening it was not an interaction pass.
-- **CSV and dialogs:** reminder roundtrip; Error and CSV preview dialog click-through.
-- **Dashboard:** Trend/Timeline hover tooltips; Last 30 days startup fallback and
-  filters; reminder colors, totals, current/next-month branch switching and early
-  payment advancement; default-account highlight; localized Today label.
-- **Settings:** consolidated persistence and the fixed version footer beside Close
-  (Release build passed on 2026-10-05; native layout review remains pending).
-- **Logging:** midnight rolling and retention were configured but not verified
-  by shifting time. Android document-provider compatibility remains device-dependent.
-
-## Maintenance notes
-
-- The obsolete `scripts/Check-Harness.ps1` is absent, confirmed on 2026-10-08.
-  Use current README commands instead of historical harness instructions.
-- Cleanup consolidated repeated release metadata and implementation descriptions
-  into links above. The old claim that Storage "remains 3.0.0" was superseded by
-  later releases; current metadata is in the project files and changelog.
-- Keep this handoff focused on decisions, evidence limits, and the next action;
-  add updates only when the user requests them.
+- 2026-10: Android 0.3.1 APK (application version 5, target API 36) was published and hash-checked on 2026-10-03; that established packaging only. Next: verify Windows passphrase Save, encrypted export and restore via the picker, then run [Android device acceptance](docs/ANDROID.md) for initial pairing, same-key reimport, restart, changed phrase, wrong phrase, Cancel, damaged archives, runtime logs and Keystore outcomes.

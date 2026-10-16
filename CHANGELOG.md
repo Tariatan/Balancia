@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.1.1] - 2026-10-16
+
+#### Added
+
+- Harness/Documentation update.
+
 ### [3.1.0] - 2026-10-15
 
 #### Added

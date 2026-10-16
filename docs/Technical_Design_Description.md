@@ -46,44 +46,30 @@
 
 ## Purpose
 
-This document outlines the design of **Balancia** — a single-user personal
-finance ledger. Windows provides full management of accounts, transactions,
-categories, and reminders; a companion Android app provides
-read-only balances and history search from a manually transported snapshot.
-Balancia replaces the owner's prior CSV-based workflow while preserving an
-import path for Balancia's own CSV exports.
+This document outlines the design of **Balancia** — a personal finance ledger. Windows provides full management of accounts, transactions, categories, and reminders; a companion Android app provides read-only balances and history search from a manually transported snapshot.
 
-The intended audience for this document is developers and AI agents
-implementing or reviewing Balancia, and anyone assessing the overall design
-approach before making a change.
+The intended audience for this document is developers and AI agents implementing or reviewing Balancia, and anyone assessing the overall design approach before making a change.
 
-While this document provides a high-level design overview, for detailed
-implementation information please consult the source code directly. This
-document is intended to become the primary entry point for the project.
+While this document provides a high-level design overview, for detailed implementation information please consult the source code directly. This document is intended to become the primary entry point for the project.
 
 ## Scope
 
 This TDD covers all projects in the `Balancia.slnx` solution:
 
-- **Balancia.Core** — domain rules and application operations, free of
-  Avalonia, SQLite, file-picker, and cloud dependencies
-- **Balancia.Storage** — SQLite schema, queries, CSV import/export,
-  and snapshot storage
+- **Balancia.Core** — domain rules and application operations, free of Avalonia, SQLite, file-picker, and cloud dependencies
+- **Balancia.Storage** — SQLite schema, queries, CSV import/export, and snapshot storage
 - **Balancia.Desktop** — the Avalonia Windows application (full read/write UI)
 - **Balancia.Android** — a read-only native Android shell
-- **Balancia.Core.Tests** / **Balancia.Storage.Tests** — the automated test
-  suites
+- **Balancia.Core.Tests** / **Balancia.Storage.Tests** — the automated test suites
 
-It describes the architectural decisions, the context boundaries, and the key
-workflows of each context.
+It describes the architectural decisions, the context boundaries, and the key workflows of each context.
 
 ## References
 
 | Reference | Title                                                                           |
 |:--------- |:------------------------------------------------------------------------------- |
 | 1         | [docs/PLAN.md](PLAN.md) — remaining/upcoming tasks                             |
-| 2         | Follow the coding guidelines defined by the common harness. |
-| 3         | [AGENTS.md](../AGENTS.md) — agent/contributor operational entry point           |
+| 2         | [AGENTS.md](../AGENTS.md) — agent/contributor operational entry point           |
 
 ## Abbreviations and Definitions
 
@@ -102,59 +88,30 @@ workflows of each context.
 | **Local Windows writer, read-only Android**                | Matches actual single-user usage; avoids server operations and multi-writer conflict resolution.                                                         | Android never opens the live database for write; it only imports validated, immutable snapshots.                                                                     |
 | **C#/.NET, Avalonia, SQLite**                              | Shared language and domain logic across desktop and mobile; desktop-first UI; local relational persistence with no server dependency.                    | `Balancia.Core` must stay free of Avalonia/SQLite/cloud dependencies so it is reusable by both shells and testable in isolation.                                     |
 | **One logical transfer, two atomic movements**             | Preserves account balances during every edit and excludes transfers from income/expense totals.                                                          | Create, edit, and delete of a transfer must update both movements inside one database transaction; a partial write must roll back entirely.                          |
-| **Immutable snapshots via user-managed Drive transport**   | No hosted API is required; stale mobile data is acceptable; the live database is never synced directly.                                                  | Encrypted snapshots contain schema, dataset identity, revision, and an authenticated archive so Android can validate a file without contacting Windows.        |
-| **Description + occurrence month/year for recurrence**     | The user defines recurrence manually; no fuzzy matching, amount matching, or bank integration is in scope.                                               | Reminder satisfaction compares only the exact description against the transaction's calendar month/year; amount and day never participate.                           |
+| **Immutable snapshots via user-managed Drive transport**   | No hosted API is required; stale mobile data is acceptable; the live database is never synced directly.                                                  | Encrypted snapshots contain schema, dataset identity, revision, and an authenticated archive so Android can validate a file without contacting Windows.              |
+| **Description + occurrence month/year for reminders**      | The user defines reminders manually; no fuzzy matching, amount matching, or bank integration is in scope.                                                | Reminder satisfaction compares only the exact description against the transaction's calendar month/year; amount and day never participate.                           |
 | **Money as signed 64-bit integer centimes**                | Binary floating point cannot represent currency amounts exactly and would risk silent rounding drift across thousands of transactions.                   | All monetary fields use checked `Int64` centime arithmetic; parsing rejects fractional centimes, overflow, and non-decimal input.                                    |
-| **No generic repository over every table**                 | Storage exposes the specific reads/writes each application operation needs (e.g. `TransactionsFilter`, `ReadFlowAnalytics`) rather than a generic CRUD layer. | New query needs are added as purpose-built, parameterized SQL rather than generalized through an ORM abstraction.                                                    |
+| **No generic repository over every table**                 | Storage exposes the specific reads/writes each application operation needs (e.g. `TransactionsFilter`, `ReadFlowAnalytics`) rather than a generic CRUD layer. | New query needs are added as purpose-built, parameterized SQL rather than generalized through an ORM abstraction.                                               |
 | **Explicit UI culture over ambient thread culture**        | Async filter refreshes previously reverted labels to the ambient thread culture after a language switch, showing stale text.                             | All resource lookups and date-picker calendar captions use the explicitly selected `CultureInfo`, not `CultureInfo.CurrentUICulture` read from the executing thread. |
 | **`MainWindow` split into feature-scoped partial classes** | A single monolithic window file became too large to navigate as Overview, Transactions, Categories, Reminders, Accounts, and Settings UI grew.           | Each partial file owns one feature area's controls and handlers; `MainWindow.axaml.cs` retains only shared state, initialization, refresh, and navigation.           |
 
 ## Overview
 
-Balancia's lifecycle centers on one local SQLite ledger that the Windows
-desktop app owns exclusively:
+Balancia's lifecycle centers on one local SQLite ledger that the Windows desktop app owns exclusively:
 
-1. The owner records income, expenses, transfers, and dated opening balances
-   through the Windows Overview dashboard, or imports them from a CSV export
-   of the prior tracking tool.
-2. Categories (up to two levels) and reminder templates classify and
-   forecast transactions; reminders track unresolved occurrences without ever
-   creating transactions automatically.
-3. Every successful write validates domain invariants inside one database
-   transaction, increments a monotonic revision, and refreshes the affected
-   dashboard reads in place.
-4. On a clean close, Windows exports a consistent snapshot (`.balancia`
-   archive) to an optional rolling backup folder and to a fixed
-   `Snapshot.balancia` file in a separate folder intended for manual Google
-   Drive synchronization.
-5. Android imports that snapshot through the system document picker, validates
-   it (schema, dataset identity, revision, integrity), and swaps its app-local
-   copy only on success — the live Windows database is never synced directly.
+1. The owner records income, expenses, transfers, and dated opening balances through the Windows Overview dashboard, or imports them from a CSV export.
+2. Categories (up to two levels) and reminder templates classify and forecast transactions; reminders track unresolved occurrences without ever creating transactions automatically.
+3. Every successful write validates domain invariants inside one database transaction, increments a monotonic revision, and refreshes the affected dashboard reads in place.
+4. On a clean close, Windows exports a consistent snapshot (`.balancia` archive) to an optional rolling backup folder and to a fixed `Snapshot.balancia` file in a separate folder intended for manual Google Drive synchronization.
+5. Android imports that snapshot through the system document picker, validates it (schema, dataset identity, revision, integrity), and swaps its app-local copy only on success — the live Windows database is never synced directly.
 
 ### Considerations for a Secure Design
 
-Balancia has no server component and no network API of its own; all data
-stays on the owner's devices. Google Drive is used only as user-managed file
-transport for snapshots, never as an active database. The private CSV import
-source and any live database/backup/snapshot files are excluded from source
-control by ignore rules; committed tests use only synthetic financial data.
-Snapshots and rolling backups encrypt the whole archive with AES-256-GCM,
-including the manifest. Authentication detects modification before extracting
-the embedded database. Local databases, local pre-restore recovery copies, and
-CSV exports remain plaintext by the owner's choice. Previously exported
-plaintext files and any Drive version history are not rewritten, and plaintext
-snapshots can no longer be imported.
+Balancia has no server component and no network API of its own; all data stays on the owner's devices. Google Drive is used only as user-managed file transport for snapshots, never as an active database. The private CSV import source and any live database/backup/snapshot files are excluded from source control by ignore rules; committed tests use only synthetic financial data. Snapshots and rolling backups encrypt the whole archive with AES-256-GCM, including the manifest. Authentication detects modification before extracting the embedded database. Local databases, local pre-restore recovery copies, and CSV exports remain plaintext.
 
 ### Considerations for Localization
 
-The Windows desktop supports English, German, Russian, and Ukrainian, selected
-through a flag-marked picker in Settings. A missing preference resolves from
-the process's Windows UI culture, with English fallback; the choice persists
-in the application settings file and updates the open window immediately,
-including date-picker calendar captions and Russian/Ukrainian month-name
-capitalization. The application name `Balancia` is never translated. Android
-is outside this translation scope. See [Localization](#localization) for the
-implementation detail.
+The Windows desktop supports English, German, Russian, and Ukrainian, selected through a flag-marked picker in Settings. A missing preference resolves from the process's Windows UI culture, with English fallback; the choice persists in the application settings file and updates the open window immediately, including date-picker calendar captions and Russian/Ukrainian month-name capitalization. The application name `Balancia` is never translated. Android is outside this translation scope. See [Localization](#localization) for the implementation detail.
 
 ### Context Map
 
@@ -190,10 +147,7 @@ Snap --> Drive : synced manually by the owner
 
 ## Core Context (Balancia.Core)
 
-`Balancia.Core` holds domain rules and application operations shared by both
-shells. It has no Avalonia, SQLite, file-picker, or cloud dependencies, which
-keeps it directly unit-testable and reusable by Android without pulling in
-desktop-only code.
+`Balancia.Core` holds domain rules and application operations shared by both shells. It has no Avalonia, SQLite, file-picker, or cloud dependencies, which keeps it directly unit-testable and reusable by Android without pulling in desktop-only code.
 
 ### Domain Model
 
@@ -260,50 +214,24 @@ ImportSource --> LedgerTransaction
 @enduml
 ```
 
-- **Expense** has one negative movement; **Income** has one positive movement;
-  **Transfer** has two movements summing to zero across two different
-  accounts; **OpeningBalance** has one signed movement with an effective date.
-- Account balance = opening balance + all signed movements after the opening
-  point; net worth = the sum of account balances. Balances are recomputed from
-  indexed movements rather than independently persisted, until measurement
-  justifies a cache.
-- Categories nest at most two levels; a parent category filter includes its
-  children without double-counting overlaps. Toggling a parent checkbox also
-  toggles all its subcategory checkboxes. The `#` button beside `+` selects all
-  categories (including archived ones), or clears selection if all are checked.
+- **Expense** has one negative movement; **Income** has one positive movement; **Transfer** has two movements summing to zero across two different accounts; **OpeningBalance** has one signed movement with an effective date.
+- Account balance = opening balance + all signed movements after the opening point; net worth = the sum of account balances. Balances are recomputed from indexed movements rather than independently persisted, until measurement justifies a cache.
+- Categories nest at most two levels; a parent category filter includes its children without double-counting overlaps. Toggling a parent checkbox also toggles all its subcategory checkboxes.
 
 ### Money and Transfer Invariants
 
-- Money is a signed 64-bit integer count of centimes, using checked arithmetic
-  and decimal parsing; binary floating point is never used for monetary
-  values.
-- Zero amounts, fractional centimes, overflow, and same-account transfers are
-  rejected at the domain boundary.
-- A transfer is one logical operation: creating, editing, or deleting it
-  always affects both accounts atomically. The transaction list renders it as
-  a single entry; per-account views show its signed effect on that account
-  only.
-- Dates use `DateOnly` semantics for financial dates (no time zone) and UTC
-  instants for snapshot metadata.
+- Money is a signed 64-bit integer count of centimes, using checked arithmetic and decimal parsing; binary floating point is never used for monetary values.
+- Zero amounts, fractional centimes, overflow, and same-account transfers are rejected at the domain boundary.
+- A transfer is one logical operation: creating, editing, or deleting it always affects both accounts atomically. The transaction list renders it as a single entry; per-account views show its signed effect on that account only.
+- Dates use `DateOnly` semantics for financial dates (no time zone) and UTC instants for snapshot metadata.
 
 ## Storage Context (Balancia.Storage)
 
-`Balancia.Storage` implements the persistence boundaries required by Core's
-operations directly against SQLite — there is no generic repository for every
-table. It owns the schema, all parameterized queries, CSV import/export, the
-reminder calculation, and snapshot lifecycle.
+`Balancia.Storage` implements the persistence boundaries required by Core's operations directly against SQLite — there is no generic repository for every table. It owns the schema, all parameterized queries, CSV import/export, the reminder calculation, and snapshot lifecycle.
 
 ### Schema and Version Check
 
-`Initialize` creates the full schema in an empty database file and stamps
-`PRAGMA user_version` with `LedgerStore.SchemaVersion` (3, also checked against
-the snapshot manifest). There are no migrations: the owner is the only user and
-always runs the latest version. A file whose `user_version` differs from
-`SchemaVersion` (older or newer), or a non-empty file without a version, is
-rejected without being changed. A future schema change needs a new migration path
-or a deliberate version bump. Every logical write happens inside a database
-transaction with foreign keys and uniqueness/check constraints enforced;
-cross-row invariants (balances, monthly totals) are verified before commit.
+`Initialize` creates the full schema in an empty database file and stamps `PRAGMA user_version` with `LedgerStore.SchemaVersion`. A file whose `user_version` differs from `SchemaVersion` (older or newer), or a non-empty file without a version, is rejected without being changed. A future schema change needs a new migration path or a deliberate version bump. Every logical write happens inside a database transaction with foreign keys and uniqueness/check constraints enforced; cross-row invariants (balances, monthly totals) are verified before commit.
 
 ### Ledger Write Lifecycle
 
@@ -333,31 +261,15 @@ end
 @enduml
 ```
 
-A failed operation never emits a successful revision. A clock is injected for
-month-change and recurrence tests. Reminder satisfaction is recomputed after
-every transaction change.
+A failed operation never emits a successful revision. A clock is injected for month-change and recurrence tests. Reminder satisfaction is recomputed after every transaction change.
 
 ### Read Queries and Indexing
 
-- `TransactionsFilter` combines an optional category-ID set with the existing
-  single-category filter; shared read/count/aggregate predicates use a
-  parameterized JSON array with SQLite `json_each`, matching a category or its
-  parent without joining and multiplying rows.
-- `ReadFlowAnalytics` reuses that same predicate to read current and prior
-  periods in one SQLite read transaction for the Trend/Timeline charts; Core
-  groups the daily amounts into calendar buckets with checked `Money`
-  arithmetic.
-- Transactions pages use a stable date/ID cursor of 100 rows instead of
-  loading every row; a count query supports result totals. The write path
-  checks movement and month totals without materializing every transaction
-  entry.
-- Candidate indexes: ledger date + stable ID; movement account + transaction;
-  category + date through query design; description/date for recurrence. A
-  leading-wildcard substring search (description search) may scan
-  descriptions; exact index selection follows measured query plans rather than
-  being assumed, and full-text search is not added without a measured need.
-- An SQLite connection function delegates substring comparison to .NET
-  ordinal case-insensitive matching so accented case pairs match consistently.
+- `TransactionsFilter` combines an optional category-ID set with the existing single-category filter; shared read/count/aggregate predicates use a parameterized JSON array with SQLite `json_each`, matching a category or its parent without joining and multiplying rows.
+- `ReadFlowAnalytics` reuses that same predicate to read current and prior periods in one SQLite read transaction for the Trend/Timeline charts; Core groups the daily amounts into calendar buckets with checked `Money` arithmetic.
+- Transactions pages use a stable date/ID cursor of 100 rows instead of loading every row; a count query supports result totals. The write path checks movement and month totals without materializing every transaction entry.
+- Candidate indexes: ledger date + stable ID; movement account + transaction; category + date through query design; description/date for recurrence. A leading-wildcard substring search (description search) may scan descriptions; exact index selection follows measured query plans rather than being assumed, and full-text search is not added without a measured need.
+- An SQLite connection function delegates substring comparison to .NET ordinal case-insensitive matching so accented case pairs match consistently.
 
 ### CSV Import and Export
 
@@ -388,60 +300,19 @@ end
 @enduml
 ```
 
-Import accepts only Balancia's nine-column export structure, in this order:
-ID, Date, Type, Description, Amount, Account, DestinationAccount, Category, Memo.
-Dates use YYYY-MM-DD; expenses have negative amounts, income and transfers
-have positive amounts, and OpeningBalance amounts may be positive, negative,
-or zero. Every account has exactly one explicit OpeningBalance row. A transfer
-is one row with different source and destination accounts and no category.
-IDs must be unique within a file. A repeated import with unchanged IDs and data
-is a no-op; changed data or local edits produce a conflict. The old eleven-column
-format is rejected at preview before any writes.
+Import accepts only Balancia's nine-column export structure, in this order: ID, Date, Type, Description, Amount, Account, DestinationAccount, Category, Memo. Dates use YYYY-MM-DD; expenses have negative amounts, income and transfers have positive amounts, and OpeningBalance amounts may be positive, negative, or zero. Every account has exactly one explicit OpeningBalance row. A transfer is one row with different source and destination accounts and no category. IDs must be unique within a file. A repeated import with unchanged IDs and data is a no-op; changed data or local edits produce a conflict.
 
-Export CSV writes all account opening balances, posted transactions, and reminder templates from
-one consistent ledger read, one row per logical transaction or reminder (including
-transfers), with columns ID, Date, Type, Description, Amount, Account,
-DestinationAccount, Category, Memo. Import and export share the same header.
-The existing target file is replaced only after the write completes.
+Export CSV writes all account opening balances, posted transactions, and reminder templates from one consistent ledger read, one row per logical transaction or reminder (including transfers), with columns ID, Date, Type, Description, Amount, Account, DestinationAccount, Category, Memo. Import and export share the same header. The existing target file is replaced only after the write completes.
 
-Reminder rows use `Type=Reminder`, `ID=reminder:<template ID>`, the schedule anchor
-in Date, the exact Description, and the positive indicative Amount. Account,
-DestinationAccount, and Category are empty. Memo contains JSON with
-`IntervalMonths` (positive integer) and `Archived` (boolean). All templates,
-including archived ones, are exported; payment-derived next occurrences are
-recomputed from the imported transactions rather than exported as new anchors.
-Reminder rows contribute to preview/import row counts but not account totals.
-Reminder creation and import-source tracking commit atomically with transactions.
-Identical reimports are unchanged; conflicting schedule data or duplicate active
-descriptions reject the batch. Editing/deleting an imported reminder marks its
-source as locally modified, so reimport cannot silently discard that local change.
+Reminder rows use `Type=Reminder`, `ID=reminder:<template ID>`, the schedule anchor in Date, the exact Description, and the positive indicative Amount. Account, DestinationAccount, and Category are empty. Memo contains JSON with `IntervalMonths` (positive integer) and `Archived` (boolean). All templates, including archived ones, are exported; payment-derived next occurrences are recomputed from the imported transactions rather than exported as new anchors. Reminder rows contribute to preview/import row counts but not account totals. Reminder creation and import-source tracking commit atomically with transactions. Identical reimports are unchanged; conflicting schedule data or duplicate active descriptions reject the batch. Editing/deleting an imported reminder marks its source as locally modified, so reimport cannot silently discard that local change.
 
 ### Reminders
 
-The desktop reminder subtotal shows **UPCOMING THIS MONTH** and sums unsatisfied
-occurrences in the current calendar month whenever any remain (including overdue
-dates in that month). Otherwise it shows **UPCOMING NEXT MONTH** and sums
-unsatisfied occurrences in the next calendar month. Older overdue occurrences
-remain in the reminder list but do not enter either monthly subtotal.
-The overall reminder total is labeled **TOTAL**. All three total labels use
-uppercase translations in every supported desktop language.
+The desktop reminder subtotal shows **UPCOMING THIS MONTH** and sums unsatisfied occurrences in the current calendar month whenever any remain (including overdue dates in that month). Otherwise it shows **UPCOMING NEXT MONTH** and sums unsatisfied occurrences in the next calendar month. Older overdue occurrences remain in the reminder list but do not enter either monthly subtotal. The overall reminder total is labeled **TOTAL**. All three total labels use uppercase translations in every supported desktop language.
 
-Unsatisfied reminders show their date, description, and amount in red when
-overdue, and in a readable golden yellow when due today through five days from
-today (inclusive). Both highlighted groups use bold text across all three
-columns. Remaining pending reminders are blue in the next calendar month and
-green in subsequent months, including across year boundaries. The overdue and
-five-day rules take precedence over month colors. Other reminders retain the
-normal text color; later reminders retain their normal font weights.
+Unsatisfied reminders show their date, description, and amount in red when overdue, and in a readable golden yellow when due today through five days from today (inclusive). Both highlighted groups use bold text across all three columns. Remaining pending reminders are blue in the next calendar month and green in subsequent months, including across year boundaries. The overdue and five-day rules take precedence over month colors. Other reminders retain the normal text color; later reminders retain their normal font weights.
 
-An occurrence is satisfied when a posted transaction has exactly the
-template's description and falls within that occurrence's calendar month and
-year; day and amount never participate, and account/category are not
-additional matching keys. On satisfaction the next occurrence is the current
-one advanced by the template's interval in months, even if the matching payment
-is entered before the expected day in that same month. Unmatched past occurrences
-remain visible as overdue until paid or manually rescheduled — the calendar
-advancing never silently skips or auto-creates a transaction.
+An occurrence is satisfied when a posted transaction has exactly the template's description and falls within that occurrence's calendar month and year; day and amount never participate, and account/category are not additional matching keys. On satisfaction the next occurrence is the current one advanced by the template's interval in months, even if the matching payment is entered before the expected day in that same month. Unmatched past occurrences remain visible as overdue until paid or manually rescheduled — the calendar advancing never silently skips or auto-creates a transaction.
 
 | Rule                   | Behavior                                                                                                                                                                                                      |
 |:---------------------- |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -468,7 +339,7 @@ Desktop -> Desktop : Encrypt ZIP + authenticate header\nAES-256-GCM
 Desktop -> Snap : Atomically replace encrypted archive
 note right of Desktop
   Also written on clean close to the
-  rolling backup folder (3 per local day, 21 overall)
+  rolling backup folder
 end note
 
 Snap -> Drive : synced manually by the owner
@@ -485,259 +356,81 @@ end
 @enduml
 ```
 
-Snapshot export uses SQLite's consistent backup facilities, never a raw copy
-of an open WAL database. Metadata is read from the backed-up database so the
-manifest and ledger represent the same revision. The plaintext database is
-staged in the local temporary directory and removed on success/failure; the
-ZIP is encrypted in memory. Destination staging contains only ciphertext and
-is flushed before atomic replacement. Close-time backups are written only when
-the active ledger dataset/revision changed during the session. Keep the newest three backups per local calendar day and
-21 overall, deleting older backups only after a successful export. The snapshot
-folder contains one overwritten `Snapshot.balancia` file.
+Snapshot export uses SQLite's consistent backup facilities, never a raw copy of an open WAL database. Metadata is read from the backed-up database so the manifest and ledger represent the same revision. The plaintext database is staged in the local temporary directory and removed on success/failure; the ZIP is encrypted in memory. Destination staging contains only ciphertext and is flushed before atomic replacement. Close-time backups are written only when the active ledger dataset/revision changed during the session. Keep the newest three backups per local calendar day and 21 overall, deleting older backups only after a successful export. The snapshot folder contains one overwritten `Snapshot.balancia` file.
 
-The encrypted envelope version 1 has an authenticated 60-byte header:
-`BALENC01` (8 ASCII bytes), PBKDF2 iteration count (4-byte little-endian), salt
-(32 bytes), nonce (12 bytes), ciphertext length (4-byte little-endian), then a
-16-byte GCM tag and the ciphertext. AES-256-GCM encrypts the entire existing
-`balancia-snapshot-1` ZIP (manifest plus database). PBKDF2-HMAC-SHA256 derives
-the 32-byte key from the exact passphrase with 600,000 iterations and a random
-salt at setup; every export generates a fresh random nonce. Readers accept
-600,000–2,000,000 iterations, cap ZIP/ciphertext at 256 MiB, the manifest at
-64 KiB, and the extracted database at 512 MiB. Authentication precedes ZIP or
-SQLite parsing. A plaintext ZIP (no `BALENC01` header) is rejected as an
-unsupported format; every restore, validation, and import requires a `SnapshotKey`.
+The encrypted envelope version 1 has an authenticated 60-byte header: `BALENC01` (8 ASCII bytes), PBKDF2 iteration count (4-byte little-endian), salt (32 bytes), nonce (12 bytes), ciphertext length (4-byte little-endian), then a 16-byte GCM tag and the ciphertext. AES-256-GCM encrypts the entire existing `balancia-snapshot-1` ZIP (manifest plus database). PBKDF2-HMAC-SHA256 derives the 32-byte key from the exact passphrase with 600,000 iterations and a random salt at setup; every export generates a fresh random nonce. Readers accept 600,000–2,000,000 iterations, cap ZIP/ciphertext at 256 MiB, the manifest at 64 KiB, and the extracted database at 512 MiB. Authentication precedes ZIP or SQLite parsing. A plaintext ZIP (no `BALENC01` header) is rejected as an unsupported format; every restore, validation, and import requires a `SnapshotKey`.
 
-Settings asks for a passphrase and confirmation (minimum 12 characters). Keep
-it separately for device replacement/reinstallation: remembered keys are a
-convenience, not portable recovery credentials. Windows stores the derived key,
-salt, and iteration count in a current-user DPAPI blob beside settings; Android
-wraps these bytes with an AES-GCM key held by Android Keystore, saving the blob
-in `NoBackupFilesDir`. Neither shell stores the passphrase or a plaintext key
-in preferences/logs. Windows exports and restores its own snapshots without
-an unlock prompt; Android asks once for a new export key, remembering it only
-after successful import. Later imports unlock automatically, without a biometric
-or device-credential prompt. Missing/invalid protected storage asks for pairing
-again. Passphrase changes affect future exports; old files need their old phrase.
+Settings asks for a passphrase and confirmation (minimum 12 characters). Keep it separately for device replacement/reinstallation: remembered keys are a convenience, not portable recovery credentials. Windows stores the derived key, salt, and iteration count in a current-user DPAPI blob beside settings; Android wraps these bytes with an AES-GCM key held by Android Keystore, saving the blob in `NoBackupFilesDir`. Neither shell stores the passphrase or a plaintext key in preferences/logs. Windows exports and restores its own snapshots without an unlock prompt; Android asks once for a new export key, remembering it only after successful import. Later imports unlock automatically, without a biometric or device-credential prompt. Missing/invalid protected storage asks for pairing again. Passphrase changes affect future exports; old files need their old phrase.
 
-An existing Windows backup/snapshot configuration without a remembered key
-prompts for setup at startup. Cancellation leaves destinations unchanged and
-pauses automatic exports; no plaintext fallback is permitted. Wrong passphrases,
-unsupported versions, tampering, truncation, and failed database validation
-preserve the last usable ledger/viewer and surface an error. Windows restore
-still requires matching dataset identity and rejects an older revision. Before
-a successful restore, a local plaintext recovery copy is written beside the
-database.
+An existing Windows backup/snapshot configuration without a remembered key prompts for setup at startup. Cancellation leaves destinations unchanged and pauses automatic exports; no plaintext fallback is permitted. Wrong passphrases, unsupported versions, tampering, truncation, and failed database validation preserve the last usable ledger/viewer and surface an error. Windows restore still requires matching dataset identity and rejects an older revision. Before a successful restore, a local plaintext recovery copy is written beside the database.
 
 ## Desktop Context (Balancia.Desktop)
 
-`Balancia.Desktop` is the full read/write Avalonia Windows application. It
-invokes Core operations and reads Storage query results directly; it never
-re-implements persistence logic itself.
+`Balancia.Desktop` is the full read/write Avalonia Windows application. It invokes Core operations and reads Storage query results directly; it never re-implements persistence logic itself.
 
 ### Window Composition
 
-`MainWindow` is split into partial classes by responsibility, so each source
-file stays scoped to one feature area:
+`MainWindow` is split into partial classes by responsibility, so each source file stays scoped to one feature area:
 
-| File                                | Responsibility                                                    |
-|:----------------------------------- |:----------------------------------------------------------------- |
-| `MainWindow.axaml.cs`               | Shared state, initialization, refresh, navigation, page selection |
-| `MainWindow.Overview.cs`            | Assembles and refreshes the Overview dashboard                    |
-| `MainWindow.FilterState.cs`         | Owns Overview period and filter state                             |
-| `MainWindow.FiltersPanel.cs`        | Builds the Overview filter row controls                           |
-| `MainWindow.TransactionsPanel.cs`   | Builds the paged transactions card                                 |
-| `MainWindow.CategoriesPanel.cs`     | Category management, checkbox filtering and top-expenses card     |
-| `MainWindow.Transactions.cs`        | Transaction add/edit/delete dialogs                               |
-| `MainWindow.RemindersPanel.cs`      | Reminders card and template add/edit                              |
-| `MainWindow.Accounts.cs`            | Accounts card and account add/edit/archive                        |
-| `MainWindow.DataTransfer.cs`        | CSV import/export and snapshot export/restore actions             |
-| `MainWindow.Settings.cs`            | The modal Settings dialog and folder pickers                      |
-| `MainWindow.UiHelpers.cs`           | Shared controls and dialog helpers                                |
+| File                   | Responsibility                                                    |
+| :--------------------- | :---------------------------------------------------------------- |
+| `MainWindow.axaml.cs`  | Shared state, initialization, refresh, navigation, page selection |
+| `Overview.cs`          | Assembles and refreshes the Overview dashboard                    |
+| `FilterState.cs`       | Owns Overview period and filter state                             |
+| `FiltersPanel.cs`      | Builds the Overview filter row controls                           |
+| `TransactionsPanel.cs` | Builds the paged transactions card                                |
+| `CategoriesPanel.cs`   | Category management, checkbox filtering and top-expenses card     |
+| `RemindersPanel.cs`    | Reminders card and template add/edit                              |
+| `Accounts.cs`          | Accounts card and account add/edit/archive                        |
+| `DataTransfer.cs`      | CSV import/export and snapshot export/restore actions             |
+| `Settings.cs`          | The modal Settings dialog and folder pickers                      |
+| `UiHelpers.cs`         | Shared controls and dialog helpers                                |
 
-The Overview dashboard is the single transaction-editing surface (there is no
-separate Transactions page); filter and period changes update mounted
-controls in place rather than rebuilding the page, so focus and scroll
-position are preserved. Category, account, and reminder-template management
-live in their respective Overview cards rather than dedicated pages.
+The Overview dashboard is the single transaction-editing surface; filter and period changes update mounted controls in place rather than rebuilding the page, so focus and scroll position are preserved. Category, account, and reminder-template management live in their respective Overview cards.
 
-After a successful Add another transaction save, the entry dialog clears
-category, amount, description, and memo while retaining date, type, and account.
-It also closes and clears category suggestions, then focuses the empty Category
-field. Failed saves retain the entered values.
+After a successful Add another transaction save, the entry dialog clears category, amount, description, and memo while retaining date, type, and account. It also closes and clears category suggestions, then focuses the empty Category field. Failed saves retain the entered values.
 
-Accounts highlights the configured default account row with a blue background
-slightly darker than normal selection, extending 2px beyond the content on each
-side without adding text. The highlight
-refreshes after saving the account and remains independent of filter selection.
+Accounts highlights the configured default account row. The highlight refreshes after saving the account and remains independent of filter selection.
 
-Period filter buttons are All, Today, Week, Month, Year, and Last 30 days, localized in all
-four desktop languages. Today selects the current local date; Day remains the
-name of the daily chart granularity.
-Last 30 days includes today and the previous 29 days, with weekly Trend
-granularity by default. Startup selects Month when the current calendar month
-contains transactions, otherwise Last 30 days. This fallback runs only at
-startup and checks all transactions regardless of other filters. The selected
-period applies to Transactions and the other filtered dashboard panels.
+Period filter buttons (All, Today, Week, Month, Year, and Last 30 days) are localized in all four desktop languages. Today selects the current local date; Day remains the name of the daily chart granularity. Last 30 days includes today and the previous 29 days, with weekly Trend granularity by default. Startup selects Month when the current calendar month contains transactions, otherwise Last 30 days. This fallback runs only at startup and checks all transactions regardless of other filters. The selected period applies to Transactions and the other filtered dashboard panels.
 
-Trend hover tooltips show a localized date-range heading above a two-column
-table with right-aligned amounts. Income, Expense, and Savings labels and values
-use bold text and the chart series' green, red, and blue colors. Single-series filters display
-only the applicable row. Timeline uses the same bold table layout with an Income
-or Expense heading, current/comparison dates, and right-aligned totals colored
-to match the current and previous chart series.
-Both tooltip tables use the shared compiled `ChartTooltipData` template in
-`App.axaml`. `FlowChart` supplies immutable heading/row data with formatted
-amounts and series colors; AXAML owns layout, shared amount-column sizing,
-spacing, and font weights. Hover selection and chart drawing remain in code.
+Trend hover tooltips show a localized date-range heading above a two-column table with amounts, Income, Expense, and Savings labels and values. Single-series filters display only the applicable row. Timeline uses the same table layout with an Income or Expense heading, current/comparison dates, and totals colored. Both tooltip tables use the shared compiled `ChartTooltipData` template in `App.axaml`. `FlowChart` supplies immutable heading/row data with formatted amounts and series colors; AXAML owns layout, shared amount-column sizing, spacing, and font weights. Hover selection and chart drawing remain in code.
 
-Closed desktop date pickers support unmodified Up/Down keys while focused:
-Up and mouse wheel up select the next day; Down and wheel down select the previous day.
-Empty dates stay empty; date limits and blackout dates are respected. Open
-calendar keyboard navigation remains unchanged.
+Closed desktop date pickers support unmodified Up/Down keys while focused: Up and mouse wheel up select the next day; Down and wheel down select the previous day. Empty dates stay empty; date limits and blackout dates are respected. Open calendar keyboard navigation remains unchanged.
 
 ### Transaction category suggestions
 
-The Add/Edit category dropdown derives Regular suggestions from saved income
-and expense transactions dated today or the previous 34 days. Matching is
-case-insensitive anywhere in the full category path. After filtering by typed
-text, at most two active category paths appear in Regular, ordered by transaction
-count, latest transaction date, then alphabetical path. Regular appears before
-Top Match and remaining categories, without duplicates. Save-and-continue
-reloads usage from the ledger; accepting or canceling a suggestion does not
-affect ranking. Usage is derived from the ledger without separate history;
-legacy optional `category_selections` tables are unused. The ledger schema and
-snapshot format remain unchanged.
+The Add/Edit category dropdown derives Regular suggestions from saved income and expense transactions dated today or the previous 34 days. Matching is case-insensitive anywhere in the full category path. After filtering by typed text, at most two active category paths appear in Regular, ordered by transaction count, latest transaction date, then alphabetical path. Regular appears before Top Match and remaining categories, without duplicates. Save-and-continue reloads usage from the ledger; accepting or canceling a suggestion does not affect ranking. Usage is derived from the ledger without separate history; legacy optional `category_selections` tables are unused. The ledger schema and snapshot format remain unchanged.
 
 ### Transaction description suggestions
 
-The Windows Add/Edit transaction Description field suggests distinct nonempty
-descriptions from saved transactions, excluding opening balances. Prefix matching
-is case-insensitive; recent transaction dates rank first, with ledger insertion
-order breaking ties. Up/Down selects a suggestion, Tab accepts it and moves to
-the next field, mouse click accepts it, and Escape dismisses suggestions.
-Descriptions remain freely editable. Save-and-continue adds the newly saved
-description to the current dialog's suggestions immediately. History is derived
-from the ledger, without a separate file or persistent history table.
+The Windows Add/Edit transaction Description field suggests distinct nonempty descriptions from saved transactions, excluding opening balances. Prefix matching is case-insensitive; recent transaction dates rank first, with ledger insertion order breaking ties. Up/Down selects a suggestion, Tab accepts it and moves to the next field, mouse click accepts it, and Escape dismisses suggestions. Descriptions remain freely editable. Save-and-continue adds the newly saved description to the current dialog's suggestions immediately. History is derived from the ledger, without a separate file or persistent history table.
 
 ### Localization
 
-Resource lookup uses the explicitly selected `CultureInfo`, never the ambient
-thread culture picked up by async continuations — this was a deliberate fix
-after filter refreshes reverted labels to the wrong language. Date pickers
-rebuild their calendar month/weekday captions under the selected culture on
-open and on navigation; Russian and Ukrainian date cultures additionally
-capitalize full, abbreviated, and genitive month names. The selected language
-code (`en`, `de`, `ru`, `uk`) is optional in application settings; it is only
-written when the owner explicitly selects a language, not as a side effect of
-other settings changes.
+Resource lookup uses the explicitly selected `CultureInfo`. Date pickers rebuild their calendar month/weekday captions under the selected culture on open and on navigation; Russian and Ukrainian date cultures additionally capitalize full, abbreviated, and genitive month names. The selected language code (`en`, `de`, `ru`, `uk`) is optional in application settings; it is only written when the owner explicitly selects a language.
 
 ### Application logging
 
-Windows configures Serilog before Avalonia startup, using the same Information
-level and timestamp/level/source/exception layout as Automaton. Daily files are
-`%LOCALAPPDATA%\Balancia\log\balancia-yyyyMMdd.log`, beside the fixed application
-settings file. Local calendar days determine rolling; restarts and concurrent
-instances append to the same day's file. The sink retains the latest 10 daily
-files, rolls only by day, and does not impose a size limit that would stop logging
-or create additional files within a day. Database-folder changes and `--data-dir`
-do not relocate logs.
+Windows configures Serilog before Avalonia startup, using the same Information level and timestamp/level/source/exception layout as Automaton. Daily files are `%LOCALAPPDATA%\Balancia\log\balancia-yyyyMMdd.log`, beside the fixed application settings file. Local calendar days determine rolling; restarts and concurrent instances append to the same day's file. The sink rolls only by day, and does not impose a size limit that would stop logging or create additional files within a day. Database-folder changes and `--data-dir` do not relocate logs.
 
-Logs cover application startup/shutdown, ledger initialization, dialog saves,
-CSV import outcomes, settings-load/window-save failures, best-effort shutdown
-backup/snapshot writes, and unhandled application/UI/background-task exceptions.
-Core and Storage use Serilog without owning file sinks or application lifetime.
-Core logs transaction-validation rejections at Information, expression-parser
-rejections at Debug, and aggregation overflow at Error. Storage logs writes,
-schema initialization, CSV preview/reconciliation, and snapshot export/validation/
-restore with start, completion, duration, and operation IDs. Expected input and
-import conflicts use Information; unexpected failures include exceptions at Error.
-Desktop additionally logs database/backup/snapshot location and language changes.
-Encryption logs cover setup/change/cancellation, remembered-key availability,
-restore key selection, authentication, validation before database replacement,
-and successful atomic encrypted exports. Shutdown writes record duration,
-missing-key skips, and retention counts after a successful backup. Correlation
-properties link nested storage operations to the shutdown write or Android import;
-file templates include these additional properties.
-Fatal remains reserved for unhandled application/UI exceptions. Descriptions,
-notes, full financial payloads, and amount-expression input are not dumped.
-Passphrases, derived keys, key envelopes, salts/nonces, document URIs, and search
-text are also excluded. Snapshot parser/provider failures record exception type
-and HResult rather than potentially sensitive exception messages. Wrong/missing
-keys and invalid archives are expected Information-level rejections; failed key
-cache loading/saving and shutdown writes use Warning, and unexpected operation
-failures use Error.
+Logs cover application startup/shutdown, ledger initialization, dialog saves, CSV import outcomes, settings-load/window-save failures, best-effort shutdown backup/snapshot writes, and unhandled application/UI/background-task exceptions. Core and Storage use Serilog without owning file sinks or application lifetime. Core logs transaction-validation rejections at Information, expression-parser rejections at Debug, and aggregation overflow at Error. Storage logs writes, schema initialization, CSV preview/reconciliation, and snapshot export/validation/ restore with start, completion, duration, and operation IDs. Expected input and import conflicts use Information; unexpected failures include exceptions at Error. Desktop additionally logs database/backup/snapshot location and language changes. Encryption logs cover setup/change/cancellation, remembered-key availability, restore key selection, authentication, validation before database replacement, and successful atomic encrypted exports. Shutdown writes record duration, missing-key skips, and retention counts after a successful backup. Correlation properties link nested storage operations to the shutdown write or Android import; file templates include these additional properties. Fatal remains reserved for unhandled application/UI exceptions. Descriptions, notes, full financial payloads, and amount-expression input are not dumped. Passphrases, derived keys, key envelopes, salts/nonces, document URIs, and search text are also excluded. Snapshot parser/provider failures record exception type and HResult rather than potentially sensitive exception messages. Wrong/missing keys and invalid archives are expected Information-level rejections; failed key cache loading/saving and shutdown writes use Warning, and unexpected operation failures use Error.
 
-Logging errors are traced through Serilog SelfLog; filesystem setup failures do
-not prevent application startup. Shutdown flushes and disposes the logger.
+Logging errors are traced through Serilog SelfLog; filesystem setup failures do not prevent application startup. Shutdown flushes and disposes the logger.
 
-Android configures its own Information-level Serilog file sink in Application
-startup, before the activity uses shared storage. App-private
-`NoBackupFilesDir/log/balancia-yyyyMMdd.log` retains ten daily files, appends across
-restarts, and writes without buffering so diagnostics do not depend on a process
-shutdown callback. It records reopening the saved viewer, document selection,
-copying, unlock/retry/cancel, validation/replacement, Keystore cache outcomes, and
-search completion/failure without financial contents. Logging setup failures are
-reported to Android's diagnostic log without preventing startup. Libraries never
-configure file sinks or close the application logger.
+Android configures its own Information-level Serilog file sink in Application startup, before the activity uses shared storage. App-private `NoBackupFilesDir/log/balancia-yyyyMMdd.log` retains ten daily files, appends across restarts, and writes without buffering so diagnostics do not depend on a process shutdown callback. It records reopening the saved viewer, document selection, copying, unlock/retry/cancel, validation/replacement, Keystore cache outcomes, and search completion/failure without financial contents. Logging setup failures are reported to Android's diagnostic log without preventing startup. Libraries never configure file sinks or close the application logger.
 
 ### Local Settings Persistence
 
-- Settings displays the running Desktop application's version at the bottom
-  right, beside Close, in a footer that stays visible while content scrolls.
-- One `%LOCALAPPDATA%\Balancia\settings.json` stores window width,
-  height, and position, plus the optional backup folder, snapshot folder,
-  default account, and explicitly chosen language. Writes replace the file
-  atomically; invalid optional window geometry does not block ledger startup.
-- The settings path is fixed regardless of the active database directory.
-  Startup reads the database path from this file, using the default user
-  directory when no path is saved. Settings provides database, backup, and
-  snapshot folder selectors; all three paths persist in the same settings file.
-- No registry access or legacy settings migration is performed. `window.json`
-  and settings files beside a custom database are not loaded. `--data-dir`
-  overrides the database for a temporary session and does not write preferences.
-- The snapshot key is stored separately as `snapshot-key.dpapi`; settings JSON
-  contains no encryption secret. `--data-dir` uses a separate protected-key file
-  in that test directory and never reads/writes the real remembered key.
+- One `%LOCALAPPDATA%\Balancia\settings.json` stores window width, height, and position, plus the optional backup folder, snapshot folder, default account, and explicitly chosen language. Writes replace the file atomically; invalid optional window geometry does not block ledger startup.
+- The settings path is fixed regardless of the active database directory. Startup reads the database path from this file, using the default user directory when no path is saved. Settings provides database, backup, and snapshot folder selectors; all three paths persist in the same settings file.
+- No registry access or legacy settings migration is performed. `window.json` and settings files beside a custom database are not loaded. `--data-dir` overrides the database for a temporary session and does not write preferences.
+- The snapshot key is stored separately as `snapshot-key.dpapi`; settings JSON contains no encryption secret. `--data-dir` uses a separate protected-key file in that test directory and never reads/writes the real remembered key.
 
 ## Android Context (Balancia.Android)
 
-`Balancia.Android` is a read-only native Android shell targeting `net10.0-android`
-and Android API 36.
-It reuses Core's domain rules and Storage's read models and queries, not a
-writable desktop service surface. It shows net worth, account balances,
-transaction history with description search, and a visible snapshot update
-time; it never modifies financial data. Importing a new snapshot follows the
-staging/validation/swap sequence in
-[Snapshot Export, Validation, and Restore](#snapshot-export-validation-and-restore):
-the selected document is copied into app-private staging, validated, and
-swapped in only on success, so an interrupted transfer or a failed import
-keeps the prior working copy.
-The app reopens its saved local database on restart. Encrypted import prompts
-for the Windows export passphrase only when the Keystore-protected remembered
-key is absent or does not match the file's salt/KDF parameters. Canceling leaves
-the saved copy unchanged. Reinstallation or a passphrase change requires pairing
-again. Plaintext imports are rejected as an unsupported format.
+`Balancia.Android` is a read-only native Android shell targeting `net10.0-android` and Android API 36. It reuses Core's domain rules and Storage's read models and queries. It shows net worth, account balances, transaction history with description search, and a visible snapshot update time; it never modifies financial data. Importing a new snapshot follows the staging/validation/swap sequence in [Snapshot Export, Validation, and Restore](#snapshot-export-validation-and-restore): the selected document is copied into app-private staging, validated, and swapped in only on success, so an interrupted transfer or a failed import keeps the prior working copy. The app reopens its saved local database on restart. Encrypted import prompts for the Windows export passphrase only when the Keystore-protected remembered key is absent or does not match the file's salt/KDF parameters. Canceling leaves the saved copy unchanged. Reinstallation or a passphrase change requires pairing again. Plaintext imports are rejected as an unsupported format.
 
 ## Non-Functional Considerations
 
-A synthetic 50,000-transaction dataset targets warm filtered/search pages and
-a committed dashboard refresh within 200 ms at p95 on the development Windows
-machine, excluding human interaction and sync — a target, not a guaranteed
-bound. On an Intel Core i9-14900K Release build, measured storage/query p95
-figures were: 68.8 ms first page, 50.9 ms deep cursor page, 49.6 ms search,
-86.3 ms combined filter, 33.9 ms dashboard read, and 104.2 ms for a committed
-edit plus dashboard refresh. These are storage/query timings only; end-to-end
-Avalonia rendering time is not included, and they do not currently justify a
-balance cache or full-text index.
-
-## Open Choices
-
-The following are acknowledged as unresolved implementation choices rather
-than accepted design decisions:
-
-- Windows distribution/update method and Android sideload packaging.
-- A full end-to-end restore UX.
-- Android document-provider compatibility across devices, and whether
-  automatic (rather than manual, close-triggered) export adds value.
-- End-to-end UI latency at 50,000 rows, beyond the measured storage/query
-  timings above.
+A synthetic 50,000-transaction dataset targets warm filtered/search pages and a committed dashboard refresh within 200 ms at p95 on the development Windows machine, excluding human interaction and sync — a target, not a guaranteed bound. On an Intel Core i9-14900K Release build, measured storage/query p95 figures were: 68.8 ms first page, 50.9 ms deep cursor page, 49.6 ms search, 86.3 ms combined filter, 33.9 ms dashboard read, and 104.2 ms for a committed edit plus dashboard refresh. These are storage/query timings only; end-to-end Avalonia rendering time is not included, and they do not currently justify a balance cache or full-text index.
