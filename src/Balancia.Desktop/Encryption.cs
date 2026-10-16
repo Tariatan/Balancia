@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Avalonia.Controls;
 using Balancia.Storage;
 using Serilog;
@@ -9,34 +8,24 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private SnapshotKey? snapshotKey;
+    private readonly SnapshotKeyService keys;
     private string SnapshotKeyPath => Path.Combine(
-        Path.GetDirectoryName(separateDataFolder ? DatabasePath : applicationSettingsPath)!,
+        Path.GetDirectoryName(separateDataFolder ? DatabasePath : settingsStore.Path)!,
         "snapshot-key.dpapi");
-    internal bool EncryptionConfigured => snapshotKey is not null;
+    internal bool EncryptionConfigured => keys.IsConfigured;
 
     /// <summary>Provides the snapshot key without the Windows key store or the passphrase dialog; used by UI tests.</summary>
-    internal void UseSnapshotKey(SnapshotKey key)
-    {
-        snapshotKey?.Dispose();
-        snapshotKey = key;
-    }
+    internal void UseSnapshotKey(SnapshotKey key) => keys.Use(key);
 
     private async Task InitializeEncryption()
     {
-        Log.Information("Loading remembered Windows snapshot key");
-        try
+        var load = await Task.Run(keys.Load);
+        if (load == KeyLoadResult.Unavailable)
         {
-            snapshotKey ??= await Task.Run(() => WindowsSnapshotKeyStore.Load(SnapshotKeyPath));
-            Log.Information("Windows snapshot key load completed, KeyAvailable: '{KeyAvailable}'", snapshotKey is not null);
-        }
-        catch (Exception ex) when (ex is Win32Exception or IOException or UnauthorizedAccessException or InvalidDataException)
-        {
-            Log.Warning("Remembered snapshot key unavailable, FailureType: '{FailureType}', HResult: '{HResult}'", ex.GetType().Name, ex.HResult);
             await ShowEncryptionError(this, "The remembered snapshot key is unavailable. Set up encryption again before exporting.");
         }
 
-        if (snapshotKey is null && (BackupPath is not null || SnapshotPath is not null) && !await ConfigureEncryption(this))
+        if (!keys.IsConfigured && (BackupPath is not null || SnapshotPath is not null) && !await ConfigureEncryption(this))
         {
             Log.Information("Automatic snapshot and backup exports paused; encryption is not configured");
             await ShowEncryptionError(this, "Automatic backups and snapshots are paused until a passphrase is configured in Settings.");
@@ -47,7 +36,7 @@ public partial class MainWindow
     {
         using var context = LogContext.PushProperty("EncryptionSetupId", Guid.NewGuid().ToString("N"));
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
-        Log.Information("Snapshot encryption setup requested, ReplacingKey: '{ReplacingKey}'", snapshotKey is not null);
+        Log.Information("Snapshot encryption setup requested, ReplacingKey: '{ReplacingKey}'", keys.IsConfigured);
         var passphrase = await SnapshotPassphraseWindow.Ask(dialogOwner, setup: true);
         if (passphrase is null)
         {
@@ -59,9 +48,7 @@ public partial class MainWindow
         try
         {
             replacement = await Task.Run(() => SnapshotKey.Create(passphrase));
-            await Task.Run(() => WindowsSnapshotKeyStore.Save(SnapshotKeyPath, replacement));
-            snapshotKey?.Dispose();
-            snapshotKey = replacement;
+            await Task.Run(() => keys.Replace(replacement));
             replacement = null;
             Log.Information("Snapshot encryption configured and key remembered with Windows DPAPI, ElapsedMs: '{ElapsedMs}'", elapsed.ElapsedMilliseconds);
             return true;
@@ -82,5 +69,5 @@ public partial class MainWindow
     private static Task ShowEncryptionError(Window dialogOwner, string message) =>
         ErrorDialog.Show(dialogOwner, Get("Snapshot encryption"), Get(message));
 
-    private async Task<bool> EnsureEncryption(Window dialogOwner) => snapshotKey is not null || await ConfigureEncryption(dialogOwner);
+    private async Task<bool> EnsureEncryption(Window dialogOwner) => keys.IsConfigured || await ConfigureEncryption(dialogOwner);
 }

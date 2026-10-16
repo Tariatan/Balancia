@@ -2,12 +2,12 @@ using Microsoft.Data.Sqlite;
 
 namespace Balancia.Storage;
 
-/// <summary>Opens app-local databases with foreign-key enforcement and the <c>contains_ci</c> search function wired up on every connection.</summary>
+/// <summary>Opens app-local databases (read-only on request) with foreign-key enforcement and the <c>contains_ci</c> search function wired up on every connection.</summary>
 public sealed class SqliteConnectionFactory
 {
     private readonly string connectionString;
 
-    public SqliteConnectionFactory(string databasePath)
+    public SqliteConnectionFactory(string databasePath, bool readOnly = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
         if (!Path.IsPathFullyQualified(databasePath))
@@ -18,7 +18,7 @@ public sealed class SqliteConnectionFactory
         connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = databasePath,
-            Mode = SqliteOpenMode.ReadWriteCreate,
+            Mode = readOnly ? SqliteOpenMode.ReadOnly : SqliteOpenMode.ReadWriteCreate,
             ForeignKeys = true,
             Pooling = false
         }.ToString();

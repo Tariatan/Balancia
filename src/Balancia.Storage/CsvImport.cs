@@ -20,7 +20,7 @@ public sealed partial class LedgerStore
         var bytes = File.ReadAllBytes(fullPath);
         var (groups, issues, summary) = CsvImportParser.Parse(bytes);
         Log.ForContext<LedgerStore>().Information("CSV preview prepared, Rows: '{Rows}', Issues: '{Issues}'", summary.Rows, issues.Count);
-        return new CsvImportPreview(fullPath, HashHex(bytes), ReadSnapshot().Revision, [.. groups], [.. issues], summary);
+        return new CsvImportPreview(fullPath, HashHex(bytes), ReadLiveMetadata().Revision, [.. groups], [.. issues], summary);
     }
 
     private static string HashHex(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
@@ -31,12 +31,12 @@ public sealed partial class LedgerStore
     {
         if (!preview.CanApply)
         {
-            throw new InvalidOperationException("Resolve preview errors before applying the import.");
+            throw new CsvImportConflictException("Resolve preview errors before applying the import.");
         }
 
         if (HashHex(File.ReadAllBytes(preview.Path)) != preview.FileHash)
         {
-            throw new InvalidOperationException("Source file changed after preview. Preview it again.");
+            throw new CsvImportConflictException("Source file changed after preview. Preview it again.");
         }
 
         int matched;
@@ -64,7 +64,7 @@ public sealed partial class LedgerStore
             unchanged = CountMatchingSources(sources, preview.Groups);
             if (sources.Keys.Except(preview.Groups.Select(g => g.Id)).Any())
             {
-                throw new InvalidOperationException("This file omits previously imported source IDs; use a full file for reconciliation.");
+                throw new CsvImportConflictException("This file omits previously imported source IDs; use a full file for reconciliation.");
             }
 
             var pending = preview.Groups.Where(g => !sources.ContainsKey(g.Id)).ToArray();
@@ -96,7 +96,7 @@ public sealed partial class LedgerStore
     {
         if (Convert.ToInt64(LedgerSql.Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")) != expected)
         {
-            throw new InvalidOperationException("Ledger changed after preview. Preview the import again.");
+            throw new CsvImportConflictException("Ledger changed after preview. Preview the import again.");
         }
     }
 
@@ -136,7 +136,7 @@ public sealed partial class LedgerStore
 
             if (source.LocallyModified || source.Fingerprint != group.Fingerprint)
             {
-                throw new InvalidOperationException($"Source ID {group.Id} conflicts with a prior import or local edit.");
+                throw new CsvImportConflictException($"Source ID {group.Id} conflicts with a prior import or local edit.");
             }
 
             matched++;
@@ -176,13 +176,13 @@ public sealed partial class LedgerStore
         var hasEntries = LedgerSql.Scalar(c, tx, "SELECT 1 FROM movements WHERE account_id=$id AND transaction_id<>$opening LIMIT 1", ("$id", account), ("$opening", transactionId)) is not null;
         if (oldAmount != 0 || hasEntries && existingAccounts.Contains(row.Account))
         {
-            throw new InvalidOperationException($"Opening for {row.Account} conflicts with existing account data.");
+            throw new CsvImportConflictException($"Opening for {row.Account} conflicts with existing account data.");
         }
 
         var priorDate = LedgerSql.ParseDate((string)LedgerSql.Scalar(c, tx, "SELECT opening_date FROM accounts WHERE id=$id", ("$id", account))!);
         if (row.Date > priorDate)
         {
-            throw new InvalidOperationException($"Opening for {row.Account} follows existing account history.");
+            throw new CsvImportConflictException($"Opening for {row.Account} follows existing account history.");
         }
 
         LedgerSql.Execute(c, tx, "UPDATE accounts SET opening_date=$date WHERE id=$id; UPDATE ledger SET date=$date WHERE id=$opening; UPDATE movements SET amount=$amount WHERE transaction_id=$opening",
@@ -197,7 +197,7 @@ public sealed partial class LedgerStore
         var category = group.Kind == CsvRowType.Transfer ? null : FindOrCreateCategory(c, tx, row.Category);
         LedgerSql.Execute(c, tx, "INSERT INTO ledger VALUES($id,$kind,$date,$description,$category,$memo)",
             ("$id", transactionId), ("$kind", group.Kind.ToString()), ("$date", LedgerSql.DateText(row.Date)),
-            ("$description", row.Description), ("$category", category), ("$memo", row.Memo));
+            ("$description", row.Description.Trim()), ("$category", category), ("$memo", row.Memo));
         foreach (var movement in group.Rows)
         {
             ValidateAccount(c, tx, accounts[movement.Account], movement.Date, null);
@@ -215,7 +215,7 @@ public sealed partial class LedgerStore
             var importedSum = Convert.ToInt64(LedgerSql.Scalar(c, tx, "SELECT COALESCE(SUM(m.amount),0) FROM movements m JOIN import_sources s ON s.transaction_id=m.transaction_id WHERE m.account_id=$id", ("$id", accounts[name])));
             if (importedSum != total)
             {
-                throw new InvalidOperationException($"Imported balance reconciliation failed for {name}.");
+                throw new CsvImportConflictException($"Imported balance reconciliation failed for {name}.");
             }
         }
     }
@@ -242,7 +242,7 @@ public sealed partial class LedgerStore
 
             if (archived)
             {
-                throw new InvalidOperationException($"Category '{name}' is archived; restore it before importing.");
+                throw new CsvImportConflictException($"Category '{name}' is archived; restore it before importing.");
             }
 
             if (found is null)
@@ -268,11 +268,11 @@ public sealed partial class LedgerStore
         {
             if (reader.Read())
             {
-                if (reader.GetString(0) != row.Description || LedgerSql.ParseDate(reader.GetString(1)) != row.Date ||
+                if (reader.GetString(0) != description || LedgerSql.ParseDate(reader.GetString(1)) != row.Date ||
                     reader.GetInt64(2) != row.Amount || reader.GetInt32(3) != options.IntervalMonths ||
                     reader.GetBoolean(4) != options.Archived)
                 {
-                    throw new InvalidOperationException("Imported reminder conflicts with existing reminder data.");
+                    throw new CsvImportConflictException("Imported reminder conflicts with existing reminder data.");
                 }
 
                 return null;
@@ -283,7 +283,7 @@ public sealed partial class LedgerStore
             "SELECT 1 FROM reminder_templates WHERE archived=0 AND lower(description)=lower($description) LIMIT 1",
             ("$description", description)) is not null)
         {
-            throw new InvalidOperationException("An active reminder already uses this description.");
+            throw new CsvImportConflictException("An active reminder already uses this description.");
         }
 
         LedgerSql.Execute(c, tx, "INSERT INTO reminder_templates VALUES($id,$description,$date,$amount,$interval,$archived)",

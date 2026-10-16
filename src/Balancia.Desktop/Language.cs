@@ -22,8 +22,9 @@ public partial class MainWindow
 
     internal async Task ApplyLanguageChange(string code)
     {
-        SaveApplicationSettings(DatabasePath, BackupPath, SnapshotPath, defaultAccountId, code);
-        languagePreference = code;
+        var updated = settings with { Language = code };
+        PersistSettings(updated);
+        settings = updated;
         LanguageCode = code;
         UiText.SetLanguage(code);
         Serilog.Log.Information("Application language changed, Language: '{Language}'", code);

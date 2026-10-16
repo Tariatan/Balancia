@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Data.Sqlite;
 using Serilog;
 using Serilog.Context;
 
@@ -7,7 +8,7 @@ namespace Balancia.Storage;
 /// <summary>Validates and applies a snapshot archive as a fresh local database, for read-only viewers (e.g. Android).</summary>
 public static class SnapshotImporter
 {
-    public static (LedgerStore Store, SnapshotManifest Manifest) Import(string archivePath, string dbPath, SnapshotKey key)
+    public static (LedgerReader Reader, SnapshotManifest Manifest) Import(string archivePath, string dbPath, SnapshotKey key)
     {
         var operationId = Guid.NewGuid().ToString("N");
         using var context = LogContext.PushProperty("OperationId", operationId);
@@ -20,9 +21,10 @@ public static class SnapshotImporter
         {
             var manifest = LedgerStore.ExtractValidatedSnapshot(archivePath, staged, key);
             logger.Information("Viewer snapshot validated before replacement, OperationId: '{OperationId}'", operationId);
+            RejectForeignOrOlder(dbPath, manifest, logger, operationId);
             File.Move(staged, dbPath, true);
             databaseReplaced = true;
-            var importedStore = new LedgerStore(dbPath);
+            var importedStore = LedgerReader.Open(dbPath);
             logger.Information("Viewer snapshot import completed, OperationId: '{OperationId}', Revision: '{Revision}', ElapsedMs: '{ElapsedMs}'",
                 operationId, manifest.Revision, elapsed.ElapsedMilliseconds);
             return (importedStore, manifest);
@@ -42,6 +44,36 @@ public static class SnapshotImporter
         finally
         {
             DeleteStaged(staged, logger, operationId);
+        }
+    }
+
+    /// <summary>Like a Windows restore, refuses a snapshot of another dataset or an earlier revision; an unreadable copy is replaced.</summary>
+    private static void RejectForeignOrOlder(string dbPath, SnapshotManifest manifest, ILogger logger, string operationId)
+    {
+        if (!File.Exists(dbPath))
+        {
+            return;
+        }
+
+        (string DatasetId, long Revision) current;
+        try
+        {
+            current = LedgerReader.Open(dbPath).ReadIdentity();
+        }
+        catch (Exception ex) when (ex is SqliteException or InvalidOperationException)
+        {
+            logger.Warning("Viewer copy unreadable; replacing it, OperationId: '{OperationId}', FailureType: '{FailureType}'", operationId, ex.GetType().Name);
+            return;
+        }
+
+        if (manifest.DatasetId != current.DatasetId)
+        {
+            throw new InvalidDataException("Snapshot belongs to a different ledger dataset.");
+        }
+
+        if (manifest.Revision < current.Revision)
+        {
+            throw new InvalidDataException("An older snapshot cannot replace the current viewer copy.");
         }
     }
 

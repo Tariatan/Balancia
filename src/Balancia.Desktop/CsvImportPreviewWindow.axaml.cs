@@ -46,19 +46,19 @@ public partial class CsvImportPreviewWindow : Window
             Format("Resolved date line {0}: {1}", d.Line, d.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))));
         var accounts = string.Join("\n", summary.AccountTotals.Select(a => $"{a.Account}: {a.Centimes / 100m:N2}"));
         var outcome = preview.Issues.Count == 0
-            ? Get("\n\nAll rows are valid. Apply this batch?")
-            : Get("\n\nErrors (correct source file, then preview again):\n") +
+            ? Get("All rows are valid. Apply this batch?")
+            : Get("Errors (correct source file, then preview again):") + "\n" +
               string.Join("\n", preview.Issues.Take(30).Select(i => Format("Line {0}: {1}", i.Line, Get(i.Message))));
 
         return string.Concat(
-            Format("{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.\n\n",
-                summary.Rows, summary.Expenses, summary.Incomes, summary.Transfers, summary.Openings),
+            Format("{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.", summary.Rows, summary.Expenses, summary.Incomes, summary.Transfers, summary.Openings),
+            "\n\n",
             Format("Reminders: {0}", summary.Reminders),
             "\n\n",
             Get("Dates (first 10 rows): "), dates,
-            Get("\n\nAccounts and source totals:\n"), accounts,
-            Get("\n\nCategories: "), string.Join(", ", summary.Categories),
-            outcome);
+            "\n\n", Get("Accounts and source totals:"), "\n", accounts,
+            "\n\n", Get("Categories: "), string.Join(", ", summary.Categories),
+            "\n\n", outcome);
     }
 
     private void OnCancel(object? sender, RoutedEventArgs e) => Close();

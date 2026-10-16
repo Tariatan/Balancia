@@ -4,11 +4,24 @@ using Microsoft.Data.Sqlite;
 namespace Balancia.Storage;
 
 /// <summary>Owns the single-writer ledger boundary; all logical changes commit together.</summary>
-public sealed partial class LedgerStore(string path, TimeProvider? clock = null)
+public sealed partial class LedgerStore
 {
-    private readonly string path = path;
-    private readonly SqliteConnectionFactory connections = new(path);
-    private readonly TimeProvider clock = clock ?? TimeProvider.System;
+    private readonly string path;
+    private readonly SqliteConnectionFactory connections;
+    private readonly TimeProvider clock;
+
+    public LedgerStore(string path, TimeProvider? clock = null)
+        : this(path, clock, readOnly: false)
+    {
+    }
+
+    internal LedgerStore(string path, TimeProvider? clock, bool readOnly)
+    {
+        this.path = path;
+        this.clock = clock ?? TimeProvider.System;
+        connections = new SqliteConnectionFactory(path, readOnly);
+    }
+
     private DateOnly Today => DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
 
     private void Write(Action<SqliteConnection, SqliteTransaction> action, [CallerMemberName] string operation = "") =>

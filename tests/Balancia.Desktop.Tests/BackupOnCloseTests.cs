@@ -35,6 +35,38 @@ public sealed class BackupOnCloseTests
     }
 
     [AvaloniaFact]
+    public async Task Close_WhenTheLedgerWasRejectedAtStartup_KeepsThePreviousSnapshotAndWritesNoBackup()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var store = workspace.SeedStore();
+        LedgerSeed.Account(store);
+        using (var connection = new Balancia.Storage.SqliteConnectionFactory(workspace.DatabasePath).Open())
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "PRAGMA user_version=2";
+            command.ExecuteNonQuery();
+        }
+
+        workspace.WriteSettings(backupPath: workspace.BackupDirectory, snapshotPath: workspace.SnapshotDirectory);
+        Directory.CreateDirectory(workspace.SnapshotDirectory);
+        var snapshot = Path.Combine(workspace.SnapshotDirectory, "Snapshot.balancia");
+        File.WriteAllText(snapshot, "last good snapshot");
+        var window = workspace.CreateConfiguredWindow(withSnapshotKey: true);
+        window.Show();
+
+        // Act
+        var error = await window.WaitForDialogAsync<ErrorDialog>();
+        error.ClickDialogButton("Close");
+        await DesktopWorkspace.WaitUntilAsync(() => window.Find<Avalonia.Controls.ContentControl>("Overview").IsEnabled, "the failed load to finish");
+        window.Close();
+
+        // Assert
+        Assert.Equal("last good snapshot", File.ReadAllText(snapshot));
+        Assert.False(Directory.Exists(workspace.BackupDirectory) && Directory.GetFiles(workspace.BackupDirectory).Length > 0);
+    }
+
+    [AvaloniaFact]
     public async Task Close_WhenExportFails_PreservesAllExistingBackups()
     {
         // Arrange

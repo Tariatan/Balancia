@@ -68,10 +68,113 @@ public sealed class RemindersTests : IDisposable
         store.SaveReminder(null, "Rent", new DateOnly(2026, 1, 1), new Money(10), 1);
 
         // Act
-        void Act() => store.SaveReminder(null, " rent ", new DateOnly(2026, 2, 1), new Money(10), 1);
+        void Act() => store.SaveReminder(null, " Rent ", new DateOnly(2026, 2, 1), new Money(10), 1);
 
         // Assert
         Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Fact]
+    public void ReadReminders_YearsOfMonthlyPayments_AdvancesToTheFirstUnpaidMonth()
+    {
+        // Arrange
+        store.SaveReminder(null, "Rent", new DateOnly(2026, 1, 31), new Money(1200), 1);
+        for (var month = 0; month < 8; month++)
+        {
+            Pay("Rent", 1200, new DateOnly(2026, 1, 15).AddMonths(month));
+        }
+
+        // Act
+        var reminder = store.ReadReminders(new DateOnly(2026, 9, 1)).Single();
+
+        // Assert
+        Assert.Equal(new DateOnly(2026, 9, 30), reminder.Occurrence);
+    }
+
+    [Fact]
+    public void ReadReminders_DescriptionDiffersOnlyInCase_DoesNotSatisfyTheOccurrence()
+    {
+        // Arrange
+        store.SaveReminder(null, "Rent", new DateOnly(2026, 1, 28), new Money(1200), 1);
+        Pay("rent", 1200, new DateOnly(2026, 1, 3));
+
+        // Act
+        var reminder = store.ReadReminders(new DateOnly(2026, 1, 31)).Single();
+
+        // Assert
+        Assert.Equal(new DateOnly(2026, 1, 28), reminder.Occurrence);
+    }
+
+    [Fact]
+    public void ReadReminders_PaymentDescriptionWithSurroundingSpaces_StillSatisfiesTheOccurrence()
+    {
+        // Arrange
+        store.SaveReminder(null, "Rent", new DateOnly(2026, 1, 28), new Money(1200), 1);
+        Pay("  Rent ", 1200, new DateOnly(2026, 1, 3));
+
+        // Act
+        var reminder = store.ReadReminders(new DateOnly(2026, 1, 31)).Single();
+
+        // Assert
+        Assert.Equal(new DateOnly(2026, 2, 28), reminder.Occurrence);
+    }
+
+    [Fact]
+    public void ReadReminders_ArchivedTemplate_IsNotListed()
+    {
+        // Arrange
+        store.SaveReminder(null, "Old", new DateOnly(2026, 1, 1), new Money(5), 1, archived: true);
+
+        // Act
+        var reminders = store.ReadReminders();
+
+        // Assert
+        Assert.Empty(reminders);
+    }
+
+    [Fact]
+    public void SaveReminder_DescriptionOnlyDiffersInCase_IsAllowed()
+    {
+        // Arrange
+        store.SaveReminder(null, "Rent", new DateOnly(2026, 1, 1), new Money(10), 1);
+
+        // Act
+        store.SaveReminder(null, "rent", new DateOnly(2026, 2, 1), new Money(10), 1);
+
+        // Assert
+        Assert.Equal(2, store.ReadReminders().Count);
+    }
+
+    [Theory]
+    [InlineData("   ", 10, 1, "Enter a description.")]
+    [InlineData("Rent", 0, 1, "Enter amount greater than zero.")]
+    [InlineData("Rent", 10, 0, "Repeat interval must be positive.")]
+    public void SaveReminder_InvalidInput_ThrowsAndCreatesNothing(string description, long centimes, int interval, string message)
+    {
+        // Arrange
+        // No reminders exist yet.
+
+        // Act
+        void Act() => store.SaveReminder(null, description, new DateOnly(2026, 1, 1), new Money(centimes), interval);
+
+        // Assert
+        Assert.Equal(message, Assert.Throws<ArgumentException>(Act).Message);
+        Assert.Empty(store.ReadReminders());
+    }
+
+    [Fact]
+    public void DeleteReminder_ExistingTemplate_RemovesItAndBumpsTheRevision()
+    {
+        // Arrange
+        var id = store.SaveReminder(null, "Rent", new DateOnly(2026, 1, 1), new Money(10), 1);
+        var revision = store.ReadLiveMetadata().Revision;
+
+        // Act
+        store.DeleteReminder(id);
+
+        // Assert
+        Assert.Empty(store.ReadReminders());
+        Assert.Equal(revision + 1, store.ReadLiveMetadata().Revision);
     }
 
     private void Pay(string description, long centimes, DateOnly date) =>

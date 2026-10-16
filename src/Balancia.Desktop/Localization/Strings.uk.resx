@@ -132,7 +132,6 @@
   <data name="Current period" xml:space="preserve"><value>Поточний період</value></data>
   <data name="Previous period" xml:space="preserve"><value>Попередній період</value></data>
   <data name="Choose transactions CSV" xml:space="preserve"><value>Вибрати CSV з операціями</value></data>
-  <data name="Choose a local CSV file." xml:space="preserve"><value>Виберіть локальний CSV-файл.</value></data>
   <data name="CSV import preview" xml:space="preserve"><value>Попередній перегляд імпорту CSV</value></data>
   <data name="Apply import" xml:space="preserve"><value>Застосувати імпорт</value></data>
   <data name="Export Balancia snapshot" xml:space="preserve"><value>Експортувати знімок Balancia</value></data>
@@ -171,6 +170,11 @@
   <data name="Enter an amount greater than zero." xml:space="preserve"><value>Введіть суму, більшу за нуль.</value></data>
   <data name="Choose two different accounts for a transfer." xml:space="preserve"><value>Для переказу виберіть два різні рахунки.</value></data>
   <data name="Transactions cannot be dated in the future." xml:space="preserve"><value>Дата операції не може бути в майбутньому.</value></data>
+  <data name="All rows are valid. Apply this batch?" xml:space="preserve"><value>Усі рядки коректні. Застосувати цей пакет?</value></data>
+  <data name="Errors (correct source file, then preview again):" xml:space="preserve"><value>Помилки (виправте вихідний файл і повторіть попередній перегляд):</value></data>
+  <data name="Accounts and source totals:" xml:space="preserve"><value>Рахунки та підсумки джерела:</value></data>
+  <data name="Categories: " xml:space="preserve"><value>Категорії: </value></data>
+  <data name="{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings." xml:space="preserve"><value>{0} рядків: {1} витрат, {2} доходів, {3} переказів, {4} початкових залишків.</value></data>
   <data name="Reminders: {0}" xml:space="preserve"><value>Нагадування: {0}</value></data>
   <data name="Invalid reminder fields." xml:space="preserve"><value>Некоректні поля нагадування.</value></data>
   <data name="Invalid reminder schedule." xml:space="preserve"><value>Некоректний розклад нагадування.</value></data>

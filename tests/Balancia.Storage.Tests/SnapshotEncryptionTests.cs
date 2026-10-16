@@ -89,7 +89,7 @@ public sealed class SnapshotEncryptionTests : IDisposable
 
         // Assert
         Assert.IsType<InvalidOperationException>(otherKeyError);
-        Assert.IsType<InvalidDataException>(wrongKeyError);
+        Assert.IsType<SnapshotAuthenticationException>(wrongKeyError);
         Assert.Equal(liveHash, SHA256.HashData(File.ReadAllBytes(LedgerPath)));
         Assert.Empty(Directory.GetFiles(directory, "*.staged-*"));
         Assert.Empty(Directory.GetFiles(directory, "*.pre-restore-*"));
@@ -108,7 +108,7 @@ public sealed class SnapshotEncryptionTests : IDisposable
         void Act() => SnapshotImporter.Import(SnapshotPath, ViewerPath, wrongKey);
 
         // Assert
-        Assert.Throws<InvalidDataException>(Act);
+        Assert.Throws<SnapshotAuthenticationException>(Act);
         Assert.Equal(viewerHash, SHA256.HashData(File.ReadAllBytes(ViewerPath)));
         Assert.Empty(Directory.GetFiles(directory, "*.staged-*"));
     }
@@ -116,9 +116,9 @@ public sealed class SnapshotEncryptionTests : IDisposable
     [Theory]
     [InlineData(0, typeof(InvalidDataException))] // Unsupported version/magic.
     [InlineData(8, typeof(InvalidOperationException))] // KDF parameters.
-    [InlineData(44, typeof(InvalidDataException))] // Nonce is authenticated too.
-    [InlineData(60, typeof(InvalidDataException))] // Tag.
-    [InlineData(90, typeof(InvalidDataException))] // Ciphertext.
+    [InlineData(44, typeof(SnapshotAuthenticationException))] // Nonce is authenticated too.
+    [InlineData(60, typeof(SnapshotAuthenticationException))] // Tag.
+    [InlineData(90, typeof(SnapshotAuthenticationException))] // Ciphertext.
     public void Import_TamperedByte_ThrowsBeforeReplacingViewer(int index, Type expectedException)
     {
         // Arrange

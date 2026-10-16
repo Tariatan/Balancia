@@ -49,7 +49,7 @@ public partial class MainWindow
                 MinHeight = 18,
                 Margin = new Thickness(0, 5),
             };
-            if (choice.Value.Id == defaultAccountId)
+            if (choice.Value.Id == settings.DefaultAccountId)
             {
                 var highlight = new Border
                 {
@@ -199,7 +199,7 @@ public partial class MainWindow
         var defaultAccount = new CheckBox
         {
             Content = Get("Use as default account for new transactions"),
-            IsChecked = account is not null && account.Id == defaultAccountId
+            IsChecked = account is not null && account.Id == settings.DefaultAccountId
         };
 
         await EditDialog(account is null ? "Add account" : "Edit account",
@@ -219,11 +219,12 @@ public partial class MainWindow
                 return () =>
                 {
                     var savedId = store.SaveAccount(account?.Id, accountName, openingDate, openingAmount, archived);
-                    if (useAsDefault && savedId != defaultAccountId)
+                    if (useAsDefault && savedId != settings.DefaultAccountId)
                     {
                         // Persist first so a failed settings write leaves the in-memory default unchanged.
-                        SaveApplicationSettings(DatabasePath, BackupPath, SnapshotPath, savedId);
-                        defaultAccountId = savedId;
+                        var updated = settings with { DefaultAccountId = savedId };
+                        PersistSettings(updated);
+                        settings = updated;
                     }
                 };
             },

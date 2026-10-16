@@ -4,11 +4,11 @@ using Balancia.Storage;
 namespace Balancia.Desktop;
 
 /// <summary>Current-user DPAPI protection, without a plaintext key or password in settings.</summary>
-internal static class WindowsSnapshotKeyStore
+internal sealed class WindowsSnapshotKeyStore : ISnapshotKeyStore
 {
     private const int MaxProtectedKeyBytes = 16 * 1024;
 
-    internal static SnapshotKey? Load(string path)
+    public SnapshotKey? Load(string path)
     {
         var file = new FileInfo(path);
         if (!file.Exists)
@@ -32,7 +32,7 @@ internal static class WindowsSnapshotKeyStore
         }
     }
 
-    internal static void Save(string path, SnapshotKey key)
+    public void Save(string path, SnapshotKey key)
     {
         var secret = key.ExportSecret();
         byte[] protectedData;
@@ -45,22 +45,7 @@ internal static class WindowsSnapshotKeyStore
             CryptographicOperations.ZeroMemory(secret);
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var temporary = path + ".tmp-" + Guid.NewGuid().ToString("N");
-        try
-        {
-            using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            {
-                stream.Write(protectedData);
-                stream.Flush(flushToDisk: true);
-            }
-
-            File.Move(temporary, path, true);
-        }
-        finally
-        {
-            File.Delete(temporary);
-        }
+        AtomicFileWriter.Write(path, stream => stream.Write(protectedData));
     }
 
     private static byte[] Protect(byte[] bytes, bool decrypt)

@@ -5,7 +5,7 @@ namespace Balancia.Desktop;
 /// <summary>Pure presentation rules for reminders: row emphasis, row color and footer totals.</summary>
 internal static class ReminderPresentation
 {
-    private const string SatisfiedColor = "#263C48";
+    private const string TextColor = "#263C48";
     private const string OverdueColor = "#B95D4D";
     private const string DueSoonColor = "#B58B00";
     private const string NextMonthColor = "#3989A7";
@@ -14,11 +14,10 @@ internal static class ReminderPresentation
     internal readonly record struct Totals(Money Net, Money Upcoming, bool UpcomingIsThisMonth);
 
     internal static bool IsEmphasized(Reminder reminder, DateOnly today) =>
-        !reminder.Satisfied && (reminder.Overdue || IsDueSoon(reminder, today));
+        reminder.Overdue || IsDueSoon(reminder, today);
 
     internal static string ColorFor(Reminder reminder, DateOnly today)
     {
-        if (reminder.Satisfied) return SatisfiedColor;
         if (reminder.Overdue) return OverdueColor;
         if (IsDueSoon(reminder, today)) return DueSoonColor;
 
@@ -27,7 +26,7 @@ internal static class ReminderPresentation
         {
             1 => NextMonthColor,
             > 1 => LaterColor,
-            _ => SatisfiedColor,
+            _ => TextColor,
         };
     }
 
@@ -43,8 +42,6 @@ internal static class ReminderPresentation
         {
             var amount = reminder.Template.IndicativeAmount;
             net += amount;
-            if (reminder.Satisfied) continue;
-
             if (IsInMonth(reminder, today))
             {
                 pendingThisMonth += amount;

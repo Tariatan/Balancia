@@ -1,40 +1,47 @@
 using System.Text.Json;
+using Balancia.Storage;
 
 namespace Balancia.Desktop;
 
-public partial class MainWindow
+internal sealed record WindowSettings(double Width, double Height, int X, int Y);
+
+/// <summary>The persisted user preferences. A null path or language means "not chosen".</summary>
+internal sealed record ApplicationSettings(string DatabasePath, string? BackupPath = null, string? SnapshotPath = null,
+    string? DefaultAccountId = null, string? Language = null, WindowSettings? Window = null);
+
+/// <summary>Reads and atomically replaces the settings file.</summary>
+internal sealed class SettingsStore(string path)
 {
-    private readonly object settingsWriteGate = new();
+    private readonly object writeGate = new();
 
-    private sealed record ApplicationSettings(string DatabasePath, string? BackupPath = null, string? SnapshotPath = null,
-        string? DefaultAccountId = null, string? Language = null, WindowSettings? Window = null);
+    public string Path { get; } = path;
 
-    private static ApplicationSettings? LoadApplicationSettings(string path)
+    /// <summary>The saved settings, or null when the file is missing or unreadable.</summary>
+    public ApplicationSettings? Load()
     {
         try
         {
-            return File.Exists(path)
-                ? JsonSerializer.Deserialize<ApplicationSettings>(File.ReadAllText(path))
+            return File.Exists(Path)
+                ? JsonSerializer.Deserialize<ApplicationSettings>(File.ReadAllText(Path))
                 : null;
         }
-        catch (JsonException ex)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
-            Serilog.Log.Warning(ex, "Unable to load application settings, SettingsPath: '{SettingsPath}'", path);
-            return null;
-        }
-        catch (IOException ex)
-        {
-            Serilog.Log.Warning(ex, "Unable to load application settings, SettingsPath: '{SettingsPath}'", path);
-            return null;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            Serilog.Log.Warning(ex, "Unable to load application settings, SettingsPath: '{SettingsPath}'", path);
+            Serilog.Log.Warning(ex, "Unable to load application settings, SettingsPath: '{SettingsPath}'", Path);
             return null;
         }
     }
 
-    private static string? ResolveFullPath(string? path)
+    public void Save(ApplicationSettings settings)
+    {
+        lock (writeGate)
+        {
+            AtomicFileWriter.Write(Path, stream => JsonSerializer.Serialize(stream, settings));
+        }
+    }
+
+    /// <summary>The absolute form of a saved path, or null when it is empty or malformed.</summary>
+    public static string? ResolveFullPath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -43,41 +50,11 @@ public partial class MainWindow
 
         try
         {
-            return Path.GetFullPath(path);
+            return System.IO.Path.GetFullPath(path);
         }
         catch (ArgumentException)
         {
             return null;
-        }
-    }
-
-    private void SaveApplicationSettings(string dbPath, string? selectedBackupPath = null, string? selectedSnapshotPath = null,
-        string? selectedDefaultAccountId = null, string? selectedLanguage = null)
-    {
-        if (separateDataFolder)
-        {
-            return;
-        }
-
-        lock (settingsWriteGate)
-        {
-            var directory = Path.GetDirectoryName(applicationSettingsPath);
-            if (string.IsNullOrWhiteSpace(directory))
-            {
-                throw new IOException("The application settings folder is unavailable.");
-            }
-
-            Directory.CreateDirectory(directory);
-            var temporaryPath = applicationSettingsPath + ".tmp";
-            var json = JsonSerializer.Serialize(new ApplicationSettings(
-                dbPath,
-                selectedBackupPath ?? BackupPath,
-                selectedSnapshotPath ?? SnapshotPath,
-                selectedDefaultAccountId ?? defaultAccountId,
-                selectedLanguage ?? languagePreference,
-                windowSettings));
-            File.WriteAllText(temporaryPath, json);
-            File.Move(temporaryPath, applicationSettingsPath, true);
         }
     }
 }

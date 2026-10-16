@@ -772,6 +772,79 @@ public sealed class LedgerStoreTests : IDisposable
         }
     }
 
+    [Fact]
+    public void SaveTransaction_DescriptionWithSurroundingSpaces_StoresTheTrimmedText()
+    {
+        // Arrange
+        var a = Account("A", 100);
+        var draft = Draft(a, TransactionKind.Expense, 5) with { Description = "  Rent \t" };
+
+        // Act
+        store.SaveTransaction(null, draft);
+
+        // Assert
+        Assert.Equal("Rent", store.ReadSnapshot().Entries.Single().Draft.Description);
+    }
+
+    [Fact]
+    public void DeleteCategory_Unused_RemovesIt()
+    {
+        // Arrange
+        var id = store.SaveCategory(null, "Spare", null);
+
+        // Act
+        store.DeleteCategory(id);
+
+        // Assert
+        Assert.DoesNotContain(store.ReadSnapshot().Categories, category => category.Id == id);
+    }
+
+    [Fact]
+    public void DeleteCategory_WithSubcategories_ThrowsAndKeepsBoth()
+    {
+        // Arrange
+        var parent = store.SaveCategory(null, "Travel", null);
+        store.SaveCategory(null, "Rail", parent);
+
+        // Act
+        var error = Assert.Throws<InvalidOperationException>(() => store.DeleteCategory(parent));
+
+        // Assert
+        Assert.Contains("subcategories", error.Message);
+        Assert.True(store.CategoryHasSubcategories(parent));
+        Assert.Equal(2, store.ReadSnapshot().Categories.Count);
+    }
+
+    [Fact]
+    public void DeleteCategory_UsedByTransactions_ThrowsAndKeepsIt()
+    {
+        // Arrange
+        var a = Account("A", 100);
+        var category = store.SaveCategory(null, "Food", null);
+        store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 5) with { CategoryId = category });
+
+        // Act
+        var error = Assert.Throws<InvalidOperationException>(() => store.DeleteCategory(category));
+
+        // Assert
+        Assert.Contains("used by transactions", error.Message);
+        Assert.True(store.CategoryIsUsedByTransactions(category));
+        Assert.Single(store.ReadSnapshot().Categories);
+    }
+
+    [Fact]
+    public void DeleteCategory_UnknownId_Throws()
+    {
+        // Arrange
+        var unknown = Guid.NewGuid().ToString("N");
+
+        // Act
+        void Act() => store.DeleteCategory(unknown);
+
+        // Assert
+        Assert.Throws<ArgumentException>(Act);
+    }
+
     private void SeedTravelCategories()
     {
         var parent = store.SaveCategory(null, "Travel", null);

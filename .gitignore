@@ -15,6 +15,8 @@
 *.balancia
 *.dpapi
 *.keystore
+*.csv
+*.bak
 .env
 .env.*
 !.env.example

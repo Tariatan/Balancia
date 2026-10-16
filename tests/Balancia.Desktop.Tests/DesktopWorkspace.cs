@@ -82,6 +82,10 @@ internal sealed class DesktopWorkspace : IDisposable
     /// <summary>A window in <c>--data-dir</c> mode: settings, backups and snapshots are disabled.</summary>
     public MainWindow CreateSeparateFolderWindow(TimeProvider? clock = null) => Track(new MainWindow(DataDirectory, SettingsFile, clock));
 
+    /// <summary>A regular window whose remembered snapshot key lives in <paramref name="keyStore"/>; no key is provisioned.</summary>
+    public MainWindow CreateWindowWithKeyStore(FakeKeyStore keyStore, TimeProvider? clock = null) =>
+        Track(new MainWindow(null, SettingsFile, clock, keyStore));
+
     /// <summary>Creates a <see cref="CreateSeparateFolderWindow"/> and waits until it finished loading.</summary>
     public async Task<MainWindow> OpenWindowAsync(TimeProvider? clock = null)
     {

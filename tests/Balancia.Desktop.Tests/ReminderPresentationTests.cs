@@ -7,9 +7,9 @@ public sealed class ReminderPresentationTests
 {
     private static readonly DateOnly Today = new(2026, 10, 13);
 
-    private static Reminder Reminder(DateOnly occurrence, decimal francs = 10m, bool overdue = false, bool satisfied = false) =>
+    private static Reminder Reminder(DateOnly occurrence, decimal francs = 10m, bool overdue = false) =>
         new(new ReminderTemplate(Guid.NewGuid().ToString("N"), "Rent", occurrence, Money.FromFrancs(francs), 1, false),
-            occurrence, overdue, satisfied);
+            occurrence, overdue);
 
     [Theory]
     [InlineData("2026-10-13", "#B58B00")] // due today
@@ -43,31 +43,15 @@ public sealed class ReminderPresentationTests
         Assert.Equal("#B95D4D", color);
     }
 
-    [Fact]
-    public void ColorFor_SatisfiedReminder_WinsOverOverdueAndDueSoon()
-    {
-        // Arrange
-        var overdue = Reminder(Today.AddDays(-3), overdue: true, satisfied: true);
-        var dueSoon = Reminder(Today.AddDays(2), satisfied: true);
-
-        // Act
-        var colors = new[] { ReminderPresentation.ColorFor(overdue, Today), ReminderPresentation.ColorFor(dueSoon, Today) };
-
-        // Assert
-        Assert.All(colors, color => Assert.Equal("#263C48", color));
-    }
-
     [Theory]
-    [InlineData("2026-10-13", false, false, true)]
-    [InlineData("2026-10-18", false, false, true)]
-    [InlineData("2026-10-19", false, false, false)]
-    [InlineData("2026-10-05", true, false, true)]
-    [InlineData("2026-10-05", true, true, false)]
-    [InlineData("2026-10-14", false, true, false)]
-    public void IsEmphasized_Reminder_IsBoldOnlyWhenPendingAndOverdueOrDueSoon(string occurrence, bool overdue, bool satisfied, bool expected)
+    [InlineData("2026-10-13", false, true)]
+    [InlineData("2026-10-18", false, true)]
+    [InlineData("2026-10-19", false, false)]
+    [InlineData("2026-10-05", true, true)]
+    public void IsEmphasized_Reminder_IsBoldOnlyWhenOverdueOrDueSoon(string occurrence, bool overdue, bool expected)
     {
         // Arrange
-        var reminder = Reminder(DateOnly.Parse(occurrence), overdue: overdue, satisfied: satisfied);
+        var reminder = Reminder(DateOnly.Parse(occurrence), overdue: overdue);
 
         // Act
         var emphasized = ReminderPresentation.IsEmphasized(reminder, Today);
@@ -84,7 +68,6 @@ public sealed class ReminderPresentationTests
         {
             Reminder(new DateOnly(2026, 10, 20), 100m),
             Reminder(new DateOnly(2026, 10, 25), 50m),
-            Reminder(new DateOnly(2026, 10, 10), 7m, satisfied: true),
             Reminder(new DateOnly(2026, 11, 3), 900m),
         };
 
@@ -94,7 +77,7 @@ public sealed class ReminderPresentationTests
         // Assert
         Assert.True(totals.UpcomingIsThisMonth);
         Assert.Equal(Money.FromFrancs(150m), totals.Upcoming);
-        Assert.Equal(Money.FromFrancs(1057m), totals.Net);
+        Assert.Equal(Money.FromFrancs(1050m), totals.Net);
     }
 
     [Fact]
@@ -103,7 +86,6 @@ public sealed class ReminderPresentationTests
         // Arrange
         var reminders = new[]
         {
-            Reminder(new DateOnly(2026, 10, 10), 7m, satisfied: true),
             Reminder(new DateOnly(2026, 11, 3), 900m),
             Reminder(new DateOnly(2026, 12, 3), 40m),
         };

@@ -161,7 +161,7 @@ public partial class MainWindow
         amount.LostFocus += (_, _) => NormalizeAmount(amount);
 
         var account = ChoiceBox(accounts,
-            accounts.FirstOrDefault(c => c.Value.Id == (existing?.AccountId ?? defaultAccountId ?? lastAccountId)) ?? accounts[0]);
+            accounts.FirstOrDefault(c => c.Value.Id == (existing?.AccountId ?? settings.DefaultAccountId ?? lastAccountId)) ?? accounts[0]);
 
         var destination = ChoiceBox(accounts, accounts.FirstOrDefault(c => c.Value.Id == existing?.DestinationId));
 

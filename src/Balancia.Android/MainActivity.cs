@@ -13,7 +13,8 @@ public partial class MainActivity : Activity
     private TextView? status;
     private EditText? search;
     private TextView? results;
-    private LedgerStore? viewerStore;
+    private const int SearchResultLimit = 50;
+    private LedgerReader? viewerReader;
     private bool importing;
 
     protected override async void OnCreate(Bundle? savedInstanceState)
@@ -42,14 +43,14 @@ public partial class MainActivity : Activity
             Log.Information("Opening saved Android viewer database");
             try
             {
-                viewerStore = new LedgerStore(dbPath);
+                viewerReader = LedgerReader.Open(dbPath);
                 await DisplaySnapshot("Saved snapshot");
                 Log.Information("Saved Android viewer database opened");
             }
             catch (Exception ex)
             {
                 Log.Warning("Saved Android viewer database unavailable, FailureType: '{FailureType}', HResult: '{HResult}'", ex.GetType().Name, ex.HResult);
-                viewerStore = null;
+                viewerReader = null;
                 status.Text = "The saved copy could not be read. Import a snapshot again.";
             }
         }
@@ -140,7 +141,7 @@ public partial class MainActivity : Activity
             return;
         }
 
-        if (viewerStore is null)
+        if (viewerReader is null)
         {
             Log.Information("Android search skipped; no snapshot loaded");
             results!.Text = "Load a snapshot first.";
@@ -149,9 +150,12 @@ public partial class MainActivity : Activity
         try
         {
             Log.Information("Starting Android transaction search");
-            var page = viewerStore.ReadTransactions(new TransactionsFilter(search?.Text), 0, 50);
+            var page = viewerReader.ReadTransactions(new TransactionsFilter(search?.Text), 0, SearchResultLimit);
+            var lines = page.Hits.Select(h => $"{h.Entry.Draft.Date:yyyy-MM-dd} · {h.Entry.Draft.Kind} · {h.Entry.Draft.Amount.Francs:N2} · {h.Entry.Draft.Description}");
             results!.Text = page.Hits.Count == 0 ? "No matching transactions." :
-                string.Join("\n", page.Hits.Select(h => $"{h.Entry.Draft.Date:yyyy-MM-dd} · {h.Entry.Draft.Kind} · {h.Entry.Draft.Amount.Francs:N2} · {h.Entry.Draft.Description}"));
+                string.Join("\n", lines) + (page.TotalCount > page.Hits.Count
+                    ? $"\nShowing the newest {page.Hits.Count} of {page.TotalCount} matches. Refine the search to narrow them."
+                    : string.Empty);
             Log.Information("Android transaction search completed, ResultCount: '{ResultCount}'", page.Hits.Count);
         }
         catch (Exception ex)

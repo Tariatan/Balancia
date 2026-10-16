@@ -14,8 +14,10 @@ public sealed partial class LedgerStore
     private const string MetadataSql = "SELECT dataset_id,revision FROM metadata WHERE id=1";
     private const int MaxManifestBytes = 64 * 1024;
     private const long MaxDatabaseBytes = 512L * 1024 * 1024;
+    private const int RetainedRecoveryCopies = 3;
 
-    public SnapshotRestoreResult RestoreSnapshot(string source, SnapshotKey key) => LogOperation(() => RestoreSnapshotCore(source, key));
+    public SnapshotRestoreResult RestoreSnapshot(string source, SnapshotKey key) =>
+        LogOperation(() => RestoreSnapshotCore(source, key), snapshot: SnapshotOperation.Read);
 
     private SnapshotRestoreResult RestoreSnapshotCore(string source, SnapshotKey key)
     {
@@ -49,11 +51,36 @@ public sealed partial class LedgerStore
 
             File.Move(staged, path, true);
             Serilog.Log.ForContext<LedgerStore>().Information("Snapshot restored, Revision: '{Revision}', BackupPath: '{BackupPath}'", manifest.Revision, backup);
+            PruneRecoveryCopies(backup);
             return new SnapshotRestoreResult(backup, manifest);
         }
         finally
         {
             File.Delete(staged);
+        }
+    }
+
+    /// <summary>Keeps the copy just written and the newest earlier ones (three in total) of the plaintext pre-restore recovery copies; a failed deletion is logged and never fails the restore.</summary>
+    private void PruneRecoveryCopies(string current)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(path)!;
+            var stale = Directory.EnumerateFiles(directory, Path.GetFileName(path) + ".pre-restore-*.bak")
+                .Where(file => !string.Equals(file, current, StringComparison.Ordinal))
+                .OrderByDescending(file => file, StringComparer.Ordinal)
+                .Skip(RetainedRecoveryCopies - 1)
+                .ToArray();
+            foreach (var file in stale)
+            {
+                File.Delete(file);
+            }
+
+            Serilog.Log.ForContext<LedgerStore>().Information("Restore recovery copies pruned, RemovedCount: '{RemovedCount}'", stale.Length);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Serilog.Log.ForContext<LedgerStore>().Warning("Restore recovery copy pruning failed, FailureType: '{FailureType}', HResult: '{HResult}'", ex.GetType().Name, ex.HResult);
         }
     }
 
@@ -71,7 +98,8 @@ public sealed partial class LedgerStore
         return reader.Read() ? (reader.GetString(0), reader.GetInt64(1)) : null;
     }
 
-    public SnapshotManifest ValidateSnapshot(string source, SnapshotKey key) => LogOperation(() => ValidateSnapshotCore(source, key));
+    public SnapshotManifest ValidateSnapshot(string source, SnapshotKey key) =>
+        LogOperation(() => ValidateSnapshotCore(source, key), snapshot: SnapshotOperation.Read);
 
     private SnapshotManifest ValidateSnapshotCore(string source, SnapshotKey key)
     {
@@ -172,7 +200,8 @@ public sealed partial class LedgerStore
         }
     }
 
-    public SnapshotManifest ExportSnapshot(string destination, SnapshotKey key) => LogOperation(() => ExportSnapshotCore(destination, key));
+    public SnapshotManifest ExportSnapshot(string destination, SnapshotKey key) =>
+        LogOperation(() => ExportSnapshotCore(destination, key), snapshot: SnapshotOperation.Export);
 
     private SnapshotManifest ExportSnapshotCore(string destination, SnapshotKey key)
     {
@@ -191,6 +220,9 @@ public sealed partial class LedgerStore
                 var (datasetId, revision) = ReadMetadata(backup) ?? throw new InvalidOperationException("Ledger metadata is missing.");
                 manifest = new SnapshotManifest(SnapshotFormat, SchemaVersion, datasetId, revision, DateTimeOffset.UtcNow);
             }
+
+            // A database this build cannot open would otherwise be packaged under a current manifest and replace the last usable snapshot.
+            ValidateExtractedDatabase(temporary, manifest);
 
             using var buffer = new MemoryStream();
             try

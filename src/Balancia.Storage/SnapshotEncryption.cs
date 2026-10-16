@@ -93,7 +93,7 @@ public static class SnapshotEncryption
         {
             Logger.Information("Snapshot authentication rejected; incorrect passphrase or damaged file");
             CryptographicOperations.ZeroMemory(plaintext);
-            throw new InvalidDataException("The snapshot passphrase is incorrect or the file is damaged.");
+            throw new SnapshotAuthenticationException();
         }
         catch
         {

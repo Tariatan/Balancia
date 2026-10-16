@@ -5,7 +5,7 @@ namespace Balancia.Desktop.Localization;
 
 internal static class UiText
 {
-    private static readonly ResourceManager Resources = new("Balancia.Desktop.Localization.Strings", typeof(UiText).Assembly);
+    internal static readonly ResourceManager Resources = new("Balancia.Desktop.Localization.Strings", typeof(UiText).Assembly);
     private static CultureInfo resourceCulture = CultureInfo.GetCultureInfo("en-US");
 
     private static string Language { get; set; } = "en";

@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <ApplicationIcon>Balancia.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <Version>3.1.1</Version>
+    <Version>3.2.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Balancia.Desktop.Tests" />
@@ -16,7 +16,7 @@
     <ProjectReference Include="../Balancia.Storage/Balancia.Storage.csproj" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.13" />
     <PackageReference Include="Serilog" Version="4.4.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>

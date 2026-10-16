@@ -30,6 +30,35 @@ public sealed class CsvImportTests : IDisposable
     private void Csv(string rows) => File.WriteAllText(csv, Header + rows, new UTF8Encoding(true));
 
     [Fact]
+    public void ApplyCsvImport_ImportedAccountDeleted_ReimportReportsConflictInsteadOfSilentlySkipping()
+    {
+        // Arrange
+        Csv("o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,,\n");
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+        store.DeleteAccount(store.ReadSnapshot().Accounts.Single().Id);
+
+        // Act
+        void Act() => store.ApplyCsvImport(store.PreviewCsvImport(csv));
+
+        // Assert
+        Assert.Throws<CsvImportConflictException>(Act);
+        Assert.Empty(store.ReadSnapshot().Accounts);
+    }
+
+    [Fact]
+    public void PreviewCsvImport_DescriptionWithSurroundingSpaces_ImportsTheTrimmedText()
+    {
+        // Arrange
+        Csv("o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,,\nx1,2026-09-02,Expense,  Rent ,-10.00,A,,,\n");
+
+        // Act
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+
+        // Assert
+        Assert.Equal("Rent", store.ReadSnapshot().Entries.Single().Draft.Description);
+    }
+
+    [Fact]
     public void PreviewCsvImport_LegacyHeader_BlocksImportWithoutWrites()
     {
         // Arrange
@@ -41,7 +70,7 @@ public sealed class CsvImportTests : IDisposable
 
         // Assert
         Assert.False(preview.CanApply);
-        Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(preview));
+        Assert.Throws<CsvImportConflictException>(() => store.ApplyCsvImport(preview));
         Assert.Empty(store.ReadSnapshot().Accounts);
     }
 
@@ -70,7 +99,7 @@ public sealed class CsvImportTests : IDisposable
         // Assert
         Assert.False(preview.CanApply);
         Assert.Contains(preview.Issues, issue => issue.Message.Contains("ID must occur exactly once"));
-        Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(preview));
+        Assert.Throws<CsvImportConflictException>(() => store.ApplyCsvImport(preview));
         Assert.Empty(store.ReadSnapshot().Accounts);
     }
 
@@ -142,7 +171,7 @@ public sealed class CsvImportTests : IDisposable
         void Act() => store.ApplyCsvImport(preview);
 
         // Assert
-        Assert.Throws<InvalidOperationException>(Act);
+        Assert.Throws<CsvImportConflictException>(Act);
         Assert.Equal(11110, store.ReadSnapshot().NetWorth.Centimes);
     }
 
@@ -189,7 +218,7 @@ public sealed class CsvImportTests : IDisposable
 
         // Assert
         Assert.False(preview.CanApply);
-        Assert.Throws<InvalidOperationException>(Act);
+        Assert.Throws<CsvImportConflictException>(Act);
         Assert.Empty(store.ReadSnapshot().Accounts);
     }
 
@@ -279,7 +308,7 @@ public sealed class CsvImportTests : IDisposable
         var preview = store.PreviewCsvImport(csv);
 
         // Act
-        var error = Assert.Throws<InvalidOperationException>(() => store.ApplyCsvImport(preview));
+        var error = Assert.Throws<CsvImportConflictException>(() => store.ApplyCsvImport(preview));
 
         // Assert
         Assert.True(preview.CanApply);
@@ -315,7 +344,7 @@ public sealed class CsvImportTests : IDisposable
         void Act() => store.ApplyCsvImport(preview);
 
         // Assert
-        Assert.Throws<InvalidOperationException>(Act);
+        Assert.Throws<CsvImportConflictException>(Act);
         Assert.Empty(store.ReadSnapshot().Accounts);
     }
 
@@ -349,7 +378,7 @@ public sealed class CsvImportTests : IDisposable
         void Act() => store.ApplyCsvImport(preview);
 
         // Assert
-        Assert.Throws<InvalidOperationException>(Act);
+        Assert.Throws<CsvImportConflictException>(Act);
     }
 
     [Fact]

@@ -8,8 +8,8 @@ A personal finance ledger for Windows, with a read-only Android companion. Recor
 
 1. Records expenses, income, and transfers against local accounts, with dated opening balances and up to two levels of categories.
 2. Shows net worth, income/expense trends, and a cumulative timeline for whatever period and filters are currently selected — day, week, month, year, or a custom range.
-3. Tracks reminders for repeating payments (rent, subscriptions, insurance) by description and due month, surfacing overdue and upcoming occurrences without ever creating a transaction automatically.
-4. Imports the owner's existing CSV export — matching transfers, opening balances, and categories — and exports the ledger back to CSV at any time.
+3. Tracks reminders for repeating payments (rent, subscriptions, insurance) by description and due month, surfacing overdue and upcoming occurrences without ever creating a transaction automatically. A payment satisfies a reminder when its description matches exactly (surrounding spaces ignored) in the due month.
+4. Imports the owner's existing CSV export (matching transfers, opening balances, categories, and reminder templates) and exports the ledger back to CSV at any time.
 5. Backs up and restores consistent local snapshots, and hands a read-only, validated copy to the Android companion for balance and history lookups on the go.
 
 The Windows desktop is the only writer; Android never opens or synchronizes the live database. See [docs/Technical_Design_Description.md](docs/Technical_Design_Description.md) for how that boundary — and the rest of the design — works.
@@ -24,8 +24,8 @@ Everything lives on one Overview dashboard: a filter row (period presets, custom
 - **Income / Expenses / Average** — totals for the selected period, plus per-calendar-unit averages that account for periods with no activity.
 - **Trend / Timeline** — a bar/line chart of income, expenses, and savings by day, week, or month, and a cumulative comparison against the immediately preceding period of equal length.
 - **Categories** — checkbox filtering with parent/child rollup, shared with the **Top expenditures** card on the right.
-- **Transaction history** — a paged, searchable, double-click-to-edit table combining every filter above.
-- **Reminders** — upcoming and overdue repeating payments, with totals for everything shown and for the next calendar month.
+- **Transaction history** — a paged, searchable, double-click-to-edit table combining every filter above, with rows shaded by day.
+- **Reminders** — upcoming and overdue repeating payments, with a total for everything shown and a subtotal for the current month, or for the next month once nothing is left in the current one. Rows are coloured by urgency and shaded by month.
 
 A gear icon opens **Settings** for the database/backup/snapshot folder pickers, CSV import/export, snapshot export/restore, and the English/German/Russian/Ukrainian language picker.
 
@@ -57,7 +57,7 @@ Windows diagnostics are in `%LOCALAPPDATA%\Balancia\log\balancia-yyyyMMdd.log`. 
 
 ## Getting started
 
-All projects target `net10.0`; direct package versions are pinned in project files and `packages.lock.json` locks the transitive graph.
+All projects target `net10.0` except `Balancia.Android`, which targets `net10.0-android` and needs the .NET Android workload to build. Direct package versions are pinned in project files, `packages.lock.json` locks the transitive graph, and `nuget.config` restores from nuget.org only.
 
 ```powershell
 dotnet restore Balancia.slnx --locked-mode
@@ -66,7 +66,15 @@ dotnet test Balancia.slnx -c Release --no-build --no-restore
 dotnet run --project src/Balancia.Desktop -c Release --no-build --no-restore
 ```
 
-`tests/Balancia.Desktop.Tests` runs on Avalonia's headless platform (xUnit v3), so it needs no display and never touches `%LOCALAPPDATA%\Balancia`: each test gets its own temporary data folder and settings file.
+`tests/Balancia.Desktop.Tests` runs on Avalonia's headless platform (xUnit v3), so it needs no display and never touches `%LOCALAPPDATA%\Balancia`: each test gets its own temporary data folder and settings file. Tests that need Windows DPAPI skip themselves elsewhere.
+
+Measure line coverage with the collector that each test project references (reports land in the ignored `artifacts` folder):
+
+```powershell
+dotnet test Balancia.slnx -c Release --no-build --no-restore --collect:"XPlat Code Coverage" --results-directory artifacts/coverage
+```
+
+Set `BALANCIA_PERF=1` to run the 50,000-transaction latency test, which fails when a read exceeds a 200 ms p95 budget.
 
 For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--` in the `dotnet run` command — the app creates that directory and its schema on first run.
 

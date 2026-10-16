@@ -65,6 +65,7 @@ public sealed partial class LedgerStore
             throw new InvalidOperationException("An account with transactions cannot be deleted. Archive it instead.");
         }
 
+        LedgerSql.Execute(c, tx, "UPDATE import_sources SET locally_modified=1,transaction_id=NULL WHERE transaction_id=$opening", ("$opening", openingId));
         LedgerSql.Execute(c, tx, "DELETE FROM movements WHERE transaction_id=$opening AND account_id=$id; DELETE FROM ledger WHERE id=$opening; DELETE FROM accounts WHERE id=$id", ("$id", id), ("$opening", openingId));
     });
 

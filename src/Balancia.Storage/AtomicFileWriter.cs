@@ -1,6 +1,6 @@
 namespace Balancia.Storage;
 
-internal static class AtomicFileWriter
+public static class AtomicFileWriter
 {
     /// <summary>Writes to a sibling temp file, then atomically replaces <paramref name="destination"/>; the temp file is removed if <paramref name="write"/> or the move throws.</summary>
     public static void Write(string destination, Action<Stream> write)

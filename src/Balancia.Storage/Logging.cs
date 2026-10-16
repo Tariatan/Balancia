@@ -9,14 +9,21 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
-    private void LogOperation(Action action, [CallerMemberName] string operation = "") =>
+    private enum SnapshotOperation
+    {
+        None,
+        Export,
+        Read,
+    }
+
+    private void LogOperation(Action action, [CallerMemberName] string operation = "", SnapshotOperation snapshot = SnapshotOperation.None) =>
         LogOperation(() =>
         {
             action();
             return true;
-        }, operation);
+        }, operation, snapshot);
 
-    private T LogOperation<T>(Func<T> action, [CallerMemberName] string operation = "")
+    private T LogOperation<T>(Func<T> action, [CallerMemberName] string operation = "", SnapshotOperation snapshot = SnapshotOperation.None)
     {
         var operationId = Guid.NewGuid().ToString("N");
         using var context = LogContext.PushProperty("OperationId", operationId);
@@ -30,7 +37,7 @@ public sealed partial class LedgerStore
                 operation, operationId, elapsed.ElapsedMilliseconds);
             return result;
         }
-        catch (Exception exception) when (IsRejection(operation, exception))
+        catch (Exception exception) when (IsRejection(exception, snapshot))
         {
             logger.Information("Storage operation rejected, Operation: '{Operation}', OperationId: '{OperationId}', FailureType: '{FailureType}'",
                 operation, operationId, exception.GetType().Name);
@@ -38,7 +45,7 @@ public sealed partial class LedgerStore
         }
         catch (Exception exception)
         {
-            if (IsSnapshotOperation(operation))
+            if (snapshot != SnapshotOperation.None)
             {
                 // Snapshot parser/provider messages can contain untrusted data. Log diagnostics only.
                 logger.Error("Storage operation failed, Operation: '{Operation}', OperationId: '{OperationId}', ElapsedMs: '{ElapsedMs}', FailureType: '{FailureType}', HResult: '{HResult}'",
@@ -53,13 +60,10 @@ public sealed partial class LedgerStore
         }
     }
 
-    private static bool IsSnapshotOperation(string operation) => operation is nameof(ExportSnapshot) or nameof(RestoreSnapshot) or nameof(ValidateSnapshot);
-
     /// <summary>Whether a failure is an expected caller or input error (logged at Information without a stack trace) rather than a fault.</summary>
-    private static bool IsRejection(string operation, Exception exception) =>
-        exception is ArgumentException or InvalidDataException ||
-        exception is InvalidOperationException && operation.StartsWith(nameof(ApplyCsvImport), StringComparison.Ordinal) ||
-        operation is nameof(RestoreSnapshot) or nameof(ValidateSnapshot) && IsSnapshotRejection(exception);
+    private static bool IsRejection(Exception exception, SnapshotOperation snapshot) =>
+        exception is ArgumentException or InvalidDataException or CsvImportConflictException ||
+        snapshot == SnapshotOperation.Read && IsSnapshotRejection(exception);
 
     internal static bool IsSnapshotRejection(Exception exception) =>
         exception is ArgumentException or

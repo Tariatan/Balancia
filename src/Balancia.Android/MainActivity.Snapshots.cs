@@ -58,8 +58,8 @@ public partial class MainActivity
                 {
                     var unlockedKey = key;
                     var dbPath = Path.Combine(FilesDir!.AbsolutePath, "viewer.db");
-                    var (importedStore, manifest) = await Task.Run(() => SnapshotImporter.Import(archivePath, dbPath, unlockedKey));
-                    viewerStore = importedStore;
+                    var (importedReader, manifest) = await Task.Run(() => SnapshotImporter.Import(archivePath, dbPath, unlockedKey));
+                    viewerReader = importedReader;
                     await DisplaySnapshot($"Revision {manifest.Revision}");
                     try
                     {
@@ -74,8 +74,7 @@ public partial class MainActivity
 
                     return;
                 }
-                catch (InvalidDataException ex) when (
-                    ex.Message == "The snapshot passphrase is incorrect or the file is damaged.")
+                catch (SnapshotAuthenticationException ex)
                 {
                     Log.Information("Android snapshot unlock rejected; retrying passphrase entry");
                     key.Dispose();
@@ -121,10 +120,13 @@ public partial class MainActivity
 
     private async Task DisplaySnapshot(string label)
     {
-        var snapshot = await Task.Run(() => viewerStore!.ReadSnapshot());
+        var summary = await Task.Run(() => viewerReader!.ReadSummary());
+        var imported = File.GetLastWriteTime(Path.Combine(FilesDir!.AbsolutePath, "viewer.db"));
         Log.Information("Android snapshot summary refreshed");
-        status!.Text = $"{label} · Net worth {snapshot.NetWorth.Francs:N2}\n" +
-            $"Income {snapshot.MonthlyIncome.Francs:N2} · Expenses {snapshot.MonthlyExpenses.Francs:N2}\n" +
-            $"{snapshot.Entries.Count} transactions · read-only viewer";
+        var accounts = string.Join("\n", summary.Accounts.Select(account => $"{account.Name}: {account.Balance.Francs:N2}"));
+        status!.Text = $"{label} · Net worth {summary.NetWorth.Francs:N2}\n" +
+            (accounts.Length == 0 ? string.Empty : accounts + "\n") +
+            $"Income {summary.MonthlyIncome.Francs:N2} · Expenses {summary.MonthlyExpenses.Francs:N2}\n" +
+            $"{summary.TransactionCount} transactions · imported {imported:yyyy-MM-dd HH:mm} · read-only viewer";
     }
 }

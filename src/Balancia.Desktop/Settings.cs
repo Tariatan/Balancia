@@ -9,15 +9,17 @@ public partial class MainWindow
 {
     private Task OpenSettingsDialog() => SettingsWindow.ShowFor(this);
 
-    private async Task<string?> PickFolder(string title)
+    private async Task<string?> PickFolder(string title) =>
+        await FolderPicker(title) is { } directory ? Path.GetFullPath(directory) : null;
+
+    private async Task<string?> PickFolderFromDialog(string title)
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
             Title = Get(title),
             AllowMultiple = false
         });
-        var directory = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
-        return directory is null ? null : Path.GetFullPath(directory);
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
     }
 
     internal async Task ChangeDatabaseLocation()
@@ -40,7 +42,9 @@ public partial class MainWindow
             Serilog.Log.Information("Changing database location, DatabasePath: '{DatabasePath}'", dbPath);
             var replacement = new LedgerStore(dbPath);
             await Task.Run(replacement.Initialize);
-            await Task.Run(() => SaveApplicationSettings(dbPath));
+            var updated = settings with { DatabasePath = dbPath };
+            await Task.Run(() => PersistSettings(updated));
+            settings = updated;
             store = replacement;
             backupBaseline = store.ReadLiveMetadata();
             DatabasePath = dbPath;
@@ -52,24 +56,17 @@ public partial class MainWindow
     internal Task ChooseBackupLocation(Avalonia.Controls.Window? dialogOwner = null) => ChooseEncryptedLocation(
         "Choose backup folder",
         dialogOwner,
-        selected => SaveApplicationSettings(DatabasePath, selected),
-        selected =>
-        {
-            BackupPath = selected;
-            Serilog.Log.Information("Backup location changed, BackupPath: '{BackupPath}'", selected);
-        });
+        (current, selected) => current with { BackupPath = selected },
+        selected => Serilog.Log.Information("Backup location changed, BackupPath: '{BackupPath}'", selected));
 
     internal Task ChooseSnapshotLocation(Avalonia.Controls.Window? dialogOwner = null) => ChooseEncryptedLocation(
         "Choose snapshot folder",
         dialogOwner,
-        selected => SaveApplicationSettings(DatabasePath, BackupPath, selected),
-        selected =>
-        {
-            SnapshotPath = selected;
-            Serilog.Log.Information("Snapshot location changed, SnapshotPath: '{SnapshotPath}'", selected);
-        });
+        (current, selected) => current with { SnapshotPath = selected },
+        selected => Serilog.Log.Information("Snapshot location changed, SnapshotPath: '{SnapshotPath}'", selected));
 
-    private async Task ChooseEncryptedLocation(string title, Avalonia.Controls.Window? dialogOwner, Action<string> save, Action<string> apply)
+    private async Task ChooseEncryptedLocation(string title, Avalonia.Controls.Window? dialogOwner,
+        Func<ApplicationSettings, string, ApplicationSettings> change, Action<string> onChanged)
     {
         var selected = await PickFolder(title);
         if (selected is null || !await EnsureEncryption(dialogOwner ?? this))
@@ -79,9 +76,20 @@ public partial class MainWindow
 
         await Run(async () =>
         {
-            await Task.Run(() => save(selected));
-            apply(selected);
+            var updated = change(settings, selected);
+            await Task.Run(() => PersistSettings(updated));
+            settings = updated;
+            onChanged(selected);
             await Refresh();
         });
+    }
+
+    /// <summary>Writes the settings file with the current window geometry. A separate data folder never touches the user's settings.</summary>
+    private void PersistSettings(ApplicationSettings updated)
+    {
+        if (!separateDataFolder)
+        {
+            settingsStore.Save(updated with { Window = windowSettings });
+        }
     }
 }

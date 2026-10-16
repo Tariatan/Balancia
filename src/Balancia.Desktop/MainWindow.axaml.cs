@@ -13,13 +13,10 @@ public partial class MainWindow : Window
 {
     private LedgerStore store;
     internal string DatabasePath;
-    private readonly string applicationSettingsPath;
+    private readonly SettingsStore settingsStore;
     private readonly bool separateDataFolder;
-    internal string? BackupPath;
-    internal string? SnapshotPath;
-    private string? defaultAccountId;
+    private ApplicationSettings settings;
     internal string LanguageCode;
-    private string? languagePreference;
     private LedgerSnapshot? snapshot;
     private FlowAverages averages = FlowAverages.Zero;
     private IReadOnlyList<Reminder> reminders = [];
@@ -28,6 +25,10 @@ public partial class MainWindow : Window
     private DateOnly displayDate;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
     private string? lastAccountId;
+
+    internal string? BackupPath => settings.BackupPath;
+
+    internal string? SnapshotPath => settings.SnapshotPath;
 
     private DateOnly Today => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
 
@@ -40,26 +41,32 @@ public partial class MainWindow : Window
     /// <param name="separateDataDirectory">The <c>--data-dir</c> folder. When set, the user's settings are neither read nor written.</param>
     /// <param name="settingsFile">The application settings file; tests point it at a temporary folder.</param>
     /// <param name="timeProvider">The clock behind "today"; tests supply a controllable one. Defaults to the system clock.</param>
-    internal MainWindow(string? separateDataDirectory, string settingsFile, TimeProvider? timeProvider = null)
+    /// <param name="keyStore">Where the remembered snapshot key lives; tests supply a fake. Defaults to Windows DPAPI.</param>
+    internal MainWindow(string? separateDataDirectory, string settingsFile, TimeProvider? timeProvider = null, ISnapshotKeyStore? keyStore = null)
     {
         this.timeProvider = timeProvider ?? TimeProvider.System;
+        shutdownExporter = new ShutdownExporter(this.timeProvider);
+        OpenFilePicker = PickOpenFile;
+        SaveFilePicker = PickSaveFile;
+        FolderPicker = PickFolderFromDialog;
+        keys = new SnapshotKeyService(keyStore ?? new WindowsSnapshotKeyStore(), () => SnapshotKeyPath);
         displayDate = Today;
         InitializeComponent();
         AppVersionText.Text = typeof(MainWindow).Assembly.GetName().Version!.ToString(3);
         InitializeOverview();
         separateDataFolder = separateDataDirectory is not null;
-        applicationSettingsPath = settingsFile;
-        var savedSettings = LoadApplicationSettings(applicationSettingsPath);
+        settingsStore = new SettingsStore(settingsFile);
+        var savedSettings = settingsStore.Load();
         var directory = separateDataDirectory is not null
             ? Path.GetFullPath(separateDataDirectory)
-            : Path.GetDirectoryName(ResolveFullPath(savedSettings?.DatabasePath) ?? string.Empty) ?? ApplicationPaths.UserDirectory;
-        languagePreference = savedSettings?.Language;
+            : Path.GetDirectoryName(SettingsStore.ResolveFullPath(savedSettings?.DatabasePath) ?? string.Empty) ?? ApplicationPaths.UserDirectory;
         LanguageCode = ResolveLanguage(savedSettings?.Language, CultureInfo.CurrentUICulture);
         SetLanguage(LanguageCode);
-        BackupPath = separateDataFolder ? null : ResolveFullPath(savedSettings?.BackupPath);
-        SnapshotPath = separateDataFolder ? null : ResolveFullPath(savedSettings?.SnapshotPath);
-        defaultAccountId = separateDataFolder ? null : savedSettings?.DefaultAccountId;
         DatabasePath = Path.Combine(directory, "balancia.db");
+        settings = separateDataFolder
+            ? new ApplicationSettings(DatabasePath, Language: savedSettings?.Language)
+            : new ApplicationSettings(DatabasePath, SettingsStore.ResolveFullPath(savedSettings?.BackupPath),
+                SettingsStore.ResolveFullPath(savedSettings?.SnapshotPath), savedSettings?.DefaultAccountId, savedSettings?.Language);
         store = new LedgerStore(DatabasePath);
         LoadWindowSettings(savedSettings);
         if (separateDataFolder)
@@ -94,7 +101,7 @@ public partial class MainWindow : Window
             SaveWindowSettings();
             SaveBackupOnClose();
             SaveSnapshotOnClose();
-            snapshotKey?.Dispose();
+            keys.Dispose();
         };
     }
 
@@ -218,8 +225,9 @@ public partial class MainWindow : Window
         try
         {
             await action();
-            if (disableControls)
+            if (disableControls && OverviewStatus.Text == Get("Working…"))
             {
+                // An action that reported its own outcome (export, import, restore) keeps that message.
                 SetStatus("Saved locally");
             }
         }

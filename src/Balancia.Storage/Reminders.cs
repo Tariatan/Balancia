@@ -14,24 +14,58 @@ public sealed partial class LedgerStore
         var today = asOf ?? Today;
         return ReadDeferred((c, tx) =>
         {
-            var result = new List<Reminder>();
-            using var cmd = LedgerSql.Command(c, tx, "SELECT id,description,expected_date,indicative_amount,interval_months,archived FROM reminder_templates WHERE archived=0 ORDER BY expected_date,description COLLATE NOCASE");
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
+            var templates = new List<ReminderTemplate>();
+            using (var cmd = LedgerSql.Command(c, tx, "SELECT id,description,expected_date,indicative_amount,interval_months,archived FROM reminder_templates WHERE archived=0 ORDER BY expected_date,description COLLATE NOCASE"))
+            using (var r = cmd.ExecuteReader())
             {
-                var template = ReadTemplate(r);
+                while (r.Read())
+                {
+                    templates.Add(ReadTemplate(r));
+                }
+            }
+
+            var paidMonths = ReadPaidMonths(c, tx);
+            var result = new List<Reminder>();
+            foreach (var template in templates)
+            {
+                var paid = paidMonths.GetValueOrDefault(template.Description);
                 var occurrence = template.ExpectedDate;
-                while (IsSatisfied(c, tx, template.Description, occurrence))
+                while (paid is not null && paid.Contains(MonthText(occurrence)))
                 {
                     occurrence = ReminderSchedule.AddMonthsClamped(occurrence, template.IntervalMonths, template.ExpectedDate.Day);
                 }
 
-                result.Add(new Reminder(template, occurrence, occurrence < today, Satisfied: false));
+                result.Add(new Reminder(template, occurrence, occurrence < today));
             }
 
             return (IReadOnlyList<Reminder>)[.. result.OrderBy(x => x.Occurrence)];
         });
     }
+
+    /// <summary>The calendar months (yyyy-MM) with a posted entry for each active reminder description, found in one pass over the ledger.</summary>
+    private static Dictionary<string, HashSet<string>> ReadPaidMonths(SqliteConnection c, SqliteTransaction tx)
+    {
+        var months = new Dictionary<string, HashSet<string>>();
+        using var cmd = LedgerSql.Command(c, tx, """
+            SELECT DISTINCT description,substr(date,1,7) FROM ledger
+            WHERE kind<>'OpeningBalance'
+              AND description IN (SELECT description FROM reminder_templates WHERE archived=0)
+            """);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            if (!months.TryGetValue(reader.GetString(0), out var set))
+            {
+                months[reader.GetString(0)] = set = [];
+            }
+
+            set.Add(reader.GetString(1));
+        }
+
+        return months;
+    }
+
+    private static string MonthText(DateOnly date) => date.ToString("yyyy-MM", CultureInfo.InvariantCulture);
 
     private static ReminderTemplate ReadTemplate(SqliteDataReader r) =>
         new(r.GetString(0), r.GetString(1), LedgerSql.ParseDate(r.GetString(2)), new Money(r.GetInt64(3)), r.GetInt32(4), r.GetBoolean(5));
@@ -58,7 +92,7 @@ public sealed partial class LedgerStore
         var key = id ?? Guid.NewGuid().ToString("N");
         Write((c, tx) =>
         {
-            if (!archived && LedgerSql.Scalar(c, tx, "SELECT 1 FROM reminder_templates WHERE archived=0 AND lower(description)=lower($description) AND id<>$id LIMIT 1", ("$description", description), ("$id", key)) is not null)
+            if (!archived && LedgerSql.Scalar(c, tx, "SELECT 1 FROM reminder_templates WHERE archived=0 AND description=$description AND id<>$id LIMIT 1", ("$description", description), ("$id", key)) is not null)
             {
                 throw new ArgumentException("An active reminder already uses this description.");
             }
@@ -74,7 +108,4 @@ public sealed partial class LedgerStore
         LedgerSql.Execute(c, tx, MarkReminderModifiedSql, ("$external", ReminderSourceId(id)));
         LedgerSql.Execute(c, tx, "DELETE FROM reminder_templates WHERE id=$id", ("$id", id));
     });
-
-    private static bool IsSatisfied(SqliteConnection c, SqliteTransaction tx, string description, DateOnly occurrence) =>
-        LedgerSql.Scalar(c, tx, "SELECT 1 FROM ledger WHERE kind<>'OpeningBalance' AND description=$description AND substr(date,1,7)=$month LIMIT 1", ("$description", description), ("$month", occurrence.ToString("yyyy-MM", CultureInfo.InvariantCulture))) is not null;
 }

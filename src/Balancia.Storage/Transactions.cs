@@ -40,6 +40,8 @@ public sealed partial class LedgerStore
             throw;
         }
 
+        // Reminders match the exact description, so stray surrounding spaces must not make a payment miss its reminder.
+        draft = draft with { Description = draft.Description.Trim() };
         var key = id ?? Guid.NewGuid().ToString("N");
         Write((c, tx) =>
         {

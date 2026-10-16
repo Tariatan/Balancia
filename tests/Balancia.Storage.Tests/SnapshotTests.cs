@@ -97,6 +97,41 @@ public sealed class SnapshotTests : IDisposable
     }
 
     [Fact]
+    public void ExportSnapshot_DatabaseWithUnsupportedSchema_ThrowsAndKeepsPreviousSnapshot()
+    {
+        // Arrange
+        var path = Path.Combine(dir, "snapshot.balancia");
+        store.ExportSnapshot(path, key);
+        var previous = File.ReadAllBytes(path);
+        SqliteScript.Execute(Path.Combine(dir, "ledger.db"), "PRAGMA user_version=2");
+
+        // Act
+        void Act() => store.ExportSnapshot(path, key);
+
+        // Assert
+        Assert.Throws<InvalidDataException>(Act);
+        Assert.Equal(previous, File.ReadAllBytes(path));
+        Assert.Empty(Directory.GetFiles(dir, "*.tmp-*"));
+    }
+
+    [Fact]
+    public void RestoreSnapshot_RepeatedRestores_KeepOnlyTheNewestRecoveryCopies()
+    {
+        // Arrange
+        var path = Path.Combine(dir, "current.balancia");
+        store.ExportSnapshot(path, key);
+
+        // Act
+        for (var restore = 0; restore < 5; restore++)
+        {
+            store.RestoreSnapshot(path, key);
+        }
+
+        // Assert
+        Assert.Equal(3, Directory.GetFiles(dir, "ledger.db.pre-restore-*.bak").Length);
+    }
+
+    [Fact]
     public void RestoreSnapshot_OlderThanCurrentLedger_ThrowsAndKeepsCurrentEntries()
     {
         // Arrange

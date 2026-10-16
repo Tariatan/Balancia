@@ -132,7 +132,6 @@
   <data name="Current period" xml:space="preserve"><value>Current period</value></data>
   <data name="Previous period" xml:space="preserve"><value>Previous period</value></data>
   <data name="Choose transactions CSV" xml:space="preserve"><value>Choose transactions CSV</value></data>
-  <data name="Choose a local CSV file." xml:space="preserve"><value>Choose a local CSV file.</value></data>
   <data name="CSV import preview" xml:space="preserve"><value>CSV import preview</value></data>
   <data name="Apply import" xml:space="preserve"><value>Apply import</value></data>
   <data name="Export Balancia snapshot" xml:space="preserve"><value>Export Balancia snapshot</value></data>
@@ -171,6 +170,11 @@
   <data name="Enter an amount greater than zero." xml:space="preserve"><value>Enter an amount greater than zero.</value></data>
   <data name="Choose two different accounts for a transfer." xml:space="preserve"><value>Choose two different accounts for a transfer.</value></data>
   <data name="Transactions cannot be dated in the future." xml:space="preserve"><value>Transactions cannot be dated in the future.</value></data>
+  <data name="All rows are valid. Apply this batch?" xml:space="preserve"><value>All rows are valid. Apply this batch?</value></data>
+  <data name="Errors (correct source file, then preview again):" xml:space="preserve"><value>Errors (correct source file, then preview again):</value></data>
+  <data name="Accounts and source totals:" xml:space="preserve"><value>Accounts and source totals:</value></data>
+  <data name="Categories: " xml:space="preserve"><value>Categories: </value></data>
+  <data name="{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings." xml:space="preserve"><value>{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings.</value></data>
   <data name="Reminders: {0}" xml:space="preserve"><value>Reminders: {0}</value></data>
   <data name="Invalid reminder fields." xml:space="preserve"><value>Invalid reminder fields.</value></data>
   <data name="Invalid reminder schedule." xml:space="preserve"><value>Invalid reminder schedule.</value></data>

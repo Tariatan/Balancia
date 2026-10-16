@@ -7,7 +7,6 @@ public partial class MainWindow
 {
     private const double MaxWindowDimension = 10000;
 
-    private sealed record WindowSettings(double Width, double Height, int X, int Y);
     private WindowSettings? windowSettings;
     private PixelPoint? windowPositionForPersistence;
 
@@ -40,11 +39,13 @@ public partial class MainWindow
         {
             var position = windowPositionForPersistence ?? Position;
             windowSettings = new WindowSettings(Width, Height, position.X, position.Y);
-            SaveApplicationSettings(DatabasePath);
+            var updated = settings with { Window = windowSettings };
+            PersistSettings(updated);
+            settings = updated;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Serilog.Log.Warning(ex, "Unable to save window settings, SettingsPath: '{SettingsPath}'", applicationSettingsPath);
+            Serilog.Log.Warning(ex, "Unable to save window settings, SettingsPath: '{SettingsPath}'", settingsStore.Path);
         }
     }
 

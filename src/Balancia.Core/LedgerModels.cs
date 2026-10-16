@@ -55,11 +55,14 @@ public sealed record LedgerEntry(string Id, TransactionDraft Draft, string Accou
 
 public sealed record CategoryTotal(string Name, Money Amount);
 
+/// <summary>
+/// A consistent read of the ledger. <see cref="Entries"/> is filled only by <c>LedgerStore.ReadSnapshot</c>; the filtered Desktop
+/// reads leave it empty.
+/// </summary>
 public sealed record LedgerSnapshot(IReadOnlyList<Account> Accounts, IReadOnlyList<Category> Categories,
     IReadOnlyList<LedgerEntry> Entries, Money NetWorth, Money MonthlyIncome, Money MonthlyExpenses,
     IReadOnlyList<CategoryTotal> LargestCategories, long Revision);
 
 public sealed record ReminderTemplate(string Id, string Description, DateOnly ExpectedDate,
     Money IndicativeAmount, int IntervalMonths, bool Archived);
-public sealed record Reminder(ReminderTemplate Template, DateOnly Occurrence,
-    bool Overdue, bool Satisfied);
+public sealed record Reminder(ReminderTemplate Template, DateOnly Occurrence, bool Overdue);

@@ -13,20 +13,21 @@ public partial class MainWindow
 
     private static FilePickerFileType SnapshotFileType => new(Get("Balancia snapshot")) { Patterns = ["*.balancia"] };
 
+    // The file and folder pickers are replaceable so tests can answer them without a native dialog.
+    internal Func<string, FilePickerFileType, Task<string?>> OpenFilePicker { get; set; }
+
+    internal Func<string, string, FilePickerFileType, Task<string?>> SaveFilePicker { get; set; }
+
+    internal Func<string, Task<string?>> FolderPicker { get; set; }
+
     internal async Task ImportCsv()
     {
-        var file = await PickOpenFile(Get("Choose transactions CSV"), CsvFileType);
-        if (file is null)
+        var path = await OpenFilePicker(Get("Choose transactions CSV"), CsvFileType);
+        if (path is null)
         {
             return;
         }
 
-        var path = file.TryGetLocalPath();
-        if (path is null)
-        {
-            SetStatus("Choose a local CSV file.");
-            return;
-        }
         await Run(async () =>
         {
             var preview = await Task.Run(() => store.PreviewCsvImport(path));
@@ -40,8 +41,7 @@ public partial class MainWindow
 
     internal async Task ExportCsv()
     {
-        var file = await PickSaveFile(Get("Export CSV"), $"balancia-{DateTime.Today:yyyyMMdd}.csv", CsvFileType);
-        var path = file?.TryGetLocalPath();
+        var path = await SaveFilePicker(Get("Export CSV"), $"balancia-{DateTime.Today:yyyyMMdd}.csv", CsvFileType);
         if (path is null)
         {
             return;
@@ -62,8 +62,7 @@ public partial class MainWindow
             return;
         }
 
-        var file = await PickSaveFile(Get("Export Balancia snapshot"), $"balancia-{DateTime.Today:yyyyMMdd}.balancia", SnapshotFileType);
-        var path = file?.TryGetLocalPath();
+        var path = await SaveFilePicker(Get("Export Balancia snapshot"), $"balancia-{DateTime.Today:yyyyMMdd}.balancia", SnapshotFileType);
         if (path is null)
         {
             Log.Information("Manual snapshot export canceled; no local destination selected");
@@ -72,7 +71,7 @@ public partial class MainWindow
 
         await Run(async () =>
         {
-            var manifest = await Task.Run(() => store.ExportSnapshot(path, snapshotKey!));
+            var manifest = await Task.Run(() => store.ExportSnapshot(path, keys.Key!));
             SetStatus(Format("Snapshot exported · revision {0}", manifest.Revision));
         }, errorOwner: dialogOwner, operationName: "Snapshot export");
     }
@@ -80,8 +79,7 @@ public partial class MainWindow
     internal async Task RestoreSnapshot(Window? dialogOwner = null)
     {
         Log.Information("Manual snapshot restore requested");
-        var file = await PickOpenFile(Get("Choose Balancia snapshot"), SnapshotFileType);
-        var path = file?.TryGetLocalPath();
+        var path = await OpenFilePicker(Get("Choose Balancia snapshot"), SnapshotFileType);
         if (path is null)
         {
             Log.Information("Manual snapshot restore canceled; no local source selected");
@@ -94,7 +92,7 @@ public partial class MainWindow
             SnapshotKey? temporaryKey = null;
             try
             {
-                var key = snapshotKey;
+                var key = keys.Key;
                 if (key is null || !key.Matches(info))
                 {
                     Log.Information("Snapshot restore requires passphrase entry");
@@ -124,7 +122,7 @@ public partial class MainWindow
         }, errorOwner: dialogOwner, operationName: "Snapshot restore");
     }
 
-    private async Task<IStorageFile?> PickOpenFile(string title, FilePickerFileType fileType)
+    private async Task<string?> PickOpenFile(string title, FilePickerFileType fileType)
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -133,14 +131,18 @@ public partial class MainWindow
             FileTypeFilter = [fileType]
         });
 
-        return files.FirstOrDefault();
+        return files.FirstOrDefault()?.TryGetLocalPath();
     }
 
-    private Task<IStorageFile?> PickSaveFile(string title, string suggestedFileName, FilePickerFileType fileType) =>
-        StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+    private async Task<string?> PickSaveFile(string title, string suggestedFileName, FilePickerFileType fileType)
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = title,
             SuggestedFileName = suggestedFileName,
             FileTypeChoices = [fileType]
         });
+
+        return file?.TryGetLocalPath();
+    }
 }

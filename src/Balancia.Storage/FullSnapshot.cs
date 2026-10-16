@@ -14,36 +14,15 @@ public sealed partial class LedgerStore
         return result;
     }
 
-    // The top-category rollup below (subcategory rolls up to its parent's name) mirrors
-    // DesktopSnapshot.ReadDesktopSnapshotForFilter's SQL version of the same rule - keep both in sync.
+    /// <summary>The current month's overview, as <see cref="ReadDesktopSnapshotForFilter"/> reads it, plus every ledger entry.</summary>
     private LedgerSnapshot ReadSnapshot(SqliteConnection c, SqliteTransaction tx)
     {
-        var categories = ReadCategories(c, tx);
-        var accounts = ReadAccountsWithBalances(c, tx);
-        var categoryMap = categories.ToDictionary(category => category.Id);
-        var entries = ReadEntries(c, tx, accounts.ToDictionary(account => account.Id, account => account.Name), categoryMap);
-
         var today = Today;
-        var monthEntries = entries.Where(e => e.Draft.Date.Year == today.Year && e.Draft.Date.Month == today.Month).ToArray();
-        var monthExpenses = monthEntries.Where(e => e.Draft.Kind == TransactionKind.Expense).ToArray();
-        var top = monthExpenses
-            .GroupBy(e => TopCategoryName(e.Draft.CategoryId))
-            .Select(g => new CategoryTotal(g.Key, Total(g.Select(e => e.Draft.Amount.Centimes))))
-            .OrderByDescending(g => g.Amount)
-            .Take(TopCategoryCount)
-            .ToArray();
-
-        return new LedgerSnapshot(accounts, categories, entries, Total(accounts.Select(a => a.Balance.Centimes)),
-            Total(monthEntries.Where(e => e.Draft.Kind == TransactionKind.Income).Select(e => e.Draft.Amount.Centimes)),
-            Total(monthExpenses.Select(e => e.Draft.Amount.Centimes)), top,
-            Convert.ToInt64(LedgerSql.Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")));
-
-        string TopCategoryName(string? categoryId) => categoryId is null
-            ? "Uncategorized"
-            : categoryMap[categoryId].ParentId is { } parentId ? categoryMap[parentId].Name : categoryMap[categoryId].Name;
-
-        // Decimal sums keep the total exact, so a value outside 64-bit centimes throws OverflowException instead of wrapping.
-        static Money Total(IEnumerable<long> amounts) => new((long)amounts.Sum(v => (decimal)v));
+        var start = new DateOnly(today.Year, today.Month, 1);
+        var overview = ReadDesktopSnapshot(c, tx, new TransactionsFilter(From: start, To: start.AddMonths(1).AddDays(-1)));
+        var entries = ReadEntries(c, tx, overview.Accounts.ToDictionary(account => account.Id, account => account.Name),
+            overview.Categories.ToDictionary(category => category.Id));
+        return overview with { Entries = entries };
     }
 
     private static List<LedgerEntry> ReadEntries(SqliteConnection c, SqliteTransaction tx,

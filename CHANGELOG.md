@@ -14,9 +14,32 @@ Versioning rule:
 
 ## Balancia.Desktop
 
-### [3.1.1] - 2026-10-16
+### [3.2.0] - 2026-10-16
 
 #### Added
+
+- Localize the CSV import preview summary in German, Russian and Ukrainian.
+- Replaceable file and folder pickers on `MainWindow`, so import, export, restore and Settings flows run in headless tests.
+
+#### Changed
+
+- Move rules that need no controls out of `MainWindow`: `SettingsStore` (settings records and atomic file replacement), `SnapshotKeyService` with `ISnapshotKeyStore` (key lifecycle; Windows DPAPI behind the interface), `ShutdownExporter` and `BackupRetention` (close-time writes and the three-per-day, 21-overall policy).
+- Settings changes build a new immutable `ApplicationSettings` record instead of passing positional optional arguments. Settings and the DPAPI key file are written through the shared atomic writer, so the settings file is now flushed to disk before it replaces the old one.
+- Reminder presentation no longer has a "satisfied" state, following Core 3.0.0.
+- Remove the unused "Choose a local CSV file." text; a picker that returns no local path counts as canceled.
+- Tests: add suites for settings, key service, backup retention, shutdown exports, DPAPI store, logging setup, localization key parity, encryption flows, data transfer and the Settings window; the performance test now covers reminders, flow analytics and averages and fails when a read exceeds a 200 ms p95 budget.
+- Bump Core 3.0.0 and Storage 6.0.0.
+
+#### Fixed
+
+- The close-time snapshot no longer replaces the last usable `Snapshot.balancia` when the ledger never loaded (for example a database from an older version).
+- A corrupt or foreign DPAPI key file now offers passphrase setup again at startup, as intended, instead of a generic error dialog (`CryptographicException` was not handled).
+- Export, import and restore result messages stay visible instead of being replaced by "Saved locally".
+- The Overview no longer slows down as years of monthly reminders accumulate (see Storage 6.0.0).
+
+### [3.1.1] - 2026-10-16
+
+#### Changed
 
 - Harness/Documentation update.
 
@@ -325,6 +348,13 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [3.0.0] - 2026-10-16
+
+#### Changed
+
+- **Breaking:** remove `Reminder.Satisfied`; no reader ever produced `true`, because satisfied occurrences advance to the next one.
+- Document that `LedgerSnapshot.Entries` is filled only by the full read.
+
 ### [2.3.1] - 2026-10-14
 
 #### Changed
@@ -365,6 +395,31 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [6.0.0] - 2026-10-16
+
+#### Added
+
+- `LedgerReader` and `LedgerSummary`: a read-only way to open a ledger (SQLite read-only mode) with summary, search and identity reads, for viewers.
+- `SnapshotAuthenticationException` for a wrong passphrase or damaged file, and `CsvImportConflictException` for CSV import conflicts.
+
+#### Changed
+
+- **Breaking:** `SnapshotImporter.Import` returns a `LedgerReader` instead of a `LedgerStore`, and, like a Windows restore, refuses a snapshot of another dataset or an older revision than the copy already at the target path (an unreadable copy is replaced).
+- **Breaking:** wrong-passphrase authentication throws `SnapshotAuthenticationException` and CSV import conflicts throw `CsvImportConflictException`; both derive from `InvalidOperationException`, where the first previously was `InvalidDataException`.
+- **Breaking:** an active reminder's duplicate check, CSV import and payment matching all compare the exact description. Descriptions that differ only in letter case are no longer duplicates.
+- Transaction descriptions are trimmed when saved and when imported from CSV.
+- `AtomicFileWriter` is public so Desktop and Android share one atomic write.
+- `ReadSnapshot` reuses the Desktop overview read instead of a second copy of the top-category rule; CSV preview reads only the ledger revision.
+- Log classification no longer depends on operation names.
+- Restore keeps the newest three plaintext recovery copies.
+- Bump Core 3.0.0.
+
+#### Fixed
+
+- Snapshot export validates the staged database against its manifest, so a database this build cannot open no longer replaces the last usable snapshot.
+- Reading reminders takes one pass over the ledger instead of one scan per month per reminder: 5.3 to 6.0 s before and 8.3 ms p95 after, for 20 monthly reminders since 2020 over 50,000 synthetic transactions.
+- Deleting an account marks its imported opening balance as locally modified, so a later import reports a conflict instead of silently skipping it.
 
 ### [5.0.1] - 2026-10-15
 
@@ -478,6 +533,24 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.4.0] - 2026-10-16
+
+#### Changed
+
+- **Breaking:** the application id is `com.triatan.balancia.android` (was `com.companyname.Balancia.Android`); it installs as a new app. Application version is now 6.
+- Opt out of OS backup (`allowBackup="false"`) so the plaintext viewer database is not copied to Google backup, and remove the unused `INTERNET` permission.
+- Open the viewer database through the read-only `LedgerReader`; the status line no longer loads the whole ledger.
+- Reject a snapshot of another dataset or an older revision than the copy on the device, as a Windows restore does; match the wrong-passphrase case by exception type instead of message text.
+- Bump Storage 6.0.0.
+
+#### Added
+
+- Per-account balances and the import time on the status screen.
+
+#### Fixed
+
+- Search results are scrollable, and a note shows when only the newest 50 of more matches are listed.
 
 ### [0.3.2] - 2026-10-15
 

@@ -8,6 +8,9 @@ namespace Balancia.Storage.Tests;
 public sealed class PerformanceTests(ITestOutputHelper output) : IDisposable
 {
     private const int TransactionCount = 50_000;
+    private const int ReminderCount = 20;
+    private const int PaidReminderMonths = 28;
+    private const double BudgetMilliseconds = 200;
     private const int WarmupRuns = 5;
     private const int SampleRuns = 30;
     private const int MedianIndex = SampleRuns / 2;
@@ -25,6 +28,11 @@ public sealed class PerformanceTests(ITestOutputHelper output) : IDisposable
         var account = store.SaveAccount(null, "Synthetic wallet", new DateOnly(2024, 1, 1), new Money(0));
         var category = store.SaveCategory(null, "Synthetic food", null);
         InsertExpenses(account, category);
+        for (var reminder = 0; reminder < ReminderCount; reminder++)
+        {
+            store.SaveReminder(null, "Synthetic reminder " + reminder, new DateOnly(2024, 1, 5), new Money(1000), 1);
+        }
+
         var deepCursor = ReadDeepCursor();
         var mix = new (string Name, Action Action)[]
         {
@@ -35,6 +43,9 @@ public sealed class PerformanceTests(ITestOutputHelper output) : IDisposable
                 CategoryId: category, From: new DateOnly(2025, 1, 1), To: new DateOnly(2025, 12, 31),
                 Minimum: new Money(100), Maximum: new Money(100)))),
             ("dashboard", () => _ = store.ReadDesktopSnapshot()),
+            ("flow analytics", () => _ = store.ReadFlowAnalytics(new TransactionsFilter())),
+            ("flow averages", () => _ = store.ReadFlowAverages(new TransactionsFilter(), AverageInterval.Month)),
+            ("reminders", () => _ = store.ReadReminders()),
             ("committed edit and dashboard", () =>
             {
                 store.SaveTransaction("synthetic-000001", new TransactionDraft(TransactionKind.Expense, new DateOnly(2024, 1, 2),
@@ -47,11 +58,13 @@ public sealed class PerformanceTests(ITestOutputHelper output) : IDisposable
         var results = mix.Select(query => (query.Name, Samples: Measure(query.Action))).ToArray();
 
         // Assert
-        // Report only: the latencies are logged for comparison between runs, not checked against a budget.
         foreach (var (name, samples) in results)
         {
             output.WriteLine($"{name}: p95={samples[P95Index]:F1} ms, median={samples[MedianIndex]:F1} ms");
         }
+
+        Assert.All(results, result => Assert.True(result.Samples[P95Index] <= BudgetMilliseconds,
+            $"{result.Name} p95 {result.Samples[P95Index]:F1} ms exceeds the {BudgetMilliseconds} ms budget."));
     }
 
     private void InsertExpenses(string account, string category)
@@ -79,6 +92,21 @@ public sealed class PerformanceTests(ITestOutputHelper output) : IDisposable
             ledger.ExecuteNonQuery();
             movement.Parameters["$id"].Value = id;
             movement.ExecuteNonQuery();
+        }
+
+        // Monthly payments for the reminder templates created by the test, so each template walks many paid months.
+        for (var reminder = 0; reminder < ReminderCount; reminder++)
+        {
+            for (var month = 0; month < PaidReminderMonths; month++)
+            {
+                var id = $"reminder-{reminder:D2}-{month:D2}";
+                ledger.Parameters["$id"].Value = id;
+                ledger.Parameters["$date"].Value = new DateOnly(2024, 1, 5).AddMonths(month).ToString("yyyy-MM-dd");
+                ledger.Parameters["$description"].Value = "Synthetic reminder " + reminder;
+                ledger.ExecuteNonQuery();
+                movement.Parameters["$id"].Value = id;
+                movement.ExecuteNonQuery();
+            }
         }
 
         transaction.Commit();

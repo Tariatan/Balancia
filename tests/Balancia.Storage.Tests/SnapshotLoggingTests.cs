@@ -82,7 +82,7 @@ public sealed class SnapshotLoggingTests : IDisposable
         using var wrongKey = SnapshotKey.Derive("synthetic wrong passphrase", key.Info);
 
         // Act
-        Assert.Throws<InvalidDataException>(() => SnapshotImporter.Import(ArchivePath, ViewerPath, wrongKey));
+        Assert.Throws<SnapshotAuthenticationException>(() => SnapshotImporter.Import(ArchivePath, ViewerPath, wrongKey));
         using var otherKey = SnapshotKey.Create("synthetic other passphrase");
         Assert.Throws<InvalidOperationException>(() => store.ValidateSnapshot(ArchivePath, otherKey));
 

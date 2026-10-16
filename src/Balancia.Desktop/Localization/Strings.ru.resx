@@ -132,7 +132,6 @@
   <data name="Current period" xml:space="preserve"><value>Текущий период</value></data>
   <data name="Previous period" xml:space="preserve"><value>Предыдущий период</value></data>
   <data name="Choose transactions CSV" xml:space="preserve"><value>Выбрать CSV с операциями</value></data>
-  <data name="Choose a local CSV file." xml:space="preserve"><value>Выберите локальный CSV-файл.</value></data>
   <data name="CSV import preview" xml:space="preserve"><value>Предпросмотр импорта CSV</value></data>
   <data name="Apply import" xml:space="preserve"><value>Применить импорт</value></data>
   <data name="Export Balancia snapshot" xml:space="preserve"><value>Экспортировать снимок Balancia</value></data>
@@ -171,6 +170,11 @@
   <data name="Enter an amount greater than zero." xml:space="preserve"><value>Введите сумму больше нуля.</value></data>
   <data name="Choose two different accounts for a transfer." xml:space="preserve"><value>Для перевода выберите два разных счёта.</value></data>
   <data name="Transactions cannot be dated in the future." xml:space="preserve"><value>Дата операции не может быть в будущем.</value></data>
+  <data name="All rows are valid. Apply this batch?" xml:space="preserve"><value>Все строки корректны. Применить этот пакет?</value></data>
+  <data name="Errors (correct source file, then preview again):" xml:space="preserve"><value>Ошибки (исправьте исходный файл и повторите предпросмотр):</value></data>
+  <data name="Accounts and source totals:" xml:space="preserve"><value>Счета и итоги источника:</value></data>
+  <data name="Categories: " xml:space="preserve"><value>Категории: </value></data>
+  <data name="{0} rows: {1} expenses, {2} income, {3} transfers, {4} openings." xml:space="preserve"><value>{0} строк: {1} расходов, {2} доходов, {3} переводов, {4} начальных остатков.</value></data>
   <data name="Reminders: {0}" xml:space="preserve"><value>Напоминания: {0}</value></data>
   <data name="Invalid reminder fields." xml:space="preserve"><value>Недопустимые поля напоминания.</value></data>
   <data name="Invalid reminder schedule." xml:space="preserve"><value>Недопустимое расписание напоминания.</value></data>

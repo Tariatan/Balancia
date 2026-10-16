@@ -16,17 +16,25 @@ Scope: this repository only. Entries are `- YYYY-MM: fact and why` with the anno
 - 2026-10: Windows is the only writer; Android is a read-only balance/history viewer. Stale snapshots and manual refresh are acceptable, and Google Drive is user-managed snapshot transport. Android transport/device acceptance remains open (see [Android Context](docs/Technical_Design_Description.md)). [stable]
 - 2026-10: The owner chose to leave local databases, recovery copies and CSV exports plaintext. Transported snapshots and rolling backups are encrypted; canceling key setup pauses exports with no plaintext fallback. Changing the passphrase affects future exports only, older files keep their old phrase. See the TDD's snapshot lifecycle and the Desktop 2.9.0 / Storage 4.0.0 changelog entries. [stable]
 
+- 2026-10: Reminder matching and the duplicate-description check both use the exact description (case-sensitive, trimmed); transaction descriptions are trimmed on save so they can match. This follows the "exact description" invariant in [AGENTS.md](AGENTS.md). [stable]
+- 2026-10: Android import follows the Windows restore rules: it rejects a snapshot of another dataset and an older revision of the same one, and replaces only an unreadable copy. Starting over with a different ledger means clearing the app's storage. [stable]
+
+- 2026-10: Localization keys are the English text (`Get("English text")`), kept deliberately for readable call sites and an English fallback. Rewording a string means renaming its key in all four resx files; `LocalizationTests` fails on a missing or extra key, an empty value, or a changed placeholder. [stable]
+
 ## Code that looks removable but is not
 
 - 2026-10: `RefreshCalendarCulture` in [LocalizedCalendarDatePicker.cs](src/Balancia.Desktop/LocalizedCalendarDatePicker.cs) sets `FirstDayOfWeek` to a different day and back when the calendar already holds the target value. Assigning the same value does not redraw the week header. [stable]
 - 2026-10: The `if (choice is null) return null;` guard in item templates (`InitializeAccountPanel` in [Accounts.cs](src/Balancia.Desktop/Accounts.cs), `InitializeCategoryPanel` in [CategoriesPanel.cs](src/Balancia.Desktop/CategoriesPanel.cs), also `RemindersPanel.cs` and `SettingsWindow.axaml.cs`) must stay although the item type is non-nullable: virtualized presenters can request a template with no item while scrolling. [stable]
 - 2026-10: `FlowAnalytics.Current` ([FlowAnalytics.cs](src/Balancia.Core/FlowAnalytics.cs)) must be sorted by date ascending, because `BuildTrend` fills buckets in one forward pass and silently misassigns days otherwise. `ReadFlowAnalytics` in [FlowQueries.cs](src/Balancia.Storage/FlowQueries.cs) guarantees it with `ORDER BY l.date`; keep that clause and sort any other producer. [stable]
 
+- 2026-10: `UiText.Resources` caches its resource sets for the whole process. A test that disposes one (for example with `using var`) breaks every later localization lookup and makes unrelated tests fail. [stable]
+
 ## UI tests
 
 - 2026-10: Avalonia.Headless.XUnit in `tests/Balancia.Desktop.Tests` requires xunit v3, so all three test projects use xunit.v3. The DPAPI key store is Windows-only; tests inject the key through `UseSnapshotKey`. [stable]
-- 2026-10: Opening a window with a backup or snapshot folder and no key shows the passphrase dialog, which blocks a headless test. Close such a window without showing it. [stable]
+- 2026-10: Opening a window with a backup or snapshot folder and no key shows the passphrase dialog, which blocks `OpenAsync`. Show the window and answer the dialog with `WaitForDialogAsync<T>`, or close it without showing it. [stable]
+- 2026-10: Window tests answer file and folder pickers through the `OpenFilePicker`, `SaveFilePicker` and `FolderPicker` properties and replace DPAPI with `FakeKeyStore` (`CreateWindowWithKeyStore`). An operation that is still open, such as the CSV preview, completes only after its dialog closes, so start it without awaiting, drive the dialog, then await it. [stable]
 
 ## Open work
 
-- 2026-10: Android 0.3.1 APK (application version 5, target API 36) was published and hash-checked on 2026-10-03; that established packaging only. Next: verify Windows passphrase Save, encrypted export and restore via the picker, then run [Android device acceptance](docs/ANDROID.md) for initial pairing, same-key reimport, restart, changed phrase, wrong phrase, Cancel, damaged archives, runtime logs and Keystore outcomes.
+- 2026-10: Android 0.4.0 (application id `com.triatan.balancia.android`, application version 6, no backup, no permissions, read-only `LedgerReader`) builds in Release but is not published or tested on a device. The last published APK is 0.3.1 (2026-10-03, hash-checked). Next: verify Windows passphrase Save, encrypted export and restore via the picker, then run [Android device acceptance](docs/ANDROID.md) for initial pairing, same-key reimport, restart, changed phrase, wrong phrase, Cancel, damaged archives, an older snapshot, long search results, runtime logs and Keystore outcomes. The new id installs as a separate app, so the first import asks for the passphrase again.

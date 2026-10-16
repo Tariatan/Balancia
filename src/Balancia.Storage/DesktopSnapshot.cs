@@ -19,10 +19,18 @@ public sealed partial class LedgerStore
 
     public LedgerSnapshot ReadDesktopSnapshotForFilter(TransactionsFilter filter)
     {
-        filter.Validate();
-
         using var c = connections.Open();
         using var tx = c.BeginTransaction(deferred: true);
+        var result = ReadDesktopSnapshot(c, tx, filter);
+        tx.Commit();
+        return result;
+    }
+
+    /// <summary>The balances, filtered totals and top expense categories; <see cref="LedgerSnapshot.Entries"/> stays empty.</summary>
+    private static LedgerSnapshot ReadDesktopSnapshot(SqliteConnection c, SqliteTransaction tx, TransactionsFilter filter)
+    {
+        filter.Validate();
+
         var categories = ReadCategories(c, tx);
         var accounts = ReadAccountsWithBalances(c, tx);
         var values = FilterParameters(filter);
@@ -30,13 +38,11 @@ public sealed partial class LedgerStore
         var result = new LedgerSnapshot(accounts, categories, [], new Money(accounts.Sum(a => a.Balance.Centimes)),
             new Money(PeriodTotal("Income")), new Money(PeriodTotal("Expense")), ReadTopExpenseCategories(c, tx, values),
             Convert.ToInt64(LedgerSql.Scalar(c, tx, "SELECT revision FROM metadata WHERE id=1")));
-        tx.Commit();
         return result;
 
         long PeriodTotal(string kind) => Convert.ToInt64(ReadAbsoluteFlowTotal(c, tx, values, kind));
     }
 
-    // Mirrors the top-category rollup in LedgerStore.ReadSnapshot's LINQ grouping — keep both in sync.
     private static List<CategoryTotal> ReadTopExpenseCategories(SqliteConnection c, SqliteTransaction tx, (string, object?)[] filterValues)
     {
         using var cmd = LedgerSql.Command(c, tx, $"""

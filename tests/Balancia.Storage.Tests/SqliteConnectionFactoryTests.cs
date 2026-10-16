@@ -55,10 +55,10 @@ public sealed class SqliteConnectionFactoryTests : IDisposable
     public void Constructor_RelativePath_ThrowsArgumentException()
     {
         // Arrange
-        const string relativePath = "ledger.db";
+        const string RelativePath = "ledger.db";
 
         // Act
-        void Act() => _ = new SqliteConnectionFactory(relativePath);
+        void Act() => _ = new SqliteConnectionFactory(RelativePath);
 
         // Assert
         Assert.Throws<ArgumentException>(Act);
