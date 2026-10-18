@@ -46,12 +46,12 @@ public sealed partial class LedgerStore
     private static List<CategoryTotal> ReadTopExpenseCategories(SqliteConnection c, SqliteTransaction tx, (string, object?)[] filterValues)
     {
         using var cmd = LedgerSql.Command(c, tx, $"""
-            SELECT CASE WHEN parent.id=$category THEN category.name
+            SELECT CASE WHEN parent.id=$category OR category.id IN (SELECT value FROM json_each($categories)) THEN category.name
                    ELSE COALESCE(parent.name,category.name,'Uncategorized') END,
                    SUM(-m.amount)
             {TransactionsFrom}
              AND l.kind='Expense'
-            GROUP BY CASE WHEN parent.id=$category THEN category.id
+            GROUP BY CASE WHEN parent.id=$category OR category.id IN (SELECT value FROM json_each($categories)) THEN category.id
                           ELSE COALESCE(parent.id,category.id,'') END
             ORDER BY 2 DESC LIMIT {TopCategoryCount}
             """, filterValues);

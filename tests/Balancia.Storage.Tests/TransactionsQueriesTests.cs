@@ -283,6 +283,40 @@ public sealed class TransactionsQueriesTests : IDisposable
         Assert.Equal(1200, expensesOnly.MonthlyExpenses.Centimes);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReadDesktopSnapshotForFilter_SelectedSubcategories_BreaksDownChildrenRegardlessOfParentSelection(bool selectParents)
+    {
+        // Arrange
+        var filter = SeedOverviewScenario(out var lunch);
+        var food = filter.CategoryId!;
+        var dinner = store.ReadDesktopSnapshot().Categories.Single(category => category.Name == "Dinner").Id;
+        var home = store.SaveCategory(null, "Home", null);
+        var equipment = store.SaveCategory(null, "Equipment", home);
+        var otherLunch = store.SaveCategory(null, "Lunch", home);
+        Entry(filter.AccountId!, "match", 6, equipment);
+        Entry(filter.AccountId!, "match", 3.50m, otherLunch);
+        var selected = new List<string> { lunch, dinner, equipment, otherLunch };
+        if (selectParents)
+        {
+            selected.AddRange([food, home]);
+        }
+
+        // Act
+        var overview = store.ReadDesktopSnapshotForFilter(filter with { CategoryId = null, CategoryIds = selected });
+
+        // Assert
+        string[] expectedNames = selectParents
+            ? ["Equipment", "Dinner", "Lunch", "Lunch", "Food"]
+            : ["Equipment", "Dinner", "Lunch", "Lunch"];
+        long[] expectedAmounts = selectParents ? [600, 500, 400, 350, 300] : [600, 500, 400, 350];
+        Assert.Equal(expectedNames, overview.LargestCategories.Select(category => category.Name));
+        Assert.Equal(expectedAmounts, overview.LargestCategories.Select(category => category.Amount.Centimes));
+        Assert.Equal(expectedAmounts.Sum(), overview.MonthlyExpenses.Centimes);
+        Assert.Equal(700, overview.MonthlyIncome.Centimes);
+    }
+
     [Fact]
     public void ReadDesktopSnapshotForFilter_ChildCategory_RestrictsTotalsToChild()
     {
@@ -295,6 +329,8 @@ public sealed class TransactionsQueriesTests : IDisposable
         // Assert
         Assert.Equal(400, lunchOnly.MonthlyExpenses.Centimes);
         Assert.Equal(700, lunchOnly.MonthlyIncome.Centimes);
+        Assert.Equal("Lunch", lunchOnly.LargestCategories.Single().Name);
+        Assert.Equal(400, lunchOnly.LargestCategories.Single().Amount.Centimes);
     }
 
     [Fact]

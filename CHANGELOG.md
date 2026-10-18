@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.2.1] - 2026-10-18
+
+#### Fixed
+
+- Top expenditures shows selected subcategories separately, regardless of whether their parent categories are selected. Bump Storage to 6.0.1.
+
 ### [3.2.0] - 2026-10-16
 
 #### Added
@@ -395,6 +401,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [6.0.1] - 2026-10-18
+
+#### Fixed
+
+- Keep explicitly selected subcategories separate in filtered top-expenditure totals, including selections across multiple parents and selections containing both parents and children.
 
 ### [6.0.0] - 2026-10-16
 
