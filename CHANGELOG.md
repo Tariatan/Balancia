@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.0] - 2026-10-18
+
+#### Added
+
+- Show/Hide toggle in snapshot passphrase dialogs to reveal or mask both passphrase fields together. Fields remain masked when the dialog opens.
+
 ### [3.3.0] - 2026-10-18
 
 #### Changed

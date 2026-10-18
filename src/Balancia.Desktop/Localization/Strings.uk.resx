@@ -206,4 +206,6 @@
   <data name="Snapshot manifest exceeds the supported size." xml:space="preserve"><value>Маніфест знімка перевищує допустимий розмір.</value></data>
   <data name="Snapshot database exceeds the supported size." xml:space="preserve"><value>База даних знімка перевищує допустимий розмір.</value></data>
   <data name="Toggle all categories" xml:space="preserve"><value>Перемкнути вибір усіх категорій</value></data>
+  <data name="Show" xml:space="preserve"><value>Показати</value></data>
+  <data name="Hide" xml:space="preserve"><value>Приховати</value></data>
 </root>

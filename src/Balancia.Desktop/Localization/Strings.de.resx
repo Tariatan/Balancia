@@ -206,4 +206,6 @@
   <data name="Snapshot manifest exceeds the supported size." xml:space="preserve"><value>Das Snapshot-Manifest überschreitet die unterstützte Größe.</value></data>
   <data name="Snapshot database exceeds the supported size." xml:space="preserve"><value>Die Snapshot-Datenbank überschreitet die unterstützte Größe.</value></data>
   <data name="Toggle all categories" xml:space="preserve"><value>Alle Kategorien umschalten</value></data>
+  <data name="Show" xml:space="preserve"><value>Anzeigen</value></data>
+  <data name="Hide" xml:space="preserve"><value>Verbergen</value></data>
 </root>

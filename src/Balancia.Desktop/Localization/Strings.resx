@@ -206,4 +206,6 @@
   <data name="Snapshot manifest exceeds the supported size." xml:space="preserve"><value>Snapshot manifest exceeds the supported size.</value></data>
   <data name="Snapshot database exceeds the supported size." xml:space="preserve"><value>Snapshot database exceeds the supported size.</value></data>
   <data name="Toggle all categories" xml:space="preserve"><value>Toggle all categories</value></data>
+  <data name="Show" xml:space="preserve"><value>Show</value></data>
+  <data name="Hide" xml:space="preserve"><value>Hide</value></data>
 </root>

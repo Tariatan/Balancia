@@ -7,7 +7,19 @@
   <StackPanel Margin="24" Spacing="12">
     <TextBlock x:Name="Heading" FontSize="23" FontWeight="SemiBold" />
     <TextBlock x:Name="Explanation" TextWrapping="Wrap" />
-    <TextBlock x:Name="PassphraseLabel" />
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBlock x:Name="PassphraseLabel" VerticalAlignment="Center" />
+      <ToggleButton x:Name="ShowPassphrase" Grid.Column="1" Click="OnShowPassphrase"
+                    Width="36" Height="32" Padding="4" HorizontalContentAlignment="Center">
+        <Grid Width="24" Height="24">
+          <TextBlock Text="👁" FontFamily="Segoe UI Symbol" FontSize="20"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+          <Line x:Name="EyeSlash" StartPoint="3,21" EndPoint="21,3"
+                Stroke="{Binding Foreground, ElementName=ShowPassphrase}" StrokeThickness="2"
+                IsVisible="False" IsHitTestVisible="False" />
+        </Grid>
+      </ToggleButton>
+    </Grid>
     <TextBox x:Name="Passphrase" PasswordChar="●" />
     <TextBlock x:Name="ConfirmLabel" />
     <TextBox x:Name="Confirmation" PasswordChar="●" />

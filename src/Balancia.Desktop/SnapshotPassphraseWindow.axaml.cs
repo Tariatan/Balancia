@@ -1,3 +1,4 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using static Balancia.Desktop.Localization.UiText;
@@ -20,6 +21,7 @@ public partial class SnapshotPassphraseWindow : Window
             ? "Keep this passphrase in a safe place. Windows remembers the key for automatic exports. Android asks once, then remembers it too. Older files keep their previous passphrase."
             : "Enter the passphrase used when this snapshot was exported.");
         PassphraseLabel.Text = Get("Passphrase");
+        SetPassphraseVisibility(false);
         ConfirmLabel.Text = Get("Confirm passphrase");
         ConfirmLabel.IsVisible = Confirmation.IsVisible = setup;
         Accept.Content = Get(setup ? "Save" : "Unlock");
@@ -49,6 +51,18 @@ public partial class SnapshotPassphraseWindow : Window
     }
 
     private void OnCancel(object? sender, RoutedEventArgs e) => Close(null);
+
+    private void OnShowPassphrase(object? sender, RoutedEventArgs e) =>
+        SetPassphraseVisibility(ShowPassphrase.IsChecked == true);
+
+    private void SetPassphraseVisibility(bool show)
+    {
+        Passphrase.RevealPassword = Confirmation.RevealPassword = show;
+        EyeSlash.IsVisible = show;
+        var action = Get(show ? "Hide" : "Show");
+        ToolTip.SetTip(ShowPassphrase, action);
+        AutomationProperties.SetName(ShowPassphrase, action);
+    }
 
     private void OnOpened(object? sender, EventArgs e) => Passphrase.Focus();
 
