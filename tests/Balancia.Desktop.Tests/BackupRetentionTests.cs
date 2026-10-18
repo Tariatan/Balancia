@@ -25,7 +25,7 @@ public sealed class BackupRetentionTests : IDisposable
             .ToArray();
 
         // Act
-        var (removed, retained) = BackupRetention.Apply(directory, TimeZoneInfo.Utc);
+        var (removed, retained) = BackupRetention.Apply(directory, TimeZoneInfo.Utc, new DateOnly(2026, 5, 1));
 
         // Assert
         Assert.Equal((2, 3), (removed, retained));
@@ -34,20 +34,20 @@ public sealed class BackupRetentionTests : IDisposable
     }
 
     [Fact]
-    public void Apply_MoreThanTwentyOneAcrossDays_KeepsTheNewestTwentyOne()
+    public void Apply_ThreeBackupsPerDayAcross181Days_Keeps540Within180Days()
     {
         // Arrange
-        var files = Enumerable.Range(0, 30)
-            .Select(day => Create($"backup-{day:00}.balancia", new DateTime(2026, 4, 1, 12, 0, 0, DateTimeKind.Utc).AddDays(day)))
+        var files = Enumerable.Range(0, 543)
+            .Select(index => Create($"backup-{index:000}.balancia", new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(-180 + index / 3).AddHours(index % 3)))
             .ToArray();
 
         // Act
-        var (removed, retained) = BackupRetention.Apply(directory, TimeZoneInfo.Utc);
+        var (removed, retained) = BackupRetention.Apply(directory, TimeZoneInfo.Utc, new DateOnly(2026, 5, 1));
 
         // Assert
-        Assert.Equal((9, 21), (removed, retained));
-        Assert.All(files[9..], path => Assert.True(File.Exists(path)));
-        Assert.All(files[..9], path => Assert.False(File.Exists(path)));
+        Assert.Equal((3, 540), (removed, retained));
+        Assert.All(files[3..], path => Assert.True(File.Exists(path)));
+        Assert.All(files[..3], path => Assert.False(File.Exists(path)));
     }
 
     [Fact]
@@ -65,11 +65,30 @@ public sealed class BackupRetentionTests : IDisposable
         };
 
         // Act
-        var (removed, retained) = BackupRetention.Apply(directory, zone);
+        var (removed, retained) = BackupRetention.Apply(directory, zone, new DateOnly(2026, 5, 2));
 
         // Assert
         Assert.Equal((1, 3), (removed, retained));
         Assert.False(File.Exists(sameLocalDay[0]));
+    }
+
+    [Fact]
+    public void Apply_SparseBackupsAtLocalRetentionBoundary_KeepsOnlyTheInWindowBackup()
+    {
+        // Arrange
+        var zone = TimeZoneInfo.CreateCustomTimeZone("plus12", TimeSpan.FromHours(12), "plus12", "plus12");
+        var today = new DateOnly(2026, 5, 2);
+        var firstRetainedMidnightUtc = today.AddDays(-179).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc).AddHours(-12);
+        var expired = Create("backup-expired.balancia", firstRetainedMidnightUtc.AddSeconds(-1));
+        var retained = Create("backup-boundary.balancia", firstRetainedMidnightUtc);
+
+        // Act
+        var result = BackupRetention.Apply(directory, zone, today);
+
+        // Assert
+        Assert.Equal((1, 1), result);
+        Assert.False(File.Exists(expired));
+        Assert.True(File.Exists(retained));
     }
 
     [Fact]
@@ -80,7 +99,7 @@ public sealed class BackupRetentionTests : IDisposable
         var snapshot = Create("Snapshot.balancia", new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
 
         // Act
-        var (removed, retained) = BackupRetention.Apply(directory, TimeZoneInfo.Utc);
+        var (removed, retained) = BackupRetention.Apply(directory, TimeZoneInfo.Utc, new DateOnly(2026, 5, 1));
 
         // Assert
         Assert.Equal((0, 0), (removed, retained));

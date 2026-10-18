@@ -14,6 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.3.0] - 2026-10-18
+
+#### Changed
+
+- Increase daily log retention from 10 to 180 files.
+- Retain rolling backups for 180 local calendar days (today and the previous 179 days), keeping the newest three per day and at most 540 overall. Prune only after a successful backup export.
+
 ### [3.2.1] - 2026-10-18
 
 #### Fixed
@@ -545,6 +552,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.5.0] - 2026-10-18
+
+#### Changed
+
+- Increase daily log retention from 10 to 180 files.
 
 ### [0.4.0] - 2026-10-16
 

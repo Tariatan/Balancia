@@ -37,7 +37,7 @@ internal sealed class ShutdownExporter(TimeProvider clock)
             Directory.CreateDirectory(folder);
             var fileName = $"backup-{clock.GetUtcNow():yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.balancia";
             store.ExportSnapshot(Path.Combine(folder, fileName), key);
-            var (removed, retained) = BackupRetention.Apply(folder, clock.LocalTimeZone);
+            var (removed, retained) = BackupRetention.Apply(folder, clock.LocalTimeZone, DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
             Log.Information("Backup retention applied after successful export, RemovedCount: '{RemovedCount}', RetainedCount: '{RetainedCount}'",
                 removed, retained);
         });

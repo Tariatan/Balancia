@@ -24,7 +24,7 @@ internal static class ApplicationLogging
                 .WriteTo.File(
                     Path.Combine(logDirectory, "balancia-.log"),
                     rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 10,
+                    retainedFileCountLimit: 180,
                     fileSizeLimitBytes: null,
                     rollOnFileSizeLimit: false,
                     shared: true,

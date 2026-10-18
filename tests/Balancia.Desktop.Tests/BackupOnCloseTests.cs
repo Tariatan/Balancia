@@ -131,7 +131,7 @@ public sealed class BackupOnCloseTests
         {
             var path = Path.Combine(workspace.BackupDirectory, $"backup-existing-{index}.balancia");
             File.WriteAllText(path, "old");
-            File.SetLastWriteTimeUtc(path, new DateTime(2020, 1, 1 + index / 4, index % 4, 0, 0, DateTimeKind.Utc));
+            File.SetLastWriteTimeUtc(path, DateTime.UtcNow.Date.AddDays(-2 + index / 4).AddHours(index % 4));
             return path;
         }).ToArray();
         var clock = new ManualClock(DateTimeOffset.UtcNow);
@@ -203,7 +203,7 @@ public sealed class BackupOnCloseTests
     }
 
     [AvaloniaFact]
-    public async Task Close_WithTwentyFourExistingBackups_KeepsTheTwentyOneNewest()
+    public async Task Close_WithExpiredBackups_RemovesThemAfterSuccessfulExport()
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
@@ -225,9 +225,8 @@ public sealed class BackupOnCloseTests
 
         // Assert
         var remaining = Directory.GetFiles(workspace.BackupDirectory, "backup-*.balancia");
-        Assert.Equal(21, remaining.Length);
-        Assert.All(existing.Take(4), path => Assert.DoesNotContain(path, remaining));
-        Assert.All(existing.Skip(4), path => Assert.Contains(path, remaining));
+        Assert.Single(remaining);
+        Assert.All(existing, path => Assert.DoesNotContain(path, remaining));
         Assert.Single(remaining.Except(existing));
     }
 

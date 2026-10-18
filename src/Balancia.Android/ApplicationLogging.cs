@@ -19,7 +19,7 @@ internal static class ApplicationLogging
                 .Enrich.FromLogContext()
                 .Enrich.WithProperty("SourceContext", "Balancia.Android")
                 .WriteTo.File(Path.Combine(directory, "balancia-.log"),
-                    rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10,
+                    rollingInterval: RollingInterval.Day, retainedFileCountLimit: 180,
                     fileSizeLimitBytes: null, rollOnFileSizeLimit: false, buffered: false,
                     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}][{SourceContext}]{Message:lj} {Properties:j}{NewLine}{Exception}")
                 .CreateLogger();

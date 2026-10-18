@@ -10,7 +10,7 @@ Encrypted snapshots (Desktop 2.9.0 / Storage 4.0.0 and later) require Android 0.
 
 A wrong phrase or damaged file keeps the previous database intact and shows an error. Canceling unlock leaves it unchanged. Reinstalling the app, invalidating the device key, or changing the Windows export phrase requires entering the phrase again. Plaintext snapshots are rejected as an unsupported format (Android 0.3.2). Like a Windows restore, the import rejects a snapshot of a different ledger dataset and an older revision of the same dataset, and the current copy stays (Android 0.4.0); only an unreadable current copy is replaced. To start over with a different ledger, clear the app's storage in Android settings first. Local viewer databases remain plaintext, as agreed; this feature protects the transported snapshot.
 
-Android 0.3.1 added daily diagnostics in app-private `NoBackupFilesDir/log/balancia-yyyyMMdd.log`, retaining ten daily files. Logs cover saved-copy startup, snapshot selection/copy, unlock/cancel/retry, validation and replacement, remembered-key storage, and search results count/failures. They exclude passphrases, keys, financial contents, document URIs, and search text. These files are not included in snapshots or OS backups.
+Android 0.3.1 added daily diagnostics in app-private `NoBackupFilesDir/log/balancia-yyyyMMdd.log`, retaining 180 daily files since Android 0.5.0. Logs cover saved-copy startup, snapshot selection/copy, unlock/cancel/retry, validation and replacement, remembered-key storage, and search results count/failures. They exclude passphrases, keys, financial contents, document URIs, and search text. These files are not included in snapshots or OS backups.
 
 Build the API 36 APK with the installed workload:
 
