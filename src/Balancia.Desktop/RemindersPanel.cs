@@ -26,7 +26,7 @@ public partial class MainWindow
                 new Setter(BackgroundProperty, new Binding(".")
                 {
                     Converter = new FuncValueConverter<Choice<Reminder>, IBrush>(choice =>
-                        choice is not null && choice.Value.Occurrence >= new DateOnly(displayDate.Year, displayDate.Month, 1).AddMonths(2)
+                        choice is not null && ReminderPresentation.IsBeyondNextMonth(choice.Value, displayDate)
                             ? DayBlueBrush : DayIvoryBrush),
                 }),
             },
