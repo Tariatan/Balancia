@@ -29,13 +29,7 @@ public sealed partial class LedgerStore
             foreach (var template in templates)
             {
                 var paid = paidMonths.GetValueOrDefault(template.Description);
-                var occurrence = template.ExpectedDate;
-                while (paid is not null && paid.Contains(MonthText(occurrence)))
-                {
-                    occurrence = ReminderSchedule.AddMonthsClamped(occurrence, template.IntervalMonths, template.ExpectedDate.Day);
-                }
-
-                result.Add(new Reminder(template, occurrence, occurrence < today));
+                result.Add(ReminderSchedule.Resolve(template, today, date => paid?.Contains(MonthText(date)) == true));
             }
 
             return (IReadOnlyList<Reminder>)[.. result.OrderBy(x => x.Occurrence)];

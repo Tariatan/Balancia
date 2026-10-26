@@ -16,13 +16,16 @@ internal static class ReminderPresentation
     internal static bool IsEmphasized(Reminder reminder, DateOnly today) =>
         reminder.Overdue || IsDueSoon(reminder, today);
 
+    /// <summary>Whether the reminder falls beyond next month, which tints its list row.</summary>
+    internal static bool IsBeyondNextMonth(Reminder reminder, DateOnly today) =>
+        ReminderSchedule.MonthsUntil(reminder.Occurrence, today) >= 2;
+
     internal static string ColorFor(Reminder reminder, DateOnly today)
     {
         if (reminder.Overdue) return OverdueColor;
         if (IsDueSoon(reminder, today)) return DueSoonColor;
 
-        var monthsUntilDue = (reminder.Occurrence.Year - today.Year) * 12 + reminder.Occurrence.Month - today.Month;
-        return monthsUntilDue switch
+        return ReminderSchedule.MonthsUntil(reminder.Occurrence, today) switch
         {
             1 => NextMonthColor,
             > 1 => LaterColor,

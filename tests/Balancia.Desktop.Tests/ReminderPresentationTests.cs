@@ -30,6 +30,24 @@ public sealed class ReminderPresentationTests
         Assert.Equal(expectedColor, color);
     }
 
+    [Theory]
+    [InlineData("2026-10-31", false)] // this month
+    [InlineData("2026-11-30", false)] // last day of next month
+    [InlineData("2026-12-01", true)] // first day two months out
+    [InlineData("2027-03-15", true)]
+    [InlineData("2026-09-30", false)] // earlier months are never tinted
+    public void IsBeyondNextMonth_Reminder_TintsOnlyFromTwoMonthsOut(string occurrence, bool expected)
+    {
+        // Arrange
+        var reminder = Reminder(DateOnly.Parse(occurrence));
+
+        // Act
+        var beyond = ReminderPresentation.IsBeyondNextMonth(reminder, Today);
+
+        // Assert
+        Assert.Equal(expected, beyond);
+    }
+
     [Fact]
     public void ColorFor_OverdueReminder_IsRed()
     {

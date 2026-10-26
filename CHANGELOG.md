@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.2] - 2026-10-26
+
+#### Changed
+
+- The reminder list tints rows from two months out through `ReminderPresentation.IsBeyondNextMonth`, and the row colors count months with `ReminderSchedule.MonthsUntil`, instead of an inline rule in the panel. No visible behavior change. Bump Core 3.2.0 and Storage 7.0.1.
+
 ### [3.4.1] - 2026-10-26
 
 #### Changed
@@ -373,6 +379,13 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [3.2.0] - 2026-10-26
+
+#### Added
+
+- `ReminderSchedule.Resolve`: the first occurrence of a reminder whose calendar month has no payment, with its overdue flag. It throws `ArgumentOutOfRangeException` for a repeat interval of zero or less, which `SaveReminder` and CSV import already reject.
+- `ReminderSchedule.MonthsUntil`: whole calendar months between two dates.
+
 ### [3.1.0] - 2026-10-26
 
 #### Added
@@ -427,6 +440,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [7.0.1] - 2026-10-26
+
+#### Changed
+
+- `ReadReminders` finds each next occurrence through `ReminderSchedule.Resolve` in Core. Occurrences, overdue flags and exact-description payment matching are unchanged.
 
 ### [7.0.0] - 2026-10-26
 
