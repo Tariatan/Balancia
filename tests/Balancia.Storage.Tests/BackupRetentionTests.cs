@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace Balancia.Desktop.Tests;
+namespace Balancia.Storage.Tests;
 
 public sealed class BackupRetentionTests : IDisposable
 {
