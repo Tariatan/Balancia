@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Balancia.Core;
 using Balancia.Storage;
 
 using static Balancia.Desktop.InputParsing;

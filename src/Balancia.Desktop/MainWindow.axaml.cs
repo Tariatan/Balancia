@@ -174,16 +174,10 @@ public partial class MainWindow : Window
             To = filter.To ?? to
         };
         var pageOffset = offset;
-        var averageInterval = overviewPeriod switch
-        {
-            OverviewPeriod.Day => AverageInterval.Day,
-            OverviewPeriod.ThisWeek => AverageInterval.Week,
-            OverviewPeriod.ThisYear => AverageInterval.Year,
-            _ => AverageInterval.Month
-        };
+        var averageInterval = OverviewPeriods.IntervalFor(overviewPeriod);
         var averageFilter = dateFilter with
         {
-            From = overviewPeriod == OverviewPeriod.Custom ? dateFilter.From : null
+            From = OverviewPeriods.AverageFrom(overviewPeriod, dateFilter.From)
         };
         // Each store call opens its own connection, so the reads can run concurrently.
         var snapshotRead = Task.Run(() => store.ReadDesktopSnapshotForFilter(dateFilter));
