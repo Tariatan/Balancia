@@ -46,7 +46,8 @@ public partial class MainWindow
             await Task.Run(() => PersistSettings(updated));
             settings = updated;
             store = replacement;
-            backupBaseline = store.ReadLiveMetadata();
+            closeExporter = new CloseTimeExporter(store, timeProvider);
+            closeExporter.MarkLoaded();
             DatabasePath = dbPath;
             Serilog.Log.Information("Database location changed, DatabasePath: '{DatabasePath}'", dbPath);
             await Refresh();

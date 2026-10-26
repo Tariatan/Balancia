@@ -12,6 +12,7 @@ namespace Balancia.Desktop;
 public partial class MainWindow : Window
 {
     private LedgerStore store;
+    private CloseTimeExporter closeExporter;
     internal string DatabasePath;
     private readonly SettingsStore settingsStore;
     private readonly bool separateDataFolder;
@@ -45,7 +46,6 @@ public partial class MainWindow : Window
     internal MainWindow(string? separateDataDirectory, string settingsFile, TimeProvider? timeProvider = null, ISnapshotKeyStore? keyStore = null)
     {
         this.timeProvider = timeProvider ?? TimeProvider.System;
-        shutdownExporter = new ShutdownExporter(this.timeProvider);
         OpenFilePicker = PickOpenFile;
         SaveFilePicker = PickSaveFile;
         FolderPicker = PickFolderFromDialog;
@@ -68,6 +68,7 @@ public partial class MainWindow : Window
             : new ApplicationSettings(DatabasePath, SettingsStore.ResolveFullPath(savedSettings?.BackupPath),
                 SettingsStore.ResolveFullPath(savedSettings?.SnapshotPath), savedSettings?.DefaultAccountId, savedSettings?.Language);
         store = new LedgerStore(DatabasePath);
+        closeExporter = new CloseTimeExporter(store, this.timeProvider);
         LoadWindowSettings(savedSettings);
         if (separateDataFolder)
         {
@@ -99,8 +100,8 @@ public partial class MainWindow : Window
         {
             timer.Stop();
             SaveWindowSettings();
-            SaveBackupOnClose();
-            SaveSnapshotOnClose();
+            closeExporter.SaveBackup(BackupPath, keys.Key);
+            closeExporter.SaveSnapshot(SnapshotPath, keys.Key);
             keys.Dispose();
         };
     }
@@ -121,7 +122,7 @@ public partial class MainWindow : Window
             Directory.CreateDirectory(directory);
             Serilog.Log.Information("Initializing ledger, DatabasePath: '{DatabasePath}', SeparateDataFolder: '{SeparateDataFolder}'", DatabasePath, separateDataFolder);
             store.Initialize();
-            backupBaseline = store.ReadLiveMetadata();
+            closeExporter.MarkLoaded();
             Serilog.Log.Information("Ledger initialized");
         });
         var monthStart = new DateOnly(displayDate.Year, displayDate.Month, 1);

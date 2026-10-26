@@ -14,6 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.4] - 2026-10-26
+
+#### Changed
+
+- The window keeps one `CloseTimeExporter` per open ledger (replaced when the database location changes) instead of owning `ShutdownExporter`, `BackupRetention` and the backup baseline. Closing writes the same backup and snapshot as before. Bump Storage 7.2.0.
+- Close-time log entries now carry the `Balancia.Storage.CloseTimeExporter` source context.
+
 ### [3.4.3] - 2026-10-26
 
 #### Changed
@@ -450,6 +457,13 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [7.2.0] - 2026-10-26
+
+#### Added
+
+- `CloseTimeExporter`: the best-effort close-time encrypted backup (only when the ledger changed since `MarkLoaded`) and fixed snapshot (only for a ledger that loaded), moved from Desktop with their rules unchanged. Failures are logged and never thrown.
+- `BackupRetention` (internal), moved from Desktop: newest three backups per local day for 180 days, 540 overall.
 
 ### [7.1.0] - 2026-10-26
 

@@ -1,4 +1,4 @@
-namespace Balancia.Desktop;
+namespace Balancia.Storage;
 
 /// <summary>Keeps the newest three backups per local calendar day for 180 days, up to 540 overall.</summary>
 internal static class BackupRetention
