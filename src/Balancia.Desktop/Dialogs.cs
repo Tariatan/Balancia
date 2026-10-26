@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using Microsoft.Data.Sqlite;
+using Balancia.Storage;
 using Serilog;
 
 using static Balancia.Desktop.Localization.UiText;
@@ -15,8 +15,8 @@ public partial class MainWindow
     {
         var english = ex switch
         {
-            SqliteException { SqliteErrorCode: 19 } => "This change conflicts with existing data. Check names and referenced accounts/categories.",
-            SqliteException => "The database could not be read or saved. Close other Balancia windows and try again.",
+            _ when LedgerFailures.IsConstraintViolation(ex) => "This change conflicts with existing data. Check names and referenced accounts/categories.",
+            _ when LedgerFailures.IsDatabaseFailure(ex) => "The database could not be read or saved. Close other Balancia windows and try again.",
             OverflowException => "This amount or resulting total is outside the supported range.",
             FormatException => "Check the date (YYYY-MM-DD) and amount (for example 12.50).",
             IOException or UnauthorizedAccessException => "The local data folder is unavailable or not writable.",

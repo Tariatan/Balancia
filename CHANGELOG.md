@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.3] - 2026-10-26
+
+#### Changed
+
+- Error messages and the best-effort shutdown writes recognise database failures through `LedgerFailures` instead of SQLite exception types and error codes. No visible behavior change. Bump Storage 7.1.0.
+
+#### Added
+
+- Tests that pin the friendly error text for constraint violations, other database failures, argument errors, I/O failures and unknown failures.
+
 ### [3.4.2] - 2026-10-26
 
 #### Changed
@@ -441,6 +451,16 @@ Versioning rule:
 
 ## Balancia.Storage
 
+### [7.1.0] - 2026-10-26
+
+#### Added
+
+- `LedgerFailures` (`IsDatabaseFailure`, `IsConstraintViolation`, `IsUnreadableDatabase`): classifies database failures so Desktop and Android no longer match SQLite exception types or error codes. Storage still throws the same exceptions.
+
+#### Changed
+
+- Snapshot rejection logging uses `LedgerFailures.IsUnreadableDatabase` instead of its own copy of the error codes.
+
 ### [7.0.1] - 2026-10-26
 
 #### Changed
@@ -596,6 +616,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.5.1] - 2026-10-26
+
+#### Changed
+
+- Classify a damaged or non-SQLite snapshot as a rejection through `LedgerFailures` instead of matching SQLite error codes. Application version is now 8. Bump Storage 7.1.0.
 
 ### [0.5.0] - 2026-10-18
 

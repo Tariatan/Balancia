@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Balancia.Storage;
-using Microsoft.Data.Sqlite;
 using Serilog;
 using Serilog.Context;
 
@@ -81,7 +80,8 @@ internal sealed class ShutdownExporter(TimeProvider clock)
             action();
             Log.Information("Finished shutdown write, Operation: '{Operation}', ElapsedMs: '{ElapsedMs}'", operation, elapsed.ElapsedMilliseconds);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException or SqliteException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException
+            || LedgerFailures.IsDatabaseFailure(ex))
         {
             Log.Warning("Shutdown write failed, Operation: '{Operation}', FailureType: '{FailureType}', HResult: '{HResult}', ElapsedMs: '{ElapsedMs}'",
                 operation, ex.GetType().Name, ex.HResult, elapsed.ElapsedMilliseconds);
