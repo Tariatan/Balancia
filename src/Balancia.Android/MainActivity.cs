@@ -104,7 +104,7 @@ public partial class MainActivity : Activity
             // Parser/provider messages may contain document contents or URIs.
             if (ex is ArgumentException or InvalidDataException or System.Text.Json.JsonException ||
                 ex is InvalidOperationException and not ObjectDisposedException ||
-                ex is Microsoft.Data.Sqlite.SqliteException { SqliteErrorCode: 11 or 26 })
+                LedgerFailures.IsUnreadableDatabase(ex))
             {
                 Log.Information("Android snapshot import rejected, FailureType: '{FailureType}', ElapsedMs: '{ElapsedMs}'", ex.GetType().Name, elapsed.ElapsedMilliseconds);
             }

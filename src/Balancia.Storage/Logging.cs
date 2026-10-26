@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using Microsoft.Data.Sqlite;
 using Serilog;
 using Serilog.Context;
 
@@ -70,6 +69,6 @@ public sealed partial class LedgerStore
             InvalidDataException or
             JsonException or
             InvalidOperationException and not
-            ObjectDisposedException or
-            SqliteException { SqliteErrorCode: 11 or 26 };
+            ObjectDisposedException ||
+        LedgerFailures.IsUnreadableDatabase(exception);
 }
