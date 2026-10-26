@@ -9,17 +9,6 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private enum OverviewPeriod
-    {
-        All,
-        Day,
-        ThisWeek,
-        ThisMonth,
-        ThisYear,
-        Last30Days,
-        Custom,
-    }
-
     private TransactionsFilter filter = new();
     private bool overviewFiltersVisible;
     private bool pendingOverviewFilterRefresh;
@@ -46,18 +35,7 @@ public partial class MainWindow
         await Run(() => RefreshCore(true), false);
     }
 
-    private (DateOnly? From, DateOnly? To) OverviewRange() => overviewPeriod switch
-    {
-        OverviewPeriod.All => (null, null),
-        OverviewPeriod.Day => (displayDate, displayDate),
-        OverviewPeriod.ThisWeek => (CalendarWeek.StartOfWeek(displayDate), CalendarWeek.EndOfWeek(displayDate)),
-        OverviewPeriod.ThisMonth => (
-            new DateOnly(displayDate.Year, displayDate.Month, 1),
-            new DateOnly(displayDate.Year, displayDate.Month, DateTime.DaysInMonth(displayDate.Year, displayDate.Month))),
-        OverviewPeriod.ThisYear => (new DateOnly(displayDate.Year, 1, 1), new DateOnly(displayDate.Year, 12, 31)),
-        OverviewPeriod.Last30Days => (displayDate.AddDays(-29), displayDate),
-        _ => (customFrom, customTo)
-    };
+    private DateRange OverviewRange() => OverviewPeriods.Range(overviewPeriod, displayDate, customFrom, customTo);
 
     private string OverviewPeriodLabel() => overviewPeriod switch
     {
@@ -82,11 +60,11 @@ public partial class MainWindow
         return hasAdditionalFilter ? Get("Filtered transactions") : Get(OverviewPeriodLabel());
     }
 
-    private string AverageScopeLabel() => overviewPeriod switch
+    private string AverageScopeLabel() => OverviewPeriods.IntervalFor(overviewPeriod) switch
     {
-        OverviewPeriod.Day => "Per calendar day",
-        OverviewPeriod.ThisWeek => "Per calendar week",
-        OverviewPeriod.ThisYear => "Per calendar year",
+        AverageInterval.Day => "Per calendar day",
+        AverageInterval.Week => "Per calendar week",
+        AverageInterval.Year => "Per calendar year",
         _ => "Per calendar month",
     };
 

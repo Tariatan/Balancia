@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.1] - 2026-10-26
+
+#### Changed
+
+- Resolve the overview period's dates, averaging unit and averaging start through `OverviewPeriods` in Core instead of private window methods. No visible behavior change. Bump Core 3.1.0 and Storage 7.0.0.
+
 ### [3.4.0] - 2026-10-18
 
 #### Added
@@ -367,6 +373,13 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [3.1.0] - 2026-10-26
+
+#### Added
+
+- `OverviewPeriod`, `DateRange` and `OverviewPeriods`: one place that resolves a period preset into its date range, averaging unit (`IntervalFor`) and averaging start (`AverageFrom`; only a custom range keeps its own start).
+- `AverageInterval` and `AverageIntervals.CountPeriods`, moved from Storage; the period-count rules (calendar days, Monday-start weeks, months, years) are unchanged.
+
 ### [3.0.0] - 2026-10-16
 
 #### Changed
@@ -414,6 +427,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [7.0.0] - 2026-10-26
+
+#### Changed
+
+- **Breaking:** `AverageInterval` moved from `Balancia.Storage` to `Balancia.Core`; `ReadFlowAverages` takes the Core type and counts periods through `AverageIntervals.CountPeriods`. Averages are unchanged.
 
 ### [6.0.1] - 2026-10-18
 
