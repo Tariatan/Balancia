@@ -418,5 +418,50 @@ public sealed class TransactionsQueriesTests : IDisposable
             Minimum: Money.FromFrancs(3), Maximum: Money.FromFrancs(7));
     }
 
+    /// <summary>The count query and the paged select spell category and amount matching in two SQL forms; this keeps them equal.</summary>
+    [Fact]
+    public void ReadTransactions_EveryFilterCombination_TotalCountEqualsUnpagedHits()
+    {
+        // Arrange
+        var a = Account("A");
+        var b = Account("B");
+        var parent = store.SaveCategory(null, "Food", null);
+        var child = store.SaveCategory(null, "Lunch", parent);
+        var other = store.SaveCategory(null, "Travel", null);
+        Entry(a, "Lunch at work", 12.50m, child);
+        Entry(a, "Lunch at work", 12.50m, parent, Start.AddDays(2));
+        Entry(a, "Train", 40m, other, Start.AddDays(3));
+        Entry(b, "Lunch at work", 12.50m, child, Start.AddDays(4));
+        Entry(b, "Salary", 900m, kind: TransactionKind.Income);
+        Entry(a, "Uncategorized", 7m, date: Start.AddDays(5));
+        store.SaveTransaction(null, new TransactionDraft(TransactionKind.Transfer, Start.AddDays(2), "Move",
+            Money.FromFrancs(12.50m), a, b));
+        var filters = new[]
+        {
+            new TransactionsFilter(),
+            new TransactionsFilter(CategoryId: parent),
+            new TransactionsFilter(CategoryId: child),
+            new TransactionsFilter(CategoryIds: [parent, other]),
+            new TransactionsFilter(Minimum: Money.FromFrancs(12.50m)),
+            new TransactionsFilter(Maximum: Money.FromFrancs(12.50m)),
+            new TransactionsFilter(Minimum: Money.FromFrancs(12.50m), Maximum: Money.FromFrancs(12.50m)),
+            new TransactionsFilter(AccountId: b, Minimum: Money.FromFrancs(10m)),
+            new TransactionsFilter(AccountIds: [a, b], Kind: TransactionKind.Transfer, Maximum: Money.FromFrancs(20m)),
+            new TransactionsFilter("lunch", a, TransactionKind.Expense, parent, Start.AddDays(1), Start.AddDays(3),
+                Money.FromFrancs(1m), Money.FromFrancs(50m))
+        };
+
+        foreach (var filter in filters)
+        {
+            // Act
+            var page = store.ReadAllTransactions(filter);
+
+            // Assert
+            Assert.Equal(page.Hits.Count, page.TotalCount);
+            Assert.Equal(page.Hits.Count, page.Hits.Select(hit => hit.Entry.Id).Distinct().Count());
+            Assert.Equal(page.TotalCount, store.ReadTransactions(filter, pageSize: 1).TotalCount);
+        }
+    }
+
     public void Dispose() => File.Delete(path);
 }
