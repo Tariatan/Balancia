@@ -14,7 +14,7 @@ public sealed class FriendlyErrorTests
         var error = new SqliteException("UNIQUE constraint failed: private detail", 19);
 
         // Act
-        var message = MainWindow.FriendlyError(error);
+        var message = FriendlyErrors.For(error);
 
         // Assert
         Assert.Equal("This change conflicts with existing data. Check names and referenced accounts/categories.", message);
@@ -32,7 +32,7 @@ public sealed class FriendlyErrorTests
         var error = new SqliteException("private detail", sqliteCode);
 
         // Act
-        var message = MainWindow.FriendlyError(error);
+        var message = FriendlyErrors.For(error);
 
         // Assert
         Assert.Equal("The database could not be read or saved. Close other Balancia windows and try again.", message);
@@ -45,7 +45,7 @@ public sealed class FriendlyErrorTests
         var error = new ArgumentException("Enter a description.\r\nsecond line");
 
         // Act
-        var message = MainWindow.FriendlyError(error);
+        var message = FriendlyErrors.For(error);
 
         // Assert
         Assert.Equal("Enter a description.", message);
@@ -55,7 +55,7 @@ public sealed class FriendlyErrorTests
     public void FriendlyError_IoFailure_ReportsTheDataFolder()
     {
         // Act
-        var message = MainWindow.FriendlyError(new IOException("private path"));
+        var message = FriendlyErrors.For(new IOException("private path"));
 
         // Assert
         Assert.Equal("The local data folder is unavailable or not writable.", message);
@@ -65,7 +65,7 @@ public sealed class FriendlyErrorTests
     public void FriendlyError_UnknownFailure_KeepsTheEnteredValuesMessage()
     {
         // Act
-        var message = MainWindow.FriendlyError(new NotSupportedException("private detail"));
+        var message = FriendlyErrors.For(new NotSupportedException("private detail"));
 
         // Assert
         Assert.Equal("The operation failed. Your entered values have been kept; try again.", message);

@@ -26,7 +26,7 @@ public partial class MainWindow
             return;
         }
 
-        await EditDialog("Delete reminder",
+        await dialogs.ShowAsync("Delete reminder",
             [
                 Text(Format("Delete '{0}'?", reminder.Template.Description))
             ],
@@ -42,7 +42,7 @@ public partial class MainWindow
         var amount = Input((template?.IndicativeAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
         var interval = Input((template?.IntervalMonths ?? 1).ToString(CultureInfo.InvariantCulture));
 
-        await EditDialog(template is null ? "Add reminder" : "Edit reminder",
+        await dialogs.ShowAsync(template is null ? "Add reminder" : "Edit reminder",
             [
                 Field("Description (exact match)", description),
                 Field("Expected date", date),

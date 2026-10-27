@@ -79,7 +79,7 @@ public partial class CsvImportPreviewWindow : Window
         catch (Exception ex)
         {
             Serilog.Log.Error(ex, "CSV import failed");
-            ErrorText.Text = MainWindow.FriendlyError(ex);
+            ErrorText.Text = FriendlyErrors.For(ex);
             ApplyButton.IsEnabled = true;
             CancelButton.IsEnabled = true;
         }

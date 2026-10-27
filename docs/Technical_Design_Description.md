@@ -411,7 +411,8 @@ An existing Windows backup/snapshot configuration without a remembered key promp
 | `WindowSettings.cs`          | Window geometry restore and save                                                |
 | `Language.cs`                | Language list, flags, and language switching                                    |
 | `Encryption.cs`              | Passphrase setup and the key lifecycle dialogs                                  |
-| `Dialogs.cs`                 | The shared edit dialog, friendly error text                                     |
+| `EditDialog.cs`              | Shows a modal edit form and saves it: validates, snapshots the inputs, writes off the UI thread, shows a failure inside the dialog so the entered values are kept, refreshes the overview after a save; Escape and closing are blocked while saving |
+| `FriendlyErrors.cs`          | Turns a failure into a one-line localized message for the dialogs and windows |
 | `FormControls.cs`            | The controls the edit dialogs are made of: labelled fields, date and text inputs, choice boxes, button rows |
 
 Rules that need no controls live outside the window: `SettingsStore` (read and atomically replace the settings file), `SnapshotKeyService` (load, replace, and dispose the snapshot key through `ISnapshotKeyStore`; Windows uses current-user DPAPI), and, in Storage, `CloseTimeExporter` (one per open ledger: it records the revision when the ledger loads, then writes the best-effort close-time backup and snapshot and applies `BackupRetention`, the three-per-day, 180-day, 540-overall policy). The window only holds the exporter, replaces it when the database location changes, and calls it on close. File and folder pickers are replaceable properties so tests answer them without a native dialog. An operation that reports its own outcome (export, import, restore) keeps that status message; any other successful operation ends with "Saved locally".
