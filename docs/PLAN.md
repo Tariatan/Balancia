@@ -9,3 +9,4 @@ Last updated: 2026-10-03.
 - consider multiple currency
 - forbid adding transaction without subcategory
 - check `reminder already` exists
+- replace data on import, not append
