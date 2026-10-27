@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.7] - 2026-10-27
+
+#### Changed
+
+- The overview reads everything it shows through `OverviewLoader` into one immutable `OverviewData`, replacing six separate window fields (snapshot, reminders, transactions page, analytics, averages and the applied filter). A refresh is one load and one assignment, and a failed read leaves the previous data in place as before. No visible behavior change.
+
+#### Added
+
+- Tests for the loader: the data matches the individual store reads, averages use the whole ledger for periods without their own window and the custom span for a custom range, the averaging unit follows the period, and the page offset is applied.
+
 ### [3.4.6] - 2026-10-27
 
 #### Changed

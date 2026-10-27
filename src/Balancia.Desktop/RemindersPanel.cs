@@ -15,7 +15,7 @@ public partial class MainWindow
         RemindersCard.EditRequested += async reminder => await EditReminder(reminder);
     }
 
-    private void RenderRemindersPanel() => RemindersCard.Render(reminders, displayDate);
+    private void RenderRemindersPanel() => RemindersCard.Render(overview!.Reminders, displayDate);
 
     private async Task DeleteSelectedReminder()
     {

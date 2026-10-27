@@ -14,8 +14,6 @@ public partial class MainWindow
     private const string PreviousPeriodColor = "#B8C2CC";
     private const string DayFormat = "dd MMM yyyy";
 
-    private FlowAnalytics? overviewAnalytics;
-    private TransactionsFilter analyticsFilter = new();
     private FlowInterval trendInterval = FlowInterval.Week;
 
     private void InitializeTrendPanel()
@@ -70,13 +68,13 @@ public partial class MainWindow
 
     private void UpdateAnalyticsCharts()
     {
-        if (overviewAnalytics is not { } data)
+        if (overview?.Analytics is not { } data)
         {
             return;
         }
 
         var (incomeOnly, expenseOnly) = ResolveFlowFocus(data);
-        var empty = analyticsFilter.Kind == TransactionKind.Transfer ? Get("Transfers do not count as income or expenses.") :
+        var empty = overview!.Query.Filter.Kind == TransactionKind.Transfer ? Get("Transfers do not count as income or expenses.") :
             data.Current.Count == 0 && data.Previous.Count == 0 ? Get("No matching transactions") : null;
 
         UpdateTrendChart(data, incomeOnly, expenseOnly, empty);
@@ -87,7 +85,7 @@ public partial class MainWindow
     // or a category filter whose matching transactions are all one-sided.
     private (bool IncomeOnly, bool ExpenseOnly) ResolveFlowFocus(FlowAnalytics data)
     {
-        switch (analyticsFilter.Kind)
+        switch (overview!.Query.Filter.Kind)
         {
             case TransactionKind.Income:
                 return (true, false);
@@ -97,7 +95,7 @@ public partial class MainWindow
                 return (false, false);
         }
 
-        if (!analyticsFilter.HasCategoryFilter)
+        if (!overview!.Query.Filter.HasCategoryFilter)
         {
             return (false, false);
         }

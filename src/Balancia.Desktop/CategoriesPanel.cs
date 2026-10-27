@@ -150,7 +150,7 @@ public partial class MainWindow
             ids.Add(single);
         }
 
-        var affectedIds = snapshot!.Categories
+        var affectedIds = overview!.Snapshot.Categories
             .Where(category => category.Id == id || category.ParentId == id)
             .Select(category => category.Id);
         if (selected)
@@ -162,10 +162,10 @@ public partial class MainWindow
             ids.ExceptWith(affectedIds);
         }
 
-        var parentId = snapshot.Categories.Single(category => category.Id == id).ParentId;
+        var parentId = overview!.Snapshot.Categories.Single(category => category.Id == id).ParentId;
         if (parentId is not null)
         {
-            var allChildrenSelected = snapshot.Categories
+            var allChildrenSelected = overview!.Snapshot.Categories
                 .Where(category => category.ParentId == parentId)
                 .All(category => ids.Contains(category.Id));
             if (allChildrenSelected)
@@ -183,14 +183,14 @@ public partial class MainWindow
 
     private async Task ToggleAllCategoryFilters()
     {
-        if (updatingFilterControls || snapshot is null)
+        if (updatingFilterControls || overview is null)
         {
             return;
         }
 
-        var ids = snapshot.Categories.All(category => IsCategorySelected(category.Id))
+        var ids = overview!.Snapshot.Categories.All(category => IsCategorySelected(category.Id))
             ? new HashSet<string>()
-            : snapshot.Categories.Select(category => category.Id).ToHashSet();
+            : overview!.Snapshot.Categories.Select(category => category.Id).ToHashSet();
         await ApplyCategorySelection(ids);
     }
 
@@ -256,13 +256,13 @@ public partial class MainWindow
         var categoryArchived = category?.Archived ?? false;
         var name = Input(category?.Name ?? string.Empty);
         var options = new List<Choice<string?>> { new(null, Get("No parent (top-level)")) };
-        options.AddRange(snapshot!.Categories
+        options.AddRange(overview!.Snapshot.Categories
             .Where(c => c.ParentId is null && !c.Archived && c.Id != category?.Id)
             .Select(c => new Choice<string?>(c.Id, c.Path)));
 
         if (category?.ParentId is { } current && options.All(c => c.Value != current))
         {
-            var archivedParent = snapshot.Categories.Single(c => c.Id == current);
+            var archivedParent = overview!.Snapshot.Categories.Single(c => c.Id == current);
             options.Add(new Choice<string?>(current, WithArchivedMarker(archivedParent.Path, archivedParent.Archived)));
         }
 
@@ -297,13 +297,13 @@ public partial class MainWindow
                     return null;
                 }
 
-                var parentCategory = snapshot!.Categories.SingleOrDefault(c => c.Id == newParentId);
+                var parentCategory = overview!.Snapshot.Categories.SingleOrDefault(c => c.Id == newParentId);
                 if (parentCategory is { Archived: true } && (!categoryArchived || category!.ParentId != newParentId))
                 {
                     return "Restore the parent category before adding or restoring a child.";
                 }
 
-                if (category is not null && snapshot.Categories.Any(c => c.ParentId == category.Id))
+                if (category is not null && overview!.Snapshot.Categories.Any(c => c.ParentId == category.Id))
                 {
                     return "A category with subcategories must remain top-level.";
                 }

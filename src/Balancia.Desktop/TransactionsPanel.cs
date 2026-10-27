@@ -32,7 +32,6 @@ public partial class MainWindow
     private static readonly IBrush SuggestionSelectedBrush = Brush.Parse("#3989A7");
     private static readonly IBrush SuggestionTopMatchBrush = Brush.Parse("#52636C");
 
-    private TransactionsPage? transactions;
     private int offset;
 
     private LedgerEntry? SelectedTransaction => (TransactionsList.SelectedItem as TransactionItem)?.Hit.Entry;
@@ -165,13 +164,13 @@ public partial class MainWindow
 
         var destination = ChoiceBox(accounts, accounts.FirstOrDefault(c => c.Value.Id == existing?.DestinationId));
 
-        var availableCategories = snapshot!.Categories
+        var availableCategories = overview!.Snapshot.Categories
             .Where(c => !c.Archived || c.Id == existing?.CategoryId)
             .ToArray();
 
         var category = new TextBox
         {
-            Text = snapshot.Categories.FirstOrDefault(c => c.Id == existing?.CategoryId)?.Path ?? "",
+            Text = overview!.Snapshot.Categories.FirstOrDefault(c => c.Id == existing?.CategoryId)?.Path ?? "",
             PlaceholderText = Get("Type or select a category"),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
@@ -261,7 +260,7 @@ public partial class MainWindow
 
     private Choice<Account>[] AccountChoices(TransactionDraft? existing) =>
     [
-        .. snapshot!.Accounts
+        .. overview!.Snapshot.Accounts
             .Where(a => !a.Archived || a.Id == existing?.AccountId || a.Id == existing?.DestinationId)
             .Select(a => new Choice<Account>(a, a.Name + (a.Archived ? Get(" (archived)") : "")))
     ];
@@ -305,7 +304,7 @@ public partial class MainWindow
             return null;
         }
 
-        return snapshot!.Categories.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase))
+        return overview!.Snapshot.Categories.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase))
             ? "Restore the archived category before using it for another transaction."
             : "Choose an existing category path.";
     }
