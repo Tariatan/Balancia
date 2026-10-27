@@ -50,6 +50,34 @@ public sealed class CsvImportReminderTests : IDisposable
     }
 
     [Fact]
+    public void ApplyCsvImport_ActiveRemindersDifferingOnlyInLetterCase_ImportsBoth()
+    {
+        // Arrange
+        Csv(Opening + RentRow +
+            "reminder:r2,2026-01-06,Reminder,rent,10.00,,,,\"{\"\"IntervalMonths\"\":1,\"\"Archived\"\":false}\"\n");
+
+        // Act
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+
+        // Assert
+        Assert.Equal(["Rent", "rent"], store.ReadReminders().Select(reminder => reminder.Template.Description).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void ApplyCsvImport_ActiveReminderWithTheSameExactDescription_ThrowsConflict()
+    {
+        // Arrange
+        store.SaveReminder(null, "Rent", new DateOnly(2026, 2, 1), Money.FromFrancs(5m), 1);
+        Csv(Opening + RentRow);
+
+        // Act
+        void Act() => store.ApplyCsvImport(store.PreviewCsvImport(csv));
+
+        // Assert
+        Assert.Throws<CsvImportConflictException>(Act);
+    }
+
+    [Fact]
     public void ApplyCsvImport_ArchivedReminderRow_IsStoredButNotListed()
     {
         // Arrange

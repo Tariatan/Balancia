@@ -8,17 +8,17 @@ internal static class CsvImportParser
     private static readonly string HeaderMismatchMessage =
         $"Expected the {CsvImportRowValidator.Header.Length} Balancia export columns in their original order: {string.Join(',', CsvImportRowValidator.Header)}.";
 
-    public static (List<CsvImportGroup> Groups, List<ImportIssue> Issues, ImportSummary Summary) Parse(byte[] bytes)
+    public static (List<CsvImportGroup> Groups, List<ImportIssue> Issues, ImportSummary Summary) Parse(byte[] bytes, DateOnly today)
     {
         var issues = new List<ImportIssue>();
         var rows = new List<CsvImportRow>();
-        var sourceRows = ReadRows(bytes, rows, issues);
+        var sourceRows = ReadRows(bytes, rows, issues, today);
         var groups = CsvImportGroupBuilder.Build(rows, issues);
         var summary = CsvImportSummaryBuilder.Build(rows, groups, sourceRows);
         return (groups, issues, summary);
     }
 
-    private static int ReadRows(byte[] bytes, List<CsvImportRow> rows, List<ImportIssue> issues)
+    private static int ReadRows(byte[] bytes, List<CsvImportRow> rows, List<ImportIssue> issues, DateOnly today)
     {
         var sourceRows = 0;
         using var stream = new MemoryStream(bytes);
@@ -63,7 +63,7 @@ internal static class CsvImportParser
                     continue;
                 }
 
-                var (row, errors) = CsvImportRowValidator.Validate(fields, line);
+                var (row, errors) = CsvImportRowValidator.Validate(fields, line, today);
                 issues.AddRange(errors.Select(error => new ImportIssue(line, error)));
 
                 if (row is not null)

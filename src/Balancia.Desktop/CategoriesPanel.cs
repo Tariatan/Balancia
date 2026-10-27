@@ -72,20 +72,7 @@ public partial class MainWindow
                 Text("Categories used by transactions or with subcategories must be archived instead.")
             ],
             () => () => store.DeleteCategory(category.Id),
-            DialogOptions.Confirmation("Delete", () =>
-            {
-                if (store.CategoryHasSubcategories(category.Id))
-                {
-                    return "A category with subcategories cannot be deleted. Archive it instead.";
-                }
-
-                if (store.CategoryIsUsedByTransactions(category.Id))
-                {
-                    return "A category used by transactions cannot be deleted. Archive it instead.";
-                }
-
-                return null;
-            }));
+            DialogOptions.Confirmation("Delete", () => CategoryRules.CheckDelete(overview!.Snapshot.Categories, category.Id)));
     }
 
     private async Task EditCategory(Category? category)
@@ -120,32 +107,7 @@ public partial class MainWindow
                 var newParentId = ((Choice<string?>)parent.SelectedItem!).Value;
                 return () => store.SaveCategory(category?.Id, newName, newParentId, categoryArchived);
             },
-            new DialogOptions(Validate: () =>
-            {
-                var trimmedName = (name.Text ?? string.Empty).Trim();
-                if (trimmedName.Length == 0 || trimmedName.Contains('/'))
-                {
-                    return "Enter a category name without '/'; choose its parent separately.";
-                }
-
-                var newParentId = ((Choice<string?>)parent.SelectedItem!).Value;
-                if (newParentId is null)
-                {
-                    return null;
-                }
-
-                var parentCategory = overview!.Snapshot.Categories.SingleOrDefault(c => c.Id == newParentId);
-                if (parentCategory is { Archived: true } && (!categoryArchived || category!.ParentId != newParentId))
-                {
-                    return "Restore the parent category before adding or restoring a child.";
-                }
-
-                if (category is not null && overview!.Snapshot.Categories.Any(c => c.ParentId == category.Id))
-                {
-                    return "A category with subcategories must remain top-level.";
-                }
-
-                return null;
-            }));
+            new DialogOptions(Validate: () => CategoryRules.CheckSave(
+                overview!.Snapshot.Categories, category?.Id, name.Text ?? string.Empty, ((Choice<string?>)parent.SelectedItem!).Value, categoryArchived)));
     }
 }

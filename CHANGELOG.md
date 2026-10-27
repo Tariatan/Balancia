@@ -14,6 +14,17 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.5.0] - 2026-10-27
+
+#### Added
+
+- Adding or renaming a category to a name that another category under the same parent already has (letter case ignored) is refused in the dialog with its own message. Before, the save failed with a general "conflicts with existing data" message.
+- A dialog test for the duplicate name message.
+
+#### Changed
+
+- The Add and Edit category dialogs, the delete confirmation and the transaction form's category path check use `CategoryRules` instead of their own copies of the rules. The delete confirmation no longer asks the store two separate questions. The messages are unchanged.
+
 ### [3.4.21] - 2026-10-27
 
 #### Changed
@@ -569,6 +580,14 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [3.3.0] - 2026-10-27
+
+#### Added
+
+- `CategoryRules`: the category path parser and the save and delete checks, over a plain list of categories, with their messages. This includes a check for a name already used under the same parent.
+- `Category.HasTransactions`, true when a ledger entry uses the category. It defaults to false.
+- 31 tests of the category rules.
+
 ### [3.2.0] - 2026-10-26
 
 #### Added
@@ -630,6 +649,27 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [7.4.0] - 2026-10-27
+
+#### Changed
+
+- `SaveCategory` and `DeleteCategory` run `CategoryRules` over the categories read in the same transaction. The messages and exception types are unchanged, except that a name already used under the same parent is now refused with its own message instead of a database constraint error.
+- The category read fills `Category.HasTransactions`.
+
+#### Removed
+
+- `CategoryHasSubcategories` and `CategoryIsUsedByTransactions`: the delete confirmation took their answers, and `DeleteCategory` already enforced both rules.
+
+#### Fixed
+
+- CSV import compared reminder descriptions without regard to letter case, in the file and against existing reminders. They are now compared exactly, as `SaveReminder` and reminder matching do, so `Rent` and `rent` can both be imported.
+- CSV preview now reports a row dated in the future, including an opening balance, as an error; before, it could be applied although a transaction or opening date in the future is refused everywhere else. Reminder rows keep their schedule date.
+- CSV preview, `SaveTransaction` with a category path and the transaction form show one message for a category path with more than two levels or an empty side.
+
+#### Added
+
+- Tests of the duplicate name rule, the `HasTransactions` flag, future-dated CSV rows, invalid CSV category paths and case-differing CSV reminders.
 
 ### [7.3.0] - 2026-10-26
 

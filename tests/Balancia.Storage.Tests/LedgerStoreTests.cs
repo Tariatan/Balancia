@@ -811,7 +811,6 @@ public sealed class LedgerStoreTests : IDisposable
 
         // Assert
         Assert.Contains("subcategories", error.Message);
-        Assert.True(store.CategoryHasSubcategories(parent));
         Assert.Equal(2, store.ReadSnapshot().Categories.Count);
     }
 
@@ -828,7 +827,6 @@ public sealed class LedgerStoreTests : IDisposable
 
         // Assert
         Assert.Contains("used by transactions", error.Message);
-        Assert.True(store.CategoryIsUsedByTransactions(category));
         Assert.Single(store.ReadSnapshot().Categories);
     }
 
@@ -843,6 +841,67 @@ public sealed class LedgerStoreTests : IDisposable
 
         // Assert
         Assert.Throws<ArgumentException>(Act);
+    }
+
+    [Theory]
+    [InlineData("Food")]
+    [InlineData("food")]
+    [InlineData("  FOOD ")]
+    public void SaveCategory_NameAlreadyUsedUnderTheSameParent_Throws(string name)
+    {
+        // Arrange
+        store.SaveCategory(null, "Food", null);
+
+        // Act
+        var error = Assert.Throws<ArgumentException>(() => store.SaveCategory(null, name, null));
+
+        // Assert
+        Assert.Equal(CategoryRules.DuplicateNameMessage, error.Message);
+        Assert.Single(store.ReadSnapshot().Categories);
+    }
+
+    [Fact]
+    public void SaveCategory_SameNameUnderAnotherParent_IsAllowed()
+    {
+        // Arrange
+        var travel = store.SaveCategory(null, "Travel", null);
+        var home = store.SaveCategory(null, "Home", null);
+        store.SaveCategory(null, "Other", travel);
+
+        // Act
+        store.SaveCategory(null, "Other", home);
+
+        // Assert
+        Assert.Equal(4, store.ReadSnapshot().Categories.Count);
+    }
+
+    [Fact]
+    public void SaveCategory_ResavingWithItsOwnName_Succeeds()
+    {
+        // Arrange
+        var id = store.SaveCategory(null, "Food", null);
+
+        // Act
+        store.SaveCategory(id, "Food", null, archived: true);
+
+        // Assert
+        Assert.True(store.ReadSnapshot().Categories.Single().Archived);
+    }
+
+    [Fact]
+    public void ReadSnapshot_CategoryWithTransactions_FlagsOnlyThatCategory()
+    {
+        // Arrange
+        var a = Account("A", 100);
+        var used = store.SaveCategory(null, "Food", null);
+        store.SaveCategory(null, "Spare", null);
+        store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 5) with { CategoryId = used });
+
+        // Act
+        var categories = store.ReadSnapshot().Categories;
+
+        // Assert
+        Assert.Equal(["Food"], categories.Where(category => category.HasTransactions).Select(category => category.Name));
     }
 
     private void SeedTravelCategories()

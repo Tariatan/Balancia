@@ -70,6 +70,25 @@ public sealed class CategoryDialogTests
     }
 
     [AvaloniaFact]
+    public async Task Add_WithANameAlreadyUsedUnderTheSameParent_ShowsAnErrorAndCreatesNothing()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var store = workspace.SeedStore();
+        store.SaveCategory(null, "Food", null);
+        var window = await workspace.OpenWindowAsync();
+        var dialog = await window.OpenDialogAsync("CategoryAddButton", "Add category");
+        dialog.Fill("Name", "food");
+
+        // Act
+        var error = await dialog.SaveExpectingErrorAsync();
+
+        // Assert
+        Assert.Equal(CategoryRules.DuplicateNameMessage, error);
+        Assert.Single(store.ReadSnapshot().Categories);
+    }
+
+    [AvaloniaFact]
     public async Task Edit_ByDoubleClickingTheRow_RenamesTheCategory()
     {
         // Arrange
