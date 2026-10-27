@@ -134,7 +134,7 @@ public partial class MainWindow
                 TextAlignment = isAmount ? TextAlignment.Right : TextAlignment.Left,
                 Margin = new Thickness(0, 0, 30, 0)
             };
-            AddColumn(row, cell, i);
+            GridLayout.Place(row, cell, i);
         }
         return row;
     }

@@ -14,6 +14,17 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.9] - 2026-10-27
+
+#### Changed
+
+- The accounts card is its own user control, `AccountsCard`: `Render` draws the balances, the default-account highlight, the net worth and a filter checkbox per account, and add, archive, remove, edit and filter-toggle requests are raised as events. `MainWindow` keeps the dialogs, saving and the filter. No visible behavior change.
+- `BalanceBrushes` and `GridLayout` hold the balance colors and the grid column helper that cards share, replacing private members of the window.
+
+#### Added
+
+- 13 tests that drive `AccountsCard` on its own: rows, empty state, net worth color (zero counts as not positive), the default-account highlight, checkboxes following the filter, syncing without raising toggles, a user toggle selecting the row, the three buttons, selection and a real double-click.
+
 ### [3.4.8] - 2026-10-27
 
 #### Changed

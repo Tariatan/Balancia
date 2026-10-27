@@ -393,7 +393,8 @@ An existing Windows backup/snapshot configuration without a remembered key promp
 | `CategoriesPanel.cs`         | Category management, checkbox filtering and top-expenses card                   |
 | `RemindersPanel.cs`          | Reminder add/edit and delete dialogs, and the wiring of `RemindersCard`         |
 | `RemindersCard.axaml(.cs)`   | The reminders card as a user control: `Render(reminders, today)` draws the rows and totals, and add, remove and edit requests are raised as events. It holds no store or window reference, so it is tested on its own. |
-| `Accounts.cs`                | Accounts card and account add/edit/archive                                      |
+| `Accounts.cs`                | Account add/edit/archive/delete dialogs and the wiring of `AccountsCard`        |
+| `AccountsCard.axaml(.cs)`    | The accounts card as a user control: `Render` draws the balances, the default-account highlight, the net worth and a filter checkbox per account; add, archive, remove, edit and filter-toggle requests are raised as events and `SyncFilterChecks` follows the filter. It holds no store, settings or window reference, so it is tested on its own. |
 | `Analytics.cs`               | Trend and Timeline chart panels and their data                                  |
 | `DescriptionSuggestions.cs`  | Description suggestions in the transaction dialog                               |
 | `DataTransfer.cs`            | CSV import/export and snapshot export/restore actions, with replaceable pickers |
