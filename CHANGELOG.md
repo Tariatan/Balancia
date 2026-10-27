@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.14] - 2026-10-27
+
+#### Changed
+
+- The rules of the add and edit transaction form that need no controls live in `TransactionFormRules`: which accounts and categories the form offers (archived ones only when the edited entry uses them), the account it starts on, how the typed category path is read and checked, the date check against the opening dates of the account and of a transfer's destination, and how the entered values become a draft (only a transfer keeps its destination). The dialog calls them and keeps only the controls. No visible behavior change.
+
+#### Added
+
+- 38 tests of those rules, including two behaviors of the existing form that they now pin: the starting account does not fall through to the last used one when the configured default is not offered, and a category typed as `Food/Lunch` is rejected because paths are stored as `Food / Lunch`.
+
 ### [3.4.13] - 2026-10-27
 
 #### Changed

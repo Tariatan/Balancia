@@ -63,14 +63,12 @@ public partial class MainWindow
         var amount = Input(existing?.Amount.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
         amount.LostFocus += (_, _) => NormalizeAmount(amount);
 
-        var account = ChoiceBox(accounts,
-            accounts.FirstOrDefault(c => c.Value.Id == (existing?.AccountId ?? settings.DefaultAccountId ?? lastAccountId)) ?? accounts[0]);
+        var startAccount = TransactionFormRules.DefaultAccount([.. accounts.Select(c => c.Value)], existing?.AccountId, settings.DefaultAccountId, lastAccountId);
+        var account = ChoiceBox(accounts, accounts.First(c => c.Value == startAccount));
 
         var destination = ChoiceBox(accounts, accounts.FirstOrDefault(c => c.Value.Id == existing?.DestinationId));
 
-        var availableCategories = overview!.Snapshot.Categories
-            .Where(c => !c.Archived || c.Id == existing?.CategoryId)
-            .ToArray();
+        var availableCategories = TransactionFormRules.AvailableCategories(overview!.Snapshot.Categories, existing?.CategoryId);
 
         var category = new TextBox
         {
@@ -125,15 +123,9 @@ public partial class MainWindow
             {
                 NormalizeAmount(amount);
                 var type = SelectedValue<TransactionKind>(kind);
-                var draft = new TransactionDraft(
-                    type,
-                    ParseDate(date),
-                    description.Text ?? "",
-                    ParseMoney(amount),
-                    SelectedValue<Account>(account).Id,
-                    type == TransactionKind.Transfer ? (destination.SelectedItem as Choice<Account>)?.Value.Id : null,
-                    Memo: memo.Text ?? "");
-                var categoryPath = type == TransactionKind.Transfer ? null : ReadCategoryPath(category, availableCategories);
+                var draft = TransactionFormRules.ToDraft(type, ParseDate(date), description.Text ?? "", ParseMoney(amount),
+                    SelectedValue<Account>(account).Id, (destination.SelectedItem as Choice<Account>)?.Value.Id, memo.Text ?? "");
+                var categoryPath = TransactionFormRules.CategoryPathFor(type, category.Text, availableCategories);
                 lastAccountId = draft.AccountId;
                 return () => store.SaveTransactionWithCategoryPath(entry?.Id, draft, categoryPath);
             },
@@ -143,15 +135,8 @@ public partial class MainWindow
         string? ValidateFields()
         {
             var type = SelectedValue<TransactionKind>(kind);
-            var transactionDate = ParseDate(date);
-            var selectedAccount = SelectedValue<Account>(account);
-            var selectedDestination = type == TransactionKind.Transfer ? (destination.SelectedItem as Choice<Account>)?.Value : null;
-            if (transactionDate < selectedAccount.OpeningDate || transactionDate < selectedDestination?.OpeningDate)
-            {
-                return "Transaction date precedes the account's opening date.";
-            }
-
-            return type == TransactionKind.Transfer ? null : CategoryPathError(ReadCategoryPath(category, availableCategories), availableCategories);
+            return TransactionFormRules.Validate(type, ParseDate(date), SelectedValue<Account>(account),
+                (destination.SelectedItem as Choice<Account>)?.Value, category.Text, availableCategories, overview!.Snapshot.Categories);
         }
 
         void UpdateFields()
@@ -164,9 +149,8 @@ public partial class MainWindow
 
     private Choice<Account>[] AccountChoices(TransactionDraft? existing) =>
     [
-        .. overview!.Snapshot.Accounts
-            .Where(a => !a.Archived || a.Id == existing?.AccountId || a.Id == existing?.DestinationId)
-            .Select(a => new Choice<Account>(a, a.Name + (a.Archived ? Get(" (archived)") : "")))
+        .. TransactionFormRules.AvailableAccounts(overview!.Snapshot.Accounts, existing)
+            .Select(a => new Choice<Account>(a, ArchivedLabel.Of(a.Name, a.Archived)))
     ];
 
     private static ComboBox ChoiceBox<T>(Choice<T>[] choices, Choice<T>? selected) => new()
@@ -177,41 +161,6 @@ public partial class MainWindow
     };
 
     private static T SelectedValue<T>(ComboBox box) => ((Choice<T>)box.SelectedItem!).Value;
-
-    private static string? ReadCategoryPath(TextBox category, IReadOnlyList<Category> availableCategories)
-    {
-        var path = category.Text?.Trim();
-        if (string.IsNullOrEmpty(path))
-        {
-            return null;
-        }
-
-        return availableCategories.FirstOrDefault(candidate =>
-            string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase))?.Path ?? path;
-    }
-
-    private string? CategoryPathError(string? path, IReadOnlyList<Category> availableCategories)
-    {
-        if (string.IsNullOrEmpty(path))
-        {
-            return null;
-        }
-
-        var parts = path.Split('/').Select(part => part.Trim()).ToArray();
-        if (parts.Length > 2 || parts.Any(string.IsNullOrWhiteSpace))
-        {
-            return "Enter a category or Category / Subcategory with one name on each side of '/'.";
-        }
-
-        if (availableCategories.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase)))
-        {
-            return null;
-        }
-
-        return overview!.Snapshot.Categories.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase))
-            ? "Restore the archived category before using it for another transaction."
-            : "Choose an existing category path.";
-    }
 
     /// <summary>
     /// Wraps the category box with a suggestion popup. The returned action clears the box and its suggestions and
