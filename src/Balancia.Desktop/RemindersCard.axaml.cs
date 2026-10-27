@@ -26,20 +26,21 @@ public partial class RemindersCard : UserControl
             {
                 new Setter(BackgroundProperty, new Binding(".")
                 {
-                    Converter = new FuncValueConverter<Reminder, IBrush>(reminder =>
-                        reminder is not null && ReminderPresentation.IsBeyondNextMonth(reminder, today)
+                    Converter = new FuncValueConverter<Choice<Reminder>, IBrush>(choice =>
+                        choice is not null && ReminderPresentation.IsBeyondNextMonth(choice.Value, today)
                             ? RowBrushes.Blue : RowBrushes.Ivory),
                 }),
             },
         });
-        RemindersList.ItemTemplate = new FuncDataTemplate<Reminder>((reminder, _) =>
+        RemindersList.ItemTemplate = new FuncDataTemplate<Choice<Reminder>>((choice, _) =>
         {
             // Virtualized presenters can request a template with no item while scrolling.
-            if (reminder is null)
+            if (choice is null)
             {
                 return null;
             }
 
+            var reminder = choice.Value;
             var emphasize = ReminderPresentation.IsEmphasized(reminder, today);
             var foreground = Brush.Parse(ReminderPresentation.ColorFor(reminder, today));
 
@@ -90,7 +91,7 @@ public partial class RemindersCard : UserControl
     /// <summary>A row was double-tapped.</summary>
     public event Action<Reminder>? EditRequested;
 
-    public Reminder? Selected => RemindersList.SelectedItem as Reminder;
+    public Reminder? Selected => (RemindersList.SelectedItem as Choice<Reminder>)?.Value;
 
     /// <summary>Shows <paramref name="reminders"/> as of <paramref name="today"/>, with the current language.</summary>
     public void Render(IReadOnlyList<Reminder> reminders, DateOnly today)
@@ -100,7 +101,7 @@ public partial class RemindersCard : UserControl
         ToolTip.SetTip(ReminderAddButton, Get("Add reminder"));
         ToolTip.SetTip(ReminderRemoveButton, Get("Delete selected reminder"));
 
-        RemindersList.ItemsSource = reminders.ToArray();
+        RemindersList.ItemsSource = reminders.Select(r => new Choice<Reminder>(r, r.Template.Description)).ToArray();
         RemindersEmpty.Text = Get("No reminders yet");
         RemindersEmpty.IsVisible = reminders.Count == 0;
 

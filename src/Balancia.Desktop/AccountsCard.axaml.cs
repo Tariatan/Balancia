@@ -26,14 +26,15 @@ public partial class AccountsCard : UserControl
     public AccountsCard()
     {
         InitializeComponent();
-        AccountsList.ItemTemplate = new FuncDataTemplate<Account>((account, _) =>
+        AccountsList.ItemTemplate = new FuncDataTemplate<Choice<Account>>((choice, _) =>
         {
             // Virtualized presenters can request a template with no item while scrolling.
-            if (account is null)
+            if (choice is null)
             {
                 return null;
             }
 
+            var account = choice.Value;
             var check = new CheckBox
             {
                 Classes = { "compact-filter-checkbox" },
@@ -50,7 +51,7 @@ public partial class AccountsCard : UserControl
 
                 if (check.FindAncestorOfType<ListBox>() is { } list)
                 {
-                    list.SelectedItem = account;
+                    list.SelectedItem = choice;
                 }
 
                 FilterToggled?.Invoke(account.Id, check.IsChecked == true);
@@ -118,7 +119,7 @@ public partial class AccountsCard : UserControl
     /// <summary>A row's checkbox was changed by the user: the account id and whether it is now selected.</summary>
     public event Action<string, bool>? FilterToggled;
 
-    public Account? Selected => AccountsList.SelectedItem as Account;
+    public Account? Selected => (AccountsList.SelectedItem as Choice<Account>)?.Value;
 
     /// <summary>Shows the accounts and the net worth with the current language. <paramref name="isFiltered"/> says which accounts the overview is filtered to.</summary>
     public void Render(IReadOnlyList<Account> accounts, Money netWorth, string? defaultAccountId, Func<string, bool> isFiltered)
@@ -131,7 +132,7 @@ public partial class AccountsCard : UserControl
         ToolTip.SetTip(AccountRemoveButton, Get("Delete selected account"));
 
         filterChecks.Clear();
-        AccountsList.ItemsSource = accounts.ToArray();
+        AccountsList.ItemsSource = accounts.Select(a => new Choice<Account>(a, a.Name)).ToArray();
         var hasAccounts = accounts.Count > 0;
         AccountsList.IsVisible = hasAccounts;
         AccountsEmpty.IsVisible = !hasAccounts;

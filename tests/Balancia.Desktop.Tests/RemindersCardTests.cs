@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -99,6 +100,22 @@ public sealed class RemindersCardTests
         Assert.Same(RowBrushes.Ivory, Background(0));
         Assert.Same(RowBrushes.Ivory, Background(1));
         Assert.Same(RowBrushes.Blue, Background(2));
+    }
+
+    [AvaloniaFact]
+    public void Row_AccessibilityName_IsTheDescription()
+    {
+        // Arrange
+        var (window, card) = Show();
+        card.Render([Reminder("Rent", new DateOnly(2026, 10, 20))], Today);
+        window.UpdateLayout();
+        var row = (ListBoxItem)Find<ListBox>(card, "RemindersList").ContainerFromIndex(0)!;
+
+        // Act
+        var name = ControlAutomationPeer.CreatePeerForElement(row).GetName();
+
+        // Assert
+        Assert.Equal("Rent", name);
     }
 
     [AvaloniaFact]

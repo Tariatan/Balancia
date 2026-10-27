@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.10] - 2026-10-27
+
+#### Fixed
+
+- Rows in the Reminders and Accounts cards announce their description or account name to screen readers again. Since 3.4.6 (reminders) and 3.4.9 (accounts) a row was announced as the technical text of its record, for example `Account { Id = ..., Name = ... }`. List rows use the shared `Choice<T>` item again, as the panels did before they became cards.
+
+#### Added
+
+- Tests for the accessibility name of a reminder row and an account row.
+
 ### [3.4.9] - 2026-10-27
 
 #### Changed

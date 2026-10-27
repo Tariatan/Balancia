@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -83,6 +84,21 @@ public sealed class AccountsCardTests
 
         // Assert
         Assert.Same(positive ? BalanceBrushes.Positive : BalanceBrushes.Negative, Find<TextBlock>(card, "NetWorthValue").Foreground);
+    }
+
+    [AvaloniaFact]
+    public void Row_AccessibilityName_IsTheAccountName()
+    {
+        // Arrange
+        var (window, card) = Show();
+        Render(card, window, [Account("a", "Everyday", 150m)]);
+        var row = (ListBoxItem)Find<ListBox>(card, "AccountsList").ContainerFromIndex(0)!;
+
+        // Act
+        var name = ControlAutomationPeer.CreatePeerForElement(row).GetName();
+
+        // Assert
+        Assert.Equal("Everyday", name);
     }
 
     [AvaloniaFact]
