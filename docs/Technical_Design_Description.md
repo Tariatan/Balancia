@@ -390,7 +390,8 @@ An existing Windows backup/snapshot configuration without a remembered key promp
 | `OverviewState.cs`           | Owns what the user chose on the Overview: period, filter, transactions page and trend zoom, and the rules for how one choice changes another (a new period restarts the page, typed dates make a custom range, a category selects its subcategories). It holds no controls and reads no clock, so it is tested as plain code. |
 | `FiltersPanel.cs`            | Builds the Overview filter row controls                                         |
 | `TransactionsPanel.cs`       | Builds the paged transactions card and the transaction edit dialog              |
-| `CategoriesPanel.cs`         | Category management, checkbox filtering and top-expenses card                   |
+| `CategoriesPanel.cs`         | Category add/edit/archive/delete dialogs, the wiring of `CategoriesCard`, and the top-expenditures card |
+| `CategoriesCard.axaml(.cs)`  | The categories card as a user control: `Render` draws the category tree with group tints, indented subcategories, archived markers and a filter checkbox per category; add, toggle-all, archive, remove, edit and filter-toggle requests are raised as events and `SyncFilterChecks` follows the filter. It holds no store or window reference, so it is tested on its own. |
 | `RemindersPanel.cs`          | Reminder add/edit and delete dialogs, and the wiring of `RemindersCard`         |
 | `RemindersCard.axaml(.cs)`   | The reminders card as a user control: `Render(reminders, today)` draws the rows and totals, and add, remove and edit requests are raised as events. It holds no store or window reference, so it is tested on its own. |
 | `Accounts.cs`                | Account add/edit/archive/delete dialogs and the wiring of `AccountsCard`        |

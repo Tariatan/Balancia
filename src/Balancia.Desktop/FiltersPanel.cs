@@ -133,7 +133,7 @@ public partial class MainWindow
 
         SyncOverviewFilterInputs();
         SyncOverviewFilterDates();
-        SyncCategoryFilterChecks();
+        CategoriesCard.SyncFilterChecks();
         AccountsCard.SyncFilterChecks();
         await RequestOverviewFilterRefresh();
     }
@@ -163,7 +163,7 @@ public partial class MainWindow
             UpdateFilterButtons();
         }
 
-        SyncCategoryFilterChecks();
+        CategoriesCard.SyncFilterChecks();
         AccountsCard.SyncFilterChecks();
         await RequestOverviewFilterRefresh();
     }
