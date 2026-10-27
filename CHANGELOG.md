@@ -14,6 +14,17 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.17] - 2026-10-27
+
+#### Changed
+
+- The fields of the add and edit transaction dialog are built by `TransactionForm`, which is given what it needs (`TransactionFormInputs`: the transaction being edited, today, the accounts and categories, the default and last used account, the recent descriptions and the regular category paths, and a way to read the regular paths again) and holds no window, store or settings reference. It knows what the fields start with, when they are valid, what they save and how "Add another" resets them. The window only reads the data, opens the dialog and saves what the form returns. No visible behavior change.
+- The shared dialog controls (`Field`, `Input`, `DateInput`, `Text`, `Row`, `ChoiceBox`, `SelectedValue`) moved from private members of the window to `FormControls`, and `UiHelpers.cs` is gone.
+
+#### Added
+
+- 28 tests that drive the form on its own: the field order and labels, the starting values for a new and an edited transaction, which accounts are offered and which one starts selected, showing the destination for a transfer and the category otherwise, reading the draft (an amount typed as an expression, the category path, the destination only for a transfer), unreadable amounts and dates, validation, the amount being evaluated when it loses focus, and what "Add another" resets and keeps.
+
 ### [3.4.16] - 2026-10-27
 
 #### Fixed

@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Balancia.Storage;
 using Serilog;
 
+using static Balancia.Desktop.FormControls;
 using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
