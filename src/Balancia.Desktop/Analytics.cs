@@ -9,9 +9,10 @@ public partial class MainWindow
         RefreshTrendIntervalLabel();
         TrendCard.ZoomRequested += zoomOut =>
         {
-            if (overviewState.ZoomTrend(zoomOut))
+            var change = overviewState.ZoomTrend(zoomOut);
+            if (change != OverviewChange.None)
             {
-                RefreshTrendIntervalLabel();
+                ShowOverviewChange(change);
                 UpdateAnalyticsCharts();
             }
         };

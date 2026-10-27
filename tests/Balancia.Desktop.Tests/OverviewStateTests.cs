@@ -18,7 +18,7 @@ public sealed class OverviewStateTests
     private static readonly Category[] Categories = [Food, Lunch, Dinner, Travel];
 
     /// <summary>What the filter row passes when the user changes only the text: the dates the controls show are the period's.</summary>
-    private static FilterApplication ApplyText(OverviewState state, string? description) =>
+    private static OverviewChange ApplyText(OverviewState state, string? description) =>
         state.ApplyFilterValues(description, MonthStart, MonthEnd, null, null, Today);
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed class OverviewStateTests
         var result = ApplyText(state, "lunch");
 
         // Assert
-        Assert.Equal(FilterApplication.Unchanged, result);
+        Assert.Equal(OverviewChange.None, result);
         Assert.Equal(100, state.Offset);
     }
 
@@ -147,7 +147,7 @@ public sealed class OverviewStateTests
         var result = ApplyText(state, "lunch");
 
         // Assert
-        Assert.Equal(FilterApplication.Applied, result);
+        Assert.Equal(OverviewChange.Reload, result);
         Assert.Equal(OverviewPeriod.ThisMonth, state.Period);
         Assert.Equal("lunch", state.Filter.Description);
         Assert.Equal(0, state.Offset);
@@ -191,7 +191,7 @@ public sealed class OverviewStateTests
         var result = state.ApplyFilterValues(null, new DateOnly(2026, 10, 5), new DateOnly(2026, 10, 9), null, null, Today);
 
         // Assert
-        Assert.Equal(FilterApplication.AppliedAsCustomRange, result);
+        Assert.Equal(OverviewChange.Reload | OverviewChange.PeriodButtons | OverviewChange.TrendInterval, result);
         Assert.Equal(OverviewPeriod.Custom, state.Period);
         Assert.Equal(new DateOnly(2026, 10, 5), state.CustomFrom);
         Assert.Equal(new DateOnly(2026, 10, 9), state.CustomTo);
@@ -210,7 +210,7 @@ public sealed class OverviewStateTests
         var result = state.ApplyFilterValues("lunch", new DateOnly(2026, 9, 14), Today, null, null, Today);
 
         // Assert
-        Assert.Equal(FilterApplication.Applied, result);
+        Assert.Equal(OverviewChange.Reload, result);
         Assert.Equal(OverviewPeriod.Last30Days, state.Period);
         Assert.Equal("lunch", state.Filter.Description);
         Assert.Null(state.Filter.From);
@@ -235,6 +235,20 @@ public sealed class OverviewStateTests
         Assert.Null(state.CustomTo);
         Assert.Equal(new TransactionsFilter(), state.Filter);
         Assert.Equal(0, state.Offset);
+    }
+
+    [Fact]
+    public void Clear_CustomRange_ResetsTheTrendZoomToThisMonthsStart()
+    {
+        // Arrange
+        var state = new OverviewState();
+        state.ApplyFilterValues(null, new DateOnly(2026, 10, 5), new DateOnly(2026, 10, 9), null, null, Today);
+
+        // Act
+        state.Clear();
+
+        // Assert
+        Assert.Equal(FlowInterval.Week, state.TrendInterval);
     }
 
     [Fact]
@@ -535,16 +549,101 @@ public sealed class OverviewStateTests
         var state = new OverviewState();
 
         // Act and Assert
-        Assert.True(state.ZoomTrend(true));
+        Assert.Equal(OverviewChange.TrendInterval, state.ZoomTrend(true));
         Assert.Equal(FlowInterval.Month, state.TrendInterval);
-        Assert.False(state.ZoomTrend(true));
+        Assert.Equal(OverviewChange.None, state.ZoomTrend(true));
         Assert.Equal(FlowInterval.Month, state.TrendInterval);
-        Assert.True(state.ZoomTrend(false));
+        Assert.Equal(OverviewChange.TrendInterval, state.ZoomTrend(false));
         Assert.Equal(FlowInterval.Week, state.TrendInterval);
-        Assert.True(state.ZoomTrend(false));
+        Assert.Equal(OverviewChange.TrendInterval, state.ZoomTrend(false));
         Assert.Equal(FlowInterval.Day, state.TrendInterval);
-        Assert.False(state.ZoomTrend(false));
+        Assert.Equal(OverviewChange.None, state.ZoomTrend(false));
         Assert.Equal(FlowInterval.Day, state.TrendInterval);
+    }
+
+    [Fact]
+    public void SelectPeriod_AnyPreset_AsksForReloadButtonsZoomAndDates()
+    {
+        // Arrange
+        var state = new OverviewState();
+
+        // Act
+        var change = state.SelectPeriod(OverviewPeriod.ThisWeek, Today);
+
+        // Assert
+        Assert.Equal(OverviewChange.Reload | OverviewChange.PeriodButtons | OverviewChange.TrendInterval | OverviewChange.Dates, change);
+    }
+
+    [Fact]
+    public void Clear_CustomRange_AsksForEveryControlIncludingButtonsAndZoom()
+    {
+        // Arrange
+        var state = new OverviewState();
+        state.ApplyFilterValues(null, new DateOnly(2026, 10, 5), new DateOnly(2026, 10, 9), null, null, Today);
+
+        // Act
+        var change = state.Clear();
+
+        // Assert
+        Assert.Equal(
+            OverviewChange.Reload | OverviewChange.PeriodButtons | OverviewChange.TrendInterval | OverviewChange.Dates |
+            OverviewChange.Inputs | OverviewChange.AccountChecks | OverviewChange.CategoryChecks,
+            change);
+    }
+
+    [Fact]
+    public void Clear_PresetPeriod_LeavesTheButtonsAndZoomAlone()
+    {
+        // Arrange
+        var state = new OverviewState();
+        state.SelectPeriod(OverviewPeriod.Day, Today);
+
+        // Act
+        var change = state.Clear();
+
+        // Assert
+        Assert.Equal(
+            OverviewChange.Reload | OverviewChange.Dates | OverviewChange.Inputs | OverviewChange.AccountChecks | OverviewChange.CategoryChecks,
+            change);
+    }
+
+    [Fact]
+    public void ToggleAccount_Selecting_AsksForReloadAndTheAccountChecks()
+    {
+        // Arrange
+        var state = new OverviewState();
+
+        // Act
+        var change = state.ToggleAccount("a", true);
+
+        // Assert
+        Assert.Equal(OverviewChange.Reload | OverviewChange.AccountChecks, change);
+    }
+
+    [Fact]
+    public void ToggleCategory_Selecting_AsksForReloadAndTheCategoryChecks()
+    {
+        // Arrange
+        var state = new OverviewState();
+
+        // Act
+        var change = state.ToggleCategory("food", true, Categories);
+
+        // Assert
+        Assert.Equal(OverviewChange.Reload | OverviewChange.CategoryChecks, change);
+    }
+
+    [Fact]
+    public void ToggleAllCategories_AsksForReloadAndTheCategoryChecks()
+    {
+        // Arrange
+        var state = new OverviewState();
+
+        // Act
+        var change = state.ToggleAllCategories(Categories);
+
+        // Assert
+        Assert.Equal(OverviewChange.Reload | OverviewChange.CategoryChecks, change);
     }
 
     [Theory]

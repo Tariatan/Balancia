@@ -24,48 +24,57 @@ public partial class MainWindow
         FilterRow.ShowDates(overviewState.Filter.From ?? range.From, overviewState.Filter.To ?? range.To);
     }
 
-    private async Task SelectOverviewPeriod(OverviewPeriod period)
+    /// <summary>Brings the controls that show the overview state in line with what <paramref name="change"/> says changed.</summary>
+    private void ShowOverviewChange(OverviewChange change)
     {
-        overviewState.SelectPeriod(period, displayDate);
-        RefreshTrendIntervalLabel();
-        SyncOverviewFilterDates();
-        UpdateFilterButtons();
-        await operations.RequestRefreshAsync();
-    }
-
-    private async Task ClearOverviewFilters()
-    {
-        var wasCustomRange = overviewState.Period == OverviewPeriod.Custom;
-        overviewState.Clear();
-        if (wasCustomRange)
+        if (change.HasFlag(OverviewChange.PeriodButtons))
         {
             UpdateFilterButtons();
         }
 
-        SyncOverviewFilterInputs();
-        SyncOverviewFilterDates();
-        CategoriesCard.SyncFilterChecks();
-        AccountsCard.SyncFilterChecks();
-        await operations.RequestRefreshAsync();
-    }
-
-    private async Task ApplyOverviewFilterValues()
-    {
-        var values = FilterRow.Read();
-        var application = overviewState.ApplyFilterValues(values.Description, values.From, values.To, values.Minimum, values.Maximum, displayDate);
-        if (application == FilterApplication.Unchanged)
-        {
-            return;
-        }
-
-        if (application == FilterApplication.AppliedAsCustomRange)
+        if (change.HasFlag(OverviewChange.TrendInterval))
         {
             RefreshTrendIntervalLabel();
-            UpdateFilterButtons();
         }
 
-        CategoriesCard.SyncFilterChecks();
-        AccountsCard.SyncFilterChecks();
-        await operations.RequestRefreshAsync();
+        if (change.HasFlag(OverviewChange.Inputs))
+        {
+            SyncOverviewFilterInputs();
+        }
+
+        if (change.HasFlag(OverviewChange.Dates))
+        {
+            SyncOverviewFilterDates();
+        }
+
+        if (change.HasFlag(OverviewChange.AccountChecks))
+        {
+            AccountsCard.SyncFilterChecks();
+        }
+
+        if (change.HasFlag(OverviewChange.CategoryChecks))
+        {
+            CategoriesCard.SyncFilterChecks();
+        }
+    }
+
+    /// <summary>Shows <paramref name="change"/> at once, then reloads the data when it asks for that.</summary>
+    private async Task ApplyOverviewChange(OverviewChange change)
+    {
+        ShowOverviewChange(change);
+        if (change.HasFlag(OverviewChange.Reload))
+        {
+            await operations.RequestRefreshAsync();
+        }
+    }
+
+    private Task SelectOverviewPeriod(OverviewPeriod period) => ApplyOverviewChange(overviewState.SelectPeriod(period, displayDate));
+
+    private Task ClearOverviewFilters() => ApplyOverviewChange(overviewState.Clear());
+
+    private Task ApplyOverviewFilterValues()
+    {
+        var values = FilterRow.Read();
+        return ApplyOverviewChange(overviewState.ApplyFilterValues(values.Description, values.From, values.To, values.Minimum, values.Maximum, displayDate));
     }
 }
