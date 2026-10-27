@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <ApplicationIcon>Balancia.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <Version>3.4.13</Version>
+    <Version>3.4.14</Version>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Balancia.Desktop.Tests" />
