@@ -14,6 +14,26 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.16] - 2026-10-27
+
+#### Fixed
+
+- In the add transaction dialog, a description saved with "Add another transaction" is offered by the description suggestions from then on. The suggestions used to keep the list read when the dialog opened, so a description saved a moment ago was not offered until the dialog was opened again. `DescriptionSuggestBox.Remember` adds it, first among its matches.
+
+#### Added
+
+- Tests for it, including one that saves a transaction with "Add another transaction" and then types the start of its description in the real dialog.
+
+### [3.4.15] - 2026-10-27
+
+#### Changed
+
+- The two suggestion popups of the add and edit transaction dialog are their own controls, `DescriptionSuggestBox` (earlier descriptions that start with what was typed) and `CategorySuggestBox` (category paths ranked into regular, top match and the rest), instead of static builders in the window. Behavior is unchanged.
+
+#### Added
+
+- 27 tests of the two controls: matching, the 20 match limit, opening only while focused, Up and Down with clamping, Tab (and Shift+Tab, which moves the focus on and closes the popup), Escape, clicking, losing focus, not reopening right after an accept, the section headers and highlighted row, and the category box's reset.
+
 ### [3.4.14] - 2026-10-27
 
 #### Changed

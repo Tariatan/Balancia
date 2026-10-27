@@ -400,7 +400,8 @@ An existing Windows backup/snapshot configuration without a remembered key promp
 | `Accounts.cs`                | Account add/edit/archive/delete dialogs and the wiring of `AccountsCard`        |
 | `AccountsCard.axaml(.cs)`    | The accounts card as a user control: `Render` draws the balances, the default-account highlight, the net worth and a filter checkbox per account; add, archive, remove, edit and filter-toggle requests are raised as events and `SyncFilterChecks` follows the filter. It holds no store, settings or window reference, so it is tested on its own. |
 | `Analytics.cs`               | Trend and Timeline chart panels and their data                                  |
-| `DescriptionSuggestions.cs`  | Description suggestions in the transaction dialog                               |
+| `DescriptionSuggestBox.cs`   | A text box with a popup of earlier descriptions that start with what was typed (Up and Down move, Tab accepts, Escape closes, a click accepts); `Remember` adds a description saved while the dialog stays open |
+| `CategorySuggestBox.cs`      | A text box with a popup of category paths ranked by `CategorySuggestionRanking` (regular paths, top match, the rest); Up and Down move the highlight, Tab or a click accepts, and `Reset` clears it for the next entry |
 | `DataTransfer.cs`            | CSV import/export and snapshot export/restore actions, with replaceable pickers |
 | `Settings.cs`                | Folder pickers, location changes, and settings persistence                      |
 | `ApplicationSettings.cs`     | The settings records and `SettingsStore`                                        |

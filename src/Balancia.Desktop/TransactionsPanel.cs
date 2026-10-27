@@ -19,9 +19,6 @@ public partial class MainWindow
 {
     private const int TransactionsPageSize = 100;
 
-    private static readonly IBrush SuggestionSelectedBrush = Brush.Parse("#3989A7");
-    private static readonly IBrush SuggestionTopMatchBrush = Brush.Parse("#52636C");
-
     private void InitializeTransactionsPanel()
     {
         TransactionsCard.AddRequested += async () => await EditTransaction(null);
@@ -57,8 +54,7 @@ public partial class MainWindow
 
         var date = DateInput(existing?.Date ?? Today);
         var description = Input(existing?.Description ?? "");
-        var descriptionHistory = (await Task.Run(() => store.ReadRecentDescriptions())).ToList();
-        var descriptionInput = DescriptionInput(description, descriptionHistory);
+        var descriptionInput = new DescriptionSuggestBox(description, await Task.Run(() => store.ReadRecentDescriptions()));
 
         var amount = Input(existing?.Amount.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
         amount.LostFocus += (_, _) => NormalizeAmount(amount);
@@ -77,7 +73,7 @@ public partial class MainWindow
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
 
-        var (categoryInput, resetCategoryInput) = CategoryInput(category,
+        var categoryInput = new CategorySuggestBox(category,
             [.. availableCategories.Select(c => c.Path)],
             await Task.Run(() => store.ReadRegularCategoryPaths()));
         var memo = Input(existing?.Memo ?? "");
@@ -97,16 +93,12 @@ public partial class MainWindow
         {
             continueAfterSave = async () =>
             {
-                if (!string.IsNullOrWhiteSpace(description.Text))
-                {
-                    descriptionHistory.RemoveAll(value => string.Equals(value, description.Text, StringComparison.OrdinalIgnoreCase));
-                    descriptionHistory.Insert(0, description.Text);
-                }
+                descriptionInput.Remember(description.Text ?? "");
                 var regularCategoryPaths = await Task.Run(() => store.ReadRegularCategoryPaths());
                 description.Text = "";
                 amount.Text = "";
                 memo.Text = "";
-                resetCategoryInput(regularCategoryPaths);
+                categoryInput.Reset(regularCategoryPaths);
             };
         }
 
@@ -162,192 +154,10 @@ public partial class MainWindow
 
     private static T SelectedValue<T>(ComboBox box) => ((Choice<T>)box.SelectedItem!).Value;
 
-    /// <summary>
-    /// Wraps the category box with a suggestion popup. The returned action clears the box and its suggestions and
-    /// replaces the regular-category list used for ranking.
-    /// </summary>
-    private static (Grid Input, Action<IReadOnlyList<string>> Reset) CategoryInput(
-        TextBox category, IReadOnlyList<string> categoryPaths, IReadOnlyList<string> regularCategoryPaths)
-    {
-        IReadOnlyList<CategorySuggestion> suggestions = [];
-        var selectedIndex = -1;
-        var accepting = false;
-        string? acceptedPath = null;
-        var rows = new StackPanel();
-        var popupContent = new Border
-        {
-            MinWidth = 300,
-            Background = Brush.Parse("#E5E5E5"),
-            BorderBrush = Brush.Parse("#BFC7CB"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(8),
-            Child = new ScrollViewer { MaxHeight = 240, Content = rows }
-        };
-        var popup = new Popup
-        {
-            PlacementTarget = category,
-            Placement = PlacementMode.Bottom,
-            IsLightDismissEnabled = true,
-            Child = popupContent
-        };
-        var input = new Grid();
-        input.Children.Add(category);
-        input.Children.Add(popup);
-
-        category.TextChanged += (_, _) =>
-        {
-            if (accepting)
-            {
-                return;
-            }
-
-            var query = category.Text ?? string.Empty;
-            var justAccepted = acceptedPath is not null && string.Equals(query, acceptedPath, StringComparison.Ordinal);
-            acceptedPath = null;
-            if (justAccepted)
-            {
-                popup.IsOpen = false;
-                return;
-            }
-
-            var matches = string.IsNullOrWhiteSpace(query)
-                ? []
-                : CategorySuggestionRanking.Build(categoryPaths, regularCategoryPaths, query);
-            selectedIndex = matches.Count > 0 ? 0 : -1;
-            suggestions = CategorySuggestionRanking.Highlight(matches, selectedIndex);
-            Render();
-            popup.IsOpen = matches.Count > 0;
-        };
-        category.AddHandler(KeyDownEvent, (_, eventArgs) =>
-        {
-            if (suggestions.Count == 0)
-            {
-                return;
-            }
-
-            switch (eventArgs.Key)
-            {
-                case Key.Down or Key.Up:
-                    selectedIndex = Math.Clamp(selectedIndex + (eventArgs.Key == Key.Down ? 1 : -1), 0, suggestions.Count - 1);
-                    suggestions = CategorySuggestionRanking.Highlight(suggestions, selectedIndex);
-                    Render();
-                    popup.IsOpen = true;
-                    eventArgs.Handled = true;
-                    break;
-                case Key.Tab:
-                    Accept(suggestions[Math.Clamp(selectedIndex, 0, suggestions.Count - 1)]);
-                    break;
-            }
-        }, RoutingStrategies.Tunnel);
-
-        return (input, Reset);
-
-        void Reset(IReadOnlyList<string> newRegularCategoryPaths)
-        {
-            regularCategoryPaths = newRegularCategoryPaths;
-            acceptedPath = null;
-            suggestions = [];
-            selectedIndex = -1;
-            rows.Children.Clear();
-            popup.IsOpen = false;
-            category.Text = string.Empty;
-        }
-
-        void Accept(CategorySuggestion suggestion)
-        {
-            acceptedPath = suggestion.Path;
-            accepting = true;
-            try
-            {
-                category.Text = suggestion.Path;
-                popup.IsOpen = false;
-            }
-            finally
-            {
-                accepting = false;
-            }
-        }
-
-        void Render()
-        {
-            rows.Children.Clear();
-            if (category.Bounds.Width > 0)
-            {
-                popupContent.Width = category.Bounds.Width;
-            }
-
-            foreach (var suggestion in suggestions)
-            {
-                var button = SuggestionButton(suggestion, () => Accept(suggestion));
-                rows.Children.Add(button);
-                if (suggestion.IsKeyboardSelected)
-                {
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        if (popup.IsOpen && rows.Children.Contains(button))
-                        {
-                            button.BringIntoView();
-                        }
-                    }, DispatcherPriority.Loaded);
-                }
-            }
-        }
-    }
-
-    private static Button SuggestionButton(CategorySuggestion suggestion, Action accept)
-    {
-        var button = new Button
-        {
-            Content = CategorySuggestionRow(suggestion),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            Padding = new Thickness(0),
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0)
-        };
-        button.Click += (_, _) => accept();
-        return button;
-    }
-
     private Task RemoveTransaction(LedgerEntry entry) => EditDialog("Remove transaction",
         [
             TransactionRows.Build(new TransactionsHit(entry, null), "(No description)"),
             Text("Remove this transaction? For a transfer, both account movements will be removed together.")
         ],
         () => () => store.DeleteTransaction(entry.Id), DialogOptions.Confirmation("Remove", size: DialogSize.Wide));
-
-    private static Control CategorySuggestionRow(CategorySuggestion suggestion)
-    {
-        var body = new StackPanel();
-        if (suggestion.Section is { } section)
-        {
-            var label = section switch
-            {
-                CategorySuggestionSection.TopMatch => "TOP MATCH",
-                CategorySuggestionSection.Regular => "REGULAR",
-                _ => "Category suggestion header",
-            };
-            body.Children.Add(new TextBlock
-            {
-                Text = Get(label),
-                FontSize = 10,
-                FontWeight = FontWeight.SemiBold,
-                Foreground = section == CategorySuggestionSection.TopMatch ? SuggestionTopMatchBrush : TransactionRows.HeaderBrush,
-                Margin = new Thickness(2, 4, 2, 2)
-            });
-        }
-
-        body.Children.Add(new Border
-        {
-            Background = suggestion.IsKeyboardSelected ? SuggestionSelectedBrush : Brushes.Transparent,
-            Padding = new Thickness(8, 6),
-            Child = new TextBlock
-            {
-                Text = suggestion.Path,
-                Foreground = suggestion.IsKeyboardSelected ? Brushes.White : TransactionRows.TextBrush
-            }
-        });
-        return body;
-    }
 }
