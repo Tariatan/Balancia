@@ -14,6 +14,17 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.21] - 2026-10-27
+
+#### Changed
+
+- The filter row is the `FilterRow` user control (its buttons, date and amount inputs, tone colors and period highlight were part of the window). The window now only applies what the row reports to the overview state. Filtering, the period highlight, the search shortcuts and the localization behave as before.
+- Removed two pieces of state the window no longer needs: a "filters visible" flag that was always true, and the `updatingFilterControls` flag, whose checks in the account and category toggles could never fire.
+
+#### Added
+
+- 31 tests of the filter row, including that every period button and input raises the right event, that Enter, leaving an input, clearing the search and a closing calendar commit, that showing values never commits, which period is highlighted, the dark and muted input colors, and that an amount that is not a number fails to read.
+
 ### [3.4.20] - 2026-10-27
 
 #### Changed

@@ -14,7 +14,7 @@ public partial class MainWindow
         ExpensesCard.Title = Get("Expenses");
         AverageIncomeCard.Title = Get("Average");
         AverageExpensesCard.Title = Get("Average");
-        LocalizeFilters();
+        FilterRow.Localize();
         TransactionsCard.Localize();
         RefreshTrendIntervalLabel();
     }

@@ -1,5 +1,3 @@
-using Avalonia.Controls;
-using Avalonia.Media;
 using Balancia.Core;
 using Balancia.Storage;
 
@@ -10,15 +8,6 @@ namespace Balancia.Desktop;
 public partial class MainWindow
 {
     private readonly OverviewState overviewState = new();
-    private bool overviewFiltersVisible;
-
-    private readonly Dictionary<OverviewPeriod, Button> overviewPeriodButtons = [];
-    private (OverviewPeriod Period, bool FiltersVisible)? renderedPeriodState;
-
-    private bool updatingFilterControls;
-
-    private static readonly IBrush SelectedPeriodBackground = Brush.Parse("#D8ECF3");
-    private static readonly IBrush SelectedPeriodForeground = Brush.Parse("#1C627E");
 
     private string OverviewPeriodLabel() => overviewState.Period switch
     {
@@ -42,47 +31,5 @@ public partial class MainWindow
         _ => "Per calendar month",
     };
 
-    private void UpdateFilterButtons()
-    {
-        var current = (overviewState.Period, overviewFiltersVisible);
-        if (renderedPeriodState == current)
-        {
-            return;
-        }
-
-        foreach (var (period, button) in overviewPeriodButtons)
-        {
-            var selected = period == overviewState.Period ||
-                (period == OverviewPeriod.Custom && overviewFiltersVisible);
-            if (selected)
-            {
-                button.Background = SelectedPeriodBackground;
-                button.Foreground = SelectedPeriodForeground;
-                button.FontWeight = FontWeight.SemiBold;
-            }
-            else
-            {
-                button.ClearValue(BackgroundProperty);
-                button.ClearValue(ForegroundProperty);
-                button.ClearValue(FontWeightProperty);
-            }
-        }
-
-        renderedPeriodState = current;
-    }
-
-    private void SyncOverviewFilterDates()
-    {
-        var range = overviewState.Range(displayDate);
-        updatingFilterControls = true;
-        try
-        {
-            FilterFrom.SelectedDate = (overviewState.Filter.From ?? range.From)?.ToDateTime(TimeOnly.MinValue);
-            FilterTo.SelectedDate = (overviewState.Filter.To ?? range.To)?.ToDateTime(TimeOnly.MinValue);
-        }
-        finally
-        {
-            updatingFilterControls = false;
-        }
-    }
+    private void UpdateFilterButtons() => FilterRow.ShowPeriod(overviewState.Period);
 }

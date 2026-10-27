@@ -234,7 +234,7 @@ public partial class MainWindow : Window
         TopExpendituresCard.Render(s.LargestCategories, TopExpendituresScope(s));
         SyncOverviewFilterInputs();
         SyncOverviewFilterDates();
-        renderedPeriodState = null;
+        FilterRow.ForgetShownPeriod();
         TransactionsCard.Invalidate();
         RenderOverview(s);
     }

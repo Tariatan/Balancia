@@ -26,11 +26,6 @@ public partial class MainWindow
 
     private async Task ToggleCategoryFilter(string id, bool selected)
     {
-        if (updatingFilterControls)
-        {
-            return;
-        }
-
         overviewState.ToggleCategory(id, selected, overview!.Snapshot.Categories);
         CategoriesCard.SyncFilterChecks();
         await operations.RequestRefreshAsync();
@@ -38,7 +33,7 @@ public partial class MainWindow
 
     private async Task ToggleAllCategoryFilters()
     {
-        if (updatingFilterControls || overview is null)
+        if (overview is null)
         {
             return;
         }
