@@ -9,8 +9,11 @@ namespace Balancia.Desktop.Tests;
 /// <summary>Drives a shown <see cref="MainWindow"/> through its real controls, the way a user would.</summary>
 internal static class WindowDriver
 {
+    /// <summary>Finds a named control in the window or inside any of its user controls, whose names live in their own name scopes.</summary>
     public static T Find<T>(this Window window, string name) where T : Control =>
-        window.FindControl<T>(name) ?? throw new InvalidOperationException($"Control '{name}' was not found.");
+        window.FindControl<T>(name)
+        ?? window.GetLogicalDescendants().OfType<T>().FirstOrDefault(control => control.Name == name)
+        ?? throw new InvalidOperationException($"Control '{name}' was not found.");
 
     public static void Click(this Window window, string buttonName) =>
         window.Find<Button>(buttonName).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
