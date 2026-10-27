@@ -1,13 +1,6 @@
-using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
-using Avalonia.Data;
-using Avalonia.Data.Converters;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Styling;
-using Avalonia.VisualTree;
 using Balancia.Core;
 
 using static Balancia.Desktop.InputParsing;
@@ -17,122 +10,21 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private readonly Dictionary<string, CheckBox> categoryFilterChecks = [];
-    private readonly Dictionary<string, IBrush> categoryGroupBrushes = [];
     private IReadOnlyList<CategoryTotal> renderedCategories = [];
     private string? renderedCategoryId;
 
-    private Category? SelectedCategory => (CategoriesList.SelectedItem as Choice<Category>)?.Value;
-
-    private static string WithArchivedMarker(string text, bool archived) =>
-        archived ? text + Get(" (archived)") : text;
-
     private void InitializeCategoryPanel()
     {
-        CategoriesList.Styles.Add(new Style(selector => selector.OfType<ListBoxItem>())
-        {
-            Setters =
-            {
-                new Setter(BackgroundProperty, new Binding(".")
-                {
-                    Converter = new FuncValueConverter<Choice<Category>, IBrush>(choice =>
-                        choice is not null && categoryGroupBrushes.TryGetValue(choice.Value.ParentId ?? choice.Value.Id, out var brush)
-                            ? brush : DayIvoryBrush),
-                }),
-            },
-        });
-        CategoriesList.ItemTemplate = new FuncDataTemplate<Choice<Category>>((choice, _) =>
-        {
-            // Virtualized presenters can request a template with no item while scrolling.
-            if (choice is null)
-            {
-                return null;
-            }
-
-            var category = choice.Value;
-            var check = new CheckBox
-            {
-                Classes = { "compact-filter-checkbox" },
-                IsChecked = overviewState.IsCategorySelected(category.Id),
-            };
-            AutomationProperties.SetName(check, category.Path);
-            ToolTip.SetTip(check, category.Path);
-            categoryFilterChecks[category.Id] = check;
-            check.IsCheckedChanged += async (_, _) =>
-            {
-                if (!updatingFilterControls && check.FindAncestorOfType<ListBox>() is { } list)
-                {
-                    list.SelectedItem = choice;
-                }
-
-                await ToggleCategoryFilter(category.Id, check.IsChecked == true);
-            };
-            var row = new Grid
-            {
-                ColumnDefinitions = new ColumnDefinitions("Auto,*"),
-                ColumnSpacing = 7,
-                Margin = new Thickness(category.ParentId is null ? 0 : 15, 0, 0, 0),
-            };
-            row.Children.Add(check);
-            var name = new TextBlock
-            {
-                Text = WithArchivedMarker(category.Name, category.Archived),
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            GridLayout.Place(row, name, 1);
-            return row;
-        });
-        CategoriesList.DoubleTapped += async (_, _) =>
-        {
-            if (SelectedCategory is { } category)
-            {
-                await EditCategory(category);
-            }
-        };
-        CategorySelectAllButton.Click += async (_, _) => await ToggleAllCategoryFilters();
-        CategoryAddButton.Click += async (_, _) => await EditCategory(null);
-        CategoryArchiveButton.Click += async (_, _) => await ArchiveSelectedCategory();
-        CategoryRemoveButton.Click += async (_, _) => await DeleteSelectedCategory();
+        CategoriesCard.AddRequested += async () => await EditCategory(null);
+        CategoriesCard.EditRequested += async category => await EditCategory(category);
+        CategoriesCard.SelectAllRequested += async () => await ToggleAllCategoryFilters();
+        CategoriesCard.ArchiveRequested += async () => await ArchiveSelectedCategory();
+        CategoriesCard.RemoveRequested += async () => await DeleteSelectedCategory();
+        CategoriesCard.FilterToggled += async (id, selected) => await ToggleCategoryFilter(id, selected);
     }
 
-    private void RenderCategoryPanel(LedgerSnapshot ledgerSnapshot)
-    {
-        CategoriesHeading.Text = Get("Categories");
-        var selectionLabel = Get("Toggle all categories");
-        ToolTip.SetTip(CategorySelectAllButton, selectionLabel);
-        AutomationProperties.SetName(CategorySelectAllButton, selectionLabel);
-        ToolTip.SetTip(CategoryAddButton, Get("Add category"));
-        ToolTip.SetTip(CategoryArchiveButton, Get("Archive selected category"));
-        ToolTip.SetTip(CategoryRemoveButton, Get("Delete selected category"));
-
-        categoryFilterChecks.Clear();
-        categoryGroupBrushes.Clear();
-        foreach (var category in ledgerSnapshot.Categories.Where(category => category.ParentId is null))
-        {
-            categoryGroupBrushes[category.Id] = categoryGroupBrushes.Count % 2 == 0 ? DayIvoryBrush : DayBlueBrush;
-        }
-        CategoriesList.ItemsSource = ledgerSnapshot.Categories
-            .Select(category => new Choice<Category>(category,
-                WithArchivedMarker(category.Path, category.Archived)))
-            .ToArray();
-    }
-
-    private void SyncCategoryFilterChecks()
-    {
-        var wasUpdating = updatingFilterControls;
-        updatingFilterControls = true;
-        try
-        {
-            foreach (var (id, check) in categoryFilterChecks)
-            {
-                check.IsChecked = overviewState.IsCategorySelected(id);
-            }
-        }
-        finally
-        {
-            updatingFilterControls = wasUpdating;
-        }
-    }
+    private void RenderCategoryPanel(LedgerSnapshot ledgerSnapshot) =>
+        CategoriesCard.Render(ledgerSnapshot.Categories, overviewState.IsCategorySelected);
 
     private async Task ToggleCategoryFilter(string id, bool selected)
     {
@@ -142,7 +34,7 @@ public partial class MainWindow
         }
 
         overviewState.ToggleCategory(id, selected, overview!.Snapshot.Categories);
-        SyncCategoryFilterChecks();
+        CategoriesCard.SyncFilterChecks();
         await RequestOverviewFilterRefresh();
     }
 
@@ -154,13 +46,13 @@ public partial class MainWindow
         }
 
         overviewState.ToggleAllCategories(overview.Snapshot.Categories);
-        SyncCategoryFilterChecks();
+        CategoriesCard.SyncFilterChecks();
         await RequestOverviewFilterRefresh();
     }
 
     private async Task ArchiveSelectedCategory()
     {
-        if (SelectedCategory is not { } category)
+        if (CategoriesCard.Selected is not { } category)
         {
             return;
         }
@@ -176,7 +68,7 @@ public partial class MainWindow
 
     private async Task DeleteSelectedCategory()
     {
-        if (SelectedCategory is not { } category)
+        if (CategoriesCard.Selected is not { } category)
         {
             return;
         }
@@ -215,7 +107,7 @@ public partial class MainWindow
         if (category?.ParentId is { } current && options.All(c => c.Value != current))
         {
             var archivedParent = overview!.Snapshot.Categories.Single(c => c.Id == current);
-            options.Add(new Choice<string?>(current, WithArchivedMarker(archivedParent.Path, archivedParent.Archived)));
+            options.Add(new Choice<string?>(current, ArchivedLabel.Of(archivedParent.Path, archivedParent.Archived)));
         }
 
         var parent = new ComboBox

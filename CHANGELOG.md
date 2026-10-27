@@ -14,6 +14,27 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.11] - 2026-10-27
+
+#### Changed
+
+- The categories card is its own user control, `CategoriesCard`: `Render` draws the category tree with group tints, indented subcategories, archived markers and a filter checkbox per category, and add, toggle-all, archive, remove, edit and filter-toggle requests are raised as events. `MainWindow` keeps the dialogs, saving, the filter and the top-expenditures card. No visible behavior change.
+- `ArchivedLabel` holds the "(archived)" marker text that the window and the card share.
+
+#### Added
+
+- 12 tests that drive `CategoriesCard` on its own: rows, group tints, subcategory indent, the archived marker, the accessibility name, checkboxes following the filter, syncing without raising toggles, a user toggle selecting the row, the four buttons, selection and a real double-click.
+
+### [3.4.10] - 2026-10-27
+
+#### Fixed
+
+- Rows in the Reminders and Accounts cards announce their description or account name to screen readers again. Since 3.4.6 (reminders) and 3.4.9 (accounts) a row was announced as the technical text of its record, for example `Account { Id = ..., Name = ... }`. List rows use the shared `Choice<T>` item again, as the panels did before they became cards.
+
+#### Added
+
+- Tests for the accessibility name of a reminder row and an account row.
+
 ### [3.4.9] - 2026-10-27
 
 #### Changed
