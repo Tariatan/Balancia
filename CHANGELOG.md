@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.5] - 2026-10-26
+
+#### Changed
+
+- Windows restore applies the snapshot acceptance rule through the shared check in Storage; the rejection messages are unchanged. Bump Storage 7.3.0 and Android 0.5.2.
+
 ### [3.4.4] - 2026-10-26
 
 #### Changed
@@ -458,6 +464,16 @@ Versioning rule:
 
 ## Balancia.Storage
 
+### [7.3.0] - 2026-10-26
+
+#### Added
+
+- `ViewerSnapshotImport` with `IViewerSnapshotHost`, `PassphraseReason` and `ViewerImportOutcome`: the viewer's whole import sequence (remembered key, passphrase prompt, retry after a wrong passphrase, validate and swap, remember the key), moved out of the Android activity so it runs in unit tests. Log entries from this flow now read "Viewer ..." instead of "Android ...".
+
+#### Changed
+
+- Windows restore and the viewer import share one acceptance check for a snapshot of another dataset or an older revision; the messages are unchanged.
+
 ### [7.2.0] - 2026-10-26
 
 #### Added
@@ -630,6 +646,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.5.2] - 2026-10-26
+
+#### Changed
+
+- The snapshot import sequence runs in Storage's `ViewerSnapshotImport`; the activity supplies the Keystore key cache, the passphrase dialog and the status texts. Screens and messages are unchanged. Application version is now 9. Bump Storage 7.3.0.
 
 ### [0.5.1] - 2026-10-26
 

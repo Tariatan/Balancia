@@ -10,83 +10,44 @@ public partial class MainActivity
 
     private async Task ImportSnapshot(string archivePath)
     {
-        var info = await Task.Run(() => SnapshotEncryption.ReadInfo(archivePath));
-        SnapshotKey? key = null;
-        string? unlockError = null;
-        try
+        var dbPath = Path.Combine(FilesDir!.AbsolutePath, "viewer.db");
+        var outcome = await ViewerSnapshotImport.RunAsync(archivePath, dbPath, new ImportHost(this));
+        switch (outcome)
         {
-            try
-            {
-                key = await Task.Run(() => AndroidSnapshotKeyStore.Load(KeyPath));
-                Log.Information("Android remembered snapshot key loaded, KeyAvailable: '{KeyAvailable}'", key is not null);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning("Android remembered snapshot key unavailable, FailureType: '{FailureType}', HResult: '{HResult}'", ex.GetType().Name, ex.HResult);
-                // Reinstallation, key invalidation, or a damaged cache requires pairing again.
-                status!.Text = "Enter the passphrase to unlock this snapshot again.";
-            }
-
-            if (key is not null && !key.Matches(info))
-            {
-                Log.Information("Android remembered key does not match snapshot; pairing required");
-                key.Dispose();
-                key = null;
-            }
-            else if (key is not null)
-            {
-                Log.Information("Android snapshot unlock using remembered key");
-            }
-
-            while (true)
-            {
-                if (key is null)
-                {
-                    Log.Information("Android snapshot unlock prompting for passphrase");
-                    var passphrase = await AskPassphrase(unlockError);
-                    if (passphrase is null)
-                    {
-                        Log.Information("Android snapshot unlock canceled; previous copy unchanged");
-                        status!.Text = "Snapshot unlock canceled. The previous copy is unchanged.";
-                        return;
-                    }
-
-                    key = await Task.Run(() => SnapshotKey.Derive(passphrase, info));
-                }
-
-                try
-                {
-                    var unlockedKey = key;
-                    var dbPath = Path.Combine(FilesDir!.AbsolutePath, "viewer.db");
-                    var (importedReader, manifest) = await Task.Run(() => SnapshotImporter.Import(archivePath, dbPath, unlockedKey));
-                    viewerReader = importedReader;
-                    await DisplaySnapshot($"Revision {manifest.Revision}");
-                    try
-                    {
-                        await Task.Run(() => AndroidSnapshotKeyStore.Save(KeyPath, unlockedKey));
-                        Log.Information("Android snapshot key remembered with Keystore");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning("Android snapshot loaded but key could not be remembered, FailureType: '{FailureType}', HResult: '{HResult}'", ex.GetType().Name, ex.HResult);
-                        status!.Text += "\nSnapshot loaded, but the key could not be remembered. Next import will ask again.";
-                    }
-
-                    return;
-                }
-                catch (SnapshotAuthenticationException ex)
-                {
-                    Log.Information("Android snapshot unlock rejected; retrying passphrase entry");
-                    key.Dispose();
-                    key = null;
-                    status!.Text = ex.Message;
-                    unlockError = ex.Message;
-                }
-            }
+            case ViewerImportOutcome.Canceled:
+                status!.Text = "Snapshot unlock canceled. The previous copy is unchanged.";
+                break;
+            case ViewerImportOutcome.ImportedKeyNotRemembered:
+                status!.Text += "\nSnapshot loaded, but the key could not be remembered. Next import will ask again.";
+                break;
         }
-        finally
+    }
+
+    /// <summary>The Android parts of the import: the Keystore-protected key cache, the passphrase dialog and the status screen.</summary>
+    private sealed class ImportHost(MainActivity activity) : IViewerSnapshotHost
+    {
+        public SnapshotKey? LoadRememberedKey() => AndroidSnapshotKeyStore.Load(activity.KeyPath);
+
+        public void RememberKey(SnapshotKey key) => AndroidSnapshotKeyStore.Save(activity.KeyPath, key);
+
+        public Task<string?> AskPassphraseAsync(PassphraseReason reason, string? error)
         {
-            key?.Dispose();
+            if (reason == PassphraseReason.RememberedKeyUnavailable)
+            {
+                activity.status!.Text = "Enter the passphrase to unlock this snapshot again.";
+            }
+            else if (reason == PassphraseReason.WrongPassphrase)
+            {
+                activity.status!.Text = error;
+            }
+
+            return activity.AskPassphrase(error);
+        }
+
+        public async Task ImportedAsync(LedgerReader reader, SnapshotManifest manifest)
+        {
+            activity.viewerReader = reader;
+            await activity.DisplaySnapshot($"Revision {manifest.Revision}");
         }
     }
 

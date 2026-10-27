@@ -66,15 +66,7 @@ public static class SnapshotImporter
             return;
         }
 
-        if (manifest.DatasetId != current.DatasetId)
-        {
-            throw new InvalidDataException("Snapshot belongs to a different ledger dataset.");
-        }
-
-        if (manifest.Revision < current.Revision)
-        {
-            throw new InvalidDataException("An older snapshot cannot replace the current viewer copy.");
-        }
+        SnapshotAcceptance.Require(manifest, current, "viewer copy");
     }
 
     /// <summary>Removes the staging file; a cleanup failure is logged and never masks the import outcome.</summary>

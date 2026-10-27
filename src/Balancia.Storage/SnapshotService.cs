@@ -23,16 +23,7 @@ public sealed partial class LedgerStore
     {
         using var archive = SnapshotEncryption.OpenArchive(Path.GetFullPath(source), key);
         var manifest = ReadManifestEntry(archive);
-        var (datasetId, revision) = ReadLiveMetadata();
-        if (manifest.DatasetId != datasetId)
-        {
-            throw new InvalidDataException("Snapshot belongs to a different ledger dataset.");
-        }
-
-        if (manifest.Revision < revision)
-        {
-            throw new InvalidDataException("An older snapshot cannot replace the current ledger.");
-        }
+        SnapshotAcceptance.Require(manifest, ReadLiveMetadata(), "ledger");
 
         var staged = path + ".restore-" + Guid.NewGuid().ToString("N");
         var backup = path + ".pre-restore-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N") + ".bak";
