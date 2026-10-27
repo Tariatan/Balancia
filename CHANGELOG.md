@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.20] - 2026-10-27
+
+#### Changed
+
+- The trend and timeline charts are the `TrendCard` and `TimelineCard` user controls, and the numbers behind them are built by `FlowChartModel` (it was part of the window). The charts, their tooltips and the wheel zoom behave as before.
+
+#### Added
+
+- 44 tests of the chart model and cards, including which flow the filter narrows the charts to, the empty messages, the bucket labels and the one-year label boundary, the cumulative timeline against the previous period (also for very long ranges), the wheel direction, that a zoom redraws the chart and stops at the coarsest and finest interval, and that both charts get their data in the window.
+
 ### [3.4.19] - 2026-10-27
 
 #### Changed

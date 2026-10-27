@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Balancia.Desktop"
+             x:Class="Balancia.Desktop.TimelineCard">
+  <Border Classes="card" Padding="15,8">
+    <StackPanel Spacing="4">
+      <Border Height="16" />
+      <local:FlowChart x:Name="TimelineChart" />
+    </StackPanel>
+  </Border>
+</UserControl>
