@@ -35,6 +35,8 @@ Scope: this repository only. Entries are `- YYYY-MM: fact and why` with the anno
 - 2026-10: Avalonia.Headless.XUnit in `tests/Balancia.Desktop.Tests` requires xunit v3, so all three test projects use xunit.v3. The DPAPI key store is Windows-only; tests inject the key through `UseSnapshotKey`. [stable]
 - 2026-10: Opening a window with a backup or snapshot folder and no key shows the passphrase dialog, which blocks `OpenAsync`. Show the window and answer the dialog with `WaitForDialogAsync<T>`, or close it without showing it. [stable]
 - 2026-10: Window tests answer file and folder pickers through the `OpenFilePicker`, `SaveFilePicker` and `FolderPicker` properties and replace DPAPI with `FakeKeyStore` (`CreateWindowWithKeyStore`). An operation that is still open, such as the CSV preview, completes only after its dialog closes, so start it without awaiting, drive the dialog, then await it. [stable]
+- 2026-10: `TextBox.TextChanged` and `CalendarDatePicker.SelectedDateChanged` are dispatcher-driven: they run after the setter returns, so a test that checks their effect (the filter row tone colors) must call `Dispatcher.UIThread.RunJobs()` first. To hook a change synchronously, for example to simulate a focus loss while the row is showing values, subscribe to `PropertyChanged` instead; a test that hooks the dispatched event passes vacuously. [stable]
+- 2026-10: Test code that raises focus events needs `FocusChangedEventArgs(InputElement.LostFocusEvent)`; a plain `RoutedEventArgs` throws `InvalidCastException`. A public xunit theory cannot take an internal type such as `DialogSize` or `FlowFocus` (CS0051), so pass the enum name as a string and parse it in the test. [stable]
 
 ## Open work
 
