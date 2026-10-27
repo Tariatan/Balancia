@@ -141,32 +141,7 @@
 
             <Grid Grid.Column="1" ColumnDefinitions="2.4*,1*" ColumnSpacing="11">
 
-              <Border Classes="card" Grid.Column="0" Padding="15,15,15,5">
-                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="2">
-                  <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
-                    <TextBlock x:Name="TransactionsHeading" Classes="heading" Grid.Column="0" />
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
-                      <Button x:Name="TransactionsAddButton" Classes="icon" Content="+" />
-                      <Button x:Name="TransactionsRemoveButton" Classes="icon" Content="🗑" />
-                    </StackPanel>
-                  </Grid>
-                  <Grid Grid.Row="1" ColumnDefinitions="120,120,200,130,*" MinHeight="31">
-                    <TextBlock x:Name="TransactionsColumnDate" Grid.Column="0" Classes="column-header" />
-                    <TextBlock x:Name="TransactionsColumnAmount" Grid.Column="1" Classes="column-header" TextAlignment="Right" />
-                    <TextBlock x:Name="TransactionsColumnCategory" Grid.Column="2" Classes="column-header" />
-                    <TextBlock x:Name="TransactionsColumnAccount" Grid.Column="3" Classes="column-header" />
-                    <TextBlock x:Name="TransactionsColumnDescription" Grid.Column="4" Classes="column-header" />
-                  </Grid>
-                  <Grid Grid.Row="2">
-                    <TextBlock x:Name="TransactionsEmpty" Classes="muted" FontSize="13" VerticalAlignment="Top" Margin="0,6,0,0" />
-                    <ListBox x:Name="TransactionsList" Classes="panel-list" />
-                  </Grid>
-                  <WrapPanel Grid.Row="3">
-                    <Button x:Name="TransactionsPreviousPage" Content="Previous page" Margin="0,10,10,10" />
-                    <Button x:Name="TransactionsNextPage" Content="Next page" Margin="0,10,10,10" />
-                  </WrapPanel>
-                </Grid>
-              </Border>
+              <local:TransactionsCard x:Name="TransactionsCard" Grid.Column="0" />
 
               <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="11">
 

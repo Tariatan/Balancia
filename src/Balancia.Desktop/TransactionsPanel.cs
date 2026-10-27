@@ -2,14 +2,11 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Controls.Templates;
-using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Avalonia.Styling;
 using Balancia.Core;
 using Balancia.Storage;
 
@@ -22,121 +19,29 @@ public partial class MainWindow
 {
     private const int TransactionsPageSize = 100;
 
-    private static readonly IBrush RowTextBrush = Brush.Parse("#263C48");
-    private static readonly IBrush RowHeaderBrush = Brush.Parse("#71838D");
-    private static readonly IBrush DayBlueBrush = RowBrushes.Blue;
-    private static readonly IBrush DayIvoryBrush = RowBrushes.Ivory;
-    private static readonly IBrush IncomeBrush = Brush.Parse("#2C8B6D");
-    private static readonly IBrush ExpenseBrush = Brush.Parse("#B95D4D");
-    private static readonly IBrush TransferBrush = Brush.Parse("#1B4F72");
     private static readonly IBrush SuggestionSelectedBrush = Brush.Parse("#3989A7");
     private static readonly IBrush SuggestionTopMatchBrush = Brush.Parse("#52636C");
 
-
-    private LedgerEntry? SelectedTransaction => (TransactionsList.SelectedItem as TransactionItem)?.Hit.Entry;
-
     private void InitializeTransactionsPanel()
     {
-        TransactionsList.Styles.Add(new Style(selector => selector.OfType<ListBoxItem>())
+        TransactionsCard.AddRequested += async () => await EditTransaction(null);
+        TransactionsCard.EditRequested += async entry => await EditTransaction(entry);
+        TransactionsCard.RemoveRequested += async () =>
         {
-            Setters = { new Setter(BackgroundProperty, new Binding(nameof(TransactionItem.Background))) }
-        });
-        TransactionsList.ItemTemplate = new FuncDataTemplate<TransactionItem>((item, _) => TransactionRow(item.Hit), true);
-        TransactionsList.DoubleTapped += async (_, _) =>
-        {
-            if (SelectedTransaction is { } entry)
-            {
-                await EditTransaction(entry);
-            }
-        };
-        TransactionsAddButton.Click += async (_, _) => await EditTransaction(null);
-        TransactionsRemoveButton.Click += async (_, _) =>
-        {
-            if (SelectedTransaction is { } entry)
+            if (TransactionsCard.SelectedEntry is { } entry)
             {
                 await RemoveTransaction(entry);
             }
         };
-        TransactionsPreviousPage.Click += async (_, _) => await ChangeTransactionsPage(-TransactionsPageSize);
-        TransactionsNextPage.Click += async (_, _) => await ChangeTransactionsPage(TransactionsPageSize);
-    }
-
-    private void LocalizeTransactionsPanel()
-    {
-        TransactionsColumnDate.Text = Get("Date");
-        TransactionsColumnAmount.Text = Get("Amount");
-        TransactionsColumnCategory.Text = Get("Category");
-        TransactionsColumnAccount.Text = Get("Account");
-        TransactionsColumnDescription.Text = Get("Description");
-        TransactionsEmpty.Text = Get("No matching transactions.");
-        ToolTip.SetTip(TransactionsAddButton, Get("Add transaction"));
-        ToolTip.SetTip(TransactionsRemoveButton, Get("Delete selected transaction"));
+        TransactionsCard.PreviousPageRequested += async () => await ChangeTransactionsPage(-TransactionsPageSize);
+        TransactionsCard.NextPageRequested += async () => await ChangeTransactionsPage(TransactionsPageSize);
     }
 
     private async Task ChangeTransactionsPage(int delta)
     {
         overviewState.ChangePage(delta);
         await RequestOverviewFilterRefresh();
-        if (TransactionsList.Scroll is { } scroll)
-        {
-            scroll.Offset = new Vector(scroll.Offset.X, 0);
-        }
-    }
-
-    private static Grid TransactionRow(TransactionsHit hit, string emptyDescriptionText = "")
-    {
-        var entry = hit.Entry;
-        var effect = hit.AccountEffect;
-        var amount = effect ?? entry.Draft.Amount;
-        var sign = effect is { } accountEffect ? accountEffect < Money.Zero ? "− " : "+ " :
-            entry.Draft.Kind switch
-            {
-                TransactionKind.Expense => "− ",
-                TransactionKind.Income => "+ ",
-                _ => "↔ "
-            };
-
-        return TransactionRow(entry.Draft.Date.ToString("dd MMM yyyy", Culture),
-            string.IsNullOrWhiteSpace(entry.Draft.Description) ? emptyDescriptionText : entry.Draft.Description,
-            entry.CategoryPath ?? "—",
-            entry.DestinationName is null ? entry.AccountName : $"{entry.AccountName} → {entry.DestinationName}",
-            sign + AmountText(amount.Abs()), false, entry.Draft.Kind);
-    }
-
-    private static Grid TransactionRow(string date, string description, string category, string account, string amount,
-        bool header, TransactionKind? kind = null)
-    {
-        var row = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("120,120,200,130,*"),
-            MinHeight = header ? 31 : 20
-        };
-        var values = new[] { date, amount, category, account, description };
-        var amountBrush = kind switch
-        {
-            TransactionKind.Income => IncomeBrush,
-            TransactionKind.Expense => ExpenseBrush,
-            TransactionKind.Transfer => TransferBrush,
-            _ => RowTextBrush
-        };
-
-        for (var i = 0; i < values.Length; i++)
-        {
-            var isAmount = i == 1;
-            var cell = new TextBlock
-            {
-                Text = header ? Get(values[i]) : values[i],
-                FontSize = header ? 12 : 13,
-                FontWeight = !header && isAmount ? FontWeight.Bold : FontWeight.Normal,
-                Foreground = header ? RowHeaderBrush : isAmount ? amountBrush : RowTextBrush,
-                VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                TextAlignment = isAmount ? TextAlignment.Right : TextAlignment.Left,
-                Margin = new Thickness(0, 0, 30, 0)
-            };
-            GridLayout.Place(row, cell, i);
-        }
-        return row;
+        TransactionsCard.ScrollToTop();
     }
 
     private async Task EditTransaction(LedgerEntry? entry)
@@ -458,21 +363,10 @@ public partial class MainWindow
 
     private Task RemoveTransaction(LedgerEntry entry) => EditDialog("Remove transaction",
         [
-            TransactionRow(new TransactionsHit(entry, null), "(No description)"),
+            TransactionRows.Build(new TransactionsHit(entry, null), "(No description)"),
             Text("Remove this transaction? For a transfer, both account movements will be removed together.")
         ],
         () => () => store.DeleteTransaction(entry.Id), DialogOptions.Confirmation("Remove", size: DialogSize.Wide));
-
-    private sealed record TransactionItem(TransactionsHit Hit, bool AlternateDay)
-    {
-        public IBrush Background => AlternateDay ? DayIvoryBrush : DayBlueBrush;
-
-        public override string ToString()
-        {
-            var entry = Hit.Entry;
-            return $"{entry.Draft.Date:yyyy-MM-dd} · {entry.Draft.Description} · {entry.Draft.Kind} · {AmountText(entry.Draft.Amount)} · {entry.AccountName}";
-        }
-    }
 
     private static Control CategorySuggestionRow(CategorySuggestion suggestion)
     {
@@ -490,7 +384,7 @@ public partial class MainWindow
                 Text = Get(label),
                 FontSize = 10,
                 FontWeight = FontWeight.SemiBold,
-                Foreground = section == CategorySuggestionSection.TopMatch ? SuggestionTopMatchBrush : RowHeaderBrush,
+                Foreground = section == CategorySuggestionSection.TopMatch ? SuggestionTopMatchBrush : TransactionRows.HeaderBrush,
                 Margin = new Thickness(2, 4, 2, 2)
             });
         }
@@ -502,7 +396,7 @@ public partial class MainWindow
             Child = new TextBlock
             {
                 Text = suggestion.Path,
-                Foreground = suggestion.IsKeyboardSelected ? Brushes.White : RowTextBrush
+                Foreground = suggestion.IsKeyboardSelected ? Brushes.White : TransactionRows.TextBrush
             }
         });
         return body;

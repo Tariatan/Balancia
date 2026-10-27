@@ -14,6 +14,17 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.13] - 2026-10-27
+
+#### Changed
+
+- The transactions card is its own user control, `TransactionsCard`: `Render(page, offset)` draws one page shaded by day with the range heading and the previous and next buttons, rebuilding the rows only when they changed and keeping the selected row when it is still on the page; add, remove, edit and page requests are raised as events. `MainWindow` keeps the page, the dialogs and the saving. `TransactionRows` builds the row that the list and the remove confirmation share. No visible behavior change.
+- The transactions list template returns nothing for a missing item, as the other list templates do. This is a guard added during the move; no failure was observed without it.
+
+#### Added
+
+- 21 tests that drive `TransactionsCard` on its own: the range heading and both page button limits, the empty state, day shading, the sign, color and text of each kind of row (including the account effect), the accessibility name, keeping or rebuilding the rows and the selection, localizing, the four buttons, selection, a real double-click and scrolling to the top.
+
 ### [3.4.12] - 2026-10-27
 
 #### Changed
