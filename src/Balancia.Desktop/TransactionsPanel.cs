@@ -24,8 +24,8 @@ public partial class MainWindow
 
     private static readonly IBrush RowTextBrush = Brush.Parse("#263C48");
     private static readonly IBrush RowHeaderBrush = Brush.Parse("#71838D");
-    private static readonly IBrush DayBlueBrush = Brush.Parse("#F3F8FA");
-    private static readonly IBrush DayIvoryBrush = Brush.Parse("#FCF8F0");
+    private static readonly IBrush DayBlueBrush = RowBrushes.Blue;
+    private static readonly IBrush DayIvoryBrush = RowBrushes.Ivory;
     private static readonly IBrush IncomeBrush = Brush.Parse("#2C8B6D");
     private static readonly IBrush ExpenseBrush = Brush.Parse("#B95D4D");
     private static readonly IBrush TransferBrush = Brush.Parse("#1B4F72");

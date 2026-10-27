@@ -14,6 +14,17 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.6] - 2026-10-27
+
+#### Changed
+
+- The reminders card is its own user control, `RemindersCard`, with `Render(reminders, today)` and add, remove and edit events; `MainWindow` keeps the dialogs and saving. No visible behavior change.
+- The two alternating row tints are shared through `RowBrushes`.
+
+#### Added
+
+- Tests that drive `RemindersCard` on its own (rows, totals, empty state, the two-months-out tint, the three events including a real double-click). The test driver's `Find` also looks inside user controls, whose names live in their own name scopes.
+
 ### [3.4.5] - 2026-10-26
 
 #### Changed

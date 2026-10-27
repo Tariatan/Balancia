@@ -389,7 +389,8 @@ An existing Windows backup/snapshot configuration without a remembered key promp
 | `FiltersPanel.cs`            | Builds the Overview filter row controls                                         |
 | `TransactionsPanel.cs`       | Builds the paged transactions card and the transaction edit dialog              |
 | `CategoriesPanel.cs`         | Category management, checkbox filtering and top-expenses card                   |
-| `RemindersPanel.cs`          | Reminders card and template add/edit                                            |
+| `RemindersPanel.cs`          | Reminder add/edit and delete dialogs, and the wiring of `RemindersCard`         |
+| `RemindersCard.axaml(.cs)`   | The reminders card as a user control: `Render(reminders, today)` draws the rows and totals, and add, remove and edit requests are raised as events. It holds no store or window reference, so it is tested on its own. |
 | `Accounts.cs`                | Accounts card and account add/edit/archive                                      |
 | `Analytics.cs`               | Trend and Timeline chart panels and their data                                  |
 | `DescriptionSuggestions.cs`  | Description suggestions in the transaction dialog                               |

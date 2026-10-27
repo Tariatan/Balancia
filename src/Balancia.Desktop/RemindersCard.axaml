@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Balancia.Desktop.RemindersCard">
+  <Border Classes="card" Padding="15">
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,7">
+        <TextBlock x:Name="RemindersHeading" Classes="heading" Grid.Column="0" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+          <Button x:Name="ReminderAddButton" Classes="icon" Content="+" />
+          <Button x:Name="ReminderRemoveButton" Classes="icon" Content="🗑" />
+        </StackPanel>
+      </Grid>
+      <Grid Grid.Row="1">
+        <ListBox x:Name="RemindersList" Classes="panel-list" MinHeight="45" />
+        <TextBlock x:Name="RemindersEmpty" Classes="muted" FontSize="12" VerticalAlignment="Top" Margin="3,4,3,0" />
+      </Grid>
+      <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,5,0,0">
+        <StackPanel Grid.Column="0" Spacing="3">
+          <TextBlock x:Name="ReminderTotalNetLabel" Classes="total-label" />
+          <TextBlock x:Name="ReminderTotalNetValue" Classes="total-value" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Spacing="3">
+          <TextBlock x:Name="ReminderTotalUpcomingLabel" Classes="total-label" />
+          <TextBlock x:Name="ReminderTotalUpcomingValue" Classes="total-value" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>
