@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.15] - 2026-10-27
+
+#### Changed
+
+- The two suggestion popups of the add and edit transaction dialog are their own controls, `DescriptionSuggestBox` (earlier descriptions that start with what was typed) and `CategorySuggestBox` (category paths ranked into regular, top match and the rest), instead of static builders in the window. Behavior is unchanged.
+
+#### Added
+
+- 27 tests of the two controls: matching, the 20 match limit, opening only while focused, Up and Down with clamping, Tab (and Shift+Tab, which moves the focus on and closes the popup), Escape, clicking, losing focus, not reopening right after an accept, the section headers and highlighted row, and the category box's reset.
+
 ### [3.4.14] - 2026-10-27
 
 #### Changed
