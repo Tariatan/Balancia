@@ -24,24 +24,11 @@ public partial class MainWindow
     private void RenderCategoryPanel(LedgerSnapshot ledgerSnapshot) =>
         CategoriesCard.Render(ledgerSnapshot.Categories, overviewState.IsCategorySelected);
 
-    private async Task ToggleCategoryFilter(string id, bool selected)
-    {
-        overviewState.ToggleCategory(id, selected, overview!.Snapshot.Categories);
-        CategoriesCard.SyncFilterChecks();
-        await operations.RequestRefreshAsync();
-    }
+    private Task ToggleCategoryFilter(string id, bool selected) =>
+        ApplyOverviewChange(overviewState.ToggleCategory(id, selected, overview!.Snapshot.Categories));
 
-    private async Task ToggleAllCategoryFilters()
-    {
-        if (overview is null)
-        {
-            return;
-        }
-
-        overviewState.ToggleAllCategories(overview.Snapshot.Categories);
-        CategoriesCard.SyncFilterChecks();
-        await operations.RequestRefreshAsync();
-    }
+    private Task ToggleAllCategoryFilters() =>
+        overview is null ? Task.CompletedTask : ApplyOverviewChange(overviewState.ToggleAllCategories(overview.Snapshot.Categories));
 
     private async Task ArchiveSelectedCategory()
     {

@@ -21,12 +21,7 @@ public partial class MainWindow
     private void RenderAccountPanel(LedgerSnapshot ledgerSnapshot) =>
         AccountsCard.Render(ledgerSnapshot.Accounts, ledgerSnapshot.NetWorth, settings.DefaultAccountId, overviewState.IsAccountSelected);
 
-    private async Task ToggleAccountFilter(string id, bool selected)
-    {
-        overviewState.ToggleAccount(id, selected);
-        AccountsCard.SyncFilterChecks();
-        await operations.RequestRefreshAsync();
-    }
+    private Task ToggleAccountFilter(string id, bool selected) => ApplyOverviewChange(overviewState.ToggleAccount(id, selected));
 
     private async Task ArchiveSelectedAccount()
     {

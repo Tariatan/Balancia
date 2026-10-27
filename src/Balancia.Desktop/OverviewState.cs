@@ -3,19 +3,6 @@ using Balancia.Storage;
 
 namespace Balancia.Desktop;
 
-/// <summary>What <see cref="OverviewState.ApplyFilterValues"/> did with the typed filter values.</summary>
-internal enum FilterApplication
-{
-    /// <summary>The values equal the current filter; nothing changed.</summary>
-    Unchanged,
-
-    /// <summary>The filter changed and the period stays as it was.</summary>
-    Applied,
-
-    /// <summary>The filter changed and its dates no longer match the period, so the overview now shows a custom range.</summary>
-    AppliedAsCustomRange,
-}
-
 /// <summary>
 /// What the user has chosen on the overview: the period, the filter, the transactions page and the trend chart's zoom.
 /// It holds no controls and reads no clock, so every rule for how a choice changes the others (a new period resets the page,
@@ -72,7 +59,7 @@ internal sealed class OverviewState
     public void StartWith(OverviewPeriod period) => Period = period;
 
     /// <summary>Switches to a preset period: the page restarts, the filter takes the period's dates and the trend zoom follows the period.</summary>
-    public void SelectPeriod(OverviewPeriod period, DateOnly today)
+    public OverviewChange SelectPeriod(OverviewPeriod period, DateOnly today)
     {
         Period = period;
         Offset = 0;
@@ -84,10 +71,11 @@ internal sealed class OverviewState
             To = period == OverviewPeriod.Last30Days ? null : range.To,
         };
         TrendInterval = DefaultTrendInterval(period, range.From, range.To);
+        return OverviewChange.Reload | OverviewChange.PeriodButtons | OverviewChange.TrendInterval | OverviewChange.Dates;
     }
 
     /// <summary>Applies the values typed into the filter row. Dates that differ from the period's make it a custom range.</summary>
-    public FilterApplication ApplyFilterValues(string? description, DateOnly? from, DateOnly? to, Money? minimum, Money? maximum, DateOnly today)
+    public OverviewChange ApplyFilterValues(string? description, DateOnly? from, DateOnly? to, Money? minimum, Money? maximum, DateOnly today)
     {
         var periodRange = Range(today);
         var next = Filter with
@@ -100,7 +88,7 @@ internal sealed class OverviewState
         };
         if (next == Filter)
         {
-            return FilterApplication.Unchanged;
+            return OverviewChange.None;
         }
 
         var customRange = next.From != periodRange.From || next.To != periodRange.To;
@@ -114,23 +102,30 @@ internal sealed class OverviewState
 
         Filter = Period == OverviewPeriod.Last30Days ? next with { From = null, To = null } : next;
         Offset = 0;
-        return customRange ? FilterApplication.AppliedAsCustomRange : FilterApplication.Applied;
+        return customRange
+            ? OverviewChange.Reload | OverviewChange.PeriodButtons | OverviewChange.TrendInterval
+            : OverviewChange.Reload;
     }
 
-    /// <summary>Removes every filter and restarts the page. A custom range falls back to this month; a preset period stays.</summary>
-    public void Clear()
+    /// <summary>Removes every filter and restarts the page. A custom range falls back to this month, with that period's trend zoom; a preset period stays, with its zoom.</summary>
+    public OverviewChange Clear()
     {
         Filter = new TransactionsFilter();
         Offset = 0;
+        var change = OverviewChange.Reload | OverviewChange.Inputs | OverviewChange.Dates | OverviewChange.AccountChecks | OverviewChange.CategoryChecks;
         if (Period == OverviewPeriod.Custom)
         {
             Period = OverviewPeriod.ThisMonth;
             CustomFrom = null;
             CustomTo = null;
+            TrendInterval = DefaultTrendInterval(Period, null, null);
+            change |= OverviewChange.PeriodButtons | OverviewChange.TrendInterval;
         }
+
+        return change;
     }
 
-    public void ToggleAccount(string id, bool selected)
+    public OverviewChange ToggleAccount(string id, bool selected)
     {
         var ids = new HashSet<string>(Filter.AccountIds ?? []);
         if (Filter.AccountId is { } single)
@@ -153,10 +148,11 @@ internal sealed class OverviewState
             AccountIds = ids.Count > 1 ? ids.Order().ToArray() : null,
         };
         Offset = 0;
+        return OverviewChange.Reload | OverviewChange.AccountChecks;
     }
 
     /// <summary>Selects or deselects a category together with its subcategories, and keeps its parent selected exactly when all of the parent's children are.</summary>
-    public void ToggleCategory(string id, bool selected, IReadOnlyList<Category> categories)
+    public OverviewChange ToggleCategory(string id, bool selected, IReadOnlyList<Category> categories)
     {
         var ids = new HashSet<string>(Filter.CategoryIds ?? []);
         if (Filter.CategoryId is { } single)
@@ -192,23 +188,23 @@ internal sealed class OverviewState
             }
         }
 
-        SelectCategories(ids);
+        return SelectCategories(ids);
     }
 
     /// <summary>Deselects every category when all are selected, otherwise selects them all.</summary>
-    public void ToggleAllCategories(IReadOnlyList<Category> categories)
+    public OverviewChange ToggleAllCategories(IReadOnlyList<Category> categories)
     {
         var ids = categories.All(category => IsCategorySelected(category.Id))
             ? new HashSet<string>()
             : categories.Select(category => category.Id).ToHashSet();
-        SelectCategories(ids);
+        return SelectCategories(ids);
     }
 
     /// <summary>Moves the page by <paramref name="delta"/> transactions, never before the first.</summary>
     public void ChangePage(int delta) => Offset = Math.Max(0, Offset + delta);
 
-    /// <summary>Zooms the trend chart one step out (coarser buckets) or in; returns false at the end of the range.</summary>
-    public bool ZoomTrend(bool zoomOut)
+    /// <summary>Zooms the trend chart one step out (coarser buckets) or in. Nothing changes at the end of the range.</summary>
+    public OverviewChange ZoomTrend(bool zoomOut)
     {
         var next = (TrendInterval, zoomOut) switch
         {
@@ -220,11 +216,11 @@ internal sealed class OverviewState
         };
         if (next == TrendInterval)
         {
-            return false;
+            return OverviewChange.None;
         }
 
         TrendInterval = next;
-        return true;
+        return OverviewChange.TrendInterval;
     }
 
     /// <summary>The trend zoom a period starts with: finer for short spans, coarser for long ones.</summary>
@@ -238,7 +234,7 @@ internal sealed class OverviewState
         _ => FlowInterval.Month,
     };
 
-    private void SelectCategories(HashSet<string> ids)
+    private OverviewChange SelectCategories(HashSet<string> ids)
     {
         Filter = Filter with
         {
@@ -246,5 +242,6 @@ internal sealed class OverviewState
             CategoryIds = ids.Count > 1 ? ids.Order().ToArray() : null,
         };
         Offset = 0;
+        return OverviewChange.Reload | OverviewChange.CategoryChecks;
     }
 }

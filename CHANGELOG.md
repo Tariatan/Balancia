@@ -14,6 +14,20 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.5.1] - 2026-10-27
+
+#### Fixed
+
+- Clearing the filters from a custom date range returned to this month but kept the trend zoom of the custom range, so the trend chart and its interval label showed Day or Week buckets of the old range. The zoom now returns to this month's, as selecting This month does. A preset period keeps the zoom you chose.
+
+#### Changed
+
+- `OverviewState` tells the window what a change leaves to do (`OverviewChange`: reload the data, show the period buttons, trend zoom, dates, inputs or the account and category checkboxes again). The window applies that in one place instead of each filter action calling its own subset. Applying typed values no longer re-syncs the account and category checkboxes, which it never changed.
+
+#### Added
+
+- Tests of the flags each state change returns, and of the Clear fix. Four window tests drive the real controls: clear from a custom range, select a period, apply typed dates, and check a parent category.
+
 ### [3.5.0] - 2026-10-27
 
 #### Added
