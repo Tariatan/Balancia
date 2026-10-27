@@ -97,6 +97,34 @@ public sealed class DescriptionSuggestBoxTests
     }
 
     [AvaloniaFact]
+    public void Remember_ADescriptionSavedLater_IsOfferedFirstAmongItsMatches()
+    {
+        // Arrange
+        var (_, input, box, _) = Show();
+
+        // Act
+        box.Remember("Lunch at the lake");
+        Type(input, "lun");
+
+        // Assert
+        Assert.Equal(["Lunch at the lake", "Lunch at work", "Lunch with Anna"], box.Matches);
+    }
+
+    [AvaloniaFact]
+    public void Remember_ADescriptionAlreadyKnownInAnotherCase_MovesItToTheFrontWithTheNewSpelling()
+    {
+        // Arrange
+        var (_, input, box, _) = Show();
+
+        // Act
+        box.Remember("LUNCH WITH ANNA");
+        Type(input, "lun");
+
+        // Assert
+        Assert.Equal(["LUNCH WITH ANNA", "Lunch at work"], box.Matches);
+    }
+
+    [AvaloniaFact]
     public void DownAndUp_MoveTheHighlightWithinTheMatches()
     {
         // Arrange

@@ -17,7 +17,7 @@ internal sealed class DescriptionSuggestBox : Grid
     private static readonly IBrush SelectedRowBrush = Brush.Parse("#D8ECF3");
 
     private readonly TextBox input;
-    private readonly string[] candidates;
+    private readonly List<string> candidates;
     private readonly StackPanel rows = new();
     private readonly Popup popup;
     private string[] matches = [];
@@ -27,7 +27,7 @@ internal sealed class DescriptionSuggestBox : Grid
     public DescriptionSuggestBox(TextBox input, IEnumerable<string> history)
     {
         this.input = input;
-        candidates = history.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        candidates = history.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         popup = new Popup
         {
             PlacementTarget = input,
@@ -50,6 +50,18 @@ internal sealed class DescriptionSuggestBox : Grid
         input.TextChanged += (_, _) => HandleTextChanged();
         input.LostFocus += (_, _) => popup.IsOpen = false;
         input.AddHandler(KeyDownEvent, (_, args) => HandleKeyDown(args), RoutingStrategies.Tunnel);
+    }
+
+    /// <summary>Adds a description that was just saved, so it is offered from now on, first among its matches. A blank one is ignored.</summary>
+    public void Remember(string description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return;
+        }
+
+        candidates.RemoveAll(value => string.Equals(value, description, StringComparison.OrdinalIgnoreCase));
+        candidates.Insert(0, description);
     }
 
     /// <summary>The descriptions currently offered, best first.</summary>

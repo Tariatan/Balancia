@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.16] - 2026-10-27
+
+#### Fixed
+
+- In the add transaction dialog, a description saved with "Add another transaction" is offered by the description suggestions from then on. The suggestions used to keep the list read when the dialog opened, so a description saved a moment ago was not offered until the dialog was opened again. `DescriptionSuggestBox.Remember` adds it, first among its matches.
+
+#### Added
+
+- Tests for it, including one that saves a transaction with "Add another transaction" and then types the start of its description in the real dialog.
+
 ### [3.4.15] - 2026-10-27
 
 #### Changed

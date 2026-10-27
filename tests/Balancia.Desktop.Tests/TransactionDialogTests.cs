@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
 using Balancia.Core;
 using Balancia.Storage;
 using Xunit;
@@ -168,6 +169,28 @@ public sealed class TransactionDialogTests
         Assert.Single(SavedEntries(workspace));
         Assert.Equal("", dialog.TextOf("Description"));
         Assert.Single(window.OwnedWindows);
+    }
+
+    [AvaloniaFact]
+    public async Task AddAnother_ThenTypingTheStartOfTheSavedDescription_OffersItAgain()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var window = await OpenWithAccountAsync(workspace);
+        var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
+        dialog.Fill("Amount (positive)", "5");
+        dialog.Fill("Description", "Coffee");
+        dialog.ClickDialogButton("Add another transaction");
+        await DesktopWorkspace.WaitUntilAsync(
+            () => dialog.TextOf("Description") == "" && dialog.Field("Amount (positive)").IsEffectivelyEnabled && dialog.ErrorText() == "",
+            "the form to clear and become editable again");
+        var suggestions = dialog.GetLogicalDescendants().OfType<DescriptionSuggestBox>().Single();
+
+        // Act
+        dialog.Fill("Description", "Cof");
+
+        // Assert
+        await DesktopWorkspace.WaitUntilAsync(() => suggestions.Matches.Contains("Coffee"), "the saved description to be offered");
     }
 
     [AvaloniaFact]

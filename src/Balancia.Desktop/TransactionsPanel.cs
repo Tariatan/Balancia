@@ -54,8 +54,7 @@ public partial class MainWindow
 
         var date = DateInput(existing?.Date ?? Today);
         var description = Input(existing?.Description ?? "");
-        var descriptionHistory = (await Task.Run(() => store.ReadRecentDescriptions())).ToList();
-        var descriptionInput = new DescriptionSuggestBox(description, descriptionHistory);
+        var descriptionInput = new DescriptionSuggestBox(description, await Task.Run(() => store.ReadRecentDescriptions()));
 
         var amount = Input(existing?.Amount.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
         amount.LostFocus += (_, _) => NormalizeAmount(amount);
@@ -94,11 +93,7 @@ public partial class MainWindow
         {
             continueAfterSave = async () =>
             {
-                if (!string.IsNullOrWhiteSpace(description.Text))
-                {
-                    descriptionHistory.RemoveAll(value => string.Equals(value, description.Text, StringComparison.OrdinalIgnoreCase));
-                    descriptionHistory.Insert(0, description.Text);
-                }
+                descriptionInput.Remember(description.Text ?? "");
                 var regularCategoryPaths = await Task.Run(() => store.ReadRegularCategoryPaths());
                 description.Text = "";
                 amount.Text = "";
