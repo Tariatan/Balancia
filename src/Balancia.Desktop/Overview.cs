@@ -37,9 +37,9 @@ public partial class MainWindow
         IncomeCard.Scope = scope;
         ExpensesCard.Value = AmountText(ledgerSnapshot.MonthlyExpenses);
         ExpensesCard.Scope = scope;
-        AverageIncomeCard.Value = AmountText(averages.Income);
+        AverageIncomeCard.Value = AmountText(overview!.Averages.Income);
         AverageIncomeCard.Scope = averageScope;
-        AverageExpensesCard.Value = AmountText(averages.Expenses);
+        AverageExpensesCard.Value = AmountText(overview!.Averages.Expenses);
         AverageExpensesCard.Scope = averageScope;
     }
 
@@ -56,7 +56,7 @@ public partial class MainWindow
 
     private void RenderTransactions()
     {
-        var page = transactions;
+        var page = overview?.Transactions;
         var total = page?.TotalCount ?? 0;
         var shown = page?.Hits.Count ?? 0;
         var first = total == 0 ? 0 : offset + 1;

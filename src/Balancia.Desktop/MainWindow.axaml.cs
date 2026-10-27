@@ -18,9 +18,7 @@ public partial class MainWindow : Window
     private readonly bool separateDataFolder;
     private ApplicationSettings settings;
     internal string LanguageCode;
-    private LedgerSnapshot? snapshot;
-    private FlowAverages averages = FlowAverages.Zero;
-    private IReadOnlyList<Reminder> reminders = [];
+    private OverviewData? overview;
     private bool busy;
     private readonly TimeProvider timeProvider;
     private DateOnly displayDate;
@@ -143,7 +141,7 @@ public partial class MainWindow : Window
 
     private async Task HandleShortcut(KeyEventArgs e)
     {
-        if (e.Handled || busy || snapshot is null ||
+        if (e.Handled || busy || overview is null ||
             (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt)) != 0 ||
             e.Source is TextBox or AutoCompleteBox)
         {
@@ -169,34 +167,12 @@ public partial class MainWindow : Window
     {
         displayDate = Today;
         var (from, to) = OverviewRange();
-        var dateFilter = filter with
-        {
-            From = filter.From ?? from,
-            To = filter.To ?? to
-        };
-        var pageOffset = offset;
-        var averageInterval = OverviewPeriods.IntervalFor(overviewPeriod);
-        var averageFilter = dateFilter with
-        {
-            From = OverviewPeriods.AverageFrom(overviewPeriod, dateFilter.From)
-        };
-        // Each store call opens its own connection, so the reads can run concurrently.
-        var snapshotRead = Task.Run(() => store.ReadDesktopSnapshotForFilter(dateFilter));
-        var remindersRead = Task.Run(() => store.ReadReminders());
-        var transactionsRead = Task.Run(() => store.ReadTransactions(dateFilter, pageOffset));
-        var analyticsRead = Task.Run(() => store.ReadFlowAnalytics(dateFilter));
-        var averagesRead = Task.Run(() => store.ReadFlowAverages(averageFilter, averageInterval));
-        await Task.WhenAll(snapshotRead, remindersRead, transactionsRead, analyticsRead, averagesRead);
-        snapshot = snapshotRead.Result;
-        reminders = remindersRead.Result;
-        transactions = transactionsRead.Result;
-        overviewAnalytics = analyticsRead.Result;
-        averages = averagesRead.Result;
-        analyticsFilter = dateFilter;
+        var query = new OverviewQuery(filter with { From = filter.From ?? from, To = filter.To ?? to }, offset, overviewPeriod);
+        overview = await OverviewLoader.LoadAsync(store, query);
 
         if (updateOverviewInPlace)
         {
-            RenderOverview(snapshot!);
+            RenderOverview(overview.Snapshot);
         }
         else
         {
@@ -251,7 +227,7 @@ public partial class MainWindow : Window
     private void Render()
     {
         Overview.IsVisible = true;
-        if (snapshot is not { } s)
+        if (overview?.Snapshot is not { } s)
         {
             Overview.Content = Text("The ledger could not be loaded. Check the message below and restart after resolving it.");
             return;

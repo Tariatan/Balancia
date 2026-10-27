@@ -385,6 +385,7 @@ An existing Windows backup/snapshot configuration without a remembered key promp
 | :--------------------------- | :------------------------------------------------------------------------------ |
 | `MainWindow.axaml.cs`        | Shared state, initialization, refresh, the `Run` busy guard, navigation         |
 | `Overview.cs`                | Assembles and refreshes the Overview dashboard                                  |
+| `OverviewLoader.cs`          | `OverviewQuery` (period, effective filter, page) and `OverviewData` (everything one render needs, read together and never changed afterwards), and the loader that reads it with concurrent store reads. The window holds one `OverviewData` and every card renders from it. |
 | `FilterState.cs`             | Owns Overview period and filter state                                           |
 | `FiltersPanel.cs`            | Builds the Overview filter row controls                                         |
 | `TransactionsPanel.cs`       | Builds the paged transactions card and the transaction edit dialog              |
