@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Balancia.Core;
 
 namespace Balancia.Storage;
 
@@ -18,7 +19,7 @@ internal static class CsvImportRowValidator
     private const int CategoryIndex = 7;
     private const int MemoIndex = 8;
 
-    public static (CsvImportRow? Row, List<string> Errors) Validate(string[] fields, long line)
+    public static (CsvImportRow? Row, List<string> Errors) Validate(string[] fields, long line, DateOnly today)
     {
         var id = fields[IdIndex];
         var description = fields[DescriptionIndex];
@@ -70,6 +71,11 @@ internal static class CsvImportRowValidator
             errors.Add("Unsupported transaction type.");
         }
 
+        if (date > today)
+        {
+            errors.Add("Date cannot be in the future.");
+        }
+
         if (amountValid && (type == CsvRowType.Expense && amount is >= 0 or long.MinValue ||
             type is CsvRowType.Income or CsvRowType.Transfer && amount <= 0))
         {
@@ -91,10 +97,9 @@ internal static class CsvImportRowValidator
             errors.Add("Only transfers may have a destination account.");
         }
 
-        var categoryParts = category.Split('/');
-        if (categoryParts.Length > 2 || category.Length > 0 && categoryParts.Any(string.IsNullOrWhiteSpace))
+        if (category.Length > 0 && !(CategoryRules.TryParsePath(category, out var categoryNames) && categoryNames.Length > 0))
         {
-            errors.Add("Category must be a standalone category or Parent / Child.");
+            errors.Add(CategoryRules.InvalidPathMessage);
         }
 
         if (type is CsvRowType.Transfer or CsvRowType.OpeningBalance && category.Length > 0)

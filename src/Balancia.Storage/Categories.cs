@@ -41,16 +41,6 @@ public sealed partial class LedgerStore
     {
         ArgumentNullException.ThrowIfNull(name);
         name = name.Trim();
-        if (name.Length == 0 || name.Contains('/'))
-        {
-            throw new ArgumentException("Enter a category name without '/'; choose its parent separately.");
-        }
-
-        if (parentId is not null && parentId == id)
-        {
-            throw new ArgumentException("A category cannot be its own parent.");
-        }
-
         var key = id ?? Guid.NewGuid().ToString("N");
         Write((c, tx) =>
         {
@@ -59,20 +49,9 @@ public sealed partial class LedgerStore
                 RequireCategory(c, tx, id);
             }
 
-            if (parentId is not null)
+            if (CategoryRules.CheckSave(ReadCategories(c, tx), id, name, parentId, archived) is { } message)
             {
-                LedgerSql.Require(c, tx, "SELECT 1 FROM categories WHERE id=$id AND parent_id IS NULL", parentId, "Choose a top-level parent category.");
-                var parentArchived = Convert.ToInt64(LedgerSql.Scalar(c, tx, "SELECT archived FROM categories WHERE id=$id", ("$id", parentId))) != 0;
-                var previousParent = id is null ? null : LedgerSql.Scalar(c, tx, "SELECT parent_id FROM categories WHERE id=$id", ("$id", id)) as string;
-                if (parentArchived && (!archived || previousParent != parentId))
-                {
-                    throw new ArgumentException("Restore the parent category before adding or restoring a child.");
-                }
-
-                if (HasSubcategories(c, tx, key))
-                {
-                    throw new ArgumentException("A category with subcategories must remain top-level.");
-                }
+                throw new ArgumentException(message);
             }
 
             LedgerSql.Execute(c, tx, """
@@ -90,22 +69,13 @@ public sealed partial class LedgerStore
     public void DeleteCategory(string id) => Write((c, tx) =>
     {
         RequireCategory(c, tx, id);
-        if (HasSubcategories(c, tx, id))
+        if (CategoryRules.CheckDelete(ReadCategories(c, tx), id) is { } message)
         {
-            throw new InvalidOperationException("A category with subcategories cannot be deleted. Archive it instead.");
-        }
-
-        if (IsUsedByTransactions(c, tx, id))
-        {
-            throw new InvalidOperationException("A category used by transactions cannot be deleted. Archive it instead.");
+            throw new InvalidOperationException(message);
         }
 
         LedgerSql.Execute(c, tx, "DELETE FROM categories WHERE id=$id", ("$id", id));
     });
-
-    public bool CategoryHasSubcategories(string id) => ReadDeferred((c, tx) => HasSubcategories(c, tx, id));
-
-    public bool CategoryIsUsedByTransactions(string id) => ReadDeferred((c, tx) => IsUsedByTransactions(c, tx, id));
 
     private T ReadDeferred<T>(Func<SqliteConnection, SqliteTransaction, T> read)
     {
@@ -119,36 +89,17 @@ public sealed partial class LedgerStore
     private static void RequireCategory(SqliteConnection c, SqliteTransaction tx, string id) =>
         LedgerSql.Require(c, tx, CategoryExistsSql, id, "Category no longer exists.");
 
-    private static bool HasSubcategories(SqliteConnection c, SqliteTransaction tx, string id) =>
-        LedgerSql.Scalar(c, tx, "SELECT 1 FROM categories WHERE parent_id=$id LIMIT 1", ("$id", id)) is not null;
-
-    private static bool IsUsedByTransactions(SqliteConnection c, SqliteTransaction tx, string id) =>
-        LedgerSql.Scalar(c, tx, "SELECT 1 FROM ledger WHERE category_id=$id LIMIT 1", ("$id", id)) is not null;
-
-    private static string[] ParseCategoryPath(string? categoryPath)
-    {
-        if (string.IsNullOrWhiteSpace(categoryPath))
-        {
-            return [];
-        }
-
-        var parts = categoryPath.Split('/').Select(part => part.Trim()).ToArray();
-        if (parts.Length > 2 || parts.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Enter a category or Category / Subcategory with one name on each side of '/'.");
-        }
-
-        return parts;
-    }
+    private static string[] ParseCategoryPath(string? categoryPath) =>
+        CategoryRules.TryParsePath(categoryPath, out var names) ? names : throw new ArgumentException(CategoryRules.InvalidPathMessage);
 
     private static List<Category> ReadCategories(SqliteConnection c, SqliteTransaction tx)
     {
         var categories = new List<Category>();
-        using var cmd = LedgerSql.Command(c, tx, "SELECT c.id,c.name,c.parent_id,CASE WHEN p.id IS NULL THEN c.name ELSE p.name || ' / ' || c.name END,c.archived FROM categories c LEFT JOIN categories p ON p.id=c.parent_id ORDER BY 4 COLLATE NOCASE");
+        using var cmd = LedgerSql.Command(c, tx, "SELECT c.id,c.name,c.parent_id,CASE WHEN p.id IS NULL THEN c.name ELSE p.name || ' / ' || c.name END,c.archived,EXISTS(SELECT 1 FROM ledger l WHERE l.category_id=c.id) FROM categories c LEFT JOIN categories p ON p.id=c.parent_id ORDER BY 4 COLLATE NOCASE");
         using var r = cmd.ExecuteReader();
         while (r.Read())
         {
-            categories.Add(new Category(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4)));
+            categories.Add(new Category(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetBoolean(4), r.GetBoolean(5)));
         }
 
         return categories;

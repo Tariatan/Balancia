@@ -1,3 +1,4 @@
+using Balancia.Core;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
@@ -18,7 +19,7 @@ public sealed partial class LedgerStore
     {
         var fullPath = Path.GetFullPath(importPath);
         var bytes = File.ReadAllBytes(fullPath);
-        var (groups, issues, summary) = CsvImportParser.Parse(bytes);
+        var (groups, issues, summary) = CsvImportParser.Parse(bytes, Today);
         Log.ForContext<LedgerStore>().Information("CSV preview prepared, Rows: '{Rows}', Issues: '{Issues}'", summary.Rows, issues.Count);
         return new CsvImportPreview(fullPath, HashHex(bytes), ReadLiveMetadata().Revision, [.. groups], [.. issues], summary);
     }
@@ -222,13 +223,13 @@ public sealed partial class LedgerStore
 
     private static string? FindOrCreateCategory(SqliteConnection c, SqliteTransaction tx, string categoryPath)
     {
-        if (categoryPath.Length == 0)
+        if (!CategoryRules.TryParsePath(categoryPath, out var names))
         {
-            return null;
+            throw new ArgumentException(CategoryRules.InvalidPathMessage);
         }
 
         string? parent = null;
-        foreach (var name in categoryPath.Split('/').Select(x => x.Trim()))
+        foreach (var name in names)
         {
             string? found;
             bool archived;
@@ -280,7 +281,7 @@ public sealed partial class LedgerStore
         }
 
         if (!options.Archived && LedgerSql.Scalar(c, tx,
-            "SELECT 1 FROM reminder_templates WHERE archived=0 AND lower(description)=lower($description) LIMIT 1",
+            "SELECT 1 FROM reminder_templates WHERE archived=0 AND description=$description LIMIT 1",
             ("$description", description)) is not null)
         {
             throw new CsvImportConflictException("An active reminder already uses this description.");

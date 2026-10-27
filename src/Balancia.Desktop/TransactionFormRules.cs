@@ -51,10 +51,9 @@ internal static class TransactionFormRules
             return null;
         }
 
-        var parts = path.Split('/').Select(part => part.Trim()).ToArray();
-        if (parts.Length > 2 || parts.Any(string.IsNullOrWhiteSpace))
+        if (!CategoryRules.TryParsePath(path, out _))
         {
-            return "Enter a category or Category / Subcategory with one name on each side of '/'.";
+            return CategoryRules.InvalidPathMessage;
         }
 
         if (available.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase)))

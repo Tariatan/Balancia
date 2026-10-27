@@ -29,6 +29,42 @@ public sealed class CsvImportTests : IDisposable
 
     private void Csv(string rows) => File.WriteAllText(csv, Header + rows, new UTF8Encoding(true));
 
+    [Theory]
+    [InlineData("x1,2026-10-01,Expense,Rent,-10.00,A,,,\n")]
+    [InlineData("o2,2026-10-01,OpeningBalance,Opening balance,5.00,B,,,\n")]
+    public void PreviewCsvImport_FutureDate_BlocksImportWithoutWrites(string row)
+    {
+        // Arrange
+        Csv("o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,,\n" + row);
+
+        // Act
+        var preview = store.PreviewCsvImport(csv);
+
+        // Assert
+        Assert.False(preview.CanApply);
+        Assert.Contains(preview.Issues, issue => issue.Message == "Date cannot be in the future.");
+        Assert.Empty(store.ReadSnapshot().Accounts);
+    }
+
+    [Theory]
+    [InlineData("A / B / C")]
+    [InlineData("A / ")]
+    [InlineData("/ B")]
+    [InlineData(" ")]
+    public void PreviewCsvImport_InvalidCategoryPath_ReportsThePathRule(string category)
+    {
+        // Arrange
+        Csv("o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,,\n" +
+            $"x1,2026-09-02,Expense,Rent,-10.00,A,,{category},\n");
+
+        // Act
+        var preview = store.PreviewCsvImport(csv);
+
+        // Assert
+        Assert.False(preview.CanApply);
+        Assert.Contains(preview.Issues, issue => issue.Message == CategoryRules.InvalidPathMessage);
+    }
+
     [Fact]
     public void ApplyCsvImport_ImportedAccountDeleted_ReimportReportsConflictInsteadOfSilentlySkipping()
     {
