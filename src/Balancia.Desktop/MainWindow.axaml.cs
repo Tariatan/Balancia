@@ -154,9 +154,9 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 await EditTransaction(null);
                 break;
-            case Key.Delete when TransactionsList.SelectedItem is TransactionItem item:
+            case Key.Delete when TransactionsCard.SelectedEntry is { } entry:
                 e.Handled = true;
-                await RemoveTransaction(item.Hit.Entry);
+                await RemoveTransaction(entry);
                 break;
         }
     }
@@ -240,7 +240,7 @@ public partial class MainWindow : Window
         SyncOverviewFilterInputs();
         SyncOverviewFilterDates();
         renderedPeriodState = null;
-        TransactionsList.ItemsSource = null;
+        TransactionsCard.Invalidate();
         RenderOverview(s);
     }
 

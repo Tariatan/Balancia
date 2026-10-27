@@ -15,7 +15,7 @@ public partial class MainWindow
         AverageIncomeCard.Title = Get("Average");
         AverageExpensesCard.Title = Get("Average");
         LocalizeFilters();
-        LocalizeTransactionsPanel();
+        TransactionsCard.Localize();
         RefreshTrendIntervalLabel();
     }
 
@@ -25,7 +25,7 @@ public partial class MainWindow
         UpdateAnalyticsCharts();
         UpdateFilterButtons();
         TopExpendituresCard.RenderIfChanged(ledgerSnapshot.LargestCategories, TopExpendituresScope(ledgerSnapshot));
-        RenderTransactions();
+        TransactionsCard.Render(overview!.Transactions, overviewState.Offset);
     }
 
     private void RenderSummaryCards(LedgerSnapshot ledgerSnapshot)
@@ -45,38 +45,4 @@ public partial class MainWindow
 
     private string? TopExpendituresScope(LedgerSnapshot ledgerSnapshot) =>
         overviewState.FilteredParent(ledgerSnapshot.Categories)?.Name;
-
-    private void RenderTransactions()
-    {
-        var page = overview?.Transactions;
-        var total = page?.TotalCount ?? 0;
-        var shown = page?.Hits.Count ?? 0;
-        var offset = overviewState.Offset;
-        var first = total == 0 ? 0 : offset + 1;
-        TransactionsHeading.Text = $"{Get("Transactions")} · {first:N0}-{offset + shown:N0} / {total:N0}";
-        TransactionsEmpty.IsVisible = total == 0;
-
-        DateOnly? previousDate = null;
-        var alternateDay = false;
-        var nextItems = page?.Hits.Select(hit =>
-        {
-            var date = hit.Entry.Draft.Date;
-            if (previousDate is not null && previousDate != date)
-            {
-                alternateDay = !alternateDay;
-            }
-            previousDate = date;
-            return new TransactionItem(hit, alternateDay);
-        }).ToArray() ?? [];
-        var currentItems = TransactionsList.ItemsSource?.OfType<TransactionItem>() ?? [];
-        if (!currentItems.SequenceEqual(nextItems))
-        {
-            var selectedId = (TransactionsList.SelectedItem as TransactionItem)?.Hit.Entry.Id;
-            TransactionsList.ItemsSource = nextItems;
-            TransactionsList.SelectedItem = nextItems.FirstOrDefault(item => item.Hit.Entry.Id == selectedId);
-        }
-
-        TransactionsPreviousPage.IsEnabled = offset > 0;
-        TransactionsNextPage.IsEnabled = offset + shown < total;
-    }
 }
