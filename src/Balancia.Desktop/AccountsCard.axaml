@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Balancia.Desktop.AccountsCard">
+  <Border Classes="card" Padding="10,12,10,8">
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+        <TextBlock x:Name="AccountsHeading" Classes="title" Grid.Column="0" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+          <Button x:Name="AccountAddButton" Classes="icon" Content="+" />
+          <Button x:Name="AccountArchiveButton" Classes="icon" Content="🗎" />
+          <Button x:Name="AccountRemoveButton" Classes="icon" Content="🗑" />
+        </StackPanel>
+      </Grid>
+      <Grid Grid.Row="1">
+        <TextBlock x:Name="AccountsEmpty" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+        <ListBox x:Name="AccountsList" Classes="compact-list panel-list" MinHeight="45" MaxHeight="170" />
+      </Grid>
+      <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+        <TextBlock x:Name="NetWorthLabel" Grid.Column="0" FontSize="16" TextTrimming="CharacterEllipsis" />
+        <TextBlock x:Name="NetWorthValue" Grid.Column="1" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0" />
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

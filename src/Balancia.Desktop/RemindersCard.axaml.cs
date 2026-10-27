@@ -55,9 +55,9 @@ public partial class RemindersCard : UserControl
                 ColumnSpacing = 10,
                 MinHeight = 20,
             };
-            Place(row, Cell(reminder.Occurrence.ToString("dd MMM", Culture), FontWeight.Normal), 0);
-            Place(row, description, 1);
-            Place(row, amount, 2);
+            GridLayout.Place(row, Cell(reminder.Occurrence.ToString("dd MMM", Culture), FontWeight.Normal), 0);
+            GridLayout.Place(row, description, 1);
+            GridLayout.Place(row, amount, 2);
             return row;
 
             TextBlock Cell(string text, FontWeight weight) => new()
@@ -109,11 +109,5 @@ public partial class RemindersCard : UserControl
         ReminderTotalNetValue.Text = AmountText(totals.Net);
         ReminderTotalUpcomingLabel.Text = Get(totals.UpcomingIsThisMonth ? "UPCOMING THIS MONTH" : "UPCOMING NEXT MONTH");
         ReminderTotalUpcomingValue.Text = AmountText(totals.Upcoming);
-    }
-
-    private static void Place(Grid grid, Control control, int column)
-    {
-        Grid.SetColumn(control, column);
-        grid.Children.Add(control);
     }
 }

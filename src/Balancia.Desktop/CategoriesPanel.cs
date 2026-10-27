@@ -79,7 +79,7 @@ public partial class MainWindow
                 Text = WithArchivedMarker(category.Name, category.Archived),
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            AddColumn(row, name, 1);
+            GridLayout.Place(row, name, 1);
             return row;
         });
         CategoriesList.DoubleTapped += async (_, _) =>
@@ -299,7 +299,7 @@ public partial class MainWindow
                 VerticalAlignment = VerticalAlignment.Center,
             });
 
-            AddColumn(row, new ProgressBar
+            GridLayout.Place(row, new ProgressBar
             {
                 Minimum = 0,
                 Maximum = maximum,
@@ -309,7 +309,7 @@ public partial class MainWindow
                 Background = Brush.Parse("#E7F2F6"),
                 VerticalAlignment = VerticalAlignment.Center,
             }, 1);
-            AddColumn(row, new TextBlock
+            GridLayout.Place(row, new TextBlock
             {
                 Text = AmountText(category.Amount),
                 FontSize = 11,

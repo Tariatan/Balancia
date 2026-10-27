@@ -13,14 +13,6 @@ public partial class MainWindow
 {
     private static readonly IBrush MutedTextBrush = Brush.Parse("#71838D");
     private static readonly IBrush BodyTextBrush = Brush.Parse("#344D44");
-    private static readonly IBrush PositiveBrush = Brush.Parse("#2C8B6D");
-    private static readonly IBrush NegativeBrush = Brush.Parse("#B95D4D");
-
-    private static void AddColumn(Grid grid, Control control, int column)
-    {
-        Grid.SetColumn(control, column);
-        grid.Children.Add(control);
-    }
 
     private static TextBlock QuietText(string content, double size) => new()
     {
@@ -29,8 +21,6 @@ public partial class MainWindow
         Foreground = MutedTextBrush,
         VerticalAlignment = VerticalAlignment.Center
     };
-
-    private static IBrush BalanceColor(Money amount) => amount > Money.Zero ? PositiveBrush : NegativeBrush;
 
     private static CalendarDatePicker DateInput(DateOnly? date) => new LocalizedCalendarDatePicker
     {

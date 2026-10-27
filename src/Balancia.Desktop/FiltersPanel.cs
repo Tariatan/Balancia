@@ -134,7 +134,7 @@ public partial class MainWindow
         SyncOverviewFilterInputs();
         SyncOverviewFilterDates();
         SyncCategoryFilterChecks();
-        SyncAccountFilterChecks();
+        AccountsCard.SyncFilterChecks();
         await RequestOverviewFilterRefresh();
     }
 
@@ -164,7 +164,7 @@ public partial class MainWindow
         }
 
         SyncCategoryFilterChecks();
-        SyncAccountFilterChecks();
+        AccountsCard.SyncFilterChecks();
         await RequestOverviewFilterRefresh();
     }
 
