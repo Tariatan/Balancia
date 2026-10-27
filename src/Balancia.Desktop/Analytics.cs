@@ -14,24 +14,15 @@ public partial class MainWindow
     private const string PreviousPeriodColor = "#B8C2CC";
     private const string DayFormat = "dd MMM yyyy";
 
-    private FlowInterval trendInterval = FlowInterval.Week;
 
     private void InitializeTrendPanel()
     {
         RefreshTrendIntervalLabel();
         TrendPanelBorder.PointerWheelChanged += (_, args) =>
         {
-            var zoomOut = args.Delta.Y > 0;
-            var nextInterval = (trendInterval, zoomOut) switch
+            if (overviewState.ZoomTrend(args.Delta.Y > 0))
             {
-                (FlowInterval.Day, true) => FlowInterval.Week,
-                (FlowInterval.Week, true) => FlowInterval.Month,
-                (FlowInterval.Month, false) => FlowInterval.Week,
-                (FlowInterval.Week, false) => FlowInterval.Day,
-                _ => trendInterval,
-            };
-            if (SetTrendInterval(nextInterval))
-            {
+                RefreshTrendIntervalLabel();
                 UpdateAnalyticsCharts();
             }
 
@@ -39,32 +30,8 @@ public partial class MainWindow
         };
     }
 
-    private void RefreshTrendIntervalLabel() => TrendIntervalLabel.Text = Get(trendInterval.ToString());
+    private void RefreshTrendIntervalLabel() => TrendIntervalLabel.Text = Get(overviewState.TrendInterval.ToString());
 
-    private bool SetTrendInterval(FlowInterval interval)
-    {
-        if (interval == trendInterval)
-        {
-            return false;
-        }
-
-        trendInterval = interval;
-        RefreshTrendIntervalLabel();
-        return true;
-    }
-
-    private void SetDefaultTrendInterval(OverviewPeriod period, DateOnly? from, DateOnly? to)
-    {
-        SetTrendInterval(period switch
-        {
-            OverviewPeriod.Day or OverviewPeriod.ThisWeek => FlowInterval.Day,
-            OverviewPeriod.ThisMonth or OverviewPeriod.Last30Days => FlowInterval.Week,
-            OverviewPeriod.ThisYear or OverviewPeriod.All => FlowInterval.Month,
-            _ when from is { } start && to is { } end && end < start.AddMonths(1) => FlowInterval.Day,
-            _ when from is { } start && to is { } end && end < start.AddYears(1) => FlowInterval.Week,
-            _ => FlowInterval.Month,
-        });
-    }
 
     private void UpdateAnalyticsCharts()
     {
@@ -116,13 +83,13 @@ public partial class MainWindow
         IReadOnlyList<FlowBucket> buckets;
         try
         {
-            buckets = data.Trend(trendInterval);
+            buckets = data.Trend(overviewState.TrendInterval);
         }
         catch (OverflowException exception)
         {
             Serilog.Log.Error(exception,
                 "Flow aggregation exceeded monetary limits, Interval: '{Interval}', From: '{From}', To: '{To}', FlowCount: '{FlowCount}'",
-                trendInterval, data.From, data.To, data.Current.Count);
+                overviewState.TrendInterval, data.From, data.To, data.Current.Count);
             throw;
         }
 
@@ -133,7 +100,7 @@ public partial class MainWindow
                 : [new FlowChartSeries(Get("Income"), IncomeColor, true),
                     new FlowChartSeries(Get("Expense"), ExpenseColor, true),
                     new FlowChartSeries(Get("Savings"), SavingsColor)];
-        var labelFormat = trendInterval == FlowInterval.Month || data.To.DayNumber - data.From.DayNumber > 365
+        var labelFormat = overviewState.TrendInterval == FlowInterval.Month || data.To.DayNumber - data.From.DayNumber > 365
             ? "MMM yy" : "dd MMM";
         var trendPoints = buckets.Select((bucket, index) =>
         {

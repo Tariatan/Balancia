@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.8] - 2026-10-27
+
+#### Changed
+
+- What the user chose on the Overview (period, filter, transactions page, trend zoom) lives in `OverviewState`, which holds no controls and reads no clock. The period buttons, filter row, account and category checkboxes, paging and trend zoom call it instead of changing window fields, and `RefreshCore` asks it for the query to load. No visible behavior change.
+
+#### Added
+
+- 39 tests of the state without a window: period selection, the custom range made by typed dates, Last 30 days keeping its dates open, clearing filters, account and category toggling with subcategory and parent rules, paging, the scope rule, the query and the trend zoom.
+
 ### [3.4.7] - 2026-10-27
 
 #### Changed

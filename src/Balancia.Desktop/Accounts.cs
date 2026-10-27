@@ -29,7 +29,7 @@ public partial class MainWindow
             var check = new CheckBox
             {
                 Classes = { "compact-filter-checkbox" },
-                IsChecked = IsAccountFiltered(choice.Value.Id),
+                IsChecked = overviewState.IsAccountSelected(choice.Value.Id),
             };
             AutomationProperties.SetName(check, choice.Value.Name);
             accountFilterChecks[choice.Value.Id] = check;
@@ -109,9 +109,6 @@ public partial class MainWindow
         NetWorthValue.Foreground = BalanceColor(ledgerSnapshot.NetWorth);
     }
 
-    private bool IsAccountFiltered(string id) =>
-        filter.AccountId == id || filter.AccountIds?.Contains(id) == true;
-
     private void SyncAccountFilterChecks()
     {
         var wasUpdating = updatingFilterControls;
@@ -120,7 +117,7 @@ public partial class MainWindow
         {
             foreach (var (id, check) in accountFilterChecks)
             {
-                check.IsChecked = IsAccountFiltered(id);
+                check.IsChecked = overviewState.IsAccountSelected(id);
             }
         }
         finally
@@ -136,27 +133,7 @@ public partial class MainWindow
             return;
         }
 
-        var ids = new HashSet<string>(filter.AccountIds ?? []);
-        if (filter.AccountId is { } single)
-        {
-            ids.Add(single);
-        }
-
-        if (selected)
-        {
-            ids.Add(id);
-        }
-        else
-        {
-            ids.Remove(id);
-        }
-
-        filter = filter with
-        {
-            AccountId = ids.Count == 1 ? ids.Single() : null,
-            AccountIds = ids.Count > 1 ? ids.Order().ToArray() : null,
-        };
-        offset = 0;
+        overviewState.ToggleAccount(id, selected);
         SyncAccountFilterChecks();
         await RequestOverviewFilterRefresh();
     }

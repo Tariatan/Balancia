@@ -24,9 +24,6 @@ public partial class MainWindow
 
     private Category? SelectedCategory => (CategoriesList.SelectedItem as Choice<Category>)?.Value;
 
-    private bool IsCategorySelected(string id) =>
-        filter.CategoryId == id || filter.CategoryIds?.Contains(id) == true;
-
     private static string WithArchivedMarker(string text, bool archived) =>
         archived ? text + Get(" (archived)") : text;
 
@@ -56,7 +53,7 @@ public partial class MainWindow
             var check = new CheckBox
             {
                 Classes = { "compact-filter-checkbox" },
-                IsChecked = IsCategorySelected(category.Id),
+                IsChecked = overviewState.IsCategorySelected(category.Id),
             };
             AutomationProperties.SetName(check, category.Path);
             ToolTip.SetTip(check, category.Path);
@@ -128,7 +125,7 @@ public partial class MainWindow
         {
             foreach (var (id, check) in categoryFilterChecks)
             {
-                check.IsChecked = IsCategorySelected(id);
+                check.IsChecked = overviewState.IsCategorySelected(id);
             }
         }
         finally
@@ -144,41 +141,9 @@ public partial class MainWindow
             return;
         }
 
-        var ids = new HashSet<string>(filter.CategoryIds ?? []);
-        if (filter.CategoryId is { } single)
-        {
-            ids.Add(single);
-        }
-
-        var affectedIds = overview!.Snapshot.Categories
-            .Where(category => category.Id == id || category.ParentId == id)
-            .Select(category => category.Id);
-        if (selected)
-        {
-            ids.UnionWith(affectedIds);
-        }
-        else
-        {
-            ids.ExceptWith(affectedIds);
-        }
-
-        var parentId = overview!.Snapshot.Categories.Single(category => category.Id == id).ParentId;
-        if (parentId is not null)
-        {
-            var allChildrenSelected = overview!.Snapshot.Categories
-                .Where(category => category.ParentId == parentId)
-                .All(category => ids.Contains(category.Id));
-            if (allChildrenSelected)
-            {
-                ids.Add(parentId);
-            }
-            else
-            {
-                ids.Remove(parentId);
-            }
-        }
-
-        await ApplyCategorySelection(ids);
+        overviewState.ToggleCategory(id, selected, overview!.Snapshot.Categories);
+        SyncCategoryFilterChecks();
+        await RequestOverviewFilterRefresh();
     }
 
     private async Task ToggleAllCategoryFilters()
@@ -188,20 +153,7 @@ public partial class MainWindow
             return;
         }
 
-        var ids = overview!.Snapshot.Categories.All(category => IsCategorySelected(category.Id))
-            ? new HashSet<string>()
-            : overview!.Snapshot.Categories.Select(category => category.Id).ToHashSet();
-        await ApplyCategorySelection(ids);
-    }
-
-    private async Task ApplyCategorySelection(HashSet<string> ids)
-    {
-        filter = filter with
-        {
-            CategoryId = ids.Count == 1 ? ids.Single() : null,
-            CategoryIds = ids.Count > 1 ? ids.Order().ToArray() : null,
-        };
-        offset = 0;
+        overviewState.ToggleAllCategories(overview.Snapshot.Categories);
         SyncCategoryFilterChecks();
         await RequestOverviewFilterRefresh();
     }
@@ -316,9 +268,9 @@ public partial class MainWindow
     {
         body.Children.Clear();
         renderedCategories = [.. ledgerSnapshot.LargestCategories];
-        renderedCategoryId = filter.CategoryId;
+        renderedCategoryId = overviewState.Filter.CategoryId;
 
-        var filtered = ledgerSnapshot.Categories.FirstOrDefault(c => c.Id == filter.CategoryId);
+        var filtered = ledgerSnapshot.Categories.FirstOrDefault(c => c.Id == overviewState.Filter.CategoryId);
         var hasSubcategories = filtered is not null && ledgerSnapshot.Categories.Any(c => c.ParentId == filtered.Id);
         CategoryHeading.Text = hasSubcategories
             ? Format("Top expenditures · {0}", filtered!.Name)

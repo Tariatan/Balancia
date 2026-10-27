@@ -102,6 +102,7 @@ public partial class MainWindow
         updatingFilterControls = true;
         try
         {
+            var filter = overviewState.Filter;
             FilterSearch.Text = filter.Description ?? "";
             FilterMinimum.Text = filter.Minimum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "";
             FilterMaximum.Text = filter.Maximum?.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "";
@@ -114,15 +115,8 @@ public partial class MainWindow
 
     private async Task SelectOverviewPeriod(OverviewPeriod period)
     {
-        overviewPeriod = period;
-        offset = 0;
-        var range = OverviewRange();
-        filter = filter with
-        {
-            From = period == OverviewPeriod.Last30Days ? null : range.From,
-            To = period == OverviewPeriod.Last30Days ? null : range.To
-        };
-        SetDefaultTrendInterval(period, range.From, range.To);
+        overviewState.SelectPeriod(period, displayDate);
+        RefreshTrendIntervalLabel();
         SyncOverviewFilterDates();
         UpdateFilterButtons();
         await RequestOverviewFilterRefresh();
@@ -130,13 +124,10 @@ public partial class MainWindow
 
     private async Task ClearOverviewFilters()
     {
-        filter = new TransactionsFilter();
-        offset = 0;
-        if (overviewPeriod == OverviewPeriod.Custom)
+        var wasCustomRange = overviewState.Period == OverviewPeriod.Custom;
+        overviewState.Clear();
+        if (wasCustomRange)
         {
-            overviewPeriod = OverviewPeriod.ThisMonth;
-            customFrom = null;
-            customTo = null;
             UpdateFilterButtons();
         }
 
@@ -154,33 +145,24 @@ public partial class MainWindow
             return;
         }
 
-        var periodRange = OverviewRange();
-        var nextFilter = filter with
-        {
-            Description = string.IsNullOrWhiteSpace(FilterSearch.Text) ? null : FilterSearch.Text,
-            From = FilterFrom.SelectedDate is not null ? ParseDate(FilterFrom) : null,
-            To = FilterTo.SelectedDate is not null ? ParseDate(FilterTo) : null,
-            Minimum = OptionalMoney(FilterMinimum),
-            Maximum = OptionalMoney(FilterMaximum)
-        };
-        if (nextFilter == filter)
+        var application = overviewState.ApplyFilterValues(
+            FilterSearch.Text,
+            FilterFrom.SelectedDate is not null ? ParseDate(FilterFrom) : null,
+            FilterTo.SelectedDate is not null ? ParseDate(FilterTo) : null,
+            OptionalMoney(FilterMinimum),
+            OptionalMoney(FilterMaximum),
+            displayDate);
+        if (application == FilterApplication.Unchanged)
         {
             return;
         }
 
-        if (nextFilter.From != periodRange.From || nextFilter.To != periodRange.To)
+        if (application == FilterApplication.AppliedAsCustomRange)
         {
-            customFrom = nextFilter.From;
-            customTo = nextFilter.To;
-            overviewPeriod = OverviewPeriod.Custom;
-            SetDefaultTrendInterval(overviewPeriod, nextFilter.From, nextFilter.To);
+            RefreshTrendIntervalLabel();
             UpdateFilterButtons();
         }
 
-        filter = overviewPeriod == OverviewPeriod.Last30Days
-            ? nextFilter with { From = null, To = null }
-            : nextFilter;
-        offset = 0;
         SyncCategoryFilterChecks();
         SyncAccountFilterChecks();
         await RequestOverviewFilterRefresh();
