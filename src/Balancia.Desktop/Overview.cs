@@ -45,7 +45,7 @@ public partial class MainWindow
 
     private void RenderCategories(LedgerSnapshot ledgerSnapshot)
     {
-        if (renderedCategoryId == filter.CategoryId &&
+        if (renderedCategoryId == overviewState.Filter.CategoryId &&
             renderedCategories.SequenceEqual(ledgerSnapshot.LargestCategories))
         {
             return;
@@ -59,6 +59,7 @@ public partial class MainWindow
         var page = overview?.Transactions;
         var total = page?.TotalCount ?? 0;
         var shown = page?.Hits.Count ?? 0;
+        var offset = overviewState.Offset;
         var first = total == 0 ? 0 : offset + 1;
         TransactionsHeading.Text = $"{Get("Transactions")} · {first:N0}-{offset + shown:N0} / {total:N0}";
         TransactionsEmpty.IsVisible = total == 0;

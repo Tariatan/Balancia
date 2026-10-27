@@ -132,7 +132,7 @@ public partial class MainWindow : Window
         var monthTransactions = await Task.Run(() => store.ReadTransactions(monthFilter, pageSize: 1));
         if (monthTransactions.TotalCount == 0)
         {
-            overviewPeriod = OverviewPeriod.Last30Days;
+            overviewState.StartWith(OverviewPeriod.Last30Days);
         }
 
         await Refresh();
@@ -166,9 +166,7 @@ public partial class MainWindow : Window
     private async Task RefreshCore(bool updateOverviewInPlace)
     {
         displayDate = Today;
-        var (from, to) = OverviewRange();
-        var query = new OverviewQuery(filter with { From = filter.From ?? from, To = filter.To ?? to }, offset, overviewPeriod);
-        overview = await OverviewLoader.LoadAsync(store, query);
+        overview = await OverviewLoader.LoadAsync(store, overviewState.Query(displayDate));
 
         if (updateOverviewInPlace)
         {

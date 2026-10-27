@@ -32,7 +32,6 @@ public partial class MainWindow
     private static readonly IBrush SuggestionSelectedBrush = Brush.Parse("#3989A7");
     private static readonly IBrush SuggestionTopMatchBrush = Brush.Parse("#52636C");
 
-    private int offset;
 
     private LedgerEntry? SelectedTransaction => (TransactionsList.SelectedItem as TransactionItem)?.Hit.Entry;
 
@@ -76,7 +75,7 @@ public partial class MainWindow
 
     private async Task ChangeTransactionsPage(int delta)
     {
-        offset = Math.Max(0, offset + delta);
+        overviewState.ChangePage(delta);
         await RequestOverviewFilterRefresh();
         if (TransactionsList.Scroll is { } scroll)
         {
