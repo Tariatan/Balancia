@@ -121,19 +121,9 @@
             <local:StatCard x:Name="AverageExpensesCard" Grid.Row="1" Foreground="#B95D4D" />
           </Grid>
 
-          <Border x:Name="TrendPanelBorder" Classes="card" Grid.Row="0" Grid.Column="3" Padding="15,8">
-            <StackPanel Spacing="4">
-              <TextBlock x:Name="TrendIntervalLabel" Height="16" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
-              <local:FlowChart x:Name="TrendChart" />
-            </StackPanel>
-          </Border>
+          <local:TrendCard x:Name="TrendCard" Grid.Row="0" Grid.Column="3" />
 
-          <Border Classes="card" Grid.Row="0" Grid.Column="4" Padding="15,8">
-            <StackPanel Spacing="4">
-              <Border Height="16" />
-              <local:FlowChart x:Name="TimelineChart" />
-            </StackPanel>
-          </Border>
+          <local:TimelineCard x:Name="TimelineCard" Grid.Row="0" Grid.Column="4" />
 
           <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" ColumnDefinitions="0.6*,3.58*" ColumnSpacing="11">
 

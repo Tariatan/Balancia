@@ -23,12 +23,12 @@ public partial class MainWindow
     private string OverviewPeriodLabel() => overviewState.Period switch
     {
         OverviewPeriod.All => "All dates",
-        OverviewPeriod.Day => DayText(displayDate),
+        OverviewPeriod.Day => FlowChartModel.DayText(displayDate),
         OverviewPeriod.ThisWeek => "This week",
         OverviewPeriod.ThisMonth => displayDate.ToString("MMMM yyyy", Culture),
         OverviewPeriod.ThisYear => displayDate.Year.ToString(Culture),
         OverviewPeriod.Last30Days => "Last 30 days",
-        _ => $"{overviewState.CustomFrom?.ToString(DayFormat, Culture)} – {overviewState.CustomTo?.ToString(DayFormat, Culture)}"
+        _ => $"{overviewState.CustomFrom?.ToString(FlowChartModel.DayFormat, Culture)} – {overviewState.CustomTo?.ToString(FlowChartModel.DayFormat, Culture)}"
     };
 
     private string ScopeLabel() =>

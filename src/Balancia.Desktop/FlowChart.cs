@@ -67,6 +67,12 @@ internal sealed class FlowChart : Control
         ResetHover();
     }
 
+    internal IReadOnlyList<FlowChartPoint> Points => points;
+
+    internal IReadOnlyList<FlowChartSeries> Series => series;
+
+    internal string? Message => emptyMessage;
+
     private bool IsEmpty => emptyMessage is not null || points.Count == 0;
 
     private Rect Plot => new(52, 10, Math.Max(1, Bounds.Width - 60), Math.Max(1, Bounds.Height - 36));
