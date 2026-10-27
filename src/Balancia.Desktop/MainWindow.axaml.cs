@@ -20,7 +20,7 @@ public partial class MainWindow : Window
     private ApplicationSettings settings;
     internal string LanguageCode;
     private OverviewData? overview;
-    private bool busy;
+    private readonly OperationRunner operations;
     private readonly TimeProvider timeProvider;
     private DateOnly displayDate;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
@@ -45,6 +45,7 @@ public partial class MainWindow : Window
     internal MainWindow(string? separateDataDirectory, string settingsFile, TimeProvider? timeProvider = null, ISnapshotKeyStore? keyStore = null)
     {
         this.timeProvider = timeProvider ?? TimeProvider.System;
+        operations = new OperationRunner(new OperationHost(this), () => RefreshCore(true));
         OpenFilePicker = PickOpenFile;
         SaveFilePicker = PickSaveFile;
         FolderPicker = PickFolderFromDialog;
@@ -91,10 +92,10 @@ public partial class MainWindow : Window
         {
             ApplyLoadedWindowPosition();
             timer.Start();
-            await Run(() => LoadLedger(directory));
+            await operations.RunAsync(() => LoadLedger(directory));
         };
         timer.Tick += async (_, _) => await RefreshIfDayChanged();
-        Closing += (_, e) => e.Cancel = busy;
+        Closing += (_, e) => e.Cancel = operations.IsBusy;
         Closed += (_, _) =>
         {
             timer.Stop();
@@ -108,9 +109,9 @@ public partial class MainWindow : Window
     /// <summary>Re-renders the overview once the calendar day changes, so "today" and the month label never go stale.</summary>
     internal async Task RefreshIfDayChanged()
     {
-        if (!busy && Today != displayDate)
+        if (!operations.IsBusy && Today != displayDate)
         {
-            await Run(Refresh);
+            await operations.RunAsync(Refresh);
         }
     }
 
@@ -142,7 +143,7 @@ public partial class MainWindow : Window
 
     private async Task HandleShortcut(KeyEventArgs e)
     {
-        if (e.Handled || busy || overview is null ||
+        if (e.Handled || operations.IsBusy || overview is null ||
             (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt)) != 0 ||
             e.Source is TextBox or AutoCompleteBox)
         {
@@ -179,48 +180,33 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task Run(Func<Task> action, bool disableControls = true, Window? errorOwner = null, string? operationName = null)
+    /// <summary>What the window shows around an operation: the controls, the status line and the error dialog.</summary>
+    private sealed class OperationHost(MainWindow window) : IOperationHost
     {
-        if (busy)
+        public void WorkStarted()
         {
-            return;
+            window.Overview.IsEnabled = false;
+            window.SetStatus("Working…");
         }
 
-        busy = true;
-        if (disableControls)
+        public void WorkSucceeded()
         {
-            Overview.IsEnabled = false;
-            SetStatus("Working…");
-        }
-        try
-        {
-            await action();
-            if (disableControls && OverviewStatus.Text == Get("Working…"))
+            // An action that reported its own outcome (export, import, restore) keeps that message.
+            if (window.OverviewStatus.Text == Get("Working…"))
             {
-                // An action that reported its own outcome (export, import, restore) keeps that message.
-                SetStatus("Saved locally");
+                window.SetStatus("Saved locally");
             }
         }
-        catch (Exception ex)
-        {
-            Serilog.Log.Error(ex, "Desktop operation failed, Operation: '{Operation}'", operationName ?? action.Method.Name);
-            SetStatus(FriendlyError(ex));
-            await ErrorDialog.Show(errorOwner ?? this, "Balancia", FriendlyError(ex));
-        }
-        finally
-        {
-            busy = false;
-            if (disableControls)
-            {
-                Overview.IsEnabled = true;
-            }
 
-            if (pendingOverviewFilterRefresh)
-            {
-                pendingOverviewFilterRefresh = false;
-                Dispatcher.UIThread.Post(() => _ = RequestOverviewFilterRefresh());
-            }
+        public async Task WorkFailedAsync(Exception exception, Window? errorOwner)
+        {
+            window.SetStatus(FriendlyError(exception));
+            await ErrorDialog.Show(errorOwner ?? window, "Balancia", FriendlyError(exception));
         }
+
+        public void WorkFinished() => window.Overview.IsEnabled = true;
+
+        public void Post(Action action) => Dispatcher.UIThread.Post(action);
     }
 
     private void Render()

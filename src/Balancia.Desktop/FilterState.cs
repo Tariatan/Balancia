@@ -11,7 +11,6 @@ public partial class MainWindow
 {
     private readonly OverviewState overviewState = new();
     private bool overviewFiltersVisible;
-    private bool pendingOverviewFilterRefresh;
 
     private readonly Dictionary<OverviewPeriod, Button> overviewPeriodButtons = [];
     private (OverviewPeriod Period, bool FiltersVisible)? renderedPeriodState;
@@ -20,17 +19,6 @@ public partial class MainWindow
 
     private static readonly IBrush SelectedPeriodBackground = Brush.Parse("#D8ECF3");
     private static readonly IBrush SelectedPeriodForeground = Brush.Parse("#1C627E");
-
-    private async Task RequestOverviewFilterRefresh()
-    {
-        if (busy)
-        {
-            pendingOverviewFilterRefresh = true;
-            return;
-        }
-
-        await Run(() => RefreshCore(true), false);
-    }
 
     private string OverviewPeriodLabel() => overviewState.Period switch
     {

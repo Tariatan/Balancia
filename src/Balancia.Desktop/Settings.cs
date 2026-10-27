@@ -37,7 +37,7 @@ public partial class MainWindow
             return;
         }
 
-        await Run(async () =>
+        await operations.RunAsync(async () =>
         {
             Serilog.Log.Information("Changing database location, DatabasePath: '{DatabasePath}'", dbPath);
             var replacement = new LedgerStore(dbPath);
@@ -75,7 +75,7 @@ public partial class MainWindow
             return;
         }
 
-        await Run(async () =>
+        await operations.RunAsync(async () =>
         {
             var updated = change(settings, selected);
             await Task.Run(() => PersistSettings(updated));

@@ -119,7 +119,7 @@ public partial class MainWindow
         RefreshTrendIntervalLabel();
         SyncOverviewFilterDates();
         UpdateFilterButtons();
-        await RequestOverviewFilterRefresh();
+        await operations.RequestRefreshAsync();
     }
 
     private async Task ClearOverviewFilters()
@@ -135,7 +135,7 @@ public partial class MainWindow
         SyncOverviewFilterDates();
         CategoriesCard.SyncFilterChecks();
         AccountsCard.SyncFilterChecks();
-        await RequestOverviewFilterRefresh();
+        await operations.RequestRefreshAsync();
     }
 
     private async Task ApplyOverviewFilterValues()
@@ -165,7 +165,7 @@ public partial class MainWindow
 
         CategoriesCard.SyncFilterChecks();
         AccountsCard.SyncFilterChecks();
-        await RequestOverviewFilterRefresh();
+        await operations.RequestRefreshAsync();
     }
 
     private void ApplyOverviewFilterValuesAfterCalendarClosed()

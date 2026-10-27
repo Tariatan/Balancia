@@ -383,7 +383,9 @@ An existing Windows backup/snapshot configuration without a remembered key promp
 
 | File                         | Responsibility                                                                  |
 | :--------------------------- | :------------------------------------------------------------------------------ |
-| `MainWindow.axaml.cs`        | Shared state, initialization, refresh, the `Run` busy guard, navigation         |
+| `MainWindow.axaml.cs`        | Shared state, initialization, refresh, the host that shows an operation's progress and failures, navigation |
+| `OperationRunner.cs`         | Runs the window's operations one at a time: tells its host (`IOperationHost`) when work starts, succeeds, fails and ends, logs a failure instead of letting it escape, and afterwards runs the refresh requested while it ran. The window cannot be closed or driven by shortcuts while it is busy |
+| `OperationGate.cs`           | The rules behind it, with no controls: one operation at a time, a call that arrives while another runs is dropped, and refreshes requested meanwhile collapse into one |
 | `Overview.cs`                | Assembles and refreshes the Overview dashboard                                  |
 | `OverviewLoader.cs`          | `OverviewQuery` (period, effective filter, page) and `OverviewData` (everything one render needs, read together and never changed afterwards), and the loader that reads it with concurrent store reads. The window holds one `OverviewData` and every card renders from it. |
 | `FilterState.cs`             | Shows Overview period and filter state: scope labels, period button highlight, date inputs |

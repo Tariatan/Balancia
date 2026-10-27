@@ -28,7 +28,7 @@ public partial class MainWindow
             return;
         }
 
-        await Run(async () =>
+        await operations.RunAsync(async () =>
         {
             var preview = await Task.Run(() => store.PreviewCsvImport(path));
             await CsvImportPreviewWindow.Show(this, preview, store.ApplyCsvImport, async result =>
@@ -47,7 +47,7 @@ public partial class MainWindow
             return;
         }
 
-        await Run(async () =>
+        await operations.RunAsync(async () =>
         {
             var count = await Task.Run(() => store.ExportCsv(path));
             SetStatus(Format("Exported {0} rows to CSV.", count));
@@ -69,7 +69,7 @@ public partial class MainWindow
             return;
         }
 
-        await Run(async () =>
+        await operations.RunAsync(async () =>
         {
             var manifest = await Task.Run(() => store.ExportSnapshot(path, keys.Key!));
             SetStatus(Format("Snapshot exported · revision {0}", manifest.Revision));
@@ -86,7 +86,7 @@ public partial class MainWindow
             return;
         }
 
-        await Run(async () =>
+        await operations.RunAsync(async () =>
         {
             var info = await Task.Run(() => SnapshotEncryption.ReadInfo(path));
             SnapshotKey? temporaryKey = null;
