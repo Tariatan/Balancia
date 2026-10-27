@@ -30,7 +30,7 @@ public partial class MainWindow
 
         overviewState.ToggleAccount(id, selected);
         AccountsCard.SyncFilterChecks();
-        await RequestOverviewFilterRefresh();
+        await operations.RequestRefreshAsync();
     }
 
     private async Task ArchiveSelectedAccount()

@@ -33,7 +33,7 @@ public partial class MainWindow
 
         overviewState.ToggleCategory(id, selected, overview!.Snapshot.Categories);
         CategoriesCard.SyncFilterChecks();
-        await RequestOverviewFilterRefresh();
+        await operations.RequestRefreshAsync();
     }
 
     private async Task ToggleAllCategoryFilters()
@@ -45,7 +45,7 @@ public partial class MainWindow
 
         overviewState.ToggleAllCategories(overview.Snapshot.Categories);
         CategoriesCard.SyncFilterChecks();
-        await RequestOverviewFilterRefresh();
+        await operations.RequestRefreshAsync();
     }
 
     private async Task ArchiveSelectedCategory()

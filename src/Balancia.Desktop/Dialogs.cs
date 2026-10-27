@@ -142,7 +142,7 @@ public partial class MainWindow
         await dialog.ShowDialog(this);
         if (saved)
         {
-            await Run(Refresh);
+            await operations.RunAsync(Refresh);
         }
 
         return;
@@ -171,7 +171,7 @@ public partial class MainWindow
                 Log.Information("Dialog changes saved, Operation: '{Operation}'", title);
                 if (continueEditing)
                 {
-                    await Run(Refresh, false);
+                    await operations.RunAsync(Refresh, false);
                     await onSaveAndContinue!();
                     body.IsEnabled = true;
                     initialFocus?.Focus();

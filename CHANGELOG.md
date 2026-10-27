@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.18] - 2026-10-27
+
+#### Changed
+
+- The rules that keep the window's operations from overlapping are `OperationGate` (one operation at a time, a call that arrives while another runs is dropped, refreshes requested meanwhile collapse into one) and `OperationRunner` (runs an operation, tells its host when work starts, succeeds, fails and ends, logs a failure instead of letting it escape, and afterwards runs the pending refresh). The window supplies the host (the controls, the status line and the error dialog), and the `busy` field, the pending-refresh flag and the `Run` method are gone. Closing the window, the keyboard shortcuts and the day-rollover refresh read the runner's busy state. No visible behavior change.
+
+#### Added
+
+- 20 tests of the gate and the runner, including that a call during an operation is dropped, that several refresh requests during an operation give one refresh afterwards (also after a failure), that the operation is no longer busy when the controls come back, and that a failure is reported to the right dialog without escaping.
+
 ### [3.4.17] - 2026-10-27
 
 #### Changed

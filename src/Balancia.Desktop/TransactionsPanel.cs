@@ -38,7 +38,7 @@ public partial class MainWindow
     private async Task ChangeTransactionsPage(int delta)
     {
         overviewState.ChangePage(delta);
-        await RequestOverviewFilterRefresh();
+        await operations.RequestRefreshAsync();
         TransactionsCard.ScrollToTop();
     }
 
