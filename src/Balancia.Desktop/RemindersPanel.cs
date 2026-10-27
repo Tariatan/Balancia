@@ -1,6 +1,7 @@
 using System.Globalization;
 using Balancia.Core;
 
+using static Balancia.Desktop.FormControls;
 using static Balancia.Desktop.InputParsing;
 using static Balancia.Desktop.Localization.UiText;
 

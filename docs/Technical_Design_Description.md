@@ -389,7 +389,8 @@ An existing Windows backup/snapshot configuration without a remembered key promp
 | `FilterState.cs`             | Shows Overview period and filter state: scope labels, period button highlight, date inputs |
 | `OverviewState.cs`           | Owns what the user chose on the Overview: period, filter, transactions page and trend zoom, and the rules for how one choice changes another (a new period restarts the page, typed dates make a custom range, a category selects its subcategories). It holds no controls and reads no clock, so it is tested as plain code. |
 | `FiltersPanel.cs`            | Builds the Overview filter row controls                                         |
-| `TransactionsPanel.cs`       | The transaction add/edit and remove dialogs with their category and description suggestions, paging, and the wiring of `TransactionsCard` |
+| `TransactionsPanel.cs`       | Opens the add, edit and remove transaction dialogs (reading what the form needs and saving what it returns), paging, and the wiring of `TransactionsCard` |
+| `TransactionForm.cs`         | The fields of the add and edit transaction dialog and what they mean: what they start with, when they are valid, what they save and how "Add another" resets them. It is given what it needs (`TransactionFormInputs`) and holds no window, store or settings reference, so it is tested on its own |
 | `TransactionFormRules.cs`    | The rules of the add and edit transaction form that need no controls: the accounts and categories it offers, the account it starts on, how the typed category path is read and checked, the date check against opening dates, and how the entered values become a draft |
 | `TransactionsCard.axaml(.cs)` | The transactions card as a user control: `Render(page, offset)` draws one page shaded by day with the range heading and the previous and next buttons, rebuilding the rows only when they changed and keeping the selected row when it is still on the page; add, remove, edit and page requests are raised as events. It holds no store or window reference, so it is tested on its own. `TransactionRows` builds the row that the list and the remove confirmation share. |
 | `CategoriesPanel.cs`         | Category add/edit/archive/delete dialogs and the wiring of `CategoriesCard`     |
@@ -408,7 +409,8 @@ An existing Windows backup/snapshot configuration without a remembered key promp
 | `WindowSettings.cs`          | Window geometry restore and save                                                |
 | `Language.cs`                | Language list, flags, and language switching                                    |
 | `Encryption.cs`              | Passphrase setup and the key lifecycle dialogs                                  |
-| `Dialogs.cs`, `UiHelpers.cs` | Shared dialog and control helpers, friendly error text                          |
+| `Dialogs.cs`                 | The shared edit dialog, friendly error text                                     |
+| `FormControls.cs`            | The controls the edit dialogs are made of: labelled fields, date and text inputs, choice boxes, button rows |
 
 Rules that need no controls live outside the window: `SettingsStore` (read and atomically replace the settings file), `SnapshotKeyService` (load, replace, and dispose the snapshot key through `ISnapshotKeyStore`; Windows uses current-user DPAPI), and, in Storage, `CloseTimeExporter` (one per open ledger: it records the revision when the ledger loads, then writes the best-effort close-time backup and snapshot and applies `BackupRetention`, the three-per-day, 180-day, 540-overall policy). The window only holds the exporter, replaces it when the database location changes, and calls it on close. File and folder pickers are replaceable properties so tests answer them without a native dialog. An operation that reports its own outcome (export, import, restore) keeps that status message; any other successful operation ends with "Saved locally".
 

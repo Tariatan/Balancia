@@ -9,11 +9,12 @@ using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
-public partial class MainWindow
+/// <summary>The controls the edit dialogs are made of: labelled fields, date and text inputs, choice boxes and button rows.</summary>
+internal static class FormControls
 {
     private static readonly IBrush BodyTextBrush = Brush.Parse("#344D44");
 
-    private static CalendarDatePicker DateInput(DateOnly? date) => new LocalizedCalendarDatePicker
+    internal static CalendarDatePicker DateInput(DateOnly? date) => new LocalizedCalendarDatePicker
     {
         SelectedDate = date?.ToDateTime(TimeOnly.MinValue),
         SelectedDateFormat = CalendarDatePickerFormat.Custom,
@@ -23,20 +24,21 @@ public partial class MainWindow
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
 
-    private static TextBox Input(string text) => new()
+    internal static TextBox Input(string text) => new()
     {
         Text = text,
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
 
-    private static TextBlock Text(string text) => new()
+    internal static TextBlock Text(string text) => new()
     {
         Text = Get(text),
         TextWrapping = TextWrapping.Wrap,
         Foreground = BodyTextBrush
     };
 
-    private static StackPanel Field(string label, Control input)
+    /// <summary>The input under its localized label, which also becomes the input's accessibility name.</summary>
+    internal static StackPanel Field(string label, Control input)
     {
         AutomationProperties.SetName(input, Get(label));
         return new StackPanel
@@ -46,7 +48,7 @@ public partial class MainWindow
         };
     }
 
-    private static WrapPanel Row(params Control[] controls)
+    internal static WrapPanel Row(params Control[] controls)
     {
         var row = new WrapPanel();
         foreach (var control in controls)
@@ -54,6 +56,16 @@ public partial class MainWindow
             control.Margin = new Thickness(0, 10, 10, 10);
             row.Children.Add(control);
         }
+
         return row;
     }
+
+    internal static ComboBox ChoiceBox<T>(Choice<T>[] choices, Choice<T>? selected) => new()
+    {
+        ItemsSource = choices,
+        SelectedItem = selected,
+        HorizontalAlignment = HorizontalAlignment.Stretch
+    };
+
+    internal static T SelectedValue<T>(ComboBox box) => ((Choice<T>)box.SelectedItem!).Value;
 }

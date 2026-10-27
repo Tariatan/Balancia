@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using Balancia.Core;
 using Balancia.Storage;
 
+using static Balancia.Desktop.FormControls;
 using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
