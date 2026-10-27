@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Balancia.Desktop"
+             x:Class="Balancia.Desktop.FilterRow">
+  <UserControl.Styles>
+    <Style Selector="Button.filter">
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="WrapPanel.filters > :is(Control)">
+      <Setter Property="Margin" Value="0,2,7,2" />
+    </Style>
+  </UserControl.Styles>
+  <Border Classes="card" Padding="10">
+    <Grid ColumnDefinitions="*,Auto">
+      <WrapPanel Classes="filters">
+        <Button x:Name="FilterButtonAll" Classes="filter" Content="All" MinWidth="50" />
+        <Button x:Name="FilterButtonToday" Classes="filter" Content="Today" MinWidth="70" />
+        <Button x:Name="FilterButtonWeek" Classes="filter" Content="Week" MinWidth="70" />
+        <Button x:Name="FilterButtonMonth" Classes="filter" Content="Month" MinWidth="70" />
+        <Button x:Name="FilterButtonYear" Classes="filter" Content="Year" MinWidth="50" />
+        <Button x:Name="FilterButtonLast30Days" Classes="filter" Content="Last 30 days" MinWidth="100" />
+        <local:LocalizedCalendarDatePicker x:Name="FilterFrom" Width="110" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" />
+        <local:LocalizedCalendarDatePicker x:Name="FilterTo" Width="110" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" />
+        <TextBox x:Name="FilterSearch" Width="150" Margin="0,2,0,2" />
+        <Button x:Name="FilterClearSearch" Content="×" Width="28" Height="34" Padding="0" FontSize="17" Background="Transparent" Foreground="#71838D" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" />
+        <TextBox x:Name="FilterMinimum" Width="115" />
+        <TextBox x:Name="FilterMaximum" Width="110" />
+      </WrapPanel>
+      <Button x:Name="FilterClearAll" Classes="icon" Grid.Column="1" Content="🗑" FontSize="16" VerticalAlignment="Center" />
+    </Grid>
+  </Border>
+</UserControl>

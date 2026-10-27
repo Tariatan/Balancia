@@ -23,11 +23,6 @@ public partial class MainWindow
 
     private async Task ToggleAccountFilter(string id, bool selected)
     {
-        if (updatingFilterControls)
-        {
-            return;
-        }
-
         overviewState.ToggleAccount(id, selected);
         AccountsCard.SyncFilterChecks();
         await operations.RequestRefreshAsync();
