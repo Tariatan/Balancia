@@ -14,6 +14,17 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.12] - 2026-10-27
+
+#### Changed
+
+- The top expenditures card is its own user control, `TopExpendituresCard`: `Render` draws the largest expense categories as bars scaled to the biggest one, and `RenderIfChanged` skips the redraw when the totals and heading are unchanged. The rule for which category the heading names (a single filtered category that has subcategories) is `OverviewState.FilteredParent`. A rename of that category now refreshes the heading even when the totals are unchanged. No other visible behavior change.
+- Removed the window's `QuietText` and `MutedTextBrush`, which only this card used.
+
+#### Added
+
+- 11 tests that drive `TopExpendituresCard` on its own (rows and amounts, bar scaling, the plain and scoped heading, the empty message, forced and conditional redraws) and 4 tests of `OverviewState.FilteredParent`.
+
 ### [3.4.11] - 2026-10-27
 
 #### Changed

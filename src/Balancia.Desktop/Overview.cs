@@ -24,7 +24,7 @@ public partial class MainWindow
         RenderSummaryCards(ledgerSnapshot);
         UpdateAnalyticsCharts();
         UpdateFilterButtons();
-        RenderCategories(ledgerSnapshot);
+        TopExpendituresCard.RenderIfChanged(ledgerSnapshot.LargestCategories, TopExpendituresScope(ledgerSnapshot));
         RenderTransactions();
     }
 
@@ -43,16 +43,8 @@ public partial class MainWindow
         AverageExpensesCard.Scope = averageScope;
     }
 
-    private void RenderCategories(LedgerSnapshot ledgerSnapshot)
-    {
-        if (renderedCategoryId == overviewState.Filter.CategoryId &&
-            renderedCategories.SequenceEqual(ledgerSnapshot.LargestCategories))
-        {
-            return;
-        }
-
-        FillCategoriesPanel(CategoryBody, ledgerSnapshot);
-    }
+    private string? TopExpendituresScope(LedgerSnapshot ledgerSnapshot) =>
+        overviewState.FilteredParent(ledgerSnapshot.Categories)?.Name;
 
     private void RenderTransactions()
     {

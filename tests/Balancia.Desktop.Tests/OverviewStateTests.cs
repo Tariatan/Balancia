@@ -392,6 +392,59 @@ public sealed class OverviewStateTests
     }
 
     [Fact]
+    public void FilteredParent_NoCategoryFilter_IsNull()
+    {
+        // Act
+        var parent = new OverviewState().FilteredParent(Categories);
+
+        // Assert
+        Assert.Null(parent);
+    }
+
+    [Fact]
+    public void FilteredParent_SingleCategoryThatHasSubcategories_ReturnsIt()
+    {
+        // Arrange
+        var state = new OverviewState();
+        // Food was selected while it had no subcategories; Lunch was added under it afterwards.
+        state.ToggleCategory("food", true, [Food]);
+
+        // Act
+        var parent = state.FilteredParent(Categories);
+
+        // Assert
+        Assert.Same(Food, parent);
+    }
+
+    [Fact]
+    public void FilteredParent_SingleCategoryWithoutSubcategories_IsNull()
+    {
+        // Arrange
+        var state = new OverviewState();
+        state.ToggleCategory("lunch", true, Categories);
+
+        // Act
+        var parent = state.FilteredParent(Categories);
+
+        // Assert
+        Assert.Null(parent);
+    }
+
+    [Fact]
+    public void FilteredParent_SeveralCategoriesSelected_IsNull()
+    {
+        // Arrange
+        var state = new OverviewState();
+        state.ToggleCategory("food", true, Categories);
+
+        // Act
+        var parent = state.FilteredParent(Categories);
+
+        // Assert
+        Assert.Null(parent);
+    }
+
+    [Fact]
     public void IsFiltered_PeriodAloneOrACustomRange_IsFalse()
     {
         // Arrange

@@ -57,6 +57,13 @@ internal sealed class OverviewState
             (Filter.To ?? range.To) != range.To;
     }
 
+    /// <summary>The category the overview is filtered to when it is a single category that has subcategories; otherwise null.</summary>
+    public Category? FilteredParent(IReadOnlyList<Category> categories)
+    {
+        var filtered = categories.FirstOrDefault(category => category.Id == Filter.CategoryId);
+        return filtered is not null && categories.Any(category => category.ParentId == filtered.Id) ? filtered : null;
+    }
+
     public bool IsAccountSelected(string id) => Filter.AccountId == id || Filter.AccountIds?.Contains(id) == true;
 
     public bool IsCategorySelected(string id) => Filter.CategoryId == id || Filter.CategoryIds?.Contains(id) == true;
