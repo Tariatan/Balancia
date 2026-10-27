@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.4.19] - 2026-10-27
+
+#### Changed
+
+- The edit dialog is the `EditDialog` class (it was a method of the window, in `Dialogs.cs`) and the friendly error text is `FriendlyErrors`. The dialog's behavior is unchanged.
+
+#### Added
+
+- 19 tests of `EditDialog`, including that a failed save keeps the dialog open with the entered values, that closing and Escape are blocked while saving, that Add another refreshes while the dialog stays open and returns the focus, that the overview is refreshed once after a save, and which button is the default.
+
 ### [3.4.18] - 2026-10-27
 
 #### Changed

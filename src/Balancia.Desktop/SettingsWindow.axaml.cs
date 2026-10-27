@@ -77,7 +77,7 @@ public partial class SettingsWindow : Window
         catch (Exception ex)
         {
             Serilog.Log.Error(ex, "Settings operation failed");
-            await owner.ShowErrorDialog("Balancia", MainWindow.FriendlyError(ex));
+            await ErrorDialog.Show(owner, "Balancia", FriendlyErrors.For(ex));
         }
         finally
         {
@@ -136,7 +136,7 @@ public partial class SettingsWindow : Window
         {
             Serilog.Log.Error(ex, "Language change failed, Language: '{Language}'", selected.Code);
             SelectCurrentLanguage();
-            await owner.ShowErrorDialog("Balancia", MainWindow.FriendlyError(ex));
+            await ErrorDialog.Show(owner, "Balancia", FriendlyErrors.For(ex));
         }
     }
 }

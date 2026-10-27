@@ -40,7 +40,7 @@ public partial class MainWindow
             return;
         }
 
-        await EditDialog("Archive account",
+        await dialogs.ShowAsync("Archive account",
             [
                 Text(Format("Archive '{0}'?", account.Name))
             ],
@@ -56,7 +56,7 @@ public partial class MainWindow
             return;
         }
 
-        await EditDialog("Delete account",
+        await dialogs.ShowAsync("Delete account",
             [
                 Text(Format("Delete '{0}'?", account.Name))
             ],
@@ -74,7 +74,7 @@ public partial class MainWindow
             IsChecked = account is not null && account.Id == settings.DefaultAccountId
         };
 
-        await EditDialog(account is null ? "Add account" : "Edit account",
+        await dialogs.ShowAsync(account is null ? "Add account" : "Edit account",
             [
                 Field("Name", name),
                 Field("Opening date", date),

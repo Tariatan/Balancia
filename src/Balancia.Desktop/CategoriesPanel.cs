@@ -55,7 +55,7 @@ public partial class MainWindow
             return;
         }
 
-        await EditDialog("Archive category",
+        await dialogs.ShowAsync("Archive category",
             [
                 Text(Format("Archive {0}?", category.Path)),
                 Text("Subcategories will also be archived.")
@@ -71,7 +71,7 @@ public partial class MainWindow
             return;
         }
 
-        await EditDialog("Delete category",
+        await dialogs.ShowAsync("Delete category",
             [
                 Text(Format("Delete {0}?", category.Path)),
                 Text("Categories used by transactions or with subcategories must be archived instead.")
@@ -114,7 +114,7 @@ public partial class MainWindow
             SelectedItem = options.FirstOrDefault(c => c.Value == category?.ParentId) ?? options[0],
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        await EditDialog(category is null ? "Add category" : "Edit category",
+        await dialogs.ShowAsync(category is null ? "Add category" : "Edit category",
             [
                 Field("Name", name),
                 Field("Parent category", parent)

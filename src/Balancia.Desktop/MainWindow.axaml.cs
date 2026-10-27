@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     internal string LanguageCode;
     private OverviewData? overview;
     private readonly OperationRunner operations;
+    private readonly EditDialog dialogs;
     private readonly TimeProvider timeProvider;
     private DateOnly displayDate;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
@@ -46,6 +47,7 @@ public partial class MainWindow : Window
     {
         this.timeProvider = timeProvider ?? TimeProvider.System;
         operations = new OperationRunner(new OperationHost(this), () => RefreshCore(true));
+        dialogs = new EditDialog(this, () => operations.RunAsync(Refresh), () => operations.RunAsync(Refresh, false));
         OpenFilePicker = PickOpenFile;
         SaveFilePicker = PickSaveFile;
         FolderPicker = PickFolderFromDialog;
@@ -165,6 +167,12 @@ public partial class MainWindow : Window
 
     private Task Refresh() => RefreshCore(false);
 
+    private Task SelectFirst()
+    {
+        SetStatus("Select a row first.");
+        return Task.CompletedTask;
+    }
+
     private async Task RefreshCore(bool updateOverviewInPlace)
     {
         displayDate = Today;
@@ -200,8 +208,8 @@ public partial class MainWindow : Window
 
         public async Task WorkFailedAsync(Exception exception, Window? errorOwner)
         {
-            window.SetStatus(FriendlyError(exception));
-            await ErrorDialog.Show(errorOwner ?? window, "Balancia", FriendlyError(exception));
+            window.SetStatus(FriendlyErrors.For(exception));
+            await ErrorDialog.Show(errorOwner ?? window, "Balancia", FriendlyErrors.For(exception));
         }
 
         public void WorkFinished() => window.Overview.IsEnabled = true;

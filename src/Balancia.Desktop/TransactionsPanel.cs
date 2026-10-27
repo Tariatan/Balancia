@@ -55,7 +55,7 @@ public partial class MainWindow
             settings.DefaultAccountId, lastAccountId, await Task.Run(() => store.ReadRecentDescriptions()),
             await Task.Run(() => store.ReadRegularCategoryPaths()), () => Task.Run(() => store.ReadRegularCategoryPaths())));
 
-        await EditDialog(entry is null ? "Add transaction" : "Edit transaction", form.Fields,
+        await dialogs.ShowAsync(entry is null ? "Add transaction" : "Edit transaction", form.Fields,
             () =>
             {
                 var (draft, categoryPath) = form.Read();
@@ -65,7 +65,7 @@ public partial class MainWindow
             new DialogOptions(DialogSize.Tall, InitialFocus: form.InitialFocus, OnSaveAndContinue: form.ContinueAfterSave, Validate: form.Validate));
     }
 
-    private Task RemoveTransaction(LedgerEntry entry) => EditDialog("Remove transaction",
+    private Task RemoveTransaction(LedgerEntry entry) => dialogs.ShowAsync("Remove transaction",
         [
             TransactionRows.Build(new TransactionsHit(entry, null), "(No description)"),
             Text("Remove this transaction? For a transfer, both account movements will be removed together.")
