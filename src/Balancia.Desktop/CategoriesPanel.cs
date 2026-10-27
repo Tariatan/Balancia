@@ -10,9 +10,6 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private IReadOnlyList<CategoryTotal> renderedCategories = [];
-    private string? renderedCategoryId;
-
     private void InitializeCategoryPanel()
     {
         CategoriesCard.AddRequested += async () => await EditCategory(null);
@@ -154,62 +151,5 @@ public partial class MainWindow
 
                 return null;
             }));
-    }
-
-    private void FillCategoriesPanel(StackPanel body, LedgerSnapshot ledgerSnapshot)
-    {
-        body.Children.Clear();
-        renderedCategories = [.. ledgerSnapshot.LargestCategories];
-        renderedCategoryId = overviewState.Filter.CategoryId;
-
-        var filtered = ledgerSnapshot.Categories.FirstOrDefault(c => c.Id == overviewState.Filter.CategoryId);
-        var hasSubcategories = filtered is not null && ledgerSnapshot.Categories.Any(c => c.ParentId == filtered.Id);
-        CategoryHeading.Text = hasSubcategories
-            ? Format("Top expenditures · {0}", filtered!.Name)
-            : Get("Top expenditures");
-
-        var largest = ledgerSnapshot.LargestCategories;
-        if (largest.Count == 0)
-        {
-            body.Children.Add(QuietText("No matching expenses.", 12));
-            return;
-        }
-
-        var maximum = largest[0].Amount.Centimes;
-        foreach (var category in largest)
-        {
-            var row = new Grid
-            {
-                ColumnDefinitions = new ColumnDefinitions("75,*,80"),
-                MinHeight = 20,
-            };
-            row.Children.Add(new TextBlock
-            {
-                Text = category.Name,
-                FontSize = 11,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                VerticalAlignment = VerticalAlignment.Center,
-            });
-
-            GridLayout.Place(row, new ProgressBar
-            {
-                Minimum = 0,
-                Maximum = maximum,
-                Value = category.Amount.Centimes,
-                Height = 7,
-                Foreground = Brush.Parse("#3989A7"),
-                Background = Brush.Parse("#E7F2F6"),
-                VerticalAlignment = VerticalAlignment.Center,
-            }, 1);
-            GridLayout.Place(row, new TextBlock
-            {
-                Text = AmountText(category.Amount),
-                FontSize = 11,
-                TextAlignment = TextAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontWeight = FontWeight.SemiBold,
-            }, 2);
-            body.Children.Add(row);
-        }
     }
 }

@@ -170,12 +170,7 @@
 
               <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="11">
 
-                <Border Classes="card" Grid.Row="0" Padding="15">
-                  <StackPanel Spacing="1">
-                    <TextBlock x:Name="CategoryHeading" Classes="heading" Margin="0,0,0,20" />
-                    <StackPanel x:Name="CategoryBody" Spacing="1" />
-                  </StackPanel>
-                </Border>
+                <local:TopExpendituresCard x:Name="TopExpendituresCard" Grid.Row="0" />
 
                 <local:RemindersCard x:Name="RemindersCard" Grid.Row="1" />
               </Grid>

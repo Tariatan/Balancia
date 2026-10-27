@@ -236,7 +236,7 @@ public partial class MainWindow : Window
         RenderAccountPanel(s);
         RenderCategoryPanel(s);
         RenderRemindersPanel();
-        FillCategoriesPanel(CategoryBody, s);
+        TopExpendituresCard.Render(s.LargestCategories, TopExpendituresScope(s));
         SyncOverviewFilterInputs();
         SyncOverviewFilterDates();
         renderedPeriodState = null;

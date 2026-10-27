@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Balancia.Desktop.TopExpendituresCard">
+  <Border Classes="card" Padding="15">
+    <StackPanel Spacing="1">
+      <TextBlock x:Name="TopExpendituresHeading" Classes="heading" Margin="0,0,0,20" />
+      <StackPanel x:Name="TopExpendituresBody" Spacing="1" />
+    </StackPanel>
+  </Border>
+</UserControl>

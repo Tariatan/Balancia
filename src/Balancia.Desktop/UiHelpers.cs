@@ -11,16 +11,7 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private static readonly IBrush MutedTextBrush = Brush.Parse("#71838D");
     private static readonly IBrush BodyTextBrush = Brush.Parse("#344D44");
-
-    private static TextBlock QuietText(string content, double size) => new()
-    {
-        Text = Get(content),
-        FontSize = size,
-        Foreground = MutedTextBrush,
-        VerticalAlignment = VerticalAlignment.Center
-    };
 
     private static CalendarDatePicker DateInput(DateOnly? date) => new LocalizedCalendarDatePicker
     {
