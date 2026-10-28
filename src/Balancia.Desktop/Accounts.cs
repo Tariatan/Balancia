@@ -11,21 +11,18 @@ public partial class MainWindow
 {
     private void InitializeAccountPanel()
     {
-        AccountsCard.AddRequested += async () => await EditAccount(null);
-        AccountsCard.EditRequested += async account => await EditAccount(account);
-        AccountsCard.ArchiveRequested += async () => await ArchiveSelectedAccount();
-        AccountsCard.RemoveRequested += async () => await DeleteSelectedAccount();
-        AccountsCard.FilterToggled += async (id, selected) => await ToggleAccountFilter(id, selected);
+        OverviewPane.AccountsCard.AddRequested += async () => await EditAccount(null);
+        OverviewPane.AccountsCard.EditRequested += async account => await EditAccount(account);
+        OverviewPane.AccountsCard.ArchiveRequested += async () => await ArchiveSelectedAccount();
+        OverviewPane.AccountsCard.RemoveRequested += async () => await DeleteSelectedAccount();
+        OverviewPane.AccountsCard.FilterToggled += async (id, selected) => await ToggleAccountFilter(id, selected);
     }
 
-    private void RenderAccountPanel(LedgerSnapshot ledgerSnapshot) =>
-        AccountsCard.Render(ledgerSnapshot.Accounts, ledgerSnapshot.NetWorth, settings.DefaultAccountId, overviewState.IsAccountSelected);
-
-    private Task ToggleAccountFilter(string id, bool selected) => ApplyOverviewChange(overviewState.ToggleAccount(id, selected));
+    private Task ToggleAccountFilter(string id, bool selected) => ApplyOverviewChange(OverviewPane.State.ToggleAccount(id, selected));
 
     private async Task ArchiveSelectedAccount()
     {
-        if (AccountsCard.Selected is not { } account)
+        if (OverviewPane.AccountsCard.Selected is not { } account)
         {
             return;
         }
@@ -40,7 +37,7 @@ public partial class MainWindow
 
     private async Task DeleteSelectedAccount()
     {
-        if (AccountsCard.Selected is not { } account)
+        if (OverviewPane.AccountsCard.Selected is not { } account)
         {
             await SelectFirst();
             return;
@@ -51,13 +48,13 @@ public partial class MainWindow
                 Text(Format("Delete '{0}'?", account.Name))
             ],
             () => () => store.DeleteAccount(account.Id),
-            DialogOptions.Confirmation("Delete", () => AccountRules.CheckDelete(overview!.Snapshot.Accounts, account.Id)));
+            DialogOptions.Confirmation("Delete", () => AccountRules.CheckDelete(OverviewPane.Data!.Snapshot.Accounts, account.Id)));
     }
 
     private async Task EditAccount(Account? account)
     {
         var name = Input(account?.Name ?? "");
-        var date = DateInput(account?.OpeningDate ?? displayDate);
+        var date = DateInput(account?.OpeningDate ?? OverviewPane.DisplayDate);
         var amount = Input((account?.OpeningAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
         var defaultAccount = new CheckBox
         {
@@ -91,6 +88,6 @@ public partial class MainWindow
                     }
                 };
             },
-            new DialogOptions(Validate: () => AccountRules.CheckSave(overview!.Snapshot.Accounts, account?.Id, name.Text ?? string.Empty, ParseDate(date), Today)));
+            new DialogOptions(Validate: () => AccountRules.CheckSave(OverviewPane.Data!.Snapshot.Accounts, account?.Id, name.Text ?? string.Empty, ParseDate(date), Today)));
     }
 }

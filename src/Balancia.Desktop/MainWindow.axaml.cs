@@ -19,11 +19,9 @@ public partial class MainWindow : Window
     private readonly bool separateDataFolder;
     private ApplicationSettings settings;
     internal string LanguageCode;
-    private OverviewData? overview;
     private readonly OperationRunner operations;
     private readonly EditDialog dialogs;
     private readonly TimeProvider timeProvider;
-    private DateOnly displayDate;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(30) };
     private string? lastAccountId;
 
@@ -35,7 +33,7 @@ public partial class MainWindow : Window
 
     private DateOnly Today => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
 
-    private void SetStatus(string text) => OverviewStatus.Text = Get(text);
+    private void SetStatus(string text) => OverviewPane.ShowStatus(text);
 
     public MainWindow() : this(SeparateDataDirectory(Environment.GetCommandLineArgs()), ApplicationPaths.SettingsFile)
     {
@@ -54,8 +52,8 @@ public partial class MainWindow : Window
         SaveFilePicker = PickSaveFile;
         FolderPicker = PickFolderFromDialog;
         keys = new SnapshotKeyService(keyStore ?? new WindowsSnapshotKeyStore(), () => SnapshotKeyPath);
-        displayDate = Today;
         InitializeComponent();
+        OverviewPane.DisplayDate = Today;
         AppVersionText.Text = typeof(MainWindow).Assembly.GetName().Version!.ToString(3);
         InitializeOverview();
         separateDataFolder = separateDataDirectory is not null;
@@ -113,7 +111,7 @@ public partial class MainWindow : Window
     /// <summary>Re-renders the overview once the calendar day changes, so "today" and the month label never go stale.</summary>
     internal async Task RefreshIfDayChanged()
     {
-        if (!operations.IsBusy && Today != displayDate)
+        if (!operations.IsBusy && Today != OverviewPane.DisplayDate)
         {
             await operations.RunAsync(Refresh);
         }
@@ -129,7 +127,7 @@ public partial class MainWindow : Window
             closeExporter.MarkLoaded();
             Serilog.Log.Information("Ledger initialized");
         });
-        var monthStart = new DateOnly(displayDate.Year, displayDate.Month, 1);
+        var monthStart = new DateOnly(OverviewPane.DisplayDate.Year, OverviewPane.DisplayDate.Month, 1);
         var monthFilter = new TransactionsFilter
         {
             From = monthStart,
@@ -138,7 +136,7 @@ public partial class MainWindow : Window
         var monthTransactions = await Task.Run(() => store.ReadTransactions(monthFilter, pageSize: 1));
         if (monthTransactions.TotalCount == 0)
         {
-            overviewState.StartWith(OverviewPeriod.Last30Days);
+            OverviewPane.State.StartWith(OverviewPeriod.Last30Days);
         }
 
         await Refresh();
@@ -147,7 +145,7 @@ public partial class MainWindow : Window
 
     private async Task HandleShortcut(KeyEventArgs e)
     {
-        if (e.Handled || operations.IsBusy || overview is null ||
+        if (e.Handled || operations.IsBusy || OverviewPane.Data is null ||
             (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt)) != 0 ||
             e.Source is TextBox or AutoCompleteBox)
         {
@@ -160,7 +158,7 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 await EditTransaction(null);
                 break;
-            case Key.Delete when TransactionsCard.SelectedEntry is { } entry:
+            case Key.Delete when OverviewPane.TransactionsCard.SelectedEntry is { } entry:
                 e.Handled = true;
                 await RemoveTransaction(entry);
                 break;
@@ -177,12 +175,11 @@ public partial class MainWindow : Window
 
     private async Task RefreshCore(bool updateOverviewInPlace)
     {
-        displayDate = Today;
-        overview = await OverviewLoader.LoadAsync(store, overviewState.Query(displayDate));
+        await OverviewPane.LoadAsync(store, Today);
 
         if (updateOverviewInPlace)
         {
-            RenderOverview(overview.Snapshot);
+            OverviewPane.RenderInPlace();
         }
         else
         {
@@ -202,7 +199,7 @@ public partial class MainWindow : Window
         public void WorkSucceeded()
         {
             // An action that reported its own outcome (export, import, restore) keeps that message.
-            if (window.OverviewStatus.Text == Get("Working…"))
+            if (window.OverviewPane.StatusText == Get("Working…"))
             {
                 window.SetStatus("Saved locally");
             }
@@ -222,33 +219,23 @@ public partial class MainWindow : Window
     private void Render()
     {
         Overview.IsVisible = true;
-        if (overview?.Snapshot is not { } s)
+        if (OverviewPane.Data is null)
         {
             Overview.Content = Text("The ledger could not be loaded. Check the message below and restart after resolving it.");
             return;
         }
 
-        Overview.Content = OverviewRoot;
-        LocalizeOverview();
-        RenderAccountPanel(s);
-        RenderCategoryPanel(s);
-        RenderRemindersPanel();
-        TopExpendituresCard.Render(s.LargestCategories, TopExpendituresScope(s));
-        SyncOverviewFilterInputs();
-        SyncOverviewFilterDates();
-        FilterRow.ForgetShownPeriod();
-        TransactionsCard.Invalidate();
-        RenderOverview(s);
+        Overview.Content = OverviewPane;
+        OverviewPane.Render(settings.DefaultAccountId);
     }
 
     private void InitializeOverview()
     {
-        SettingsButton.Click += async (_, _) => await OpenSettingsDialog();
+        OverviewPane.SettingsRequested += async () => await OpenSettingsDialog();
         InitializeOverviewFilters();
         InitializeAccountPanel();
         InitializeCategoryPanel();
         InitializeTransactionsPanel();
         InitializeRemindersPanel();
-        InitializeTrendPanel();
     }
 }

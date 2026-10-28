@@ -11,16 +11,14 @@ public partial class MainWindow
 {
     private void InitializeRemindersPanel()
     {
-        RemindersCard.AddRequested += async () => await EditReminder(null);
-        RemindersCard.RemoveRequested += async () => await DeleteSelectedReminder();
-        RemindersCard.EditRequested += async reminder => await EditReminder(reminder);
+        OverviewPane.RemindersCard.AddRequested += async () => await EditReminder(null);
+        OverviewPane.RemindersCard.RemoveRequested += async () => await DeleteSelectedReminder();
+        OverviewPane.RemindersCard.EditRequested += async reminder => await EditReminder(reminder);
     }
-
-    private void RenderRemindersPanel() => RemindersCard.Render(overview!.Reminders, displayDate);
 
     private async Task DeleteSelectedReminder()
     {
-        if (RemindersCard.Selected is not { } reminder)
+        if (OverviewPane.RemindersCard.Selected is not { } reminder)
         {
             await SelectFirst();
             return;
@@ -38,7 +36,7 @@ public partial class MainWindow
     {
         var template = reminder?.Template;
         var description = Input(template?.Description ?? "");
-        var date = DateInput(template?.ExpectedDate ?? displayDate);
+        var date = DateInput(template?.ExpectedDate ?? OverviewPane.DisplayDate);
         var amount = Input((template?.IndicativeAmount.Francs ?? 0).ToString("0.00", CultureInfo.InvariantCulture));
         var interval = Input((template?.IntervalMonths ?? 1).ToString(CultureInfo.InvariantCulture));
 
@@ -56,7 +54,7 @@ public partial class MainWindow
                 return () => store.SaveReminder(template?.Id, text, expectedDate, indicativeAmount, intervalMonths, template?.Archived ?? false);
             },
             new DialogOptions(Validate: () => ReminderRules.CheckSave(
-                [.. overview!.Reminders.Select(r => r.Template)], template?.Id, description.Text ?? string.Empty, ParseMoney(amount),
+                [.. OverviewPane.Data!.Reminders.Select(r => r.Template)], template?.Id, description.Text ?? string.Empty, ParseMoney(amount),
                 int.TryParse(interval.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInterval) ? parsedInterval : 0,
                 template?.Archived ?? false)));
     }
