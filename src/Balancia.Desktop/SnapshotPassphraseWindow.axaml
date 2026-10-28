@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Balancia.Desktop.SnapshotPassphraseWindow"
-        Width="530" Height="480" CanResize="False" ShowInTaskbar="False"
+        Width="530" Height="400" CanResize="False" ShowInTaskbar="False"
         Icon="avares://Balancia.Desktop/Balancia.ico" WindowStartupLocation="CenterOwner"
         Opened="OnOpened" Closed="OnClosed">
   <StackPanel Margin="24" Spacing="12">

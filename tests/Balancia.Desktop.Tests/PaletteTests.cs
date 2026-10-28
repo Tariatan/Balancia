@@ -3,6 +3,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.VisualTree;
 using Balancia.Core;
 using Xunit;
@@ -34,6 +36,22 @@ public sealed partial class PaletteTests
                 .Where(label => label.Text is "Demo daily" or "Food" or "Groceries").ToArray();
             Assert.NotEmpty(labels);
             Assert.All(labels, label => Assert.Same(Palette.Text, label.Foreground));
+            foreach (var label in labels)
+            {
+                var row = label.FindAncestorOfType<ListBoxItem>();
+                if (row is null)
+                {
+                    continue;
+                }
+
+                var point = label.TranslatePoint(new Point(label.Bounds.Width / 2, label.Bounds.Height / 2), window)!.Value;
+                window.MouseMove(point);
+                Assert.True(row.IsPointerOver);
+                Assert.Same(Palette.Text, label.Foreground);
+                window.MouseDown(point, MouseButton.Left);
+                Assert.Same(Palette.Text, label.Foreground);
+                window.MouseUp(point, MouseButton.Left);
+            }
         }
     }
 

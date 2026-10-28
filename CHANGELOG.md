@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.11.2] - 2026-10-28
+
+#### Fixed
+
+- Hovered and pressed unselected list rows retain the theme's Text foreground and use palette-based highlights instead of Fluent light-theme defaults.
+
 ### [3.11.1] - 2026-10-28
 
 #### Fixed

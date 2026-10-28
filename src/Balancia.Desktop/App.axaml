@@ -126,6 +126,14 @@
       <Setter Property="Background" Value="{DynamicResource Palette.Accent}" />
       <Setter Property="Foreground" Value="{DynamicResource Palette.OnAccent}" />
     </Style>
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Palette.AccentTintLight}" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
+    </Style>
+    <Style Selector="ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Palette.AccentTintMedium}" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
+    </Style>
     <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource Palette.AccentTintLight}" />
       <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />

@@ -168,7 +168,7 @@ internal sealed class EditDialog(Window owner, Func<Task> refreshAfterSave, Func
         {
             DialogSize.Compact => (200, 430, 240),
             DialogSize.Wide => (200, 900, 240),
-            DialogSize.Tall => (730, 430, 360),
+            DialogSize.Tall => (660, 430, 360),
             _ => (480, 430, 360)
         };
         return new Window
