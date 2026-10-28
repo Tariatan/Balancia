@@ -26,6 +26,7 @@ public sealed class OverviewFilterSyncTests
         window.Find<CalendarDatePicker>("FilterTo").SelectedDate = LedgerSeed.Today.AddDays(-1).ToDateTime(TimeOnly.MinValue);
         window.EnterText("FilterSearch", string.Empty);
         await DesktopWorkspace.WaitUntilAsync(() => IntervalLabel(window) == Get("Day"), "the custom range to apply");
+        await DesktopWorkspace.WaitUntilAsync(() => !window.IsBusy, "the filter refresh to finish");
     }
 
     [AvaloniaFact]
@@ -41,6 +42,7 @@ public sealed class OverviewFilterSyncTests
         // Act
         window.Click("FilterClearAll");
         await DesktopWorkspace.WaitUntilAsync(() => IntervalLabel(window) == Get("Week"), "the trend zoom to return to this month's");
+        await DesktopWorkspace.WaitUntilAsync(() => !window.IsBusy, "the filter refresh to finish");
 
         // Assert
         Assert.True(IsHighlighted(window, "FilterButtonMonth"));
@@ -58,6 +60,7 @@ public sealed class OverviewFilterSyncTests
         // Act
         window.Click("FilterButtonYear");
         await DesktopWorkspace.WaitUntilAsync(() => IntervalLabel(window) == Get("Month"), "the year's zoom to show");
+        await DesktopWorkspace.WaitUntilAsync(() => !window.IsBusy, "the filter refresh to finish");
 
         // Assert
         Assert.True(IsHighlighted(window, "FilterButtonYear"));
@@ -103,6 +106,7 @@ public sealed class OverviewFilterSyncTests
         // Act
         parent.IsChecked = true;
         await DesktopWorkspace.WaitUntilAsync(() => child.IsChecked == true, "the subcategory to be checked");
+        await DesktopWorkspace.WaitUntilAsync(() => !window.IsBusy, "the filter refresh to finish");
 
         // Assert
         Assert.True(parent.IsChecked);

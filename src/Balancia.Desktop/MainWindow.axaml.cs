@@ -31,6 +31,8 @@ public partial class MainWindow : Window
 
     internal string? SnapshotPath => settings.SnapshotPath;
 
+    internal bool IsBusy => operations.IsBusy;
+
     private DateOnly Today => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
 
     private void SetStatus(string text) => OverviewStatus.Text = Get(text);

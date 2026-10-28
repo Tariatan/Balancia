@@ -8,6 +8,9 @@ namespace Balancia.Desktop.Tests;
 
 public sealed class FlowChartModelTests
 {
+    // Chart label assertions use English regardless of the language left by another test.
+    public FlowChartModelTests() => SetLanguage("en");
+
     private static readonly DateOnly Start = new(2026, 10, 1);
 
     private static DailyFlow Day(int day, decimal income = 0m, decimal expenses = 0m) =>

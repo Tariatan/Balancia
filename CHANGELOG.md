@@ -14,7 +14,7 @@ Versioning rule:
 
 ## Balancia.Desktop
 
-### [3.6.0] - 2026-10-27
+### [3.6.0] - 2026-10-28
 
 #### Added
 
@@ -26,6 +26,13 @@ Versioning rule:
 #### Changed
 
 - The account and reminder dialogs and the transaction form's opening date check use `AccountRules` and `ReminderRules` instead of their own copies. The existing messages are unchanged.
+
+### [3.5.2] - 2026-10-27
+
+#### Fixed
+
+- Chart model tests explicitly select English so date-label assertions do not depend on the language left by another test.
+- Overview filter synchronization tests wait for the database refresh after the controls update, preventing temporary database cleanup failures and overlapping filter actions.
 
 ### [3.5.1] - 2026-10-27
 
