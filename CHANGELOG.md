@@ -14,6 +14,23 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.7.0] - 2026-10-28
+
+#### Changed
+
+- The transaction form checks its accounts, the date and the typed category path with `TransactionRules` instead of its own copy, so it applies the same rules as the ledger store.
+- A category path that names no category is refused with "Choose an existing category path. No category "Food / Dinner"." (the path in the ledger spelling); before, with the first sentence only.
+- The form accepts a category typed with any letter case and any spacing around the separator (`food/lunch`, `Food /Lunch`), as the store always did; it used to ask for the stored spelling.
+- An archived account that the edited entry already uses is accepted, and a new entry on an archived account is refused with "Choose an active account for new movements.".
+
+#### Added
+
+- Leaving the category field rewrites what was typed in the one spelling the ledger shows (`food/lunch` becomes `Food / Lunch`; a path that names no category is only tidied). Suggestions find a path typed with another spacing around the separator.
+
+#### Removed
+
+- `TransactionFormRules.CategoryPathError`, replaced by `TransactionRules.CheckCategoryPath`.
+
 ### [3.6.0] - 2026-10-28
 
 #### Added
@@ -614,6 +631,17 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [3.5.0] - 2026-10-28
+
+#### Added
+
+- `TransactionRules` (account, date and category path checks for saving a transaction over plain lists of accounts and categories, with `FindByPath` and the messages; a category path is found by its names, so letter case and the spacing around '/' do not matter) and `SavedTransaction`, the accounts and category an edited transaction already uses.
+- `CategoryRules.Prettify`, which gives a typed category path the one spelling the ledger shows (`Food/Lunch` becomes `Food / Lunch`), and tests of the transaction rules and of `Prettify`.
+
+#### Changed
+
+- `CategorySuggestionRanking.Build` reads the query with `Prettify`, so `food/lunch` and `Food /Lunch` find `Food / Lunch`.
+
 ### [3.4.0] - 2026-10-27
 
 #### Added
@@ -691,6 +719,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [7.5.1] - 2026-10-28
+
+#### Changed
+
+- `SaveTransaction` and `SaveTransactionWithCategoryPath` run `TransactionRules` over the accounts and categories read in the same transaction, replacing the per-account and per-category SQL lookups. The messages and exception types are unchanged, except that a path that names no category gets "Choose an existing category path. No category "Food / Dinner"." (the path in the ledger spelling). `SaveTransactionWithCategoryPath` still resolves a path by its names, whatever the letter case and spacing. The account read leaves out balances, so a save does not scan the ledger.
 
 ### [7.5.0] - 2026-10-27
 

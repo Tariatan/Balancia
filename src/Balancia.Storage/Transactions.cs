@@ -9,7 +9,7 @@ public sealed partial class LedgerStore
     private const string EditableTransactionSql = "SELECT 1 FROM ledger WHERE id=$id AND kind<>'OpeningBalance'";
     private const string TransactionGoneMessage = "Transaction no longer exists.";
 
-    public string SaveTransaction(string? id, TransactionDraft draft) => SaveTransactionCore(id, draft, null);
+    public string SaveTransaction(string? id, TransactionDraft draft) => SaveTransactionCore(id, draft, null, false);
 
     public string SaveTransactionWithCategoryPath(string? id, TransactionDraft draft, string? categoryPath)
     {
@@ -23,10 +23,11 @@ public sealed partial class LedgerStore
             throw new ArgumentException("Transfers do not have expense categories.");
         }
 
-        return SaveTransactionCore(id, draft, ParseCategoryPath(categoryPath));
+        _ = ParseCategoryPath(categoryPath);
+        return SaveTransactionCore(id, draft, categoryPath, true);
     }
 
-    private string SaveTransactionCore(string? id, TransactionDraft draft, string[]? categoryParts)
+    private string SaveTransactionCore(string? id, TransactionDraft draft, string? categoryPath, bool byPath)
     {
         try
         {
@@ -50,20 +51,19 @@ public sealed partial class LedgerStore
                 LedgerSql.Require(c, tx, EditableTransactionSql, id, TransactionGoneMessage);
             }
 
-            ValidateAccount(c, tx, draft.AccountId, draft.Date, id);
-            if (draft.DestinationId is not null)
+            var saved = id is null ? null : ReadSavedTransaction(c, tx, id);
+            var accounts = ReadAccountsForTransaction(c, tx);
+            var categories = ReadCategories(c, tx);
+            var error = byPath
+                ? TransactionRules.CheckSave(accounts, categories, draft.Date, draft.AccountId, draft.DestinationId, categoryPath, saved)
+                : TransactionRules.CheckAccounts(accounts, draft.Date, draft.AccountId, draft.DestinationId, saved)
+                    ?? (draft.CategoryId is null ? null : TransactionRules.CheckCategoryId(categories, draft.CategoryId, saved));
+            if (error is not null)
             {
-                ValidateAccount(c, tx, draft.DestinationId, draft.Date, id);
+                throw new ArgumentException(error);
             }
 
-            var categoryId = categoryParts is null ? draft.CategoryId : ResolveCategoryPath(c, tx, categoryParts);
-            if (categoryId is not null)
-            {
-                ValidateCategory(c, tx, id, categoryId, categoryParts is null
-                    ? "Choose an active category."
-                    : "Restore the archived category before using it for another transaction.");
-            }
-
+            var categoryId = byPath ? TransactionRules.FindByPath(categories, categoryPath)?.Id : draft.CategoryId;
             LedgerSql.Execute(c, tx, """
                 INSERT INTO ledger VALUES($id,$kind,$date,$description,$category,$memo)
                 ON CONFLICT(id) DO UPDATE SET kind=excluded.kind,date=excluded.date,description=excluded.description,
@@ -94,59 +94,43 @@ public sealed partial class LedgerStore
 
     private static void ValidateAccount(SqliteConnection c, SqliteTransaction tx, string id, DateOnly date, string? transactionId)
     {
-        DateOnly openingDate;
-        bool archived;
-        using (var cmd = LedgerSql.Command(c, tx, "SELECT opening_date,archived FROM accounts WHERE id=$id", ("$id", id)))
-        using (var reader = cmd.ExecuteReader())
-        {
-            if (!reader.Read())
-            {
-                throw new ArgumentException("Account no longer exists.");
-            }
-
-            openingDate = LedgerSql.ParseDate(reader.GetString(0));
-            archived = reader.GetInt64(1) != 0;
-        }
-
-        if (AccountRules.CheckTransactionDate(openingDate, date) is { } message)
+        var saved = transactionId is null ? null : ReadSavedTransaction(c, tx, transactionId);
+        if (TransactionRules.CheckAccounts(ReadAccountsForTransaction(c, tx), date, id, null, saved) is { } message)
         {
             throw new ArgumentException(message);
         }
-
-        if (archived && (transactionId is null ||
-            LedgerSql.Scalar(c, tx, "SELECT 1 FROM movements WHERE transaction_id=$transaction AND account_id=$account", ("$transaction", transactionId), ("$account", id)) is null))
-        {
-            throw new ArgumentException("Choose an active account for new movements.");
-        }
     }
 
-    /// <summary>Requires the category to exist and, when archived, to be the one the edited transaction already uses.</summary>
-    private static void ValidateCategory(SqliteConnection c, SqliteTransaction tx, string? transactionId, string categoryId, string archivedError)
+    /// <summary>The accounts and the category the stored transaction already uses.</summary>
+    private static SavedTransaction ReadSavedTransaction(SqliteConnection c, SqliteTransaction tx, string id)
     {
-        var archived = LedgerSql.Scalar(c, tx, "SELECT archived FROM categories WHERE id=$id", ("$id", categoryId))
-            ?? throw new ArgumentException("Category no longer exists.");
-        if (Convert.ToInt64(archived) == 0)
+        var accountIds = new List<string>();
+        using (var cmd = LedgerSql.Command(c, tx, "SELECT account_id FROM movements WHERE transaction_id=$id", ("$id", id)))
+        using (var reader = cmd.ExecuteReader())
         {
-            return;
+            while (reader.Read())
+            {
+                accountIds.Add(reader.GetString(0));
+            }
         }
 
-        var previousCategory = transactionId is null ? null :
-            LedgerSql.Scalar(c, tx, "SELECT category_id FROM ledger WHERE id=$id", ("$id", transactionId)) as string;
-        if (categoryId != previousCategory)
+        return new SavedTransaction(accountIds, LedgerSql.Scalar(c, tx, "SELECT category_id FROM ledger WHERE id=$id", ("$id", id)) as string);
+    }
+
+    /// <summary>The accounts with what the transaction checks need; balances and first transaction dates are left out because they cost a pass over the ledger.</summary>
+    private static List<Account> ReadAccountsForTransaction(SqliteConnection c, SqliteTransaction tx)
+    {
+        var accounts = new List<Account>();
+        using var cmd = LedgerSql.Command(c, tx, "SELECT id,name,opening_date,archived FROM accounts");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
         {
-            throw new ArgumentException(archivedError);
+            accounts.Add(new Account(reader.GetString(0), reader.GetString(1), LedgerSql.ParseDate(reader.GetString(2)), Money.Zero, reader.GetBoolean(3), Money.Zero));
         }
+
+        return accounts;
     }
 
     private static void AddMovement(SqliteConnection c, SqliteTransaction tx, string id, string account, long amount) =>
         LedgerSql.Execute(c, tx, "INSERT INTO movements VALUES($id,$account,$amount)", ("$id", id), ("$account", account), ("$amount", amount));
-
-    private static string? ResolveCategoryPath(SqliteConnection c, SqliteTransaction tx, string[] parts)
-    {
-        return parts.Aggregate<string?, string?>(null, (current, part) =>
-            LedgerSql.Scalar(c, tx,
-                "SELECT id FROM categories WHERE parent_id IS $parent AND name=$name COLLATE NOCASE",
-                ("$parent", current),
-                ("$name", part)) as string ?? throw new ArgumentException("Choose an existing category path."));
-    }
 }

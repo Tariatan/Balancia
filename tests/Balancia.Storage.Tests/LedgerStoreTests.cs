@@ -444,6 +444,31 @@ public sealed class LedgerStoreTests : IDisposable
         Assert.Equal(4, after.Categories.Count);
     }
 
+    [Theory]
+    [InlineData("Home / Utilities")]
+    [InlineData("Home/Utilities")]
+    [InlineData("Home /Utilities")]
+    [InlineData("Home/ Utilities")]
+    [InlineData("  home  /  UTILITIES ")]
+    public void SaveTransactionWithCategoryPath_AnySpellingOfThePath_StoresTheMatchingCategoryWithoutCreatingOne(string categoryPath)
+    {
+        // Arrange
+        var account = Account("Synthetic account");
+        var parentId = store.SaveCategory(null, "Home", null);
+        var childId = store.SaveCategory(null, "Utilities", parentId);
+        store.SaveCategory(null, "Utilities", store.SaveCategory(null, "Work", null));
+
+        // Act
+        store.SaveTransactionWithCategoryPath(null, Draft(account, TransactionKind.Expense, 10), categoryPath);
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        var entry = Assert.Single(snapshot.Entries);
+        Assert.Equal("Home / Utilities", entry.CategoryPath);
+        Assert.Equal(childId, entry.Draft.CategoryId);
+        Assert.Equal(4, snapshot.Categories.Count);
+    }
+
     [Fact]
     public void SaveTransactionWithCategoryPath_ArchivedCategoryOnExistingEntry_KeepsAssignment()
     {

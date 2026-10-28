@@ -51,6 +51,13 @@ public static class CategoryRules
     }
 
     /// <summary>
+    /// A typed category path in the one spelling the ledger shows: each side of '/' trimmed, and ' / ' between them (<c>Food/Lunch</c> becomes
+    /// <c>Food / Lunch</c>). Letter case is kept and nothing is validated, so a half typed path such as <c>Food/</c> becomes <c>Food /</c>.
+    /// </summary>
+    public static string Prettify(string? path) =>
+        path is null ? string.Empty : string.Join(" / ", path.Split('/').Select(part => part.Trim())).Trim();
+
+    /// <summary>
     /// Why saving the category cannot go ahead, or null when it can. <paramref name="id"/> is null for a new category;
     /// <paramref name="categories"/> holds every existing category, including the one being edited.
     /// </summary>

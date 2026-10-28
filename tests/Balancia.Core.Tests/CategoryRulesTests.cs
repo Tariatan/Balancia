@@ -42,6 +42,23 @@ public class CategoryRulesTests
     }
 
     [Theory]
+    [InlineData(null, "")]
+    [InlineData("", "")]
+    [InlineData("   ", "")]
+    [InlineData("Food", "Food")]
+    [InlineData("  Food  ", "Food")]
+    [InlineData("Food / Lunch", "Food / Lunch")]
+    [InlineData("Food/Lunch", "Food / Lunch")]
+    [InlineData("Food /Lunch", "Food / Lunch")]
+    [InlineData("Food/ Lunch", "Food / Lunch")]
+    [InlineData("  Food  /  Lunch  ", "Food / Lunch")]
+    [InlineData("food/lunch", "food / lunch")] // letter case is kept
+    [InlineData("Food/", "Food /")] // a half typed path stays recognisable
+    [InlineData("A/B/C", "A / B / C")] // nothing is validated
+    public void Prettify_AnySpacingAroundTheSeparator_GivesTheLedgerSpelling(string? path, string expected) =>
+        Assert.Equal(expected, CategoryRules.Prettify(path));
+
+    [Theory]
     [InlineData("A/B/C")]
     [InlineData("Food/")]
     [InlineData("/Lunch")]

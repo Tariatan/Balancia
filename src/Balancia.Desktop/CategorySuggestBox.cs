@@ -130,13 +130,16 @@ internal sealed class CategorySuggestBox : Grid
         }
     }
 
-    private void Accept(CategorySuggestion suggestion)
+    private void Accept(CategorySuggestion suggestion) => Settle(suggestion.Path);
+
+    /// <summary>Puts <paramref name="path"/> in the text box and closes the suggestions, without offering suggestions for it again.</summary>
+    internal void Settle(string path)
     {
-        acceptedPath = suggestion.Path;
+        acceptedPath = path;
         accepting = true;
         try
         {
-            category.Text = suggestion.Path;
+            category.Text = path;
             popup.IsOpen = false;
         }
         finally
