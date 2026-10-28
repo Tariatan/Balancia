@@ -34,9 +34,17 @@ public partial class CsvImportPreviewWindow : Window
     {
         Title = Get("CSV import preview");
         MessageText.Text = BuildMessage();
-        ApplyButton.Content = Get("Apply import");
+        var replaces = !preview.Existing.IsEmpty;
+        ApplyButton.Content = Get(replaces ? "Replace data" : "Apply import");
         ApplyButton.IsEnabled = preview.CanApply;
         CancelButton.Content = Get("Cancel");
+        if (replaces)
+        {
+            // Applying deletes the current ledger, so Enter must not do it.
+            ApplyButton.IsDefault = false;
+            CancelButton.IsDefault = true;
+            Opened += (_, _) => CancelButton.Focus();
+        }
     }
 
     private string BuildMessage()
@@ -45,6 +53,11 @@ public partial class CsvImportPreviewWindow : Window
         var dates = string.Join(", ", preview.ResolvedDates.Select(d =>
             Format("Resolved date line {0}: {1}", d.Line, d.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))));
         var accounts = string.Join("\n", summary.AccountTotals.Select(a => $"{a.Account}: {a.Centimes / 100m:N2}"));
+        var existing = preview.Existing;
+        var replacement = existing.IsEmpty
+            ? ""
+            : Format("This import replaces the current ledger: {0} accounts, {1} transactions and {2} reminders will be deleted. A recovery copy is saved first.",
+                existing.Accounts, existing.Transactions, existing.Reminders) + "\n\n";
         var outcome = preview.Issues.Count == 0
             ? Get("All rows are valid. Apply this batch?")
             : Get("Errors (correct source file, then preview again):") + "\n" +
@@ -58,7 +71,7 @@ public partial class CsvImportPreviewWindow : Window
             Get("Dates (first 10 rows): "), dates,
             "\n\n", Get("Accounts and source totals:"), "\n", accounts,
             "\n\n", Get("Categories: "), string.Join(", ", summary.Categories),
-            "\n\n", outcome);
+            "\n\n", replacement, outcome);
     }
 
     private void OnCancel(object? sender, RoutedEventArgs e) => Close();
@@ -72,7 +85,7 @@ public partial class CsvImportPreviewWindow : Window
         {
             Serilog.Log.Information("Applying CSV import");
             var result = await Task.Run(() => apply(preview));
-            Serilog.Log.Information("CSV import completed, Added: '{Added}', Unchanged: '{Unchanged}'", result.Added, result.Unchanged);
+            Serilog.Log.Information("CSV import completed, Imported: '{Imported}'", result.Imported);
             Close();
             await onApplied(result);
         }

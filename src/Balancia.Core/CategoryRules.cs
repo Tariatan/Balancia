@@ -58,6 +58,13 @@ public static class CategoryRules
         path is null ? string.Empty : string.Join(" / ", path.Split('/').Select(part => part.Trim())).Trim();
 
     /// <summary>
+    /// The category called <paramref name="name"/> under <paramref name="parentId"/> (null for a top-level category), letter case ignored
+    /// for every character, not only ASCII. The one definition of "same name" for saving, typing a path and importing.
+    /// </summary>
+    public static Category? FindChild(IReadOnlyList<Category> categories, string? parentId, string name) =>
+        categories.FirstOrDefault(c => c.ParentId == parentId && string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
     /// Why saving the category cannot go ahead, or null when it can. <paramref name="id"/> is null for a new category;
     /// <paramref name="categories"/> holds every existing category, including the one being edited.
     /// </summary>

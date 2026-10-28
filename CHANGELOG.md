@@ -14,6 +14,21 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.8.0] - 2026-10-28
+
+#### Changed
+
+- Importing a CSV file replaces the whole ledger instead of appending to it. When the ledger holds data, the preview says "This import replaces the current ledger: {0} accounts, {1} transactions and {2} reminders will be deleted. A recovery copy is saved first.", the button reads **Replace data**, and Cancel is the default button and has the focus. An empty ledger keeps **Apply import** and no warning.
+- After an import the status line reads "Replaced the ledger with {0} imported entries." (it used to count unchanged entries), and a default account that is not in the imported file is cleared in the settings.
+- A file with no rows shows "The file has no rows to import." and cannot be applied.
+- The new texts are in all four languages.
+
+### [3.7.4] - 2026-10-28
+
+#### Changed
+
+- The CSV import preview lists each category once, in the spelling the ledger uses (`Food / Lunch`), however the file spells its path. Before, `Food/Lunch` and `Food / Lunch` showed as two categories.
+
 ### [3.7.3] - 2026-10-28
 
 #### Changed
@@ -661,6 +676,13 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [3.6.0] - 2026-10-28
+
+#### Added
+
+- `CategoryRules.FindChild`, the one definition of "the category with this name under this parent": letter case is ignored for every character. `TransactionRules.FindByPath` uses it.
+- Tests of `FindChild`.
+
 ### [3.5.0] - 2026-10-28
 
 #### Added
@@ -749,6 +771,27 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [8.0.0] - 2026-10-28
+
+#### Changed
+
+- Breaking: `ApplyCsvImport` replaces the ledger. In one transaction it deletes every account, category, transaction, reminder and import record (the dataset id stays and the revision advances) and imports the file, so a failure leaves the ledger as it was. A repeated import is no longer a no-op, and a changed row, a locally edited entry, an omitted source ID or a deleted account no longer produce a conflict; the file wins.
+- Breaking: `ImportResult` is `(Imported, RecoveryCopyPath)` instead of `(Added, Unchanged)`.
+- Before a ledger that holds data is replaced, a plaintext recovery copy is saved next to the database as `.pre-import-<time>-<id>.bak`; the three newest are kept, counted apart from the pre-restore copies. If the copy cannot be written nothing is deleted. A stale preview is refused before any copy is made.
+- `CsvImportPreview.Existing` (`ExistingLedger`: accounts, transactions without opening balances, reminders) says what applying would delete; `IsEmpty` is true for a fresh ledger.
+- A file with no importable rows is refused by the preview with "The file has no rows to import.", so a bad file cannot empty the ledger.
+
+#### Removed
+
+- The reconciliation code that replacing makes unreachable: the import source comparison and its conflicts, the unchanged count, the conflict with an existing reminder or opening balance, and the archived category conflict. `import_sources` is still written.
+
+### [7.5.2] - 2026-10-28
+
+#### Fixed
+
+- CSV import matched category names with SQLite `COLLATE NOCASE`, which folds ASCII only, so a row with `épicerie` created a second category next to an existing `Épicerie` that `SaveCategory` would have refused. Import now reads the categories once and finds them with `CategoryRules.FindChild`, as saving a transaction does; the categories it creates are added to that list so later rows find them. An archived category still stops the import with the same message.
+- The import summary (`ImportSummary.Categories`) lists a path once however its separator is spelled, in the form `Category / Subcategory`.
 
 ### [7.5.1] - 2026-10-28
 

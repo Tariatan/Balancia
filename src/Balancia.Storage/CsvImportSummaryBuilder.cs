@@ -1,3 +1,5 @@
+using Balancia.Core;
+
 namespace Balancia.Storage;
 
 internal static class CsvImportSummaryBuilder
@@ -28,7 +30,7 @@ internal static class CsvImportSummaryBuilder
             .ToArray();
         var categories = rows
             .Where(row => row.Category.Length > 0)
-            .Select(row => row.Category.Trim())
+            .Select(row => CategoryRules.Prettify(row.Category))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(category => category)
             .ToArray();

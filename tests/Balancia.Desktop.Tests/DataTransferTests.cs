@@ -77,15 +77,91 @@ public sealed class DataTransferTests
         var message = preview.Text("MessageText");
         preview.ClickDialogButton("Apply import");
         await operation.CompleteAsync();
-        await DesktopWorkspace.WaitUntilAsync(() => Status(window).StartsWith("Imported"), "the import result");
+        await DesktopWorkspace.WaitUntilAsync(() => Status(window).StartsWith("Replaced"), "the import result");
 
         // Assert
         Assert.Contains("2 rows: 1 expenses, 0 income, 0 transfers, 1 openings.", message);
         Assert.Contains("All rows are valid. Apply this batch?", message);
-        Assert.Equal("Imported 2 entries; 0 unchanged.", Status(window));
+        Assert.DoesNotContain("replaces the current ledger", message);
+        Assert.Equal("Replaced the ledger with 2 imported entries.", Status(window));
         var snapshot = workspace.SeedStore().ReadSnapshot();
         Assert.Equal("Savings", Assert.Single(snapshot.Accounts).Name);
         Assert.Equal("Bread", Assert.Single(snapshot.Entries).Draft.Description);
+    }
+
+    [AvaloniaFact]
+    public async Task ImportCsv_LedgerWithData_WarnsWhatItDeletesAndReplacesIt()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var (window, _) = await OpenSeededAsync(workspace);
+        var source = Path.Combine(workspace.Root, "in.csv");
+        File.WriteAllText(source, ValidCsv, new UTF8Encoding(false));
+        window.OpenFilePicker = (_, _) => Task.FromResult<string?>(source);
+
+        // Act
+        var operation = window.ImportCsv();
+        var preview = await window.WaitForDialogAsync<CsvImportPreviewWindow>();
+        var message = preview.Text("MessageText");
+        var cancelIsDefault = preview.FindControl<Button>("CancelButton")!.IsDefault;
+        var applyIsDefault = preview.FindControl<Button>("ApplyButton")!.IsDefault;
+        preview.ClickDialogButton("Replace data");
+        await operation.CompleteAsync();
+        await DesktopWorkspace.WaitUntilAsync(() => Status(window).StartsWith("Replaced"), "the import result");
+
+        // Assert
+        Assert.Contains("This import replaces the current ledger: 1 accounts, 1 transactions and 0 reminders will be deleted. A recovery copy is saved first.", message);
+        Assert.True(cancelIsDefault);
+        Assert.False(applyIsDefault);
+        var snapshot = workspace.SeedStore().ReadSnapshot();
+        Assert.Equal("Savings", Assert.Single(snapshot.Accounts).Name);
+        Assert.Equal("Bread", Assert.Single(snapshot.Entries).Draft.Description);
+        Assert.NotEmpty(Directory.GetFiles(workspace.DataDirectory, "*.pre-import-*.bak"));
+    }
+
+    [AvaloniaFact]
+    public async Task ImportCsv_CanceledAfterThePreview_LeavesTheLedgerAlone()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var (window, store) = await OpenSeededAsync(workspace);
+        var source = Path.Combine(workspace.Root, "in.csv");
+        File.WriteAllText(source, ValidCsv, new UTF8Encoding(false));
+        window.OpenFilePicker = (_, _) => Task.FromResult<string?>(source);
+
+        // Act
+        var operation = window.ImportCsv();
+        var preview = await window.WaitForDialogAsync<CsvImportPreviewWindow>();
+        preview.ClickDialogButton("Cancel");
+        await operation.CompleteAsync();
+
+        // Assert
+        Assert.Equal("Everyday", Assert.Single(store.ReadSnapshot().Accounts).Name);
+        Assert.Empty(Directory.GetFiles(workspace.DataDirectory, "*.pre-import-*.bak"));
+    }
+
+    [AvaloniaFact]
+    public async Task ImportCsv_DefaultAccountIsNotInTheFile_ClearsTheSavedDefault()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var store = workspace.SeedStore();
+        var accountId = LedgerSeed.Account(store);
+        workspace.WriteSettings(defaultAccountId: accountId);
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: true);
+        var source = Path.Combine(workspace.Root, "in.csv");
+        File.WriteAllText(source, ValidCsv, new UTF8Encoding(false));
+        window.OpenFilePicker = (_, _) => Task.FromResult<string?>(source);
+
+        // Act
+        var operation = window.ImportCsv();
+        var preview = await window.WaitForDialogAsync<CsvImportPreviewWindow>();
+        preview.ClickDialogButton("Replace data");
+        await operation.CompleteAsync();
+        await DesktopWorkspace.WaitUntilAsync(() => Status(window).StartsWith("Replaced"), "the import result");
+
+        // Assert
+        Assert.Null(workspace.ReadSavedDefaultAccountId());
     }
 
     [AvaloniaFact]

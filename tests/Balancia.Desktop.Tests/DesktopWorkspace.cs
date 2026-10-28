@@ -39,6 +39,13 @@ internal sealed class DesktopWorkspace : IDisposable
 
     public string SnapshotDirectory { get; }
 
+    /// <summary>The default account id saved in the settings file, or null when there is none.</summary>
+    public string? ReadSavedDefaultAccountId()
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(SettingsFile));
+        return document.RootElement.TryGetProperty("DefaultAccountId", out var id) && id.ValueKind == JsonValueKind.String ? id.GetString() : null;
+    }
+
     /// <summary>The saved window geometry, or null when the settings file has none.</summary>
     public JsonElement? ReadSavedWindow()
     {
@@ -66,7 +73,7 @@ internal sealed class DesktopWorkspace : IDisposable
 
     /// <summary>Writes the settings file the window reads at startup, as a regular (non separate-folder) installation.</summary>
     public void WriteSettings(string? backupPath = null, string? snapshotPath = null, string language = "en",
-        (double Width, double Height, int X, int Y)? window = null)
+        (double Width, double Height, int X, int Y)? window = null, string? defaultAccountId = null)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile)!);
         File.WriteAllText(SettingsFile, JsonSerializer.Serialize(new
@@ -75,6 +82,7 @@ internal sealed class DesktopWorkspace : IDisposable
             BackupPath = backupPath,
             SnapshotPath = snapshotPath,
             Language = language,
+            DefaultAccountId = defaultAccountId,
             Window = window is { } geometry ? new { geometry.Width, geometry.Height, geometry.X, geometry.Y } : null,
         }));
     }

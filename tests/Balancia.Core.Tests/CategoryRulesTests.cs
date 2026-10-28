@@ -59,6 +59,45 @@ public class CategoryRulesTests
         Assert.Equal(expected, CategoryRules.Prettify(path));
 
     [Theory]
+    [InlineData(null, "Food", "food")]
+    [InlineData(null, "FOOD", "food")]
+    [InlineData("food", "lunch", "lunch")]
+    [InlineData("food", "LUNCH", "lunch")]
+    [InlineData(null, "Épicerie", "epic")]
+    [InlineData(null, "épicerie", "epic")] // letter case is folded for every character, not only ASCII
+    public void FindChild_AnyLetterCase_FindsTheCategoryUnderThatParent(string? parentId, string name, string expectedId)
+    {
+        // Arrange
+        Category[] categories =
+        [
+            new("food", "Food", null, "Food", false),
+            new("lunch", "Lunch", "food", "Food / Lunch", false),
+            new("epic", "Épicerie", null, "Épicerie", false),
+        ];
+
+        // Act and Assert
+        Assert.Equal(expectedId, CategoryRules.FindChild(categories, parentId, name)?.Id);
+    }
+
+    [Theory]
+    [InlineData(null, "Lunch")] // a subcategory is not a top-level category
+    [InlineData("food", "Food")]
+    [InlineData("other", "Lunch")]
+    [InlineData(null, "Dinner")]
+    public void FindChild_NoSuchNameUnderThatParent_FindsNothing(string? parentId, string name)
+    {
+        // Arrange
+        Category[] categories =
+        [
+            new("food", "Food", null, "Food", false),
+            new("lunch", "Lunch", "food", "Food / Lunch", false),
+        ];
+
+        // Act and Assert
+        Assert.Null(CategoryRules.FindChild(categories, parentId, name));
+    }
+
+    [Theory]
     [InlineData("A/B/C")]
     [InlineData("Food/")]
     [InlineData("/Lunch")]

@@ -78,7 +78,7 @@ Set `BALANCIA_PERF=1` to run the 50,000-transaction latency test, which fails wh
 
 For a separate test dataset, pass `--data-dir C:\absolute\directory` after `--` in the `dotnet run` command — the app creates that directory and its schema on first run.
 
-The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db` by default. CSV import accepts only Balancia's own export format: `ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo`, with `YYYY-MM-DD` dates. Open Settings, choose **Import CSV**, inspect the preview, and apply it; a repeated identical import is a no-op, and a changed row under the same ID surfaces as a conflict instead of a silent overwrite. **Export CSV** writes the current ledger, including explicit opening balances and one row per transfer.
+The app stores its working database at `%LOCALAPPDATA%\Balancia\balancia.db` by default. CSV import accepts only Balancia's own export format: `ID,Date,Type,Description,Amount,Account,DestinationAccount,Category,Memo`, with `YYYY-MM-DD` dates. Open Settings, choose **Import CSV**, inspect the preview, and apply it. An import replaces the whole ledger: accounts, categories, transactions and reminders are deleted first (the preview says how many), after a recovery copy of the old database is saved next to it, so the file becomes the ledger. **Export CSV** writes the current ledger, including explicit opening balances and one row per transfer.
 
 ## Private data
 
