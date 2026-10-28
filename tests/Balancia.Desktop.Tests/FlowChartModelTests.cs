@@ -1,6 +1,7 @@
 using Avalonia.Media;
 using Balancia.Core;
 using Balancia.Storage;
+using Avalonia.Headless.XUnit;
 using Xunit;
 
 using static Balancia.Desktop.Localization.UiText;
@@ -25,7 +26,7 @@ public sealed class FlowChartModelTests
 
     // Focus
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData(TransactionKind.Income, "Income")]
     [InlineData(TransactionKind.Expense, "Expense")]
     [InlineData(TransactionKind.Transfer, "Both")]
@@ -41,7 +42,7 @@ public sealed class FlowChartModelTests
         Assert.Equal(Enum.Parse<FlowFocus>(expected), focus);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Focus_NoKindAndNoCategory_ShowsBoth()
     {
         // Arrange
@@ -54,7 +55,7 @@ public sealed class FlowChartModelTests
         Assert.Equal(FlowFocus.Both, focus);
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData(10, 0, "Income")] // only income matches the category
     [InlineData(0, 10, "Expense")] // only expenses match
     [InlineData(10, 5, "Both")] // both flows match
@@ -71,7 +72,7 @@ public sealed class FlowChartModelTests
         Assert.Equal(Enum.Parse<FlowFocus>(expected), focus);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Focus_CategoryFilter_AlsoCountsThePreviousPeriod()
     {
         // Arrange
@@ -86,7 +87,7 @@ public sealed class FlowChartModelTests
 
     // EmptyMessage
 
-    [Fact]
+    [AvaloniaFact]
     public void EmptyMessage_Transfers_SayTheyAreNotIncomeOrExpenses()
     {
         // Arrange
@@ -99,7 +100,7 @@ public sealed class FlowChartModelTests
         Assert.Equal(Get("Transfers do not count as income or expenses."), message);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void EmptyMessage_NoFlowsInEitherPeriod_SaysNothingMatches()
     {
         // Arrange
@@ -112,7 +113,7 @@ public sealed class FlowChartModelTests
         Assert.Equal(Get("No matching transactions"), message);
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData(true, false)]
     [InlineData(false, true)]
     public void EmptyMessage_AFlowInEitherPeriod_IsNull(bool inCurrent, bool inPrevious)
@@ -131,7 +132,7 @@ public sealed class FlowChartModelTests
 
     // Trend
 
-    [Fact]
+    [AvaloniaFact]
     public void Trend_ShowingBoth_HasIncomeExpenseAndSavingsSeriesAndOnePointPerBucket()
     {
         // Arrange
@@ -147,7 +148,7 @@ public sealed class FlowChartModelTests
         Assert.Null(chart.Message);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Trend_ShowingBoth_PlotsIncomeNegatedExpensesAndSavings()
     {
         // Arrange
@@ -161,7 +162,7 @@ public sealed class FlowChartModelTests
         Assert.Equal([Money.FromFrancs(100m), Money.FromFrancs(-30m), Money.FromFrancs(70m)], point.Values);
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData("Income", 100)]
     [InlineData("Expense", 30)]
     public void Trend_ShowingOneFlow_HasASingleBarSeriesOfThatFlow(string flow, int expected)
@@ -179,7 +180,7 @@ public sealed class FlowChartModelTests
         Assert.Equal([Money.FromFrancs(expected)], Assert.Single(chart.Points).Values);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Trend_Points_AreCenteredInTheirSlotsWithTheBucketsRangeAsHeading()
     {
         // Arrange
@@ -197,7 +198,7 @@ public sealed class FlowChartModelTests
         Assert.Contains($"{Get("Expense")}: -5.00", chart.Points[1].Details);
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData(FlowInterval.Day, 14, "01 Oct")]
     [InlineData(FlowInterval.Month, 14, "Oct 26")]
     [InlineData(FlowInterval.Day, 365, "01 Oct")]
@@ -215,7 +216,7 @@ public sealed class FlowChartModelTests
         Assert.Equal(expected, chart.Points[0].Label);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Trend_WithoutCurrentFlows_FallsBackToThePeriodMessageUnlessOneIsGiven()
     {
         // Arrange
@@ -230,7 +231,7 @@ public sealed class FlowChartModelTests
         Assert.Equal("Given", given.Message);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Trend_WithCurrentFlows_PassesTheGivenMessageThrough()
     {
         // Arrange
@@ -245,7 +246,7 @@ public sealed class FlowChartModelTests
 
     // Timeline
 
-    [Fact]
+    [AvaloniaFact]
     public void Timeline_Points_AreCumulativeExpensesOfTheCurrentPeriod()
     {
         // Arrange
@@ -261,7 +262,7 @@ public sealed class FlowChartModelTests
         Assert.Equal("01 Oct", chart.Points[0].Label);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Timeline_ForIncome_AccumulatesIncomeInTheIncomeColor()
     {
         // Arrange
@@ -277,7 +278,7 @@ public sealed class FlowChartModelTests
         Assert.All(chart.Series, series => Assert.True(series.Steps));
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Timeline_ForExpenses_UsesTheExpenseColorAndThePreviousPeriodSeries()
     {
         // Arrange
@@ -291,7 +292,7 @@ public sealed class FlowChartModelTests
         Assert.Equal<IBrush>([Palette.ChartExpense, Palette.ChartPrevious], chart.Series.Select(series => series.Brush));
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Timeline_WithAPreviousPeriod_AlignsItByDayOffsetAndNamesBothDatesInTheTooltip()
     {
         // Arrange
@@ -311,7 +312,7 @@ public sealed class FlowChartModelTests
         Assert.StartsWith($"{Get("Expense")} · 02 Oct 2026: 10.00", middle.Details);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Timeline_WithoutAPreviousPeriod_HasOnlyTheCurrentLabelInTheTooltip()
     {
         // Arrange
@@ -325,7 +326,7 @@ public sealed class FlowChartModelTests
         Assert.All(chart.Points, point => Assert.DoesNotContain(Get("Previous period"), point.Details));
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Timeline_ForASingleDay_CentersTheOnlyPoint()
     {
         // Arrange
@@ -340,7 +341,7 @@ public sealed class FlowChartModelTests
         Assert.Equal(Money.FromFrancs(3m), point.Values[0]);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Timeline_ForAVeryLongRange_PlotsOnlyTheDaysWithFlowsPlusBothEnds()
     {
         // Arrange
@@ -359,7 +360,7 @@ public sealed class FlowChartModelTests
         Assert.Equal("Jan 90", chart.Points[0].Label);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Timeline_PassesTheGivenMessageThrough()
     {
         // Arrange

@@ -42,7 +42,7 @@
     </ScrollViewer>
     <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="24,0,24,24">
       <Button x:Name="CloseButton" IsCancel="True" HorizontalAlignment="Left" />
-      <TextBlock x:Name="VersionText" Grid.Column="1" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" />
+      <TextBlock x:Name="VersionText" Grid.Column="1" FontSize="12" Foreground="{DynamicResource Palette.TextMuted}" VerticalAlignment="Center" />
     </Grid>
   </Grid>
 </Window>

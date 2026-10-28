@@ -50,7 +50,7 @@ internal static class DialogDriver
 
     /// <summary>The red validation or failure message at the bottom of a dialog; empty when there is none.</summary>
     public static string ErrorText(this Window dialog) =>
-        dialog.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(block => ReferenceEquals(block.Foreground, Brushes.DarkRed))?.Text ?? "";
+        dialog.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(block => ReferenceEquals(block.Foreground, Palette.Error))?.Text ?? "";
 
     public static async Task WaitUntilClosedAsync(this Window owner) =>
         await DesktopWorkspace.WaitUntilAsync(() => owner.OwnedWindows.Count == 0, "the dialog to close");

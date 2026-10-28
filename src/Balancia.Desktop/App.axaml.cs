@@ -6,7 +6,11 @@ namespace Balancia.Desktop;
 
 public class App : Application
 {
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        Palette.Register(Resources);
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

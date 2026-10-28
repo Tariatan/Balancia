@@ -7,14 +7,14 @@
         WindowStartupLocation="CenterOwner">
   <DockPanel Margin="20">
     <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
-      <TextBlock x:Name="ErrorText" Foreground="DarkRed" TextWrapping="Wrap" />
+      <TextBlock x:Name="ErrorText" Foreground="{DynamicResource Palette.Error}" TextWrapping="Wrap" />
       <StackPanel Orientation="Horizontal" Spacing="10">
         <Button x:Name="ApplyButton" IsDefault="True" Click="OnApply" />
         <Button x:Name="CancelButton" IsCancel="True" Click="OnCancel" />
       </StackPanel>
     </StackPanel>
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-      <SelectableTextBlock x:Name="MessageText" TextWrapping="Wrap" Foreground="#344D44" />
+      <SelectableTextBlock x:Name="MessageText" TextWrapping="Wrap" Foreground="{DynamicResource Palette.TextBody}" />
     </ScrollViewer>
   </DockPanel>
 </Window>
