@@ -59,13 +59,33 @@ public partial class OverviewView : UserControl
     internal OverviewData? Data { get; private set; }
 
     /// <summary>The day the overview was loaded for; "today" and the month label are shown relative to it.</summary>
-    internal DateOnly DisplayDate { get; set; }
+    internal DateOnly DisplayDate { get; private set; }
 
     /// <summary>The text of the status line.</summary>
     internal string? StatusText => OverviewStatus.Text;
 
     /// <summary>Shows <paramref name="text"/>, in the current language, on the status line.</summary>
     internal void ShowStatus(string text) => OverviewStatus.Text = Get(text);
+
+    /// <summary>
+    /// Picks the period the overview opens on: this month, or the last 30 days when the month of <paramref name="today"/> has no transactions yet,
+    /// so a new month does not open on an empty screen. <paramref name="today"/> becomes <see cref="DisplayDate"/>.
+    /// </summary>
+    internal async Task StartAsync(LedgerStore store, DateOnly today)
+    {
+        DisplayDate = today;
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var month = new TransactionsFilter
+        {
+            From = monthStart,
+            To = monthStart.AddMonths(1).AddDays(-1),
+        };
+        var transactions = await Task.Run(() => store.ReadTransactions(month, pageSize: 1));
+        if (transactions.TotalCount == 0)
+        {
+            State.StartWith(OverviewPeriod.Last30Days);
+        }
+    }
 
     /// <summary>Loads what <see cref="State"/> asks for as of <paramref name="today"/>, which becomes <see cref="DisplayDate"/>.</summary>
     internal async Task LoadAsync(LedgerStore store, DateOnly today)
