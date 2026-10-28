@@ -14,6 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.11.1] - 2026-10-28
+
+#### Fixed
+
+- Account, category and top-expenditure text now follows the same loadable Text color role as transaction rows. Filter checkbox outlines and marks follow that role as well.
+- Applied the shared palette to all application dialogs and Fluent input, button, dropdown, calendar and tooltip surfaces, including focus, hover and pressed states.
+
 ### [3.11.0] - 2026-10-28
 
 #### Added

@@ -31,6 +31,8 @@ A gear icon opens **Settings** for the database/backup/snapshot folder pickers, 
 
 ## Tech stack
 
+The `Text` theme role also controls account and category names, net-worth labels, top-expenditure labels and values, and filter checkbox outlines and marks. Dialogs and Fluent controls share the palette, including their popup and interaction states.
+
 - **.NET 10 / Avalonia** — Windows desktop UI, with a native .NET Android viewer sharing the ledger code
 - **SQLite** (`Microsoft.Data.Sqlite`) — local relational storage, no server, no ORM
 - **xUnit** — unit, SQLite integration and headless Avalonia UI test suite

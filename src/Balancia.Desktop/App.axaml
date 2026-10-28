@@ -35,11 +35,22 @@
   </Application.DataTemplates>
   <Application.Styles>
     <FluentTheme />
+    <Style Selector=":is(Window)">
+      <Setter Property="Background" Value="{DynamicResource Palette.Surface}" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
+    </Style>
+    <Style Selector=":is(UserControl)">
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
+    </Style>
+    <Style Selector="ListBox, ListBoxItem">
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
+    </Style>
     <Style Selector="ScrollViewer /template/ ScrollContentPresenter#PART_ContentPresenter">
       <Setter Property="Grid.ColumnSpan" Value="1" />
       <Setter Property="Margin" Value="0,0,6,0" />
     </Style>
     <Style Selector="TextBox">
+      <Setter Property="Background" Value="{DynamicResource Palette.Surface}" />
       <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
       <Setter Property="SelectionBrush" Value="{DynamicResource Palette.Accent}" />
       <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Palette.OnAccent}" />
@@ -49,20 +60,27 @@
     <Style Selector="CheckBox.compact-filter-checkbox /template/ Border#NormalRectangle">
       <Setter Property="RenderTransform" Value="scale(0.8)" />
     </Style>
+    <Style Selector="CheckBox.compact-filter-checkbox /template/ Border#NormalRectangle, CheckBox.compact-filter-checkbox:checked /template/ Border#NormalRectangle, CheckBox.compact-filter-checkbox:indeterminate /template/ Border#NormalRectangle">
+      <Setter Property="BorderBrush" Value="{DynamicResource Palette.Text}" />
+      <Setter Property="Background" Value="{DynamicResource Palette.Surface}" />
+    </Style>
     <Style Selector="CheckBox.compact-filter-checkbox /template/ Viewbox">
       <Setter Property="RenderTransform" Value="scale(0.8)" />
     </Style>
     <Style Selector="ComboBox">
+      <Setter Property="Background" Value="{DynamicResource Palette.Surface}" />
       <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Palette.Border}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
     <Style Selector="AutoCompleteBox">
+      <Setter Property="Background" Value="{DynamicResource Palette.Surface}" />
       <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Palette.Border}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
     <Style Selector="CalendarDatePicker">
+      <Setter Property="Background" Value="{DynamicResource Palette.Surface}" />
       <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Palette.Border}" />
       <Setter Property="BorderThickness" Value="1" />
@@ -76,6 +94,9 @@
     </Style>
     <Style Selector="CalendarDatePicker /template/ Calendar#PART_Calendar">
       <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="CalendarDayButton:today /template/ Border#Root, CalendarButton:today /template/ Border#Root">
+      <Setter Property="Background" Value="{DynamicResource Palette.Accent}" />
     </Style>
     <Style Selector="CalendarDatePicker /template/ CalendarItem#PART_CalendarItem">
       <Setter Property="FontSize" Value="13" />

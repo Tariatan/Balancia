@@ -1,13 +1,118 @@
 using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
+using Avalonia.VisualTree;
+using Balancia.Core;
 using Xunit;
 
 namespace Balancia.Desktop.Tests;
 
 public sealed partial class PaletteTests
 {
+    [AvaloniaFact]
+    public async Task Overview_ListText_UsesTheTransactionTextRole()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var store = workspace.SeedStore();
+        var account = LedgerSeed.Account(store, "Demo daily");
+        var parent = store.SaveCategory(null, "Food", null);
+        var category = store.SaveCategory(null, "Groceries", parent);
+        store.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, LedgerSeed.Today,
+            "Demo groceries", Money.FromFrancs(24.80m), account, CategoryId: category));
+
+        // Act
+        var window = await workspace.OpenWindowAsync();
+        window.UpdateLayout();
+
+        // Assert
+        foreach (var name in (string[])["AccountsCard", "CategoriesCard", "TopExpendituresCard"])
+        {
+            var labels = window.Find<UserControl>(name).GetVisualDescendants().OfType<TextBlock>()
+                .Where(label => label.Text is "Demo daily" or "Food" or "Groceries").ToArray();
+            Assert.NotEmpty(labels);
+            Assert.All(labels, label => Assert.Same(Palette.Text, label.Foreground));
+        }
+    }
+
+    [AvaloniaFact]
+    public void Calendar_DayCells_UsePaletteTextAndSurfaces()
+    {
+        // Arrange
+        var calendar = new Calendar();
+        var window = new Window { Content = calendar };
+
+        // Act
+        window.Show();
+        window.UpdateLayout();
+
+        // Assert
+        try
+        {
+            var days = calendar.GetVisualDescendants().OfType<CalendarDayButton>().ToArray();
+            Assert.NotEmpty(days);
+            Assert.All(days, day =>
+            {
+                Assert.Same(Palette.Text, day.Foreground);
+                Assert.Same(Palette.Surface, day.Background);
+            });
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Dialogs_AndFilterCheckboxStates_UseTheLoadablePalette()
+    {
+        // Arrange
+        var check = new CheckBox { Classes = { "compact-filter-checkbox" } };
+        var text = new TextBlock { Text = "Demo account" };
+        var button = new Button { Content = "Save" };
+        var input = new TextBox { Text = "Demo" };
+        var window = new Window { Content = new StackPanel { Children = { text, check, button, input } } };
+        window.Show();
+
+        try
+        {
+            // Act
+            Palette.Apply(new Dictionary<string, Avalonia.Media.Color>
+            {
+                ["Text"] = Avalonia.Media.Color.Parse("#E6EAF0"),
+                ["Surface"] = Avalonia.Media.Color.Parse("#20262E"),
+            });
+
+            // Assert
+            Assert.Same(Palette.Surface, window.Background);
+            Assert.Same(Palette.Text, text.Foreground);
+            Assert.Same(Palette.Text, button.Foreground);
+            Assert.Same(Palette.Surface, input.Background);
+            foreach (var value in (bool?[])[false, true, null])
+            {
+                check.IsChecked = value;
+                window.UpdateLayout();
+                var rectangle = check.GetVisualDescendants().OfType<Border>().Single(border => border.Name == "NormalRectangle");
+                Assert.Same(Palette.Text, rectangle.BorderBrush);
+            }
+
+            foreach (var dialog in (Window[])[new SettingsWindow(), new CsvImportPreviewWindow(), new ErrorDialog(), new SnapshotPassphraseWindow()])
+            {
+                dialog.Show();
+                Assert.Same(Palette.Surface, dialog.Background);
+                Assert.Same(Palette.Text, dialog.Foreground);
+                dialog.Close();
+            }
+        }
+        finally
+        {
+            window.Close();
+            Palette.Apply(NoOverrides);
+        }
+    }
+
     private static string DesktopSourceDirectory()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

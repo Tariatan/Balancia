@@ -70,6 +70,7 @@ internal static class Palette
         {
             resources[ResourceKey(name)] = brush;
         }
+        FluentPalette.Register(resources);
     }
 
     /// <summary>
