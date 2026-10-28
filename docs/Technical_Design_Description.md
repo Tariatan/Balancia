@@ -433,6 +433,8 @@ Closed desktop date pickers support unmodified Up/Down keys while focused: Up an
 
 ### Transaction category suggestions
 
+Manual Add/Edit requires an existing subcategory for income and expenses, shown as Category / Subcategory; transfers have no category. Suggestions exclude top-level categories, including those in Regular. Existing ledger and CSV category assignments remain readable and importable.
+
 The Add/Edit category dropdown derives Regular suggestions from saved income and expense transactions dated today or the previous 34 days. Matching is case-insensitive anywhere in the full category path. After filtering by typed text, at most two active category paths appear in Regular, ordered by transaction count, latest transaction date, then alphabetical path. Regular appears before Top Match and remaining categories, without duplicates. Save-and-continue reloads usage from the ledger; accepting or canceling a suggestion does not affect ranking. Usage is derived from the ledger without separate history; legacy optional `category_selections` tables are unused. The ledger schema and snapshot format remain unchanged.
 
 ### Transaction description suggestions

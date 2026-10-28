@@ -15,7 +15,7 @@ public sealed class TransactionFormRulesTests
 
     private static readonly Category Food = Category("food", "Food");
     private static readonly Category Lunch = Category("lunch", "Food / Lunch");
-    private static readonly Category Old = Category("old", "Old", archived: true);
+    private static readonly Category Old = Category("old", "Food / Old", archived: true);
     private static readonly Category[] All = [Food, Lunch, Old];
     private static readonly Category[] Available = [Food, Lunch];
 
@@ -126,7 +126,7 @@ public sealed class TransactionFormRulesTests
     public void Validate_AllGood_IsAccepted()
     {
         // Act
-        var error = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(5), Account("a"), null, "Food", All, null);
+        var error = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(5), Account("a"), null, "Food / Lunch", All, null);
 
         // Assert
         Assert.Null(error);
@@ -136,8 +136,8 @@ public sealed class TransactionFormRulesTests
     public void Validate_DateOnTheOpeningDate_IsAcceptedAndTheDayBeforeIsNot()
     {
         // Act
-        var onTheDay = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, null, All, null);
-        var before = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(-1), Account("a"), null, null, All, null);
+        var onTheDay = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, "Food / Lunch", All, null);
+        var before = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(-1), Account("a"), null, "Food / Lunch", All, null);
 
         // Assert
         Assert.Null(onTheDay);
@@ -165,7 +165,7 @@ public sealed class TransactionFormRulesTests
         var destination = Account("b", opened: new DateOnly(2026, 3, 1));
 
         // Act
-        var error = TransactionFormRules.Validate(TransactionKind.Expense, new DateOnly(2026, 2, 1), Account("a"), destination, null, All, null);
+        var error = TransactionFormRules.Validate(TransactionKind.Expense, new DateOnly(2026, 2, 1), Account("a"), destination, "Food / Lunch", All, null);
 
         // Assert
         Assert.Null(error);
@@ -207,8 +207,8 @@ public sealed class TransactionFormRulesTests
     public void Validate_ArchivedCategoryThatTheEditedEntryUses_IsAcceptedButNotForANewEntry()
     {
         // Act
-        var editing = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, "Old", All, Existing("a", categoryId: "old"));
-        var adding = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, "Old", All, null);
+        var editing = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, "Food / Old", All, Existing("a", categoryId: "old"));
+        var adding = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, "Food / Old", All, null);
 
         // Assert
         Assert.Null(editing);
@@ -219,8 +219,8 @@ public sealed class TransactionFormRulesTests
     public void Validate_ArchivedAccountThatTheEditedEntryUses_IsAcceptedButNotForANewEntry()
     {
         // Act
-        var editing = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a", archived: true), null, null, All, Existing("a"));
-        var adding = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a", archived: true), null, null, All, null);
+        var editing = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a", archived: true), null, "Food / Lunch", All, Existing("a"));
+        var adding = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a", archived: true), null, "Food / Lunch", All, null);
 
         // Assert
         Assert.Null(editing);

@@ -56,8 +56,16 @@ internal static class TransactionFormRules
         var isTransfer = kind == TransactionKind.Transfer;
         var selectedDestination = isTransfer ? destination : null;
         Account[] accounts = selectedDestination is null ? [account] : [account, selectedDestination];
-        return TransactionRules.CheckSave(accounts, categories, date, account.Id, selectedDestination?.Id, isTransfer ? null : categoryText,
+        var error = TransactionRules.CheckSave(accounts, categories, date, account.Id, selectedDestination?.Id, isTransfer ? null : categoryText,
             existing is null ? null : SavedTransaction.From(existing));
+        if (error is not null || isTransfer)
+        {
+            return error;
+        }
+
+        return TransactionRules.FindByPath(categories, categoryText)?.ParentId is null
+            ? "Choose an existing subcategory."
+            : null;
     }
 
     /// <summary>The draft for the entered values; only a transfer keeps its destination, and the category is saved separately by path.</summary>

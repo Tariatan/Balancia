@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.10.3] - 2026-10-28
+
+#### Fixed
+
+- Add/Edit requires an existing subcategory for income and expenses; transfers remain category-free. Category suggestions show only matching Category / Subcategory paths, including Regular suggestions.
+
 ### [3.10.2] - 2026-10-28
 
 #### Fixed

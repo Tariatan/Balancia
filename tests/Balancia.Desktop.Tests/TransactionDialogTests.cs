@@ -14,12 +14,13 @@ public sealed class TransactionDialogTests
     private static IReadOnlyList<LedgerEntry> SavedEntries(DesktopWorkspace workspace) =>
         workspace.SeedStore().ReadTransactions(new TransactionsFilter()).Hits.Select(hit => hit.Entry).ToArray();
 
-    /// <summary>A ledger with one account and a Food category, opened in a window.</summary>
+    /// <summary>A ledger with one account and Food / Lunch, opened in a window.</summary>
     private static async Task<MainWindow> OpenWithAccountAsync(DesktopWorkspace workspace)
     {
         var store = workspace.SeedStore();
         LedgerSeed.Account(store);
-        store.SaveCategory(null, "Food", null);
+        var food = store.SaveCategory(null, "Food", null);
+        store.SaveCategory(null, "Lunch", food);
         return await workspace.OpenWindowAsync();
     }
 
@@ -32,7 +33,7 @@ public sealed class TransactionDialogTests
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "12.50");
         dialog.Fill("Description", "Lunch");
-        dialog.Fill(CategoryLabel, "Food");
+        dialog.Fill(CategoryLabel, "Food / Lunch");
 
         // Act
         await dialog.SaveAndCloseAsync(window);
@@ -43,7 +44,7 @@ public sealed class TransactionDialogTests
         Assert.Equal(TransactionKind.Expense, entry.Draft.Kind);
         Assert.Equal(Money.FromFrancs(12.50m), entry.Draft.Amount);
         Assert.Equal("Lunch", entry.Draft.Description);
-        Assert.Equal("Food", entry.CategoryPath);
+        Assert.Equal("Food / Lunch", entry.CategoryPath);
         Assert.Equal(LedgerSeed.Today, entry.Draft.Date);
     }
 
@@ -56,6 +57,7 @@ public sealed class TransactionDialogTests
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "10+2.5");
         dialog.Fill("Description", "Split bill");
+        dialog.Fill(CategoryLabel, "Food / Lunch");
 
         // Act
         await dialog.SaveAndCloseAsync(window);
@@ -74,6 +76,7 @@ public sealed class TransactionDialogTests
         dialog.Fill("Type", "Income");
         dialog.Fill("Amount (positive)", "500");
         dialog.Fill("Description", "Salary");
+        dialog.Fill(CategoryLabel, "Food / Lunch");
 
         // Act
         await dialog.SaveAndCloseAsync(window);
@@ -86,6 +89,8 @@ public sealed class TransactionDialogTests
 
     [AvaloniaTheory]
     [InlineData("Amount (positive)", "", "Check the date (YYYY-MM-DD) and amount (for example 12.50).")]
+    [InlineData(CategoryLabel, "", "Choose an existing subcategory.")]
+    [InlineData(CategoryLabel, "Food", "Choose an existing subcategory.")]
     [InlineData(CategoryLabel, "Nonexistent", "Choose an existing category path. No category \"Nonexistent\".")]
     public async Task Add_WithAnInvalidValue_ShowsAnErrorAndSavesNothing(string label, string value, string expectedError)
     {
@@ -94,6 +99,7 @@ public sealed class TransactionDialogTests
         var window = await OpenWithAccountAsync(workspace);
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "5");
+        dialog.Fill(CategoryLabel, "Food / Lunch");
         dialog.Fill(label, value);
 
         // Act
@@ -157,6 +163,7 @@ public sealed class TransactionDialogTests
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "5");
         dialog.Fill("Description", "Coffee");
+        dialog.Fill(CategoryLabel, "Food / Lunch");
 
         // Act
         dialog.ClickDialogButton("Add another transaction");
@@ -180,6 +187,7 @@ public sealed class TransactionDialogTests
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
         dialog.Fill("Amount (positive)", "5");
         dialog.Fill("Description", "Coffee");
+        dialog.Fill(CategoryLabel, "Food / Lunch");
         dialog.ClickDialogButton("Add another transaction");
         await DesktopWorkspace.WaitUntilAsync(
             () => dialog.TextOf("Description") == "" && dialog.Field("Amount (positive)").IsEffectivelyEnabled && dialog.ErrorText() == "",
@@ -215,7 +223,9 @@ public sealed class TransactionDialogTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         var store = workspace.SeedStore();
-        LedgerSeed.Expense(store, LedgerSeed.Account(store), "Lunch", LedgerSeed.Today, francs: 12.50m);
+        var food = store.SaveCategory(null, "Food", null);
+        var lunch = store.SaveCategory(null, "Lunch", food);
+        store.SaveTransaction(null, new TransactionDraft(TransactionKind.Expense, LedgerSeed.Today, "Lunch", Money.FromFrancs(12.50m), LedgerSeed.Account(store), CategoryId: lunch));
         var window = await workspace.OpenWindowAsync();
         var list = window.Find<ListBox>("TransactionsList");
 

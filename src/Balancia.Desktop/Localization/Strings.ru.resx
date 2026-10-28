@@ -212,4 +212,5 @@
   <data name="Toggle all categories" xml:space="preserve"><value>Переключить выбор всех категорий</value></data>
   <data name="Show" xml:space="preserve"><value>Показать</value></data>
   <data name="Hide" xml:space="preserve"><value>Скрыть</value></data>
+  <data name="Choose an existing subcategory." xml:space="preserve"><value>Выберите существующую подкатегорию.</value></data>
 </root>

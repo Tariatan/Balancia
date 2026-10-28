@@ -13,6 +13,39 @@ namespace Balancia.Desktop.Tests;
 
 public sealed class TransactionFormTests
 {
+    [AvaloniaTheory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("Food")]
+    public void Validate_WithoutSubcategory_RejectsIncomeAndExpense(string? text)
+    {
+        // Arrange
+        var form = new TransactionForm(Inputs());
+        TextBoxOf(form, "Category / subcategory").Text = text;
+
+        // Act and Assert
+        Assert.Equal("Choose an existing subcategory.", form.Validate());
+        Select(form, "Type", Get("Income"));
+        Assert.Equal("Choose an existing subcategory.", form.Validate());
+    }
+
+    [AvaloniaFact]
+    public void Suggestions_ParentQuery_OffersOnlyMatchingSubcategories()
+    {
+        // Arrange
+        var form = new TransactionForm(Inputs(regular: ["Food", "Food / Lunch"]));
+        var input = Control<CategorySuggestBox>(form, "Category / subcategory");
+
+        // Act
+        TextBoxOf(form, "Category / subcategory").Text = "food";
+        Dispatcher.UIThread.RunJobs();
+
+        // Assert
+        Assert.Equal(["Food / Lunch"], input.Suggestions.Select(suggestion => suggestion.Path));
+        Assert.Equal(CategorySuggestionSection.Regular, input.Suggestions[0].Section);
+    }
+
     private static readonly DateOnly Today = new(2026, 10, 13);
     private static readonly DateOnly Opened = new(2026, 1, 1);
 
@@ -23,7 +56,7 @@ public sealed class TransactionFormTests
 
     private static readonly Category Food = new("food", "Food", null, "Food", false);
     private static readonly Category Lunch = new("lunch", "Lunch", "food", "Food / Lunch", false);
-    private static readonly Category Old = new("old", "Old", null, "Old", true);
+    private static readonly Category Old = new("old", "Old", "food", "Food / Old", true);
 
     private static TransactionFormInputs Inputs(TransactionDraft? existing = null, string? defaultAccountId = null, string? lastAccountId = null,
         IEnumerable<string>? recent = null, IReadOnlyList<string>? regular = null, Func<Task<IReadOnlyList<string>>>? reread = null,
@@ -376,7 +409,7 @@ public sealed class TransactionFormTests
     {
         // Arrange
         var adding = new TransactionForm(Inputs());
-        TextBoxOf(adding, "Category / subcategory").Text = "Old";
+        TextBoxOf(adding, "Category / subcategory").Text = "Food / Old";
         var editing = new TransactionForm(Inputs(Draft(categoryId: "old")));
 
         // Act and Assert

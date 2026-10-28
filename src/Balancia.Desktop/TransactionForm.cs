@@ -77,7 +77,7 @@ internal sealed class TransactionForm
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
 
-        categoryInput = new CategorySuggestBox(category, [.. availableCategories.Select(c => c.Path)], inputs.RegularCategoryPaths);
+        categoryInput = new CategorySuggestBox(category, [.. availableCategories.Where(c => c.ParentId is not null).Select(c => c.Path)], inputs.RegularCategoryPaths);
         category.LostFocus += (_, _) => Dispatcher.UIThread.Post(ShowCategoryPath);
         memo = Input(existing?.Memo ?? "");
         destinationField = Field("Destination account", destination);
