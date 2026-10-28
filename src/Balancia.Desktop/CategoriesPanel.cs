@@ -15,17 +15,9 @@ public partial class MainWindow
     {
         OverviewPane.CategoriesCard.AddRequested += async () => await EditCategory(null);
         OverviewPane.CategoriesCard.EditRequested += async category => await EditCategory(category);
-        OverviewPane.CategoriesCard.SelectAllRequested += async () => await ToggleAllCategoryFilters();
         OverviewPane.CategoriesCard.ArchiveRequested += async () => await ArchiveSelectedCategory();
         OverviewPane.CategoriesCard.RemoveRequested += async () => await DeleteSelectedCategory();
-        OverviewPane.CategoriesCard.FilterToggled += async (id, selected) => await ToggleCategoryFilter(id, selected);
     }
-
-    private Task ToggleCategoryFilter(string id, bool selected) =>
-        ApplyOverviewChange(OverviewPane.State.ToggleCategory(id, selected, OverviewPane.Data!.Snapshot.Categories));
-
-    private Task ToggleAllCategoryFilters() =>
-        OverviewPane.Data is null ? Task.CompletedTask : ApplyOverviewChange(OverviewPane.State.ToggleAllCategories(OverviewPane.Data.Snapshot.Categories));
 
     private async Task ArchiveSelectedCategory()
     {

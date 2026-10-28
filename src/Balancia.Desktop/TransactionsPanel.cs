@@ -18,8 +18,6 @@ namespace Balancia.Desktop;
 
 public partial class MainWindow
 {
-    private const int TransactionsPageSize = 100;
-
     private void InitializeTransactionsPanel()
     {
         OverviewPane.TransactionsCard.AddRequested += async () => await EditTransaction(null);
@@ -31,15 +29,6 @@ public partial class MainWindow
                 await RemoveTransaction(entry);
             }
         };
-        OverviewPane.TransactionsCard.PreviousPageRequested += async () => await ChangeTransactionsPage(-TransactionsPageSize);
-        OverviewPane.TransactionsCard.NextPageRequested += async () => await ChangeTransactionsPage(TransactionsPageSize);
-    }
-
-    private async Task ChangeTransactionsPage(int delta)
-    {
-        OverviewPane.State.ChangePage(delta);
-        await operations.RequestRefreshAsync();
-        OverviewPane.TransactionsCard.ScrollToTop();
     }
 
     private async Task EditTransaction(LedgerEntry? entry)
