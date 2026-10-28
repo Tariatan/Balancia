@@ -169,7 +169,7 @@ public partial class OverviewView : UserControl
     private Task ApplyFilterValuesAsync()
     {
         var values = FilterRow.Read();
-        return ApplyAsync(State.ApplyFilterValues(values.Description, values.From, values.To, values.Minimum, values.Maximum, DisplayDate));
+        return ApplyAsync(State.ApplyFilterValues(values.Description, values.From, values.To, values.Minimum, values.Maximum, DisplayDate, values.Kind));
     }
 
     private async Task ChangePageAsync(int delta)

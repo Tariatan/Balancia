@@ -31,6 +31,35 @@ public sealed class FilterRowTests
 
     private static readonly string[] Inputs = ["FilterFrom", "FilterTo", "FilterSearch", "FilterMinimum", "FilterMaximum"];
 
+    [AvaloniaFact]
+    public void Kind_Selection_CommitsAndLocalizingAndShowingInputsPreserveItWithoutCommitting()
+    {
+        // Arrange
+        var (_, row) = Show();
+        var kind = Find<ComboBox>(row, "FilterKind");
+        var commits = 0;
+        row.ValuesCommitted += () => commits++;
+        Assert.Equal(new[] { Get("All"), Get("Expenses"), Get("Income"), Get("Transfer") },
+            kind.Items.Cast<Choice<TransactionKind?>>().Select(choice => choice.Label));
+
+        // Act
+        foreach (var (index, expected) in new TransactionKind?[] { null, TransactionKind.Expense, TransactionKind.Income, TransactionKind.Transfer }.Index())
+        {
+            kind.SelectedIndex = index;
+            Assert.Equal(expected, row.Read().Kind);
+        }
+        row.Localize();
+        var preserved = row.Read().Kind;
+        row.ShowInputs(new TransactionsFilter());
+
+        // Assert
+        Assert.Equal(3, commits);
+        Assert.Equal(TransactionKind.Transfer, preserved);
+        Assert.Null(row.Read().Kind);
+        var controls = ((Panel)kind.Parent!).Children;
+        Assert.True(controls.IndexOf(Find<CalendarDatePicker>(row, "FilterTo")) < controls.IndexOf(kind));
+        Assert.True(controls.IndexOf(kind) < controls.IndexOf(Find<TextBox>(row, "FilterSearch")));
+    }
     // Periods
 
     [AvaloniaTheory]

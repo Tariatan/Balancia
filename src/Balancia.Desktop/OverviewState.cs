@@ -75,7 +75,7 @@ internal sealed class OverviewState
     }
 
     /// <summary>Applies the values typed into the filter row. Dates that differ from the period's make it a custom range.</summary>
-    public OverviewChange ApplyFilterValues(string? description, DateOnly? from, DateOnly? to, Money? minimum, Money? maximum, DateOnly today)
+    public OverviewChange ApplyFilterValues(string? description, DateOnly? from, DateOnly? to, Money? minimum, Money? maximum, DateOnly today, TransactionKind? kind = null)
     {
         var periodRange = Range(today);
         var next = Filter with
@@ -83,6 +83,7 @@ internal sealed class OverviewState
             Description = string.IsNullOrWhiteSpace(description) ? null : description,
             From = from,
             To = to,
+            Kind = kind,
             Minimum = minimum,
             Maximum = maximum,
         };

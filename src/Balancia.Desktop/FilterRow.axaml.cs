@@ -10,11 +10,11 @@ using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
-/// <summary>What the inputs of the filter row hold: the search text, the date range and the amount range.</summary>
-internal sealed record FilterRowValues(string? Description, DateOnly? From, DateOnly? To, Money? Minimum, Money? Maximum);
+/// <summary>What the inputs of the filter row hold: the search text, the date range, the transaction type and the amount range.</summary>
+internal sealed record FilterRowValues(string? Description, DateOnly? From, DateOnly? To, Money? Minimum, Money? Maximum, TransactionKind? Kind = null);
 
 /// <summary>
-/// The filter row: the period buttons, the date range, the search text, the amount range and the clear buttons. It shows what it is given and raises
+/// The filter row: the period buttons, the date range, the transaction type, the search text, the amount range and the clear buttons. It shows what it is given and raises
 /// requests; what the filter is, and what a period means, stays with the window.
 /// </summary>
 public partial class FilterRow : UserControl
@@ -40,6 +40,9 @@ public partial class FilterRow : UserControl
         {
             button.Click += (_, _) => PeriodSelected?.Invoke(period);
         }
+
+        Localize();
+        FilterKind.SelectionChanged += (_, _) => Commit();
 
         FilterFrom.CalendarClosed += (_, _) => CommitAfterCalendarClosed();
         FilterTo.CalendarClosed += (_, _) => CommitAfterCalendarClosed();
@@ -77,7 +80,7 @@ public partial class FilterRow : UserControl
     /// <summary>Raised when a period button is pressed.</summary>
     public event Action<OverviewPeriod>? PeriodSelected;
 
-    /// <summary>Raised when an input was left, the search was confirmed with Enter or a calendar closed; read the inputs with <see cref="Read"/>.</summary>
+    /// <summary>Raised when a transaction type was selected, an input was left, the search was confirmed with Enter or a calendar closed; read the inputs with <see cref="Read"/>.</summary>
     public event Action? ValuesCommitted;
 
     /// <summary>Raised when the clear-all button is pressed.</summary>
@@ -89,6 +92,27 @@ public partial class FilterRow : UserControl
         foreach (var (_, button, titleKey) in periodButtons)
         {
             button.Content = Get(titleKey);
+        }
+
+        var selectedKind = (FilterKind.SelectedItem as Choice<TransactionKind?>)?.Value;
+        var wasUpdating = updating;
+        updating = true;
+        try
+        {
+            FilterKind.ItemsSource = new Choice<TransactionKind?>[]
+            {
+                new(null, Get("All")),
+                new(TransactionKind.Expense, Get("Expenses")),
+                new(TransactionKind.Income, Get("Income")),
+                new(TransactionKind.Transfer, Get("Transfer")),
+            };
+            FilterKind.SelectedItem = FilterKind.Items.Cast<Choice<TransactionKind?>>().Single(choice => choice.Value == selectedKind);
+            Avalonia.Automation.AutomationProperties.SetName(FilterKind, Get("Type"));
+            ToolTip.SetTip(FilterKind, Get("Type"));
+        }
+        finally
+        {
+            updating = wasUpdating;
         }
 
         FilterFrom.PlaceholderText = Get("Select a date");
@@ -130,12 +154,13 @@ public partial class FilterRow : UserControl
     /// <summary>Makes the next <see cref="ShowPeriod"/> restyle the buttons even for the period already shown.</summary>
     public void ForgetShownPeriod() => shownPeriod = null;
 
-    /// <summary>Puts the search text and the amount range of <paramref name="filter"/> into the inputs, without raising <see cref="ValuesCommitted"/>.</summary>
+    /// <summary>Puts the transaction type, search text and the amount range of <paramref name="filter"/> into the inputs, without raising <see cref="ValuesCommitted"/>.</summary>
     public void ShowInputs(TransactionsFilter filter)
     {
         updating = true;
         try
         {
+            FilterKind.SelectedItem = FilterKind.Items.Cast<Choice<TransactionKind?>>().Single(choice => choice.Value == filter.Kind);
             FilterSearch.Text = filter.Description ?? "";
             FilterMinimum.Text = filter.Minimum?.Francs.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) ?? "";
             FilterMaximum.Text = filter.Maximum?.Francs.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) ?? "";
@@ -168,7 +193,8 @@ public partial class FilterRow : UserControl
         FilterFrom.SelectedDate is not null ? ParseDate(FilterFrom) : null,
         FilterTo.SelectedDate is not null ? ParseDate(FilterTo) : null,
         OptionalMoney(FilterMinimum),
-        OptionalMoney(FilterMaximum));
+        OptionalMoney(FilterMaximum),
+        (FilterKind.SelectedItem as Choice<TransactionKind?>)?.Value);
 
     private void Commit()
     {

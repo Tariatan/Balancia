@@ -162,8 +162,7 @@ public sealed partial class PaletteTests
         // Arrange
         using var workspace = new DesktopWorkspace();
         var window = workspace.CreateSeparateFolderWindow();
-        window.Show();
-        await Task.Yield();
+        await DesktopWorkspace.OpenAsync(window);
         var preview = new CsvImportPreviewWindow();
         preview.Show();
 

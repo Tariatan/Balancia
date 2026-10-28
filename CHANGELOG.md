@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.11.0] - 2026-10-28
+
+#### Added
+
+- Transaction type dropdown between the end date and description filters, with localized All, Expenses, Income, and Transfer choices. Selection refreshes the shared overview filter and Clear filters resets it to All.
+
 ### [3.10.3] - 2026-10-28
 
 #### Fixed
