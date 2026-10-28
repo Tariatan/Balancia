@@ -280,11 +280,9 @@ public sealed partial class LedgerStore
             }
         }
 
-        if (!options.Archived && LedgerSql.Scalar(c, tx,
-            "SELECT 1 FROM reminder_templates WHERE archived=0 AND description=$description LIMIT 1",
-            ("$description", description)) is not null)
+        if (!options.Archived && ReminderRules.IsDuplicateDescription(ReadActiveTemplates(c, tx), id, description))
         {
-            throw new CsvImportConflictException("An active reminder already uses this description.");
+            throw new CsvImportConflictException(ReminderRules.DuplicateDescriptionMessage);
         }
 
         LedgerSql.Execute(c, tx, "INSERT INTO reminder_templates VALUES($id,$description,$date,$amount,$interval,$archived)",

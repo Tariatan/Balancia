@@ -14,16 +14,7 @@ public sealed partial class LedgerStore
         var today = asOf ?? Today;
         return ReadDeferred((c, tx) =>
         {
-            var templates = new List<ReminderTemplate>();
-            using (var cmd = LedgerSql.Command(c, tx, "SELECT id,description,expected_date,indicative_amount,interval_months,archived FROM reminder_templates WHERE archived=0 ORDER BY expected_date,description COLLATE NOCASE"))
-            using (var r = cmd.ExecuteReader())
-            {
-                while (r.Read())
-                {
-                    templates.Add(ReadTemplate(r));
-                }
-            }
-
+            var templates = ReadActiveTemplates(c, tx);
             var paidMonths = ReadPaidMonths(c, tx);
             var result = new List<Reminder>();
             foreach (var template in templates)
@@ -34,6 +25,19 @@ public sealed partial class LedgerStore
 
             return (IReadOnlyList<Reminder>)[.. result.OrderBy(x => x.Occurrence)];
         });
+    }
+
+    private static List<ReminderTemplate> ReadActiveTemplates(SqliteConnection c, SqliteTransaction tx)
+    {
+        var templates = new List<ReminderTemplate>();
+        using var cmd = LedgerSql.Command(c, tx, "SELECT id,description,expected_date,indicative_amount,interval_months,archived FROM reminder_templates WHERE archived=0 ORDER BY expected_date,description COLLATE NOCASE");
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            templates.Add(ReadTemplate(r));
+        }
+
+        return templates;
     }
 
     /// <summary>The calendar months (yyyy-MM) with a posted entry for each active reminder description, found in one pass over the ledger.</summary>
@@ -68,27 +72,12 @@ public sealed partial class LedgerStore
     {
         ArgumentNullException.ThrowIfNull(description);
         description = description.Trim();
-        if (description.Length == 0)
-        {
-            throw new ArgumentException("Enter a description.");
-        }
-
-        if (indicativeAmount <= Money.Zero)
-        {
-            throw new ArgumentException("Enter amount greater than zero.");
-        }
-
-        if (intervalMonths <= 0)
-        {
-            throw new ArgumentException("Repeat interval must be positive.");
-        }
-
         var key = id ?? Guid.NewGuid().ToString("N");
         Write((c, tx) =>
         {
-            if (!archived && LedgerSql.Scalar(c, tx, "SELECT 1 FROM reminder_templates WHERE archived=0 AND description=$description AND id<>$id LIMIT 1", ("$description", description), ("$id", key)) is not null)
+            if (ReminderRules.CheckSave(ReadActiveTemplates(c, tx), key, description, indicativeAmount, intervalMonths, archived) is { } message)
             {
-                throw new ArgumentException("An active reminder already uses this description.");
+                throw new ArgumentException(message);
             }
 
             LedgerSql.Execute(c, tx, MarkReminderModifiedSql, ("$external", ReminderSourceId(key)));

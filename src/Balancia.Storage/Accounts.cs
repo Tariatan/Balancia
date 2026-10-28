@@ -14,16 +14,6 @@ public sealed partial class LedgerStore
     {
         ArgumentNullException.ThrowIfNull(name);
         var trimmedName = name.Trim();
-        if (trimmedName.Length == 0)
-        {
-            throw new ArgumentException("Enter an account name.");
-        }
-
-        if (openingDate > Today)
-        {
-            throw new ArgumentException("Opening date cannot be in the future.");
-        }
-
         var key = id ?? Guid.NewGuid().ToString("N");
         var openingId = OpeningId(key);
         Write((c, tx) =>
@@ -33,10 +23,9 @@ public sealed partial class LedgerStore
                 RequireAccount(c, tx, id);
             }
 
-            var earliest = LedgerSql.Scalar(c, tx, "SELECT MIN(l.date) FROM ledger l JOIN movements m ON m.transaction_id=l.id WHERE m.account_id=$id AND l.kind<>'OpeningBalance'", ("$id", key));
-            if (earliest is string date && openingDate > LedgerSql.ParseDate(date))
+            if (AccountRules.CheckSave(ReadAccountsWithBalances(c, tx), id, trimmedName, openingDate, Today) is { } message)
             {
-                throw new ArgumentException("Opening date must be on or before the first transaction in this account.");
+                throw new ArgumentException(message);
             }
 
             LedgerSql.Execute(c, tx, """
@@ -60,9 +49,9 @@ public sealed partial class LedgerStore
     {
         RequireAccount(c, tx, id);
         var openingId = OpeningId(id);
-        if (LedgerSql.Scalar(c, tx, "SELECT 1 FROM movements WHERE account_id=$id AND transaction_id<>$opening LIMIT 1", ("$id", id), ("$opening", openingId)) is not null)
+        if (AccountRules.CheckDelete(ReadAccountsWithBalances(c, tx), id) is { } message)
         {
-            throw new InvalidOperationException("An account with transactions cannot be deleted. Archive it instead.");
+            throw new InvalidOperationException(message);
         }
 
         LedgerSql.Execute(c, tx, "UPDATE import_sources SET locally_modified=1,transaction_id=NULL WHERE transaction_id=$opening", ("$opening", openingId));
@@ -75,15 +64,31 @@ public sealed partial class LedgerStore
     private static List<Account> ReadAccountsWithBalances(SqliteConnection c, SqliteTransaction tx)
     {
         var balances = ReadAccountTotals(c, tx);
+        var firstTransactions = ReadFirstTransactionDates(c, tx);
         var accounts = new List<Account>();
         using var cmd = LedgerSql.Command(c, tx, "SELECT a.id,a.name,a.opening_date,a.archived,m.amount FROM accounts a JOIN movements m ON m.transaction_id='opening:' || a.id AND m.account_id=a.id ORDER BY a.name COLLATE NOCASE");
         using var r = cmd.ExecuteReader();
         while (r.Read())
         {
             var id = r.GetString(0);
-            accounts.Add(new Account(id, r.GetString(1), LedgerSql.ParseDate(r.GetString(2)), new Money(r.GetInt64(4)), r.GetBoolean(3), new Money((long)balances.GetValueOrDefault(id))));
+            accounts.Add(new Account(id, r.GetString(1), LedgerSql.ParseDate(r.GetString(2)), new Money(r.GetInt64(4)), r.GetBoolean(3),
+                new Money((long)balances.GetValueOrDefault(id)), firstTransactions.TryGetValue(id, out var first) ? first : null));
         }
 
         return accounts;
+    }
+
+    /// <summary>The date of the earliest entry other than the opening balance on each account that has one.</summary>
+    private static Dictionary<string, DateOnly> ReadFirstTransactionDates(SqliteConnection c, SqliteTransaction tx)
+    {
+        var dates = new Dictionary<string, DateOnly>();
+        using var cmd = LedgerSql.Command(c, tx, "SELECT m.account_id,MIN(l.date) FROM movements m JOIN ledger l ON l.id=m.transaction_id WHERE l.kind<>'OpeningBalance' GROUP BY m.account_id");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            dates[reader.GetString(0)] = LedgerSql.ParseDate(reader.GetString(1));
+        }
+
+        return dates;
     }
 }

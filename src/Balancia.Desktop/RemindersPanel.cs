@@ -55,24 +55,9 @@ public partial class MainWindow
                     int.Parse(interval.Text ?? "", CultureInfo.InvariantCulture));
                 return () => store.SaveReminder(template?.Id, text, expectedDate, indicativeAmount, intervalMonths, template?.Archived ?? false);
             },
-            new DialogOptions(Validate: () =>
-            {
-                if (string.IsNullOrWhiteSpace(description.Text))
-                {
-                    return "Enter a description.";
-                }
-
-                if (ParseMoney(amount) <= Money.Zero)
-                {
-                    return "Enter amount greater than zero.";
-                }
-
-                if (!int.TryParse(interval.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInterval) || parsedInterval <= 0)
-                {
-                    return "Repeat interval must be positive.";
-                }
-
-                return null;
-            }));
+            new DialogOptions(Validate: () => ReminderRules.CheckSave(
+                [.. overview!.Reminders.Select(r => r.Template)], template?.Id, description.Text ?? string.Empty, ParseMoney(amount),
+                int.TryParse(interval.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInterval) ? parsedInterval : 0,
+                template?.Archived ?? false)));
     }
 }

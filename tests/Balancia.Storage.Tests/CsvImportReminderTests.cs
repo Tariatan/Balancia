@@ -179,13 +179,13 @@ public sealed class CsvImportReminderTests : IDisposable
     }
 
     [Theory]
-    [InlineData("reminder:r1,2026-01-05,Reminder,,10.00,,,,\"{\"\"IntervalMonths\"\":1,\"\"Archived\"\":false}\"\n", "Invalid reminder fields.")]
-    [InlineData("reminder:r1,2026-01-05,Reminder,Rent,0.00,,,,\"{\"\"IntervalMonths\"\":1,\"\"Archived\"\":false}\"\n", "Invalid reminder fields.")]
+    [InlineData("reminder:r1,2026-01-05,Reminder,,10.00,,,,\"{\"\"IntervalMonths\"\":1,\"\"Archived\"\":false}\"\n", "Enter a description.")]
+    [InlineData("reminder:r1,2026-01-05,Reminder,Rent,0.00,,,,\"{\"\"IntervalMonths\"\":1,\"\"Archived\"\":false}\"\n", "Enter amount greater than zero.")]
     [InlineData("reminder:r1,2026-01-05,Reminder,Rent,10.00,A,,,\"{\"\"IntervalMonths\"\":1,\"\"Archived\"\":false}\"\n", "Invalid reminder fields.")]
     [InlineData("r1,2026-01-05,Reminder,Rent,10.00,,,,\"{\"\"IntervalMonths\"\":1,\"\"Archived\"\":false}\"\n", "Invalid reminder fields.")]
     [InlineData("reminder:r1,2026-01-05,Reminder,Rent,10.00,,,,\n", "Invalid reminder schedule.")]
     [InlineData("reminder:r1,2026-01-05,Reminder,Rent,10.00,,,,not json\n", "Invalid reminder schedule.")]
-    [InlineData("reminder:r1,2026-01-05,Reminder,Rent,10.00,,,,\"{\"\"IntervalMonths\"\":0,\"\"Archived\"\":false}\"\n", "Invalid reminder schedule.")]
+    [InlineData("reminder:r1,2026-01-05,Reminder,Rent,10.00,,,,\"{\"\"IntervalMonths\"\":0,\"\"Archived\"\":false}\"\n", "Repeat interval must be positive.")]
     [InlineData("reminder:r1,2026-01-05,Reminder,Rent,10.00,,,,\"{\"\"IntervalMonths\"\":1}\"\n", "Invalid reminder schedule.")]
     [InlineData("reminder:r1,2026-01-05,Reminder,Rent,10.00,,,,\"[1]\"\n", "Invalid reminder schedule.")]
     public void PreviewCsvImport_InvalidReminderRow_BlocksImport(string row, string expectedIssue)

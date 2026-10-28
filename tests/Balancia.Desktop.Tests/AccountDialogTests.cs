@@ -54,6 +54,25 @@ public sealed class AccountDialogTests
     }
 
     [AvaloniaFact]
+    public async Task Add_WithANameAnotherAccountHas_ShowsAnErrorAndCreatesNothing()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var store = workspace.SeedStore();
+        LedgerSeed.Account(store, "Everyday");
+        var window = await workspace.OpenWindowAsync();
+        var dialog = await window.OpenDialogAsync("AccountAddButton", "Add account");
+        dialog.Fill("Name", "everyday");
+
+        // Act
+        var error = await dialog.SaveExpectingErrorAsync();
+
+        // Assert
+        Assert.Equal(AccountRules.DuplicateNameMessage, error);
+        Assert.Single(store.ReadSnapshot().Accounts);
+    }
+
+    [AvaloniaFact]
     public async Task Add_WithOpeningDateInTheFuture_ShowsAnErrorAndCreatesNothing()
     {
         // Arrange
