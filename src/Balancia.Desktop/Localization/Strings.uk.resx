@@ -134,6 +134,9 @@
   <data name="Choose transactions CSV" xml:space="preserve"><value>Вибрати CSV з операціями</value></data>
   <data name="CSV import preview" xml:space="preserve"><value>Попередній перегляд імпорту CSV</value></data>
   <data name="Apply import" xml:space="preserve"><value>Застосувати імпорт</value></data>
+  <data name="Replace data" xml:space="preserve"><value>Замінити дані</value></data>
+  <data name="This import replaces the current ledger: {0} accounts, {1} transactions and {2} reminders will be deleted. A recovery copy is saved first." xml:space="preserve"><value>Цей імпорт замінює поточний журнал: буде видалено рахунків: {0}, операцій: {1}, нагадувань: {2}. Перед цим зберігається резервна копія для відновлення.</value></data>
+  <data name="The file has no rows to import." xml:space="preserve"><value>У файлі немає рядків для імпорту.</value></data>
   <data name="Export Balancia snapshot" xml:space="preserve"><value>Експортувати знімок Balancia</value></data>
   <data name="Choose Balancia snapshot" xml:space="preserve"><value>Вибрати знімок Balancia</value></data>
   <data name="Balancia snapshot" xml:space="preserve"><value>Знімок Balancia</value></data>
@@ -158,7 +161,7 @@
   <data name="&#10;&#10;All rows are valid. Apply this batch?" xml:space="preserve"><value>&#10;&#10;Усі рядки коректні. Застосувати цей пакет?</value></data>
   <data name="&#10;&#10;Errors (correct source file, then preview again):&#10;" xml:space="preserve"><value>&#10;&#10;Помилки (виправте вихідний файл і відкрийте перегляд знову):&#10;</value></data>
   <data name="Line {0}: {1}" xml:space="preserve"><value>Рядок {0}: {1}</value></data>
-  <data name="Imported {0} entries; {1} unchanged." xml:space="preserve"><value>Імпортовано {0} записів; {1} без змін.</value></data>
+  <data name="Replaced the ledger with {0} imported entries." xml:space="preserve"><value>Журнал замінено. Імпортовано записів: {0}.</value></data>
   <data name="Exported {0} rows to CSV." xml:space="preserve"><value>Експортовано {0} рядків у CSV.</value></data>
   <data name="Snapshot exported · revision {0}" xml:space="preserve"><value>Знімок експортовано · версія {0}</value></data>
   <data name="Snapshot restored · revision {0} · backup {1}" xml:space="preserve"><value>Знімок відновлено · версія {0} · копія {1}</value></data>

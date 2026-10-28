@@ -89,6 +89,7 @@ It describes the architectural decisions, the context boundaries, and the key wo
 
 | Design Decision                                            | Justification                                                                                                                                            | Architectural Constraint                                                                                                                                             |
 |:---------------------------------------------------------- |:-------------------------------------------------------------------------------------------------------------------------------------------------------- |:-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CSV import replaces the ledger**                         | The owner keeps one source file for the whole ledger; appending and reconciling per row made a changed file a conflict instead of the new state.         | Import deletes all accounts, categories, transactions and reminders, then imports the file in one transaction after saving a recovery copy; the preview must show what is deleted and an empty file is refused. The default account setting is cleared when its account is gone. |
 | **Local Windows writer, read-only Android**                | Matches actual single-user usage; avoids server operations and multi-writer conflict resolution.                                                         | Android never opens the live database for write; it only imports validated, immutable snapshots.                                                                     |
 | **C#/.NET, Avalonia, SQLite**                              | Shared language and domain logic across desktop and mobile; desktop-first UI; local relational persistence with no server dependency.                    | `Balancia.Core` must stay free of Avalonia/SQLite/cloud dependencies so it is reusable by both shells and testable in isolation.                                     |
 | **One logical transfer, two atomic movements**             | Preserves account balances during every edit and excludes transfers from income/expense totals.                                                          | Create, edit, and delete of a transfer must update both movements inside one database transaction; a partial write must roll back entirely.                          |
@@ -294,7 +295,7 @@ Owner -> UI : Import CSV (file picker)
 UI -> Import : Preview(file)
 Import -> Import : Parse export rows, fingerprint file\n(quoting, BOM, YYYY-MM-DD dates, decimals)
 Import -> Import : Validate unique IDs and explicit openings,\nexpand transfers to balanced movements,\nmap Category to two-level category paths
-Import -> Db : Read existing import_sources\n(reconciliation, conflicts)
+Import -> Db : Count what the ledger holds now\n(what Apply would delete)
 Import --> UI : Preview\n(counts, mappings, errors, totals)
 alt invalid rows present
   UI --> Owner : block apply until resolved\n(never silently drop rows)
@@ -302,15 +303,17 @@ else preview accepted
   Owner -> UI : Apply
   UI -> Import : Apply(previewed batch)
   Import -> Import : Re-check file hash\nand ledger revision
+  Import -> Db : Save recovery copy\n(when the ledger holds data)
   Import -> Db : BEGIN TRANSACTION
+  Import -> Db : Delete accounts, categories,\ntransactions, reminders
   Import -> Db : Write transactions, movements,\nimport_sources
   Import -> Db : COMMIT
-  Import --> UI : applied\n(unchanged reimport is a no-op)
+  Import --> UI : applied\n(the ledger now equals the file)
 end
 @enduml
 ```
 
-Import accepts only Balancia's nine-column export structure, in this order: ID, Date, Type, Description, Amount, Account, DestinationAccount, Category, Memo. Dates use YYYY-MM-DD; expenses have negative amounts, income and transfers have positive amounts, and OpeningBalance amounts may be positive, negative, or zero. Every account has exactly one explicit OpeningBalance row. A transfer is one row with different source and destination accounts and no category. IDs must be unique within a file. A repeated import with unchanged IDs and data is a no-op; changed data or local edits produce a conflict.
+Import accepts only Balancia's nine-column export structure, in this order: ID, Date, Type, Description, Amount, Account, DestinationAccount, Category, Memo. Dates use YYYY-MM-DD; expenses have negative amounts, income and transfers have positive amounts, and OpeningBalance amounts may be positive, negative, or zero. Every account has exactly one explicit OpeningBalance row. A transfer is one row with different source and destination accounts and no category. IDs must be unique within a file, and a file with no rows is refused. An import replaces the ledger: every account, category, transaction and reminder is deleted and the file is imported in the same transaction, so a failure leaves the ledger as it was. A plaintext recovery copy of a ledger that holds data is saved first (the three newest are kept), the dataset id stays so snapshots still match, and the revision advances. The preview says how many accounts, transactions and reminders will be deleted, and the default button is Cancel.
 
 Export CSV writes all account opening balances, posted transactions, and reminder templates from one consistent ledger read, one row per logical transaction or reminder (including transfers), with columns ID, Date, Type, Description, Amount, Account, DestinationAccount, Category, Memo. Import and export share the same header. The existing target file is replaced only after the write completes.
 

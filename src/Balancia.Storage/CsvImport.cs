@@ -21,13 +21,17 @@ public sealed partial class LedgerStore
         var bytes = File.ReadAllBytes(fullPath);
         var (groups, issues, summary) = CsvImportParser.Parse(bytes, Today);
         Log.ForContext<LedgerStore>().Information("CSV preview prepared, Rows: '{Rows}', Issues: '{Issues}'", summary.Rows, issues.Count);
-        return new CsvImportPreview(fullPath, HashHex(bytes), ReadLiveMetadata().Revision, [.. groups], [.. issues], summary);
+        return new CsvImportPreview(fullPath, HashHex(bytes), ReadLiveMetadata().Revision, [.. groups], [.. issues], summary, ReadExistingLedger());
     }
 
     private static string HashHex(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
 
     public ImportResult ApplyCsvImport(CsvImportPreview preview) => LogOperation(() => ApplyCsvImportCore(preview));
 
+    /// <summary>
+    /// Replaces the whole ledger with the file: accounts, categories, transactions and reminders are deleted and the file's rows are imported
+    /// in the same transaction, so a failure leaves the ledger as it was. A recovery copy of a ledger that holds data is saved first.
+    /// </summary>
     private ImportResult ApplyCsvImportCore(CsvImportPreview preview)
     {
         if (!preview.CanApply)
@@ -40,59 +44,72 @@ public sealed partial class LedgerStore
             throw new CsvImportConflictException("Source file changed after preview. Preview it again.");
         }
 
-        int matched;
         using (var c = connections.Open())
         using (var tx = c.BeginTransaction(deferred: true))
         {
             EnsureRevision(c, tx, preview.Revision);
-            matched = CountMatchingSources(LoadImportSources(c, tx), preview.Groups);
             tx.Commit();
         }
 
-        if (matched == preview.Groups.Length)
-        {
-            Log.ForContext<LedgerStore>().Information("CSV reconciliation unchanged, Entries: '{Entries}'", matched);
-            return new ImportResult(0, matched);
-        }
-
-        var added = 0;
-        var unchanged = 0;
+        var recoveryCopy = preview.Existing.IsEmpty ? null : SaveRecoveryCopy(PreImportCopyKind);
+        var imported = 0;
         Write((c, tx) =>
         {
             EnsureRevision(c, tx, preview.Revision);
+            ClearLedger(c, tx);
 
-            var sources = LoadImportSources(c, tx);
-            unchanged = CountMatchingSources(sources, preview.Groups);
-            if (sources.Keys.Except(preview.Groups.Select(g => g.Id)).Any())
-            {
-                throw new CsvImportConflictException("This file omits previously imported source IDs; use a full file for reconciliation.");
-            }
+            var accounts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var categories = new List<Category>();
+            CreateMissingAccounts(c, tx, preview.Groups, accounts);
 
-            var pending = preview.Groups.Where(g => !sources.ContainsKey(g.Id)).ToArray();
-            var accounts = LoadAccounts(c, tx);
-            var categories = ReadCategories(c, tx);
-            var existingAccounts = new HashSet<string>(accounts.Keys, StringComparer.OrdinalIgnoreCase);
-            CreateMissingAccounts(c, tx, pending, accounts);
-
-            foreach (var group in pending.OrderBy(g => g.Kind == CsvRowType.OpeningBalance ? 0 : 1))
+            foreach (var group in preview.Groups.OrderBy(g => g.Kind == CsvRowType.OpeningBalance ? 0 : 1))
             {
                 string? transactionId = group.Kind switch
                 {
                     CsvRowType.Reminder => ImportReminder(c, tx, group.Rows[0]),
-                    CsvRowType.OpeningBalance => ImportOpeningGroup(c, tx, group, accounts, existingAccounts),
+                    CsvRowType.OpeningBalance => ImportOpeningGroup(c, tx, group, accounts),
                     _ => ImportTransactionGroup(c, tx, group, accounts, categories),
                 };
                 LedgerSql.Execute(c, tx, "INSERT INTO import_sources(source,external_id,transaction_id,fingerprint,raw_rows_json) VALUES('CSV',$external,$transaction,$fingerprint,$raw)",
                     ("$external", group.Id), ("$transaction", transactionId), ("$fingerprint", group.Fingerprint),
                     ("$raw", JsonSerializer.Serialize(group.Rows.Select(r => r.Fields).Distinct().ToArray())));
-                added++;
+                imported++;
             }
 
             VerifyImportedTotals(c, tx, preview.Groups, accounts);
         });
-        Log.ForContext<LedgerStore>().Information("CSV reconciliation committed, Added: '{Added}', Unchanged: '{Unchanged}'", added, unchanged);
-        return new ImportResult(added, unchanged);
+        if (recoveryCopy is not null)
+        {
+            PruneRecoveryCopies(recoveryCopy, PreImportCopyKind);
+        }
+
+        Log.ForContext<LedgerStore>().Information("CSV import replaced the ledger, Imported: '{Imported}', Removed: '{Removed}', RecoveryCopy: '{RecoveryCopy}'",
+            imported, preview.Existing, recoveryCopy);
+        return new ImportResult(imported, recoveryCopy);
     }
+
+    /// <summary>What the ledger holds now, which an import would delete.</summary>
+    private ExistingLedger ReadExistingLedger()
+    {
+        using var connection = connections.Open();
+        using var tx = connection.BeginTransaction(deferred: true);
+        var existing = new ExistingLedger(
+            Convert.ToInt32(LedgerSql.Scalar(connection, tx, "SELECT COUNT(*) FROM accounts")),
+            Convert.ToInt32(LedgerSql.Scalar(connection, tx, "SELECT COUNT(*) FROM ledger WHERE kind<>'OpeningBalance'")),
+            Convert.ToInt32(LedgerSql.Scalar(connection, tx, "SELECT COUNT(*) FROM reminder_templates")));
+        tx.Commit();
+        return existing;
+    }
+
+    /// <summary>Deletes every account, category, transaction, reminder and import record; the dataset id and the revision counter stay.</summary>
+    private static void ClearLedger(SqliteConnection c, SqliteTransaction tx) => LedgerSql.Execute(c, tx, """
+        DELETE FROM import_sources;
+        DELETE FROM movements;
+        DELETE FROM ledger;
+        DELETE FROM categories;
+        DELETE FROM accounts;
+        DELETE FROM reminder_templates;
+        """);
 
     private static void EnsureRevision(SqliteConnection c, SqliteTransaction tx, long expected)
     {
@@ -100,50 +117,6 @@ public sealed partial class LedgerStore
         {
             throw new CsvImportConflictException("Ledger changed after preview. Preview the import again.");
         }
-    }
-
-    private static Dictionary<string, (string Fingerprint, bool LocallyModified)> LoadImportSources(SqliteConnection c, SqliteTransaction tx)
-    {
-        var sources = new Dictionary<string, (string, bool)>();
-        using var cmd = LedgerSql.Command(c, tx, "SELECT external_id,fingerprint,locally_modified FROM import_sources");
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            sources[reader.GetString(0)] = (reader.GetString(1), reader.GetBoolean(2));
-        }
-        return sources;
-    }
-
-    private static Dictionary<string, string> LoadAccounts(SqliteConnection c, SqliteTransaction tx)
-    {
-        var accounts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        using var cmd = LedgerSql.Command(c, tx, "SELECT id,name FROM accounts");
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            accounts.Add(reader.GetString(1), reader.GetString(0));
-        }
-        return accounts;
-    }
-
-    private static int CountMatchingSources(Dictionary<string, (string Fingerprint, bool LocallyModified)> sources, CsvImportGroup[] groups)
-    {
-        var matched = 0;
-        foreach (var group in groups)
-        {
-            if (!sources.TryGetValue(group.Id, out var source))
-            {
-                continue;
-            }
-
-            if (source.LocallyModified || source.Fingerprint != group.Fingerprint)
-            {
-                throw new CsvImportConflictException($"Source ID {group.Id} conflicts with a prior import or local edit.");
-            }
-
-            matched++;
-        }
-        return matched;
     }
 
     private static void CreateMissingAccounts(SqliteConnection c, SqliteTransaction tx, CsvImportGroup[] pending, Dictionary<string, string> accounts)
@@ -168,15 +141,13 @@ public sealed partial class LedgerStore
     private static IEnumerable<CsvImportRow> AccountRows(IEnumerable<CsvImportGroup> groups) =>
         groups.Where(g => g.Kind != CsvRowType.Reminder).SelectMany(g => g.Rows);
 
-    private static string ImportOpeningGroup(SqliteConnection c, SqliteTransaction tx, CsvImportGroup group,
-        Dictionary<string, string> accounts, HashSet<string> existingAccounts)
+    private static string ImportOpeningGroup(SqliteConnection c, SqliteTransaction tx, CsvImportGroup group, Dictionary<string, string> accounts)
     {
         var row = group.Rows[0];
         var account = accounts[row.Account];
         var transactionId = OpeningId(account);
         var oldAmount = Convert.ToInt64(LedgerSql.Scalar(c, tx, "SELECT amount FROM movements WHERE transaction_id=$id", ("$id", transactionId)));
-        var hasEntries = LedgerSql.Scalar(c, tx, "SELECT 1 FROM movements WHERE account_id=$id AND transaction_id<>$opening LIMIT 1", ("$id", account), ("$opening", transactionId)) is not null;
-        if (oldAmount != 0 || hasEntries && existingAccounts.Contains(row.Account))
+        if (oldAmount != 0)
         {
             throw new CsvImportConflictException($"Opening for {row.Account} conflicts with existing account data.");
         }
@@ -239,11 +210,6 @@ public sealed partial class LedgerStore
         {
             var name = names[level];
             var found = CategoryRules.FindChild(categories, parent, name);
-            if (found is { Archived: true })
-            {
-                throw new CsvImportConflictException($"Category '{name}' is archived; restore it before importing.");
-            }
-
             if (found is null)
             {
                 found = new Category(Guid.NewGuid().ToString("N"), name, parent, string.Join(" / ", names.Take(level + 1)), false);
@@ -263,23 +229,6 @@ public sealed partial class LedgerStore
         var id = row.Id[ReminderIdPrefix.Length..];
         var description = row.Description.Trim();
         var options = JsonSerializer.Deserialize<CsvReminderOptions>(row.Memo)!;
-        using (var command = LedgerSql.Command(c, tx,
-            "SELECT description,expected_date,indicative_amount,interval_months,archived FROM reminder_templates WHERE id=$id", ("$id", id)))
-        using (var reader = command.ExecuteReader())
-        {
-            if (reader.Read())
-            {
-                if (reader.GetString(0) != description || LedgerSql.ParseDate(reader.GetString(1)) != row.Date ||
-                    reader.GetInt64(2) != row.Amount || reader.GetInt32(3) != options.IntervalMonths ||
-                    reader.GetBoolean(4) != options.Archived)
-                {
-                    throw new CsvImportConflictException("Imported reminder conflicts with existing reminder data.");
-                }
-
-                return null;
-            }
-        }
-
         if (!options.Archived && ReminderRules.IsDuplicateDescription(ReadActiveTemplates(c, tx), id, description))
         {
             throw new CsvImportConflictException(ReminderRules.DuplicateDescriptionMessage);

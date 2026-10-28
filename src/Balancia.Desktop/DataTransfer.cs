@@ -34,9 +34,23 @@ public partial class MainWindow
             await CsvImportPreviewWindow.Show(this, preview, store.ApplyCsvImport, async result =>
             {
                 await Refresh();
-                SetStatus(Format("Imported {0} entries; {1} unchanged.", result.Added, result.Unchanged));
+                await ForgetMissingDefaultAccount();
+                SetStatus(Format("Replaced the ledger with {0} imported entries.", result.Imported));
             });
         });
+    }
+
+    /// <summary>An import gives the accounts new IDs, so a default account that is no longer there is cleared and the owner picks one again.</summary>
+    private async Task ForgetMissingDefaultAccount()
+    {
+        if (settings.DefaultAccountId is not { } id || OverviewPane.Data!.Snapshot.Accounts.Any(account => account.Id == id))
+        {
+            return;
+        }
+
+        var updated = settings with { DefaultAccountId = null };
+        await Task.Run(() => PersistSettings(updated));
+        settings = updated;
     }
 
     internal async Task ExportCsv()

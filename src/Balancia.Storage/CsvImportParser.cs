@@ -14,6 +14,12 @@ internal static class CsvImportParser
         var rows = new List<CsvImportRow>();
         var sourceRows = ReadRows(bytes, rows, issues, today);
         var groups = CsvImportGroupBuilder.Build(rows, issues);
+        if (issues.Count == 0 && groups.Count == 0)
+        {
+            // An import replaces the ledger, so a file with nothing in it must not be able to empty it.
+            issues.Add(new ImportIssue(0, "The file has no rows to import."));
+        }
+
         var summary = CsvImportSummaryBuilder.Build(rows, groups, sourceRows);
         return (groups, issues, summary);
     }

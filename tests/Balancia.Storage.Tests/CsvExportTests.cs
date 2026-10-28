@@ -66,7 +66,7 @@ public sealed class CsvExportTests : IDisposable
 
         // Assert
         Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Select(issue => issue.Message)));
-        Assert.Equal(5, result.Added);
+        Assert.Equal(5, result.Imported);
         var original = store.ReadSnapshot();
         var imported = restored.ReadSnapshot();
         Assert.Equal(original.NetWorth, imported.NetWorth);
@@ -77,21 +77,25 @@ public sealed class CsvExportTests : IDisposable
     }
 
     [Fact]
-    public void ApplyCsvImport_ExportedFileImportedTwice_LeavesRevisionUnchanged()
+    public void ApplyCsvImport_ExportedFileImportedTwice_LeavesTheSameLedger()
     {
         // Arrange
         store.ExportCsv(exportPath);
         var restored = new LedgerStore(Path.Combine(directory, "restored.db"));
         restored.Initialize();
         restored.ApplyCsvImport(restored.PreviewCsvImport(exportPath));
-        var revision = restored.ReadSnapshot().Revision;
+        var first = restored.ReadSnapshot();
 
         // Act
         var second = restored.ApplyCsvImport(restored.PreviewCsvImport(exportPath));
 
         // Assert
-        Assert.Equal(new ImportResult(0, 5), second);
-        Assert.Equal(revision, restored.ReadSnapshot().Revision);
+        Assert.Equal(5, second.Imported);
+        Assert.NotNull(second.RecoveryCopyPath);
+        var again = restored.ReadSnapshot();
+        Assert.Equal(first.NetWorth, again.NetWorth);
+        Assert.Equal(first.Accounts.Select(AccountKey).OrderBy(account => account.Name), again.Accounts.Select(AccountKey).OrderBy(account => account.Name));
+        Assert.Equal(first.Entries.Select(EntryKey).OrderBy(entry => entry.Date), again.Entries.Select(EntryKey).OrderBy(entry => entry.Date));
     }
 
     private static List<string[]> ReadRows(string path)

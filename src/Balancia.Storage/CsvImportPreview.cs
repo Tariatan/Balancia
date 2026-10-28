@@ -3,7 +3,7 @@ namespace Balancia.Storage;
 public sealed class CsvImportPreview
 {
     internal CsvImportPreview(string path, string hash, long revision, CsvImportGroup[] groups,
-        ImportIssue[] issues, ImportSummary summary)
+        ImportIssue[] issues, ImportSummary summary, ExistingLedger existing)
     {
         Path = path;
         FileHash = hash;
@@ -11,6 +11,7 @@ public sealed class CsvImportPreview
         Groups = groups;
         Issues = issues;
         Summary = summary;
+        Existing = existing;
     }
     public string Path
     {
@@ -33,6 +34,12 @@ public sealed class CsvImportPreview
         get;
     }
     public ImportSummary Summary
+    {
+        get;
+    }
+
+    /// <summary>What applying the import deletes.</summary>
+    public ExistingLedger Existing
     {
         get;
     }

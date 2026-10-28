@@ -40,7 +40,7 @@ public sealed class CsvImportReminderTests : IDisposable
         var result = store.ApplyCsvImport(store.PreviewCsvImport(csv));
 
         // Assert
-        Assert.Equal(2, result.Added);
+        Assert.Equal(2, result.Imported);
         var template = store.ReadReminders().Single().Template;
         Assert.Equal("Rent", template.Description);
         Assert.Equal(new DateOnly(2026, 1, 5), template.ExpectedDate);
@@ -64,17 +64,34 @@ public sealed class CsvImportReminderTests : IDisposable
     }
 
     [Fact]
-    public void ApplyCsvImport_ActiveReminderWithTheSameExactDescription_ThrowsConflict()
+    public void ApplyCsvImport_ReminderWithTheDescriptionOfAnExistingOne_ReplacesIt()
     {
         // Arrange
         store.SaveReminder(null, "Rent", new DateOnly(2026, 2, 1), Money.FromFrancs(5m), 1);
         Csv(Opening + RentRow);
 
         // Act
-        void Act() => store.ApplyCsvImport(store.PreviewCsvImport(csv));
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
 
         // Assert
-        Assert.Throws<CsvImportConflictException>(Act);
+        var reminder = Assert.Single(store.ReadReminders()).Template;
+        Assert.Equal(Money.FromFrancs(1200m), reminder.IndicativeAmount);
+    }
+
+    [Fact]
+    public void ApplyCsvImport_FileWithTwoActiveRemindersOfOneDescription_IsRefusedAndKeepsTheLedger()
+    {
+        // Arrange
+        store.SaveAccount(null, "Kept", new DateOnly(2026, 1, 1), Money.FromFrancs(10m));
+        Csv(Opening + RentRow + RentRow.Replace("reminder:r1", "reminder:r2"));
+
+        // Act
+        var preview = store.PreviewCsvImport(csv);
+
+        // Assert
+        Assert.False(preview.CanApply);
+        Assert.Throws<CsvImportConflictException>(() => store.ApplyCsvImport(preview));
+        Assert.Equal("Kept", Assert.Single(store.ReadSnapshot().Accounts).Name);
     }
 
     [Fact]
@@ -92,7 +109,7 @@ public sealed class CsvImportReminderTests : IDisposable
     }
 
     [Fact]
-    public void ApplyCsvImport_SameFileAgain_IsUnchanged()
+    public void ApplyCsvImport_SameFileAgain_ReplacesTheRemindersWithTheSameOnes()
     {
         // Arrange
         Csv(Opening + RentRow);
@@ -102,8 +119,7 @@ public sealed class CsvImportReminderTests : IDisposable
         var second = store.ApplyCsvImport(store.PreviewCsvImport(csv));
 
         // Assert
-        Assert.Equal(0, second.Added);
-        Assert.Equal(2, second.Unchanged);
+        Assert.Equal(2, second.Imported);
         Assert.Single(store.ReadReminders());
     }
 
@@ -132,7 +148,7 @@ public sealed class CsvImportReminderTests : IDisposable
     }
 
     [Fact]
-    public void ApplyCsvImport_ReminderEditedLocally_ReimportReportsConflict()
+    public void ApplyCsvImport_ReminderEditedLocally_ReimportRestoresTheFileValues()
     {
         // Arrange
         Csv(Opening + RentRow);
@@ -141,41 +157,24 @@ public sealed class CsvImportReminderTests : IDisposable
         store.SaveReminder(id, "Rent", new DateOnly(2026, 1, 5), Money.FromFrancs(1300m), 1);
 
         // Act
-        void Act() => store.ApplyCsvImport(store.PreviewCsvImport(csv));
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
 
         // Assert
-        Assert.Throws<CsvImportConflictException>(Act);
+        Assert.Equal(Money.FromFrancs(1200m), store.ReadReminders().Single().Template.IndicativeAmount);
     }
 
     [Fact]
-    public void ApplyCsvImport_ReminderWithExistingActiveDescription_RejectsTheBatch()
-    {
-        // Arrange
-        store.SaveReminder(null, "Rent", new DateOnly(2026, 3, 1), Money.FromFrancs(1m), 1);
-        Csv(Opening + RentRow);
-
-        // Act
-        void Act() => store.ApplyCsvImport(store.PreviewCsvImport(csv));
-
-        // Assert
-        var error = Assert.Throws<CsvImportConflictException>(Act);
-        Assert.Contains("already uses this description", error.Message);
-        Assert.Empty(store.ReadSnapshot().Accounts);
-    }
-
-    [Fact]
-    public void ApplyCsvImport_ReminderIdMatchingDifferentExistingTemplate_RejectsTheBatch()
+    public void ApplyCsvImport_ReminderIdOfAnExistingTemplate_ReplacesIt()
     {
         // Arrange
         store.SaveReminder("r1", "Rent", new DateOnly(2026, 1, 5), Money.FromFrancs(999m), 1);
         Csv(Opening + RentRow);
 
         // Act
-        void Act() => store.ApplyCsvImport(store.PreviewCsvImport(csv));
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
 
         // Assert
-        var error = Assert.Throws<CsvImportConflictException>(Act);
-        Assert.Contains("conflicts with existing reminder", error.Message);
+        Assert.Equal(Money.FromFrancs(1200m), Assert.Single(store.ReadReminders()).Template.IndicativeAmount);
     }
 
     [Theory]

@@ -15,6 +15,8 @@ public sealed partial class LedgerStore
     private const int MaxManifestBytes = 64 * 1024;
     private const long MaxDatabaseBytes = 512L * 1024 * 1024;
     private const int RetainedRecoveryCopies = 3;
+    private const string PreRestoreCopyKind = "pre-restore";
+    private const string PreImportCopyKind = "pre-import";
 
     public SnapshotRestoreResult RestoreSnapshot(string source, SnapshotKey key) =>
         LogOperation(() => RestoreSnapshotCore(source, key), snapshot: SnapshotOperation.Read);
@@ -26,23 +28,17 @@ public sealed partial class LedgerStore
         SnapshotAcceptance.Require(manifest, ReadLiveMetadata(), "ledger");
 
         var staged = path + ".restore-" + Guid.NewGuid().ToString("N");
-        var backup = path + ".pre-restore-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N") + ".bak";
         try
         {
             ExtractDatabaseEntry(archive, staged);
             ValidateExtractedDatabase(staged, manifest);
             Serilog.Log.ForContext<LedgerStore>().Information("Restore snapshot validated before replacement");
-            using (var liveConnection = connections.Open())
-            using (var backupConnection = new SqliteConnectionFactory(backup).Open())
-            {
-                liveConnection.BackupDatabase(backupConnection);
-            }
-
+            var backup = SaveRecoveryCopy(PreRestoreCopyKind);
             Serilog.Log.ForContext<LedgerStore>().Information("Restore recovery copy saved before replacement");
 
             File.Move(staged, path, true);
             Serilog.Log.ForContext<LedgerStore>().Information("Snapshot restored, Revision: '{Revision}', BackupPath: '{BackupPath}'", manifest.Revision, backup);
-            PruneRecoveryCopies(backup);
+            PruneRecoveryCopies(backup, PreRestoreCopyKind);
             return new SnapshotRestoreResult(backup, manifest);
         }
         finally
@@ -51,13 +47,23 @@ public sealed partial class LedgerStore
         }
     }
 
-    /// <summary>Keeps the copy just written and the newest earlier ones (three in total) of the plaintext pre-restore recovery copies; a failed deletion is logged and never fails the restore.</summary>
-    private void PruneRecoveryCopies(string current)
+    /// <summary>Saves a plaintext copy of the live database next to it, named after <paramref name="kind"/> (what is about to replace it), and returns its path.</summary>
+    private string SaveRecoveryCopy(string kind)
+    {
+        var copy = path + "." + kind + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N") + ".bak";
+        using var liveConnection = connections.Open();
+        using var copyConnection = new SqliteConnectionFactory(copy).Open();
+        liveConnection.BackupDatabase(copyConnection);
+        return copy;
+    }
+
+    /// <summary>Keeps the copy just written and the newest earlier ones (three in total) of the plaintext recovery copies of that kind; a failed deletion is logged and never fails the operation.</summary>
+    private void PruneRecoveryCopies(string current, string kind)
     {
         try
         {
             var directory = Path.GetDirectoryName(path)!;
-            var stale = Directory.EnumerateFiles(directory, Path.GetFileName(path) + ".pre-restore-*.bak")
+            var stale = Directory.EnumerateFiles(directory, Path.GetFileName(path) + "." + kind + "-*.bak")
                 .Where(file => !string.Equals(file, current, StringComparison.Ordinal))
                 .OrderByDescending(file => file, StringComparer.Ordinal)
                 .Skip(RetainedRecoveryCopies - 1)

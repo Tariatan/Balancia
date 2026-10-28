@@ -134,6 +134,9 @@
   <data name="Choose transactions CSV" xml:space="preserve"><value>Transaktions-CSV auswählen</value></data>
   <data name="CSV import preview" xml:space="preserve"><value>CSV-Importvorschau</value></data>
   <data name="Apply import" xml:space="preserve"><value>Import anwenden</value></data>
+  <data name="Replace data" xml:space="preserve"><value>Daten ersetzen</value></data>
+  <data name="This import replaces the current ledger: {0} accounts, {1} transactions and {2} reminders will be deleted. A recovery copy is saved first." xml:space="preserve"><value>Dieser Import ersetzt das aktuelle Kassenbuch: {0} Konten, {1} Buchungen und {2} Erinnerungen werden gelöscht. Zuvor wird eine Wiederherstellungskopie gespeichert.</value></data>
+  <data name="The file has no rows to import." xml:space="preserve"><value>Die Datei enthält keine Zeilen zum Importieren.</value></data>
   <data name="Export Balancia snapshot" xml:space="preserve"><value>Balancia-Snapshot exportieren</value></data>
   <data name="Choose Balancia snapshot" xml:space="preserve"><value>Balancia-Snapshot auswählen</value></data>
   <data name="Balancia snapshot" xml:space="preserve"><value>Balancia-Snapshot</value></data>
@@ -158,7 +161,7 @@
   <data name="&#10;&#10;All rows are valid. Apply this batch?" xml:space="preserve"><value>&#10;&#10;Alle Zeilen sind gültig. Diesen Stapel anwenden?</value></data>
   <data name="&#10;&#10;Errors (correct source file, then preview again):&#10;" xml:space="preserve"><value>&#10;&#10;Fehler (Quelldatei korrigieren und Vorschau erneut öffnen):&#10;</value></data>
   <data name="Line {0}: {1}" xml:space="preserve"><value>Zeile {0}: {1}</value></data>
-  <data name="Imported {0} entries; {1} unchanged." xml:space="preserve"><value>{0} Einträge importiert; {1} unverändert.</value></data>
+  <data name="Replaced the ledger with {0} imported entries." xml:space="preserve"><value>Das Kassenbuch wurde durch {0} importierte Einträge ersetzt.</value></data>
   <data name="Exported {0} rows to CSV." xml:space="preserve"><value>{0} Zeilen als CSV exportiert.</value></data>
   <data name="Snapshot exported · revision {0}" xml:space="preserve"><value>Snapshot exportiert · Revision {0}</value></data>
   <data name="Snapshot restored · revision {0} · backup {1}" xml:space="preserve"><value>Snapshot wiederhergestellt · Revision {0} · Backup {1}</value></data>
