@@ -1,15 +1,11 @@
+using Avalonia.Media;
 using Balancia.Core;
 
 namespace Balancia.Desktop;
 
-/// <summary>Pure presentation rules for reminders: row emphasis, row color and footer totals.</summary>
+/// <summary>Pure presentation rules for reminders: row emphasis, row brush and footer totals.</summary>
 internal static class ReminderPresentation
 {
-    private const string TextColor = "#263C48";
-    private const string OverdueColor = "#B95D4D";
-    private const string DueSoonColor = "#B58B00";
-    private const string NextMonthColor = "#3989A7";
-    private const string LaterColor = "#2C8B6D";
 
     internal readonly record struct Totals(Money Net, Money Upcoming, bool UpcomingIsThisMonth);
 
@@ -20,16 +16,16 @@ internal static class ReminderPresentation
     internal static bool IsBeyondNextMonth(Reminder reminder, DateOnly today) =>
         ReminderSchedule.MonthsUntil(reminder.Occurrence, today) >= 2;
 
-    internal static string ColorFor(Reminder reminder, DateOnly today)
+    internal static IBrush BrushFor(Reminder reminder, DateOnly today)
     {
-        if (reminder.Overdue) return OverdueColor;
-        if (IsDueSoon(reminder, today)) return DueSoonColor;
+        if (reminder.Overdue) return Palette.Negative;
+        if (IsDueSoon(reminder, today)) return Palette.Warning;
 
         return ReminderSchedule.MonthsUntil(reminder.Occurrence, today) switch
         {
-            1 => NextMonthColor,
-            > 1 => LaterColor,
-            _ => TextColor,
+            1 => Palette.Accent,
+            > 1 => Palette.Positive,
+            _ => Palette.Text,
         };
     }
 

@@ -36,7 +36,7 @@ public partial class CategoriesCard : UserControl
                 {
                     Converter = new FuncValueConverter<Choice<Category>, IBrush>(choice =>
                         choice is not null && groupBrushes.TryGetValue(choice.Value.ParentId ?? choice.Value.Id, out var brush)
-                            ? brush : RowBrushes.Ivory),
+                            ? brush : Palette.RowIvory),
                 }),
             },
         });
@@ -134,7 +134,7 @@ public partial class CategoriesCard : UserControl
         groupBrushes.Clear();
         foreach (var category in categories.Where(category => category.ParentId is null))
         {
-            groupBrushes[category.Id] = groupBrushes.Count % 2 == 0 ? RowBrushes.Ivory : RowBrushes.Blue;
+            groupBrushes[category.Id] = groupBrushes.Count % 2 == 0 ? Palette.RowIvory : Palette.RowBlue;
         }
 
         CategoriesList.ItemsSource = categories

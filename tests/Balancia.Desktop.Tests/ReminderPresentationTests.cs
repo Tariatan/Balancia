@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using Balancia.Core;
 using Xunit;
 
@@ -11,23 +12,32 @@ public sealed class ReminderPresentationTests
         new(new ReminderTemplate(Guid.NewGuid().ToString("N"), "Rent", occurrence, Money.FromFrancs(francs), 1, false),
             occurrence, overdue);
 
+    private static IBrush Role(string name) => name switch
+    {
+        nameof(Palette.Warning) => Palette.Warning,
+        nameof(Palette.Text) => Palette.Text,
+        nameof(Palette.Accent) => Palette.Accent,
+        nameof(Palette.Positive) => Palette.Positive,
+        _ => throw new ArgumentOutOfRangeException(nameof(name)),
+    };
+
     [Theory]
-    [InlineData("2026-10-13", "#B58B00")] // due today
-    [InlineData("2026-10-18", "#B58B00")] // last day of the five-day window
-    [InlineData("2026-10-19", "#263C48")] // later this month
-    [InlineData("2026-11-02", "#3989A7")] // next month
-    [InlineData("2026-12-01", "#2C8B6D")] // two months out
-    [InlineData("2026-10-05", "#263C48")] // earlier this month, not flagged overdue
-    public void ColorFor_PendingReminder_FollowsHowSoonItIsDue(string occurrence, string expectedColor)
+    [InlineData("2026-10-13", nameof(Palette.Warning))] // due today
+    [InlineData("2026-10-18", nameof(Palette.Warning))] // last day of the five-day window
+    [InlineData("2026-10-19", nameof(Palette.Text))] // later this month
+    [InlineData("2026-11-02", nameof(Palette.Accent))] // next month
+    [InlineData("2026-12-01", nameof(Palette.Positive))] // two months out
+    [InlineData("2026-10-05", nameof(Palette.Text))] // earlier this month, not flagged overdue
+    public void BrushFor_PendingReminder_FollowsHowSoonItIsDue(string occurrence, string expectedRole)
     {
         // Arrange
         var reminder = Reminder(DateOnly.Parse(occurrence));
 
         // Act
-        var color = ReminderPresentation.ColorFor(reminder, Today);
+        var brush = ReminderPresentation.BrushFor(reminder, Today);
 
         // Assert
-        Assert.Equal(expectedColor, color);
+        Assert.Same(Role(expectedRole), brush);
     }
 
     [Theory]
@@ -49,16 +59,16 @@ public sealed class ReminderPresentationTests
     }
 
     [Fact]
-    public void ColorFor_OverdueReminder_IsRed()
+    public void BrushFor_OverdueReminder_IsTheNegativeBrush()
     {
         // Arrange
         var reminder = Reminder(Today.AddDays(-3), overdue: true);
 
         // Act
-        var color = ReminderPresentation.ColorFor(reminder, Today);
+        var brush = ReminderPresentation.BrushFor(reminder, Today);
 
         // Assert
-        Assert.Equal("#B95D4D", color);
+        Assert.Same(Palette.Negative, brush);
     }
 
     [Theory]

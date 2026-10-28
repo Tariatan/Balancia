@@ -67,7 +67,7 @@ public partial class AccountsCard : UserControl
             {
                 var highlight = new Border
                 {
-                    Background = Brush.Parse("#403989A7"),
+                    Background = Palette.AccentTintStrong,
                     Margin = new Thickness(-4, 0),
                     IsHitTestVisible = false,
                 };
@@ -87,7 +87,7 @@ public partial class AccountsCard : UserControl
                 Text = AmountText(account.Balance),
                 FontSize = 12,
                 FontWeight = FontWeight.SemiBold,
-                Foreground = BalanceBrushes.For(account.Balance),
+                Foreground = Palette.ForBalance(account.Balance),
                 VerticalAlignment = VerticalAlignment.Center
             }, 2);
             return row;
@@ -140,7 +140,7 @@ public partial class AccountsCard : UserControl
 
         NetWorthLabel.Text = Get("Total net worth");
         NetWorthValue.Text = AmountText(netWorth);
-        NetWorthValue.Foreground = BalanceBrushes.For(netWorth);
+        NetWorthValue.Foreground = Palette.ForBalance(netWorth);
     }
 
     /// <summary>Brings the checkboxes in line with the filter, without raising <see cref="FilterToggled"/>.</summary>

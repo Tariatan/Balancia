@@ -119,7 +119,7 @@ public partial class TransactionsCard : UserControl
 
     private sealed record TransactionItem(TransactionsHit Hit, bool AlternateDay)
     {
-        public IBrush Background => AlternateDay ? RowBrushes.Ivory : RowBrushes.Blue;
+        public IBrush Background => AlternateDay ? Palette.RowIvory : Palette.RowBlue;
 
         public override string ToString()
         {

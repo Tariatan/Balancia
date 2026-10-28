@@ -10,15 +10,9 @@ using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop;
 
-/// <summary>Builds the five-column transaction row shown in the transactions list and in the remove confirmation, and holds the colors the transaction views share.</summary>
+/// <summary>Builds the five-column transaction row shown in the transactions list and in the remove confirmation.</summary>
 internal static class TransactionRows
 {
-    internal static readonly IBrush TextBrush = Brush.Parse("#263C48");
-    internal static readonly IBrush HeaderBrush = Brush.Parse("#71838D");
-    internal static readonly IBrush IncomeBrush = Brush.Parse("#2C8B6D");
-    internal static readonly IBrush ExpenseBrush = Brush.Parse("#B95D4D");
-    internal static readonly IBrush TransferBrush = Brush.Parse("#1B4F72");
-
     /// <summary>The row for a hit: date, signed amount (the account's effect when a single account is filtered), category, account and description.</summary>
     internal static Grid Build(TransactionsHit hit, string emptyDescriptionText = "")
     {
@@ -50,9 +44,9 @@ internal static class TransactionRows
         var values = new[] { date, amount, category, account, description };
         var amountBrush = kind switch
         {
-            TransactionKind.Income => IncomeBrush,
-            TransactionKind.Expense => ExpenseBrush,
-            _ => TransferBrush
+            TransactionKind.Income => Palette.Positive,
+            TransactionKind.Expense => Palette.Negative,
+            _ => Palette.Transfer
         };
 
         for (var i = 0; i < values.Length; i++)
@@ -63,7 +57,7 @@ internal static class TransactionRows
                 Text = values[i],
                 FontSize = 13,
                 FontWeight = isAmount ? FontWeight.Bold : FontWeight.Normal,
-                Foreground = isAmount ? amountBrush : TextBrush,
+                Foreground = isAmount ? amountBrush : Palette.Text,
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 TextAlignment = isAmount ? TextAlignment.Right : TextAlignment.Left,

@@ -19,10 +19,6 @@ internal sealed record FilterRowValues(string? Description, DateOnly? From, Date
 /// </summary>
 public partial class FilterRow : UserControl
 {
-    private static readonly IBrush FilledBrush = Brush.Parse("#263C48");
-    private static readonly IBrush EmptyBrush = Brush.Parse("#71838D");
-    private static readonly IBrush SelectedPeriodBackground = Brush.Parse("#D8ECF3");
-    private static readonly IBrush SelectedPeriodForeground = Brush.Parse("#1C627E");
 
     private readonly (OverviewPeriod Period, Button Button, string TitleKey)[] periodButtons;
     private OverviewPeriod? shownPeriod;
@@ -116,8 +112,8 @@ public partial class FilterRow : UserControl
         {
             if (buttonPeriod == period)
             {
-                button.Background = SelectedPeriodBackground;
-                button.Foreground = SelectedPeriodForeground;
+                button.Background = Palette.SelectionBackground;
+                button.Foreground = Palette.SelectionForeground;
                 button.FontWeight = FontWeight.SemiBold;
             }
             else
@@ -189,5 +185,5 @@ public partial class FilterRow : UserControl
 
     private static void ShowTone(CalendarDatePicker input) => input.Foreground = ToneBrush(input.SelectedDate is not null);
 
-    private static IBrush ToneBrush(bool hasValue) => hasValue ? FilledBrush : EmptyBrush;
+    private static IBrush ToneBrush(bool hasValue) => hasValue ? Palette.Text : Palette.TextMuted;
 }

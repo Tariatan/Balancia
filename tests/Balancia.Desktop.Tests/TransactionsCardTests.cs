@@ -142,11 +142,11 @@ public sealed class TransactionsCardTests
         Render(card, window, Page([Hit("1", Day1), Hit("2", Day1), Hit("3", Day2), Hit("4", Day2), Hit("5", Day3)], 5));
 
         // Assert
-        Assert.Same(RowBrushes.Blue, Row(card, 0).Background);
-        Assert.Same(RowBrushes.Blue, Row(card, 1).Background);
-        Assert.Same(RowBrushes.Ivory, Row(card, 2).Background);
-        Assert.Same(RowBrushes.Ivory, Row(card, 3).Background);
-        Assert.Same(RowBrushes.Blue, Row(card, 4).Background);
+        Assert.Same(Palette.RowBlue, Row(card, 0).Background);
+        Assert.Same(Palette.RowBlue, Row(card, 1).Background);
+        Assert.Same(Palette.RowIvory, Row(card, 2).Background);
+        Assert.Same(Palette.RowIvory, Row(card, 3).Background);
+        Assert.Same(Palette.RowBlue, Row(card, 4).Background);
     }
 
     [AvaloniaFact]
@@ -160,7 +160,7 @@ public sealed class TransactionsCardTests
 
         // Assert
         Assert.Equal([Day1.ToString("dd MMM yyyy", Culture), "− " + InputParsing.AmountText(Money.FromFrancs(12.5m)), "Food / Lunch", "Everyday", "Lunch"], Cells(card, 0));
-        Assert.Same(TransactionRows.ExpenseBrush, AmountCell(card, 0).Foreground);
+        Assert.Same(Palette.Negative, AmountCell(card, 0).Foreground);
     }
 
     [AvaloniaFact]
@@ -178,10 +178,10 @@ public sealed class TransactionsCardTests
 
         // Assert
         Assert.StartsWith("+ ", Cells(card, 0)[1]);
-        Assert.Same(TransactionRows.IncomeBrush, AmountCell(card, 0).Foreground);
+        Assert.Same(Palette.Positive, AmountCell(card, 0).Foreground);
         Assert.Equal("—", Cells(card, 0)[2]);
         Assert.StartsWith("↔ ", Cells(card, 1)[1]);
-        Assert.Same(TransactionRows.TransferBrush, AmountCell(card, 1).Foreground);
+        Assert.Same(Palette.Transfer, AmountCell(card, 1).Foreground);
         Assert.Equal("Everyday → Savings", Cells(card, 1)[3]);
     }
 

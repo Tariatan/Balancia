@@ -10,8 +10,7 @@ namespace Balancia.Desktop;
 /// <summary>The top expenditures card: the largest expense categories as proportional bars. It draws what it is given and holds no store or window reference.</summary>
 public partial class TopExpendituresCard : UserControl
 {
-    private static readonly IBrush MutedBrush = Brush.Parse("#71838D");
-
+    
     private IReadOnlyList<CategoryTotal>? rendered;
     private string? renderedScope;
 
@@ -36,7 +35,7 @@ public partial class TopExpendituresCard : UserControl
             {
                 Text = Get("No matching expenses."),
                 FontSize = 12,
-                Foreground = MutedBrush,
+                Foreground = Palette.TextMuted,
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             });
             return;
@@ -63,8 +62,8 @@ public partial class TopExpendituresCard : UserControl
                 Maximum = maximum,
                 Value = category.Amount.Centimes,
                 Height = 7,
-                Foreground = Brush.Parse("#3989A7"),
-                Background = Brush.Parse("#E7F2F6"),
+                Foreground = Palette.Accent,
+                Background = Palette.AccentSurface,
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             }, 1);
             GridLayout.Place(row, new TextBlock

@@ -181,7 +181,7 @@ internal sealed class EditDialog(Window owner, Func<Task> refreshAfterSave, Func
             MinWidth = minWidth,
             MinHeight = minHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = Brushes.White
+            Background = Palette.Surface
         };
     }
 }

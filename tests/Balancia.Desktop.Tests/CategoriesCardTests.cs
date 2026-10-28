@@ -72,9 +72,9 @@ public sealed class CategoriesCardTests
         Render(card, window, [Food, Lunch, Travel]);
 
         // Assert
-        Assert.Same(RowBrushes.Ivory, Row(card, 0).Background);
-        Assert.Same(RowBrushes.Ivory, Row(card, 1).Background);
-        Assert.Same(RowBrushes.Blue, Row(card, 2).Background);
+        Assert.Same(Palette.RowIvory, Row(card, 0).Background);
+        Assert.Same(Palette.RowIvory, Row(card, 1).Background);
+        Assert.Same(Palette.RowBlue, Row(card, 2).Background);
     }
 
     [AvaloniaFact]

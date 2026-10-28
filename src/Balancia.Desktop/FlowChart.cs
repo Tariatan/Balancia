@@ -17,7 +17,7 @@ internal sealed record ChartTooltipRow(string Label, string Amount, IBrush Foreg
 {
     public double LabelWidth => Date is not null ? 130 : 85;
 }
-internal sealed record FlowChartSeries(string Name, string Color, bool Bars = false, bool Steps = false);
+internal sealed record FlowChartSeries(string Name, IBrush Brush, bool Bars = false, bool Steps = false);
 internal sealed record FlowChartPoint(double Position, string Label, string Details,
     IReadOnlyList<Money> Values, string? TooltipHeading = null,
     IReadOnlyList<string>? TooltipLabels = null, IReadOnlyList<string>? TooltipDates = null);
@@ -30,10 +30,8 @@ internal sealed class FlowChart : Control
         HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
     };
     private const int GridLines = 4;
-    private static readonly IBrush AxisBrush = Brush.Parse("#CBD5DC");
-    private static readonly IBrush LabelBrush = Brush.Parse("#71838D");
-    private static readonly Pen GridPen = new(AxisBrush, 0.5);
-    private static readonly Pen LabelPen = new(LabelBrush);
+    private static readonly Pen GridPen = new(Palette.ChartAxis, 0.5);
+    private static readonly Pen LabelPen = new(Palette.ChartLabel);
     private static readonly Typeface LabelTypeface = new("Segoe UI");
     private static readonly CultureInfo AmountCulture = CultureInfo.GetCultureInfo("de-CH");
 
@@ -58,7 +56,7 @@ internal sealed class FlowChart : Control
     {
         points = values;
         series = definitions;
-        seriesBrushes = [.. definitions.Select(item => Brush.Parse(item.Color))];
+        seriesBrushes = [.. definitions.Select(item => item.Brush)];
         seriesPens = [.. seriesBrushes.Select(brush => new Pen(brush, 1.6))];
         scale = ComputeScale();
         stepped = definitions.Any(item => item.Steps);
@@ -283,5 +281,5 @@ internal sealed class FlowChart : Control
     }
 
     private static void DrawLabel(DrawingContext context, string text, Point origin) => context.DrawText(
-        new FormattedText(text, Culture, FlowDirection.LeftToRight, LabelTypeface, 10, LabelBrush), origin);
+        new FormattedText(text, Culture, FlowDirection.LeftToRight, LabelTypeface, 10, Palette.ChartLabel), origin);
 }

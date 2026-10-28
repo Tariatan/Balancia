@@ -18,8 +18,6 @@ namespace Balancia.Desktop;
 /// </summary>
 internal sealed class CategorySuggestBox : Grid
 {
-    private static readonly IBrush SuggestionSelectedBrush = Brush.Parse("#3989A7");
-    private static readonly IBrush SuggestionTopMatchBrush = Brush.Parse("#52636C");
 
     private readonly TextBox category;
     private readonly IReadOnlyList<string> categoryPaths;
@@ -40,8 +38,8 @@ internal sealed class CategorySuggestBox : Grid
         popupContent = new Border
         {
             MinWidth = 300,
-            Background = Brush.Parse("#E5E5E5"),
-            BorderBrush = Brush.Parse("#BFC7CB"),
+            Background = Palette.PopupBackground,
+            BorderBrush = Palette.PopupBorder,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(8),
@@ -204,19 +202,19 @@ internal sealed class CategorySuggestBox : Grid
                 Text = Get(label),
                 FontSize = 10,
                 FontWeight = FontWeight.SemiBold,
-                Foreground = section == CategorySuggestionSection.TopMatch ? SuggestionTopMatchBrush : TransactionRows.HeaderBrush,
+                Foreground = section == CategorySuggestionSection.TopMatch ? Palette.SuggestionTopMatch : Palette.TextMuted,
                 Margin = new Thickness(2, 4, 2, 2)
             });
         }
 
         body.Children.Add(new Border
         {
-            Background = suggestion.IsKeyboardSelected ? SuggestionSelectedBrush : Brushes.Transparent,
+            Background = suggestion.IsKeyboardSelected ? Palette.Accent : Brushes.Transparent,
             Padding = new Thickness(8, 6),
             Child = new TextBlock
             {
                 Text = suggestion.Path,
-                Foreground = suggestion.IsKeyboardSelected ? Brushes.White : TransactionRows.TextBrush
+                Foreground = suggestion.IsKeyboardSelected ? Palette.OnAccent : Palette.Text
             }
         });
         return body;
