@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.7.2] - 2026-10-28
+
+#### Changed
+
+- `OverviewView` applies the period, filter, clear-all, account and category filter and page choices itself, through `OverviewState`, and raises `ReloadRequested` when the new choice needs other data; the window answers it with a refresh. A page change still scrolls the transactions to the top once the new page is shown. No visible change.
+
+#### Removed
+
+- The `FiltersPanel.cs` part of `MainWindow` and the filter-toggle and paging methods of the account, category and transaction panels, now inside `OverviewView`.
+
 ### [3.7.1] - 2026-10-28
 
 #### Changed

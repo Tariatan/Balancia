@@ -232,7 +232,7 @@ public partial class MainWindow : Window
     private void InitializeOverview()
     {
         OverviewPane.SettingsRequested += async () => await OpenSettingsDialog();
-        InitializeOverviewFilters();
+        OverviewPane.ReloadRequested += () => operations.RequestRefreshAsync();
         InitializeAccountPanel();
         InitializeCategoryPanel();
         InitializeTransactionsPanel();

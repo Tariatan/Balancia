@@ -15,10 +15,7 @@ public partial class MainWindow
         OverviewPane.AccountsCard.EditRequested += async account => await EditAccount(account);
         OverviewPane.AccountsCard.ArchiveRequested += async () => await ArchiveSelectedAccount();
         OverviewPane.AccountsCard.RemoveRequested += async () => await DeleteSelectedAccount();
-        OverviewPane.AccountsCard.FilterToggled += async (id, selected) => await ToggleAccountFilter(id, selected);
     }
-
-    private Task ToggleAccountFilter(string id, bool selected) => ApplyOverviewChange(OverviewPane.State.ToggleAccount(id, selected));
 
     private async Task ArchiveSelectedAccount()
     {

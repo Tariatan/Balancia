@@ -14,10 +14,26 @@ namespace Balancia.Desktop;
 /// </summary>
 public partial class OverviewView : UserControl
 {
+    private const int TransactionsPageSize = 100;
+
     public OverviewView()
     {
         InitializeComponent();
         RefreshTrendIntervalLabel();
+        FilterRow.PeriodSelected += async period => await ApplyAsync(State.SelectPeriod(period, DisplayDate));
+        FilterRow.ValuesCommitted += async () => await ApplyFilterValuesAsync();
+        FilterRow.ClearAllRequested += async () => await ApplyAsync(State.Clear());
+        AccountsCard.FilterToggled += async (id, selected) => await ApplyAsync(State.ToggleAccount(id, selected));
+        CategoriesCard.FilterToggled += async (id, selected) => await ApplyAsync(State.ToggleCategory(id, selected, Data!.Snapshot.Categories));
+        CategoriesCard.SelectAllRequested += async () =>
+        {
+            if (Data is not null)
+            {
+                await ApplyAsync(State.ToggleAllCategories(Data.Snapshot.Categories));
+            }
+        };
+        TransactionsCard.PreviousPageRequested += async () => await ChangePageAsync(-TransactionsPageSize);
+        TransactionsCard.NextPageRequested += async () => await ChangePageAsync(TransactionsPageSize);
         TrendCard.ZoomRequested += zoomOut =>
         {
             var change = State.ZoomTrend(zoomOut);
@@ -32,6 +48,9 @@ public partial class OverviewView : UserControl
 
     /// <summary>Asks for the settings dialog.</summary>
     internal event Action? SettingsRequested;
+
+    /// <summary>Asks the window to load again, because what the user chose needs other data. The task ends when the new data is shown.</summary>
+    internal event Func<Task>? ReloadRequested;
 
     /// <summary>What the overview shows: the period, the filter, the page and the trend zoom.</summary>
     internal OverviewState State { get; } = new();
@@ -115,6 +134,33 @@ public partial class OverviewView : UserControl
         {
             CategoriesCard.SyncFilterChecks();
         }
+    }
+
+    /// <summary>Shows <paramref name="change"/> at once, then asks for a reload when it needs one.</summary>
+    private async Task ApplyAsync(OverviewChange change)
+    {
+        ShowChange(change);
+        if (change.HasFlag(OverviewChange.Reload) && ReloadRequested is { } reload)
+        {
+            await reload();
+        }
+    }
+
+    private Task ApplyFilterValuesAsync()
+    {
+        var values = FilterRow.Read();
+        return ApplyAsync(State.ApplyFilterValues(values.Description, values.From, values.To, values.Minimum, values.Maximum, DisplayDate));
+    }
+
+    private async Task ChangePageAsync(int delta)
+    {
+        State.ChangePage(delta);
+        if (ReloadRequested is { } reload)
+        {
+            await reload();
+        }
+
+        TransactionsCard.ScrollToTop();
     }
 
     private void Localize()
