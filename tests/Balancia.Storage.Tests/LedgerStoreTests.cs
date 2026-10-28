@@ -904,6 +904,68 @@ public sealed class LedgerStoreTests : IDisposable
         Assert.Equal(["Food"], categories.Where(category => category.HasTransactions).Select(category => category.Name));
     }
 
+    [Theory]
+    [InlineData("Everyday")]
+    [InlineData("everyday")]
+    [InlineData("  EVERYDAY ")]
+    public void SaveAccount_NameAlreadyUsedByAnotherAccount_Throws(string name)
+    {
+        // Arrange
+        Account("Everyday");
+
+        // Act
+        var error = Assert.Throws<ArgumentException>(() => store.SaveAccount(null, name, Start, Money.Zero));
+
+        // Assert
+        Assert.Equal(AccountRules.DuplicateNameMessage, error.Message);
+        Assert.Single(store.ReadSnapshot().Accounts);
+    }
+
+    [Fact]
+    public void SaveAccount_ResavingWithItsOwnName_Succeeds()
+    {
+        // Arrange
+        var id = Account("Everyday");
+
+        // Act
+        store.SaveAccount(id, "EVERYDAY", Start, Money.Zero, archived: true);
+
+        // Assert
+        Assert.True(store.ReadSnapshot().Accounts.Single().Archived);
+    }
+
+    [Fact]
+    public void ReadSnapshot_Accounts_CarryTheDateOfTheirFirstEntryOtherThanTheOpeningBalance()
+    {
+        // Arrange
+        var a = Account("A", 100);
+        var b = Account("B");
+        var unused = Account("Unused");
+        store.SaveTransaction(null, Draft(a, TransactionKind.Expense, 5) with { Date = Start.AddDays(9) });
+        store.SaveTransaction(null, Draft(a, TransactionKind.Transfer, 5, b) with { Date = Start.AddDays(4) });
+
+        // Act
+        var accounts = store.ReadSnapshot().Accounts.ToDictionary(account => account.Id);
+
+        // Assert
+        Assert.Equal(Start.AddDays(4), accounts[a].FirstTransactionDate);
+        Assert.Equal(Start.AddDays(4), accounts[b].FirstTransactionDate);
+        Assert.Null(accounts[unused].FirstTransactionDate);
+    }
+
+    [Fact]
+    public void SaveReminder_DescriptionOfAnotherActiveReminder_ThrowsTheRuleMessage()
+    {
+        // Arrange
+        store.SaveReminder(null, "Rent", Start, Money.FromFrancs(5m), 1);
+
+        // Act
+        var error = Assert.Throws<ArgumentException>(() => store.SaveReminder(null, " Rent ", Start, Money.FromFrancs(5m), 1));
+
+        // Assert
+        Assert.Equal(ReminderRules.DuplicateDescriptionMessage, error.Message);
+    }
+
     private void SeedTravelCategories()
     {
         var parent = store.SaveCategory(null, "Travel", null);

@@ -61,6 +61,41 @@ public sealed class ReminderDialogTests
     }
 
     [AvaloniaFact]
+    public async Task Add_WithTheDescriptionOfAnActiveReminder_ShowsAnErrorAndCreatesNothing()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var store = workspace.SeedStore();
+        store.SaveReminder(null, "Rent", LedgerSeed.Today.AddDays(5), Money.FromFrancs(1m), 1);
+        var window = await workspace.OpenWindowAsync();
+        var dialog = await OpenAddDialogAsync(window);
+
+        // Act
+        var error = await dialog.SaveExpectingErrorAsync();
+
+        // Assert
+        Assert.Equal(ReminderRules.DuplicateDescriptionMessage, error);
+        Assert.Single(store.ReadReminders());
+    }
+
+    [AvaloniaFact]
+    public async Task Add_WithTheDescriptionOfAnActiveReminderInAnotherLetterCase_IsAccepted()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var store = workspace.SeedStore();
+        store.SaveReminder(null, "rent", LedgerSeed.Today.AddDays(5), Money.FromFrancs(1m), 1);
+        var window = await workspace.OpenWindowAsync();
+        var dialog = await OpenAddDialogAsync(window);
+
+        // Act
+        await dialog.SaveAndCloseAsync(window);
+
+        // Assert
+        Assert.Equal(2, store.ReadReminders().Count);
+    }
+
+    [AvaloniaFact]
     public async Task Edit_ByDoubleClickingTheRow_ShowsTheCurrentValuesAndSavesChanges()
     {
         // Arrange

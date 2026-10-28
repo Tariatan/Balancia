@@ -50,13 +50,22 @@ internal static class CsvImportRowValidator
         if (type == CsvRowType.Reminder)
         {
             if (!id.StartsWith(LedgerStore.ReminderIdPrefix, StringComparison.Ordinal) || id.Length <= LedgerStore.ReminderIdPrefix.Length ||
-                string.IsNullOrWhiteSpace(description) || amount <= 0 ||
                 account.Length > 0 || destination.Length > 0 || category.Length > 0)
             {
                 errors.Add("Invalid reminder fields.");
             }
 
-            if (!IsValidReminderSchedule(memo))
+            AddIfNotNull(errors, ReminderRules.CheckDescription(description));
+            if (amountValid)
+            {
+                AddIfNotNull(errors, ReminderRules.CheckAmount(new Money(amount)));
+            }
+
+            if (TryReadReminderSchedule(memo, out var intervalMonths))
+            {
+                AddIfNotNull(errors, ReminderRules.CheckInterval(intervalMonths));
+            }
+            else
             {
                 errors.Add("Invalid reminder schedule.");
             }
@@ -137,15 +146,25 @@ internal static class CsvImportRowValidator
         return true;
     }
 
-    private static bool IsValidReminderSchedule(string memo)
+    private static void AddIfNotNull(List<string> errors, string? error)
     {
+        if (error is not null)
+        {
+            errors.Add(error);
+        }
+    }
+
+    /// <summary>Reads the repeat interval from the reminder memo; false when the memo is not a JSON object with a numeric interval and a boolean archived flag.</summary>
+    private static bool TryReadReminderSchedule(string memo, out int intervalMonths)
+    {
+        intervalMonths = 0;
         try
         {
             using var metadata = JsonDocument.Parse(memo);
             var root = metadata.RootElement;
             return root.ValueKind == JsonValueKind.Object &&
                 root.TryGetProperty(nameof(CsvReminderOptions.IntervalMonths), out var interval) &&
-                interval.ValueKind == JsonValueKind.Number && interval.TryGetInt32(out var months) && months > 0 &&
+                interval.ValueKind == JsonValueKind.Number && interval.TryGetInt32(out intervalMonths) &&
                 root.TryGetProperty(nameof(CsvReminderOptions.Archived), out var archived) &&
                 archived.ValueKind is JsonValueKind.True or JsonValueKind.False;
         }

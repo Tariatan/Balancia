@@ -50,7 +50,8 @@ public partial class MainWindow
             [
                 Text(Format("Delete '{0}'?", account.Name))
             ],
-            () => () => store.DeleteAccount(account.Id), DialogOptions.Confirmation("Delete"));
+            () => () => store.DeleteAccount(account.Id),
+            DialogOptions.Confirmation("Delete", () => AccountRules.CheckDelete(overview!.Snapshot.Accounts, account.Id)));
     }
 
     private async Task EditAccount(Account? account)
@@ -90,14 +91,6 @@ public partial class MainWindow
                     }
                 };
             },
-            new DialogOptions(Validate: () =>
-            {
-                if (string.IsNullOrWhiteSpace(name.Text))
-                {
-                    return "Enter an account name.";
-                }
-
-                return ParseDate(date) > Today ? "Opening date cannot be in the future." : null;
-            }));
+            new DialogOptions(Validate: () => AccountRules.CheckSave(overview!.Snapshot.Accounts, account?.Id, name.Text ?? string.Empty, ParseDate(date), Today)));
     }
 }

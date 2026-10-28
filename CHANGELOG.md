@@ -14,6 +14,19 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.6.0] - 2026-10-28
+
+#### Added
+
+- The Add and Edit account dialog refuses a name another account already has (letter case ignored) and an opening date later than the account's first transaction, with the rule's message. Before, both showed only after saving, the name as "This change conflicts with existing data".
+- The Add and Edit reminder dialog refuses a description another active reminder already has (exact match, as reminders are matched).
+- The account Delete confirmation shows "An account with transactions cannot be deleted. Archive it instead." in the dialog instead of after you confirm.
+- Dialog tests for the duplicate account name and the duplicate reminder description, and that a description differing only in letter case is accepted.
+
+#### Changed
+
+- The account and reminder dialogs and the transaction form's opening date check use `AccountRules` and `ReminderRules` instead of their own copies. The existing messages are unchanged.
+
 ### [3.5.2] - 2026-10-27
 
 #### Fixed
@@ -601,6 +614,14 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [3.4.0] - 2026-10-27
+
+#### Added
+
+- `AccountRules` (save, delete and transaction date checks over a plain list of accounts) and `ReminderRules` (description, amount, interval and duplicate description checks), with their messages.
+- `Account.FirstTransactionDate`: the date of the account's earliest entry other than its opening balance, or null. It defaults to null.
+- 27 tests of the account and reminder rules.
+
 ### [3.3.0] - 2026-10-27
 
 #### Added
@@ -670,6 +691,18 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [7.5.0] - 2026-10-27
+
+#### Changed
+
+- `SaveAccount`, `DeleteAccount` and `SaveReminder` run `AccountRules` and `ReminderRules` over the accounts and active reminders read in the same transaction; a transaction's date check uses `AccountRules` too. The messages and exception types are unchanged, except that a name another account already has is refused with its own message instead of a database constraint error.
+- The accounts read fills `Account.FirstTransactionDate` with one more grouped query. The 50,000-transaction latency test still passes.
+- CSV preview reports a reminder row's blank description, non-positive amount and non-positive repeat interval with the rule's own message ("Enter a description.", "Enter amount greater than zero.", "Repeat interval must be positive.") instead of "Invalid reminder fields." or "Invalid reminder schedule.". A malformed reminder memo still reads "Invalid reminder schedule.". Applying an import checks a duplicate active reminder description with `ReminderRules`; the message is unchanged.
+
+#### Added
+
+- Tests of the duplicate account name, `FirstTransactionDate` and the rule message on a duplicate reminder.
 
 ### [7.4.0] - 2026-10-27
 

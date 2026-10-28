@@ -108,9 +108,9 @@ public sealed partial class LedgerStore
             archived = reader.GetInt64(1) != 0;
         }
 
-        if (date < openingDate)
+        if (AccountRules.CheckTransactionDate(openingDate, date) is { } message)
         {
-            throw new ArgumentException("Transaction date precedes the account's opening date.");
+            throw new ArgumentException(message);
         }
 
         if (archived && (transactionId is null ||

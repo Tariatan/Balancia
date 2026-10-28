@@ -47,7 +47,7 @@ public sealed record TransactionDraft(TransactionKind Kind, DateOnly Date, strin
     }
 }
 
-public sealed record Account(string Id, string Name, DateOnly OpeningDate, Money OpeningAmount, bool Archived, Money Balance);
+public sealed record Account(string Id, string Name, DateOnly OpeningDate, Money OpeningAmount, bool Archived, Money Balance, DateOnly? FirstTransactionDate = null);
 
 public sealed record Category(string Id, string Name, string? ParentId, string Path, bool Archived, bool HasTransactions = false);
 

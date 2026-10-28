@@ -74,9 +74,11 @@ internal static class TransactionFormRules
         IReadOnlyList<Category> available, IReadOnlyList<Category> all)
     {
         var selectedDestination = kind == TransactionKind.Transfer ? destination : null;
-        if (date < account.OpeningDate || date < selectedDestination?.OpeningDate)
+        var dateError = AccountRules.CheckTransactionDate(account.OpeningDate, date)
+            ?? (selectedDestination is null ? null : AccountRules.CheckTransactionDate(selectedDestination.OpeningDate, date));
+        if (dateError is not null)
         {
-            return "Transaction date precedes the account's opening date.";
+            return dateError;
         }
 
         return kind == TransactionKind.Transfer ? null : CategoryPathError(ReadCategoryPath(categoryText, available), available, all);
