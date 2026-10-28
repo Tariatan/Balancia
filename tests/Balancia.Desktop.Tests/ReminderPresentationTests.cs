@@ -1,5 +1,6 @@
 using Avalonia.Media;
 using Balancia.Core;
+using Avalonia.Headless.XUnit;
 using Xunit;
 
 namespace Balancia.Desktop.Tests;
@@ -21,7 +22,7 @@ public sealed class ReminderPresentationTests
         _ => throw new ArgumentOutOfRangeException(nameof(name)),
     };
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData("2026-10-13", nameof(Palette.Warning))] // due today
     [InlineData("2026-10-18", nameof(Palette.Warning))] // last day of the five-day window
     [InlineData("2026-10-19", nameof(Palette.Text))] // later this month
@@ -40,7 +41,7 @@ public sealed class ReminderPresentationTests
         Assert.Same(Role(expectedRole), brush);
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData("2026-10-31", false)] // this month
     [InlineData("2026-11-30", false)] // last day of next month
     [InlineData("2026-12-01", true)] // first day two months out
@@ -58,7 +59,7 @@ public sealed class ReminderPresentationTests
         Assert.Equal(expected, beyond);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void BrushFor_OverdueReminder_IsTheNegativeBrush()
     {
         // Arrange
@@ -71,7 +72,7 @@ public sealed class ReminderPresentationTests
         Assert.Same(Palette.Negative, brush);
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData("2026-10-13", false, true)]
     [InlineData("2026-10-18", false, true)]
     [InlineData("2026-10-19", false, false)]
@@ -88,7 +89,7 @@ public sealed class ReminderPresentationTests
         Assert.Equal(expected, emphasized);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Summarize_WithPendingReminderThisMonth_TotalsThisMonthOnly()
     {
         // Arrange
@@ -108,7 +109,7 @@ public sealed class ReminderPresentationTests
         Assert.Equal(Money.FromFrancs(1050m), totals.Net);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Summarize_WithNothingPendingThisMonth_TotalsNextMonth()
     {
         // Arrange
@@ -126,7 +127,7 @@ public sealed class ReminderPresentationTests
         Assert.Equal(Money.FromFrancs(900m), totals.Upcoming);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Summarize_AtYearEnd_RollsNextMonthIntoJanuary()
     {
         // Arrange
@@ -141,7 +142,7 @@ public sealed class ReminderPresentationTests
         Assert.Equal(Money.FromFrancs(30m), totals.Upcoming);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Summarize_WithNoReminders_IsZero()
     {
         // Arrange

@@ -23,7 +23,7 @@
     <TextBox x:Name="Passphrase" PasswordChar="●" />
     <TextBlock x:Name="ConfirmLabel" />
     <TextBox x:Name="Confirmation" PasswordChar="●" />
-    <TextBlock x:Name="Error" Foreground="DarkRed" TextWrapping="Wrap" />
+    <TextBlock x:Name="Error" Foreground="{DynamicResource Palette.Error}" TextWrapping="Wrap" />
     <StackPanel Orientation="Horizontal" Spacing="12">
       <Button x:Name="Accept" IsDefault="True" Click="OnAccept" />
       <Button x:Name="Cancel" IsCancel="True" Click="OnCancel" />

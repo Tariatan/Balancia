@@ -40,10 +40,10 @@
       <Setter Property="Margin" Value="0,0,6,0" />
     </Style>
     <Style Selector="TextBox">
-      <Setter Property="Foreground" Value="#71838D" />
-      <Setter Property="SelectionBrush" Value="#3989A7" />
-      <Setter Property="SelectionForegroundBrush" Value="White" />
-      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
+      <Setter Property="SelectionBrush" Value="{DynamicResource Palette.Accent}" />
+      <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Palette.OnAccent}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Palette.Border}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
     <Style Selector="CheckBox.compact-filter-checkbox /template/ Border#NormalRectangle">
@@ -53,26 +53,26 @@
       <Setter Property="RenderTransform" Value="scale(0.8)" />
     </Style>
     <Style Selector="ComboBox">
-      <Setter Property="Foreground" Value="#71838D" />
-      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Palette.Border}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
     <Style Selector="AutoCompleteBox">
-      <Setter Property="Foreground" Value="#71838D" />
-      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Palette.Border}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
     <Style Selector="CalendarDatePicker">
-      <Setter Property="Foreground" Value="#71838D" />
-      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Palette.Border}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
     <Style Selector="CalendarDatePicker /template/ Button#PART_Button">
       <Setter Property="Opacity" Value="0.55" />
     </Style>
     <Style Selector="AutoCompleteBox TextBox">
-      <Setter Property="SelectionBrush" Value="#3989A7" />
-      <Setter Property="SelectionForegroundBrush" Value="White" />
+      <Setter Property="SelectionBrush" Value="{DynamicResource Palette.Accent}" />
+      <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Palette.OnAccent}" />
     </Style>
     <Style Selector="CalendarDatePicker /template/ Calendar#PART_Calendar">
       <Setter Property="FontSize" Value="13" />
@@ -102,24 +102,24 @@
       <Setter Property="Padding" Value="0" />
     </Style>
     <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#3989A7" />
-      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Background" Value="{DynamicResource Palette.Accent}" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.OnAccent}" />
     </Style>
     <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#263989A7" />
-      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Background" Value="{DynamicResource Palette.AccentTintLight}" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
     </Style>
     <Style Selector="ListBoxItem:selected:not(:focus) /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#263989A7" />
-      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Background" Value="{DynamicResource Palette.AccentTintLight}" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
     </Style>
     <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#303989A7" />
-      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Background" Value="{DynamicResource Palette.AccentTintMedium}" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
     </Style>
     <Style Selector="ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#403989A7" />
-      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Background" Value="{DynamicResource Palette.AccentTintStrong}" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
     </Style>
     <Style Selector="ListBox.compact-list ListBoxItem">
       <Setter Property="Padding" Value="8,0" />

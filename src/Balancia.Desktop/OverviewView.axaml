@@ -5,7 +5,7 @@
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="11">
 
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
-      <TextBlock x:Name="SummaryLabel" Grid.Column="0" FontSize="12" Foreground="#FFB95D4D" VerticalAlignment="Center" />
+      <TextBlock x:Name="SummaryLabel" Grid.Column="0" FontSize="12" Foreground="{DynamicResource Palette.Negative}" VerticalAlignment="Center" />
       <TextBlock x:Name="OverviewStatus" Grid.Column="1" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" />
       <Button x:Name="SettingsButton" Classes="icon" Grid.Column="2" Content="⚙" VerticalAlignment="Center" />
     </Grid>
@@ -17,13 +17,13 @@
       <local:AccountsCard x:Name="AccountsCard" x:FieldModifier="internal" Grid.Column="0" />
 
       <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="*,*" RowSpacing="6">
-        <local:StatCard x:Name="IncomeCard" Grid.Row="0" Foreground="#2C8B6D" />
-        <local:StatCard x:Name="ExpensesCard" Grid.Row="1" Foreground="#B95D4D" />
+        <local:StatCard x:Name="IncomeCard" Grid.Row="0" Foreground="{DynamicResource Palette.Positive}" />
+        <local:StatCard x:Name="ExpensesCard" Grid.Row="1" Foreground="{DynamicResource Palette.Negative}" />
       </Grid>
 
       <Grid Grid.Row="0" Grid.Column="2" RowDefinitions="*,*" RowSpacing="6">
-        <local:StatCard x:Name="AverageIncomeCard" Grid.Row="0" Foreground="#2C8B6D" />
-        <local:StatCard x:Name="AverageExpensesCard" Grid.Row="1" Foreground="#B95D4D" />
+        <local:StatCard x:Name="AverageIncomeCard" Grid.Row="0" Foreground="{DynamicResource Palette.Positive}" />
+        <local:StatCard x:Name="AverageExpensesCard" Grid.Row="1" Foreground="{DynamicResource Palette.Negative}" />
       </Grid>
 
       <local:TrendCard x:Name="TrendCard" x:FieldModifier="internal" Grid.Row="0" Grid.Column="3" />

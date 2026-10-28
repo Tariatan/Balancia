@@ -3,18 +3,18 @@
         xmlns:local="using:Balancia.Desktop"
         x:Class="Balancia.Desktop.MainWindow"
         Title="Balancia" Width="1440" Height="1280" MinWidth="1280" MinHeight="800"
-        Background="#F6F8FA" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Palette.WindowBackground}" WindowStartupLocation="CenterScreen"
         Icon="avares://Balancia.Desktop/Balancia.ico">
   <Window.Styles>
     <Style Selector="Button">
-      <Setter Property="Background" Value="#E7F2F6" />
-      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Background" Value="{DynamicResource Palette.AccentSurface}" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
     </Style>
     <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#D5EAF1" />
+      <Setter Property="Background" Value="{DynamicResource Palette.AccentSurfaceHover}" />
     </Style>
     <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#BDDDE9" />
+      <Setter Property="Background" Value="{DynamicResource Palette.AccentSurfacePressed}" />
     </Style>
     <Style Selector="Button.icon">
       <Setter Property="Width" Value="30" />
@@ -23,42 +23,42 @@
       <Setter Property="HorizontalContentAlignment" Value="Center" />
     </Style>
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="White" />
-      <Setter Property="BorderBrush" Value="#DCE6EB" />
+      <Setter Property="Background" Value="{DynamicResource Palette.Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Palette.Border}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="6" />
     </Style>
     <Style Selector="TextBlock.title">
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
       <Setter Property="Margin" Value="0,0,0,10" />
     </Style>
     <Style Selector="TextBlock.heading">
       <Setter Property="FontSize" Value="13" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
       <Setter Property="Margin" Value="0,0,0,10" />
     </Style>
     <Style Selector="TextBlock.muted">
-      <Setter Property="Foreground" Value="#71838D" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
     </Style>
     <Style Selector="TextBlock.column-header">
       <Setter Property="FontSize" Value="12" />
-      <Setter Property="Foreground" Value="#71838D" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
       <Setter Property="Margin" Value="0,0,30,0" />
     </Style>
     <Style Selector="TextBlock.total-label">
       <Setter Property="FontSize" Value="10" />
-      <Setter Property="Foreground" Value="#71838D" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.TextMuted}" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="TextBlock.total-value">
       <Setter Property="FontSize" Value="14" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#263C48" />
+      <Setter Property="Foreground" Value="{DynamicResource Palette.Text}" />
     </Style>
     <Style Selector="ListBox.panel-list">
       <Setter Property="Background" Value="Transparent" />
@@ -66,10 +66,10 @@
     </Style>
   </Window.Styles>
   <Grid RowDefinitions="Auto,*">
-    <Border Background="#1B303D" Padding="18,9">
+    <Border Background="{DynamicResource Palette.HeaderBar}" Padding="18,9">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Text="Balancia" VerticalAlignment="Center" FontSize="19" FontWeight="Bold" Foreground="White" />
-        <TextBlock x:Name="AppVersionText" Grid.Column="1" FontSize="12" Foreground="#71838D" VerticalAlignment="Center" />
+        <TextBlock Text="Balancia" VerticalAlignment="Center" FontSize="19" FontWeight="Bold" Foreground="{DynamicResource Palette.OnHeaderBar}" />
+        <TextBlock x:Name="AppVersionText" Grid.Column="1" FontSize="12" Foreground="{DynamicResource Palette.TextMuted}" VerticalAlignment="Center" />
       </Grid>
     </Border>
     <ContentControl x:Name="Overview" Grid.Row="1" Margin="24,0,24,14" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">

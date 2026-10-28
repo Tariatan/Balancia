@@ -22,7 +22,7 @@
         <local:LocalizedCalendarDatePicker x:Name="FilterFrom" Width="110" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" />
         <local:LocalizedCalendarDatePicker x:Name="FilterTo" Width="110" SelectedDateFormat="Custom" CustomDateFormatString="yyyy-MM-dd" FontSize="13" />
         <TextBox x:Name="FilterSearch" Width="150" Margin="0,2,0,2" />
-        <Button x:Name="FilterClearSearch" Content="×" Width="28" Height="34" Padding="0" FontSize="17" Background="Transparent" Foreground="#71838D" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" />
+        <Button x:Name="FilterClearSearch" Content="×" Width="28" Height="34" Padding="0" FontSize="17" Background="Transparent" Foreground="{DynamicResource Palette.TextMuted}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" />
         <TextBox x:Name="FilterMinimum" Width="115" />
         <TextBox x:Name="FilterMaximum" Width="110" />
       </WrapPanel>

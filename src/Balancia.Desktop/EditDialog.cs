@@ -45,7 +45,7 @@ internal sealed class EditDialog(Window owner, Func<Task> refreshAfterSave, Func
         }
 
         var error = Text("");
-        error.Foreground = Brushes.DarkRed;
+        error.Foreground = Palette.Error;
         body.Children.Add(error);
         var save = new Button
         {

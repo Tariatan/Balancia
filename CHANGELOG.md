@@ -14,6 +14,18 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.9.2] - 2026-10-28
+
+#### Changed
+
+- The XAML takes its colors from `Palette`: the application registers every role as the resource `Palette.<Role>` and the XAML files use `{DynamicResource Palette.<Role>}` instead of hex values. New roles: `WindowBackground`, `HeaderBar`, `OnHeaderBar`, `Border`, `AccentSurfaceHover`, `AccentSurfacePressed`, `AccentTintLight`, `AccentTintMedium` and `Error` (dark red). Every value is the one it had, so there is no visible change; `White` and `DarkRed` are now `Surface`, `OnAccent`, `OnHeaderBar` and `Error`.
+- Error text in the code and in the dialogs shares one `Palette.Error` brush.
+
+#### Added
+
+- `PaletteTests` (6 tests): every role is an application resource holding the shared brush, the roles are named after their fields, every `Palette.` key in the XAML is a role, no color literal, `Brush.Parse`, `Color.Parse` or named color remains outside `Palette.cs` and `Language.cs`, and controls declared in XAML (window background, error text, overview cards) hold the palette brushes.
+- The tests that use `Palette` run on Avalonia's UI thread, because a brush belongs to the thread that creates it.
+
 ### [3.9.1] - 2026-10-28
 
 #### Changed
