@@ -198,15 +198,6 @@ class ReminderTemplate {
   archived: bool
 }
 
-class ImportSource {
-  externalSystem
-  externalId
-  fingerprint
-  linkedTransaction: LedgerTransaction
-  rawSourceRows
-  locallyModified: bool
-}
-
 class Metadata {
   schemaVersion
   datasetUuid
@@ -217,11 +208,11 @@ LedgerTransaction "1" o-- "1..2" Movement
 Category "0..1" -- "0..*" Category : parent/child
 LedgerTransaction --> Category
 Movement --> Account
-ImportSource --> LedgerTransaction
 @enduml
 ```
 
 - **Expense** has one negative movement; **Income** has one positive movement; **Transfer** has two movements summing to zero across two different accounts; **OpeningBalance** has one signed movement with an effective date.
+- The schema (version 3) still has an `import_sources` table from the time imports were reconciled row by row. Nothing reads or writes it any more, and the next import deletes the rows an older version left. It is dropped with the next schema version change, which needs a migration of databases, snapshots and backups, because snapshot restore requires the manifest's schema version to match.
 - Account balance = opening balance + all signed movements after the opening point; net worth = the sum of account balances. Balances are recomputed from indexed movements rather than independently persisted, until measurement justifies a cache.
 - Categories nest at most two levels; a parent category filter includes its children without double-counting overlaps. Toggling a parent checkbox also toggles all its subcategory checkboxes.
 
@@ -306,7 +297,7 @@ else preview accepted
   Import -> Db : Save recovery copy\n(when the ledger holds data)
   Import -> Db : BEGIN TRANSACTION
   Import -> Db : Delete accounts, categories,\ntransactions, reminders
-  Import -> Db : Write transactions, movements,\nimport_sources
+  Import -> Db : Write accounts, categories,\ntransactions, movements, reminders
   Import -> Db : COMMIT
   Import --> UI : applied\n(the ledger now equals the file)
 end

@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.10.1] - 2026-10-28
+
+#### Changed
+
+- No change of its own; the version follows Storage 8.1.1.
+
 ### [3.10.0] - 2026-10-28
 
 #### Added
@@ -814,6 +820,22 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [8.1.1] - 2026-10-28
+
+#### Removed
+
+- Everything that wrote the `import_sources` table, which nothing has read since an import started to replace the ledger: the per-entry insert at import (with the source fingerprint and the copy of the source rows), the five `locally_modified` updates in saving and deleting transactions, accounts and reminders, `CsvImportGroup.Fingerprint` and `CsvImportRow.Fields`. Saving and deleting touch one table less.
+- The join of `VerifyImportedTotals` with that table: after the ledger is cleared, the sum of an account's movements must equal the file's total for it, which is the same check.
+
+#### Changed
+
+- The empty `import_sources` table stays in the schema (version 3), because dropping it needs a new schema version and a migration of databases, snapshots and backups; the next import deletes the rows an older version left in it. The design doc says so.
+- The rollback tests inject their failure with a trigger on transfer entries instead of on `import_sources`.
+
+#### Added
+
+- Tests that the next import deletes the leftover rows and that an import and later edits write none.
 
 ### [8.1.0] - 2026-10-28
 

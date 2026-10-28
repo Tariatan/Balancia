@@ -25,5 +25,5 @@ internal enum CsvRowType
 }
 
 internal sealed record CsvImportRow(long Line, string Id, DateOnly Date, string Description, long Amount,
-    CsvRowType Type, string Category, string Account, string Memo, string[] Fields, string DestinationAccount);
-internal sealed record CsvImportGroup(string Id, CsvRowType Kind, CsvImportRow[] Rows, string Fingerprint);
+    CsvRowType Type, string Category, string Account, string Memo, string DestinationAccount);
+internal sealed record CsvImportGroup(string Id, CsvRowType Kind, CsvImportRow[] Rows);

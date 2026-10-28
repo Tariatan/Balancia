@@ -606,7 +606,7 @@ public sealed class CsvImportTests : IDisposable
         // Arrange
         Csv(Rows);
         var preview = store.PreviewCsvImport(csv);
-        SqliteScript.Execute(DatabasePath, "CREATE TRIGGER reject_import BEFORE INSERT ON import_sources WHEN NEW.external_id='t1' BEGIN SELECT RAISE(ABORT,'test rollback'); END;");
+        SqliteScript.Execute(DatabasePath, "CREATE TRIGGER reject_import BEFORE INSERT ON ledger WHEN NEW.kind='Transfer' BEGIN SELECT RAISE(ABORT,'test rollback'); END;");
 
         // Act
         void Act() => store.ApplyCsvImport(preview);
@@ -623,7 +623,7 @@ public sealed class CsvImportTests : IDisposable
         SeedExistingLedger();
         Csv(Rows);
         var preview = store.PreviewCsvImport(csv);
-        SqliteScript.Execute(DatabasePath, "CREATE TRIGGER reject_import BEFORE INSERT ON import_sources WHEN NEW.external_id='t1' BEGIN SELECT RAISE(ABORT,'test rollback'); END;");
+        SqliteScript.Execute(DatabasePath, "CREATE TRIGGER reject_import BEFORE INSERT ON ledger WHEN NEW.kind='Transfer' BEGIN SELECT RAISE(ABORT,'test rollback'); END;");
 
         // Act
         void Act() => store.ApplyCsvImport(preview);
@@ -634,6 +634,48 @@ public sealed class CsvImportTests : IDisposable
         Assert.Equal("Old account", Assert.Single(snapshot.Accounts).Name);
         Assert.Equal("Old purchase", Assert.Single(snapshot.Entries).Draft.Description);
         Assert.Equal("Old reminder", Assert.Single(store.ReadReminders()).Template.Description);
+    }
+
+    private long LeftoverImportRecords()
+    {
+        using var connection = new SqliteConnection($"Data Source={DatabasePath};Pooling=False");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM import_sources";
+        return (long)command.ExecuteScalar()!;
+    }
+
+    [Fact]
+    public void ApplyCsvImport_ImportRecordsLeftByAnOlderVersion_AreDeletedAndNoneAreWritten()
+    {
+        // Arrange
+        store.SaveAccount(null, "Old account", new DateOnly(2026, 1, 1), Money.FromFrancs(1m));
+        SqliteScript.Execute(DatabasePath, "INSERT INTO import_sources(source,external_id,transaction_id,fingerprint,raw_rows_json) VALUES('CSV','x1',NULL,'f','[]')");
+        var before = LeftoverImportRecords();
+        Csv(Rows);
+
+        // Act
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+
+        // Assert
+        Assert.Equal(1, before);
+        Assert.Equal(0, LeftoverImportRecords());
+    }
+
+    [Fact]
+    public void ApplyCsvImport_AnImportAndLaterEdits_WriteNoImportRecords()
+    {
+        // Arrange
+        Csv(Rows);
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+        var entry = store.ReadSnapshot().Entries.Single(e => e.Draft.Kind == TransactionKind.Income);
+
+        // Act
+        store.SaveTransaction(entry.Id, entry.Draft with { Description = "edited" });
+        store.DeleteTransaction(entry.Id);
+
+        // Assert
+        Assert.Equal(0, LeftoverImportRecords());
     }
 
     [Fact]

@@ -10,7 +10,7 @@ public sealed partial class LedgerStore
 {
     internal const string ReminderIdPrefix = "reminder:";
 
-    /// <summary>CSV source id of a reminder template, shared by export, import and local-edit tracking.</summary>
+    /// <summary>CSV source id of a reminder template, shared by export and import.</summary>
     internal static string ReminderSourceId(string templateId) => ReminderIdPrefix + templateId;
 
     public CsvImportPreview PreviewCsvImport(string importPath) => LogOperation(() => PreviewCsvImportCore(importPath));
@@ -64,15 +64,19 @@ public sealed partial class LedgerStore
 
             foreach (var group in preview.Groups.OrderBy(g => g.Kind == CsvRowType.OpeningBalance ? 0 : 1))
             {
-                string? transactionId = group.Kind switch
+                switch (group.Kind)
                 {
-                    CsvRowType.Reminder => ImportReminder(c, tx, group.Rows[0]),
-                    CsvRowType.OpeningBalance => ImportOpeningGroup(c, tx, group, accounts),
-                    _ => ImportTransactionGroup(c, tx, group, accounts, categories),
-                };
-                LedgerSql.Execute(c, tx, "INSERT INTO import_sources(source,external_id,transaction_id,fingerprint,raw_rows_json) VALUES('CSV',$external,$transaction,$fingerprint,$raw)",
-                    ("$external", group.Id), ("$transaction", transactionId), ("$fingerprint", group.Fingerprint),
-                    ("$raw", JsonSerializer.Serialize(group.Rows.Select(r => r.Fields).Distinct().ToArray())));
+                    case CsvRowType.Reminder:
+                        ImportReminder(c, tx, group.Rows[0]);
+                        break;
+                    case CsvRowType.OpeningBalance:
+                        ImportOpeningGroup(c, tx, group, accounts);
+                        break;
+                    default:
+                        ImportTransactionGroup(c, tx, group, accounts, categories);
+                        break;
+                }
+
                 imported++;
             }
 
@@ -101,7 +105,10 @@ public sealed partial class LedgerStore
         return existing;
     }
 
-    /// <summary>Deletes every account, category, transaction, reminder and import record; the dataset id and the revision counter stay.</summary>
+    /// <summary>
+    /// Deletes every account, category, transaction and reminder, and the import records that databases made before 8.1.1 still hold; the dataset id and
+    /// the revision counter stay.
+    /// </summary>
     private static void ClearLedger(SqliteConnection c, SqliteTransaction tx) => LedgerSql.Execute(c, tx, """
         DELETE FROM import_sources;
         DELETE FROM movements;
@@ -141,7 +148,7 @@ public sealed partial class LedgerStore
     private static IEnumerable<CsvImportRow> AccountRows(IEnumerable<CsvImportGroup> groups) =>
         groups.Where(g => g.Kind != CsvRowType.Reminder).SelectMany(g => g.Rows);
 
-    private static string ImportOpeningGroup(SqliteConnection c, SqliteTransaction tx, CsvImportGroup group, Dictionary<string, string> accounts)
+    private static void ImportOpeningGroup(SqliteConnection c, SqliteTransaction tx, CsvImportGroup group, Dictionary<string, string> accounts)
     {
         var row = group.Rows[0];
         var account = accounts[row.Account];
@@ -160,10 +167,9 @@ public sealed partial class LedgerStore
 
         LedgerSql.Execute(c, tx, "UPDATE accounts SET opening_date=$date WHERE id=$id; UPDATE ledger SET date=$date WHERE id=$opening; UPDATE movements SET amount=$amount WHERE transaction_id=$opening",
             ("$date", LedgerSql.DateText(row.Date)), ("$id", account), ("$opening", transactionId), ("$amount", row.Amount));
-        return transactionId;
     }
 
-    private static string ImportTransactionGroup(SqliteConnection c, SqliteTransaction tx, CsvImportGroup group, Dictionary<string, string> accounts,
+    private static void ImportTransactionGroup(SqliteConnection c, SqliteTransaction tx, CsvImportGroup group, Dictionary<string, string> accounts,
         List<Category> categories)
     {
         var row = group.Rows[0];
@@ -177,7 +183,6 @@ public sealed partial class LedgerStore
             ValidateAccount(c, tx, accounts[movement.Account], movement.Date, null);
             AddMovement(c, tx, transactionId, accounts[movement.Account], movement.Amount);
         }
-        return transactionId;
     }
 
     private static void VerifyImportedTotals(SqliteConnection c, SqliteTransaction tx, CsvImportGroup[] groups, Dictionary<string, string> accounts)
@@ -186,7 +191,7 @@ public sealed partial class LedgerStore
             .ToDictionary(g => g.Key, g => g.Sum(r => r.Amount));
         foreach (var (name, total) in importedTotals)
         {
-            var importedSum = Convert.ToInt64(LedgerSql.Scalar(c, tx, "SELECT COALESCE(SUM(m.amount),0) FROM movements m JOIN import_sources s ON s.transaction_id=m.transaction_id WHERE m.account_id=$id", ("$id", accounts[name])));
+            var importedSum = Convert.ToInt64(LedgerSql.Scalar(c, tx, "SELECT COALESCE(SUM(amount),0) FROM movements WHERE account_id=$id", ("$id", accounts[name])));
             if (importedSum != total)
             {
                 throw new CsvImportConflictException($"Imported balance reconciliation failed for {name}.");
@@ -223,8 +228,8 @@ public sealed partial class LedgerStore
         return parent;
     }
 
-    /// <summary>Imports one reminder template row; an identical existing template is left untouched. Reminders have no ledger transaction, so the result is always null.</summary>
-    private static string? ImportReminder(SqliteConnection c, SqliteTransaction tx, CsvImportRow row)
+    /// <summary>Imports one reminder template row. Reminders have no ledger transaction.</summary>
+    private static void ImportReminder(SqliteConnection c, SqliteTransaction tx, CsvImportRow row)
     {
         var id = row.Id[ReminderIdPrefix.Length..];
         var description = row.Description.Trim();
@@ -237,6 +242,5 @@ public sealed partial class LedgerStore
         LedgerSql.Execute(c, tx, "INSERT INTO reminder_templates VALUES($id,$description,$date,$amount,$interval,$archived)",
             ("$id", id), ("$description", description), ("$date", LedgerSql.DateText(row.Date)),
             ("$amount", row.Amount), ("$interval", options.IntervalMonths), ("$archived", options.Archived ? 1 : 0));
-        return null;
     }
 }
