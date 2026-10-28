@@ -1,4 +1,5 @@
 using Avalonia.Platform.Storage;
+using System.Security.Cryptography;
 using Avalonia.Controls;
 using Balancia.Storage;
 using Serilog;
@@ -102,38 +103,47 @@ public partial class MainWindow
 
         await operations.RunAsync(async () =>
         {
-            var info = await Task.Run(() => SnapshotEncryption.ReadInfo(path));
-            SnapshotKey? temporaryKey = null;
+            var unlocked = await SnapshotUnlock.RunAsync(path, new RestoreUnlockHost(keys, dialogOwner ?? this),
+                key => Task.Run(() => store.RestoreSnapshot(path, key)));
+            if (unlocked.Canceled)
+            {
+                Log.Information("Snapshot restore unlock canceled; current ledger unchanged");
+                return;
+            }
+
+            var result = unlocked.Value!;
+            SetStatus(Format("Snapshot restored · revision {0} · backup {1}", result.Manifest.Revision, Path.GetFileName(result.BackupPath)));
+            await Refresh();
+        }, errorOwner: dialogOwner, operationName: "Snapshot restore");
+    }
+
+    /// <summary>
+    /// Unlocks a snapshot for a restore: offers the key Windows remembers and asks for the passphrase otherwise, again after a wrong one.
+    /// A typed passphrase is not remembered, because the remembered key is the one that encrypts exports and backups.
+    /// </summary>
+    private sealed class RestoreUnlockHost(SnapshotKeyService keys, Window owner) : ISnapshotUnlockHost
+    {
+        public SnapshotKey? LoadRememberedKey()
+        {
+            if (keys.Key is not { } key)
+            {
+                return null;
+            }
+
+            // The unlock disposes the key it is given, and the remembered one stays in use.
+            var secret = key.ExportSecret();
             try
             {
-                var key = keys.Key;
-                if (key is null || !key.Matches(info))
-                {
-                    Log.Information("Snapshot restore requires passphrase entry");
-                    var passphrase = await SnapshotPassphraseWindow.Ask(dialogOwner ?? this, setup: false);
-                    if (passphrase is null)
-                    {
-                        Log.Information("Snapshot restore unlock canceled; current ledger unchanged");
-                        return;
-                    }
-
-                    temporaryKey = await Task.Run(() => SnapshotKey.Derive(passphrase, info));
-                    key = temporaryKey;
-                }
-                else
-                {
-                    Log.Information("Snapshot restore using remembered key");
-                }
-
-                var result = await Task.Run(() => store.RestoreSnapshot(path, key));
-                SetStatus(Format("Snapshot restored · revision {0} · backup {1}", result.Manifest.Revision, Path.GetFileName(result.BackupPath)));
-                await Refresh();
+                return SnapshotKey.ImportSecret(secret);
             }
             finally
             {
-                temporaryKey?.Dispose();
+                CryptographicOperations.ZeroMemory(secret);
             }
-        }, errorOwner: dialogOwner, operationName: "Snapshot restore");
+        }
+
+        public Task<string?> AskPassphraseAsync(PassphraseReason reason, string? error) =>
+            SnapshotPassphraseWindow.Ask(owner, setup: false, error);
     }
 
     private async Task<string?> PickOpenFile(string title, FilePickerFileType fileType)

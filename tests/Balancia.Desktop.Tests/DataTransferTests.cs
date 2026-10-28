@@ -5,6 +5,7 @@ using Balancia.Core;
 using Balancia.Desktop.Localization;
 using Balancia.Storage;
 using Xunit;
+using static Balancia.Desktop.Localization.UiText;
 
 namespace Balancia.Desktop.Tests;
 
@@ -380,27 +381,88 @@ public sealed class DataTransferTests
         using var workspace = new DesktopWorkspace();
         var (window, store) = await OpenSeededAsync(workspace);
         var snapshot = Path.Combine(workspace.Root, "other.balancia");
-        var otherKey = SnapshotKey.Create("synthetic other passphrase");
-        store.ExportSnapshot(snapshot, otherKey);
+        using (var otherKey = SnapshotKey.Create("synthetic other passphrase"))
+        {
+            store.ExportSnapshot(snapshot, otherKey);
+        }
+
         window.OpenFilePicker = (_, _) => Task.FromResult<string?>(snapshot);
 
         // Act
         var operation = window.RestoreSnapshot();
-        var wrong = await window.WaitForDialogAsync<SnapshotPassphraseWindow>();
-        wrong.SubmitPassphrase("synthetic wrong passphrase", "Unlock");
-        var error = await window.WaitForDialogAsync<ErrorDialog>();
-        var errorText = error.Text("MessageText");
-        error.ClickDialogButton("Close");
+        var first = await window.WaitForDialogAsync<SnapshotPassphraseWindow>();
+        var firstError = first.Text("Error");
+        first.SubmitPassphrase("synthetic wrong passphrase", "Unlock");
+        var again = await window.WaitForDialogAsync<SnapshotPassphraseWindow>();
+        var errorAfterWrong = again.Text("Error");
+        again.SubmitPassphrase("synthetic other passphrase", "Unlock");
         await operation.CompleteAsync();
-        var retry = window.RestoreSnapshot();
-        var correct = await window.WaitForDialogAsync<SnapshotPassphraseWindow>();
-        correct.SubmitPassphrase("synthetic other passphrase", "Unlock");
-        await retry.CompleteAsync();
 
         // Assert
-        Assert.Contains("passphrase is incorrect or the file is damaged", errorText);
+        Assert.Equal("", firstError);
+        Assert.Equal(Get("The snapshot passphrase is incorrect or the file is damaged."), errorAfterWrong);
         Assert.StartsWith("Snapshot restored", Status(window));
-        otherKey.Dispose();
+    }
+
+    [AvaloniaFact]
+    public async Task RestoreSnapshot_WrongPassphraseThenCancel_LeavesTheLedgerUntouched()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var (window, store) = await OpenSeededAsync(workspace);
+        var snapshot = Path.Combine(workspace.Root, "other.balancia");
+        using (var otherKey = SnapshotKey.Create("synthetic other passphrase"))
+        {
+            store.ExportSnapshot(snapshot, otherKey);
+        }
+
+        window.OpenFilePicker = (_, _) => Task.FromResult<string?>(snapshot);
+        var before = store.ReadLiveMetadata();
+
+        // Act
+        var operation = window.RestoreSnapshot();
+        var first = await window.WaitForDialogAsync<SnapshotPassphraseWindow>();
+        first.SubmitPassphrase("synthetic wrong passphrase", "Unlock");
+        var again = await window.WaitForDialogAsync<SnapshotPassphraseWindow>();
+        again.ClickDialogButton("Cancel");
+        await operation.CompleteAsync();
+
+        // Assert
+        Assert.Equal(before, store.ReadLiveMetadata());
+        Assert.Empty(Directory.GetFiles(workspace.DataDirectory, "*.bak"));
+        Assert.DoesNotContain("restored", Status(window));
+    }
+
+    [AvaloniaFact]
+    public async Task RestoreSnapshot_TypedPassphrase_IsNotRememberedAndTheRememberedKeyStaysUsable()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        var (window, store) = await OpenSeededAsync(workspace);
+        var other = Path.Combine(workspace.Root, "other.balancia");
+        var current = Path.Combine(workspace.Root, "current.balancia");
+        using (var otherKey = SnapshotKey.Create("synthetic other passphrase"))
+        {
+            store.ExportSnapshot(other, otherKey);
+        }
+
+        using (var key = DesktopWorkspace.CreateKey())
+        {
+            store.ExportSnapshot(current, key);
+        }
+
+        // Act
+        window.OpenFilePicker = (_, _) => Task.FromResult<string?>(other);
+        var typed = window.RestoreSnapshot();
+        var dialog = await window.WaitForDialogAsync<SnapshotPassphraseWindow>();
+        dialog.SubmitPassphrase("synthetic other passphrase", "Unlock");
+        await typed.CompleteAsync();
+        window.OpenFilePicker = (_, _) => Task.FromResult<string?>(current);
+        await window.RestoreSnapshot().CompleteAsync();
+
+        // Assert
+        Assert.StartsWith("Snapshot restored", Status(window));
+        Assert.True(window.EncryptionConfigured);
     }
 
     [AvaloniaFact]
