@@ -23,7 +23,7 @@ public sealed class ChartCardsTests
         control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
 
     private static FlowChartData Data(string? message = null) =>
-        new([new FlowChartPoint(0.5, "01 Oct", "details", [Money.FromFrancs(5m)])], [new FlowChartSeries("Expense", "#EF8072", Bars: true)], message);
+        new([new FlowChartPoint(0.5, "01 Oct", "details", [Money.FromFrancs(5m)])], [new FlowChartSeries("Expense", Palette.ChartExpense, Bars: true)], message);
 
     // TrendCard
 

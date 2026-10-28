@@ -18,7 +18,7 @@ public sealed class ChartTooltipLayoutTests
         var first = new FlowChartPoint(0, "", "", [new Money(100)], "Expense", ["Current period"], ["01 Oct 2026"]);
         var second = new FlowChartPoint(1, "", "", [new Money(250)], "Expense", ["Current period"], ["02 Oct 2026"]);
         var chart = new FlowChart();
-        chart.SetData([first, second], [new("Expense", "#FF0000")], null);
+        chart.SetData([first, second], [new("Expense", Brushes.Red)], null);
         var tooltip = Assert.IsType<ToolTip>(chart.BuildTooltip(first));
         var firstContent = Assert.IsType<ChartTooltipData>(tooltip.Content);
 
@@ -39,7 +39,7 @@ public sealed class ChartTooltipLayoutTests
         var point = new FlowChartPoint(0.5, "", "", [new Money(1477422), Money.Zero],
             "Expense", ["Current period", "Current period"], ["16 Oct 2026", "15 Sept 2026"]);
         var chart = new FlowChart();
-        chart.SetData([point], [new("Current", "#FF0000"), new("Previous", "#808080")], null);
+        chart.SetData([point], [new("Current", Brushes.Red), new("Previous", Brushes.Gray)], null);
         var tooltip = Assert.IsType<ToolTip>(chart.BuildTooltip(point));
         var window = new Window { Content = tooltip, SizeToContent = SizeToContent.WidthAndHeight };
 

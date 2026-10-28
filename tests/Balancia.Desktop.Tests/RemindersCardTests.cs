@@ -97,9 +97,9 @@ public sealed class RemindersCardTests
 
         // Assert
         IBrush? Background(int index) => (list.ContainerFromIndex(index) as ListBoxItem)?.Background;
-        Assert.Same(RowBrushes.Ivory, Background(0));
-        Assert.Same(RowBrushes.Ivory, Background(1));
-        Assert.Same(RowBrushes.Blue, Background(2));
+        Assert.Same(Palette.RowIvory, Background(0));
+        Assert.Same(Palette.RowIvory, Background(1));
+        Assert.Same(Palette.RowBlue, Background(2));
     }
 
     [AvaloniaFact]

@@ -14,7 +14,6 @@ namespace Balancia.Desktop;
 /// </summary>
 internal sealed class DescriptionSuggestBox : Grid
 {
-    private static readonly IBrush SelectedRowBrush = Brush.Parse("#D8ECF3");
 
     private readonly TextBox input;
     private readonly List<string> candidates;
@@ -36,8 +35,8 @@ internal sealed class DescriptionSuggestBox : Grid
             Child = new Border
             {
                 MinWidth = 300,
-                Background = Brush.Parse("#E5E5E5"),
-                BorderBrush = Brush.Parse("#BFC7CB"),
+                Background = Palette.PopupBackground,
+                BorderBrush = Palette.PopupBorder,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(8),
@@ -137,7 +136,7 @@ internal sealed class DescriptionSuggestBox : Grid
                 Focusable = false,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Left,
-                Background = index == selected ? SelectedRowBrush : Brushes.Transparent
+                Background = index == selected ? Palette.SelectionBackground : Brushes.Transparent
             };
             button.Click += (_, _) => Accept(value);
             rows.Children.Add(button);

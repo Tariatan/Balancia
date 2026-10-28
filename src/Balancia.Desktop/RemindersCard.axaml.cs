@@ -28,7 +28,7 @@ public partial class RemindersCard : UserControl
                 {
                     Converter = new FuncValueConverter<Choice<Reminder>, IBrush>(choice =>
                         choice is not null && ReminderPresentation.IsBeyondNextMonth(choice.Value, today)
-                            ? RowBrushes.Blue : RowBrushes.Ivory),
+                            ? Palette.RowBlue : Palette.RowIvory),
                 }),
             },
         });
@@ -42,7 +42,7 @@ public partial class RemindersCard : UserControl
 
             var reminder = choice.Value;
             var emphasize = ReminderPresentation.IsEmphasized(reminder, today);
-            var foreground = Brush.Parse(ReminderPresentation.ColorFor(reminder, today));
+            var foreground = ReminderPresentation.BrushFor(reminder, today);
 
             var description = Cell(reminder.Template.Description, FontWeight.Normal);
             description.TextTrimming = TextTrimming.CharacterEllipsis;

@@ -3,7 +3,6 @@
 Last updated: 2026-10-03.
 
 ## ToDO list
-- color palette
 - filter incomes
 - filter by account
 - consider multiple currency

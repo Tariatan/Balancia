@@ -83,7 +83,7 @@ public sealed class AccountsCardTests
         Render(card, window, [Account("a", "Everyday")], netWorth: netWorth);
 
         // Assert
-        Assert.Same(positive ? BalanceBrushes.Positive : BalanceBrushes.Negative, Find<TextBlock>(card, "NetWorthValue").Foreground);
+        Assert.Same(positive ? Palette.Positive : Palette.Negative, Find<TextBlock>(card, "NetWorthValue").Foreground);
     }
 
     [AvaloniaFact]

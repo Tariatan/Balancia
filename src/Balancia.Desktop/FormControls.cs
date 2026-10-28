@@ -12,7 +12,6 @@ namespace Balancia.Desktop;
 /// <summary>The controls the edit dialogs are made of: labelled fields, date and text inputs, choice boxes and button rows.</summary>
 internal static class FormControls
 {
-    private static readonly IBrush BodyTextBrush = Brush.Parse("#344D44");
 
     internal static CalendarDatePicker DateInput(DateOnly? date) => new LocalizedCalendarDatePicker
     {
@@ -34,7 +33,7 @@ internal static class FormControls
     {
         Text = Get(text),
         TextWrapping = TextWrapping.Wrap,
-        Foreground = BodyTextBrush
+        Foreground = Palette.TextBody
     };
 
     /// <summary>The input under its localized label, which also becomes the input's accessibility name.</summary>

@@ -20,10 +20,6 @@ internal sealed record FlowChartData(IReadOnlyList<FlowChartPoint> Points, IRead
 /// <summary>Turns the flow analytics of the overview into the points, series and messages of the trend and timeline charts.</summary>
 internal static class FlowChartModel
 {
-    private const string IncomeColor = "#2C8B6D";
-    private const string ExpenseColor = "#EF8072";
-    private const string SavingsColor = "#289FCC";
-    private const string PreviousPeriodColor = "#B8C2CC";
     internal const string DayFormat = "dd MMM yyyy";
 
     /// <summary>
@@ -81,12 +77,12 @@ internal static class FlowChartModel
         var incomeOnly = focus == FlowFocus.Income;
         var expenseOnly = focus == FlowFocus.Expense;
         IReadOnlyList<FlowChartSeries> series = incomeOnly
-            ? [new FlowChartSeries(Get("Income"), IncomeColor, true)]
+            ? [new FlowChartSeries(Get("Income"), Palette.ChartIncome, true)]
             : expenseOnly
-                ? [new FlowChartSeries(Get("Expense"), ExpenseColor, true)]
-                : [new FlowChartSeries(Get("Income"), IncomeColor, true),
-                    new FlowChartSeries(Get("Expense"), ExpenseColor, true),
-                    new FlowChartSeries(Get("Savings"), SavingsColor)];
+                ? [new FlowChartSeries(Get("Expense"), Palette.ChartExpense, true)]
+                : [new FlowChartSeries(Get("Income"), Palette.ChartIncome, true),
+                    new FlowChartSeries(Get("Expense"), Palette.ChartExpense, true),
+                    new FlowChartSeries(Get("Savings"), Palette.ChartSavings)];
         var labelFormat = interval == FlowInterval.Month || data.To.DayNumber - data.From.DayNumber > 365 ? "MMM yy" : "dd MMM";
         var points = buckets.Select((bucket, index) =>
         {
@@ -143,8 +139,8 @@ internal static class FlowChartModel
         }
 
         return new FlowChartData(points,
-            [new FlowChartSeries(metric, incomeOnly ? IncomeColor : ExpenseColor, Steps: true),
-                new FlowChartSeries(previousLabel, PreviousPeriodColor, Steps: true)], empty);
+            [new FlowChartSeries(metric, incomeOnly ? Palette.ChartIncome : Palette.ChartExpense, Steps: true),
+                new FlowChartSeries(previousLabel, Palette.ChartPrevious, Steps: true)], empty);
     }
 
     private static Money Accumulate(IReadOnlyList<DailyFlow> days, ref int index, DateOnly? upTo, bool income, Money total)

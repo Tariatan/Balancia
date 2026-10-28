@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using Balancia.Core;
 using Balancia.Storage;
 using Xunit;
@@ -272,7 +273,7 @@ public sealed class FlowChartModelTests
         // Assert
         Assert.Equal([0m, 40m, 42m], chart.Points.Select(point => point.Values[0].Francs));
         Assert.Equal(Get("Income"), chart.Series[0].Name);
-        Assert.Equal("#2C8B6D", chart.Series[0].Color);
+        Assert.Same(Palette.ChartIncome, chart.Series[0].Brush);
         Assert.All(chart.Series, series => Assert.True(series.Steps));
     }
 
@@ -287,7 +288,7 @@ public sealed class FlowChartModelTests
 
         // Assert
         Assert.Equal([Get("Expense"), Get("Previous period")], chart.Series.Select(series => series.Name));
-        Assert.Equal(["#EF8072", "#B8C2CC"], chart.Series.Select(series => series.Color));
+        Assert.Equal<IBrush>([Palette.ChartExpense, Palette.ChartPrevious], chart.Series.Select(series => series.Brush));
     }
 
     [Fact]

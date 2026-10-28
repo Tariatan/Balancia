@@ -14,6 +14,17 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.9.1] - 2026-10-28
+
+#### Changed
+
+- `Palette` holds the colors the C# code uses, by role, as shared brushes: text, accent, positive and negative amounts, the warning and transfer colors, row tints, selection, popups and the chart colors. The transaction, reminder, account, category, filter and suggestion code, `FormControls` and the charts take their colors from it. No visible change: every value is the one it had.
+- `ReminderPresentation.ColorFor` is `BrushFor` and returns the palette brush. `FlowChartSeries` carries a brush instead of a color string.
+
+#### Removed
+
+- `RowBrushes`, `BalanceBrushes` and the brush fields of `TransactionRows`, now in `Palette`.
+
 ### [3.9.0] - 2026-10-28
 
 #### Changed
