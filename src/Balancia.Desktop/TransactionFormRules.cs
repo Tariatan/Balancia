@@ -26,11 +26,14 @@ internal static class TransactionFormRules
     internal static IReadOnlyList<Category> AvailableCategories(IReadOnlyList<Category> categories, string? currentCategoryId) =>
         [.. categories.Where(c => !c.Archived || c.Id == currentCategoryId)];
 
-    /// <summary>The typed category path, trimmed and given the stored spelling when it matches an available category; null when empty.</summary>
+    /// <summary>
+    /// The typed category path in the one spelling the ledger shows: <c>Food/lunch</c> becomes <c>Food / Lunch</c> when an available category
+    /// matches, otherwise it is only tidied (<see cref="CategoryRules.Prettify"/>). Null when empty.
+    /// </summary>
     internal static string? ReadCategoryPath(string? text, IReadOnlyList<Category> available)
     {
-        var path = text?.Trim();
-        if (string.IsNullOrEmpty(path))
+        var path = CategoryRules.Prettify(text);
+        if (path.Length == 0)
         {
             return null;
         }
@@ -43,45 +46,18 @@ internal static class TransactionFormRules
     internal static string? CategoryPathFor(TransactionKind kind, string? text, IReadOnlyList<Category> available) =>
         kind == TransactionKind.Transfer ? null : ReadCategoryPath(text, available);
 
-    /// <summary>Why <paramref name="path"/> cannot be used, or null when it can. <paramref name="all"/> tells an archived category from an unknown one.</summary>
-    internal static string? CategoryPathError(string? path, IReadOnlyList<Category> available, IReadOnlyList<Category> all)
-    {
-        if (string.IsNullOrEmpty(path))
-        {
-            return null;
-        }
-
-        if (!CategoryRules.TryParsePath(path, out _))
-        {
-            return CategoryRules.InvalidPathMessage;
-        }
-
-        if (available.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase)))
-        {
-            return null;
-        }
-
-        return all.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase))
-            ? "Restore the archived category before using it for another transaction."
-            : "Choose an existing category path.";
-    }
-
     /// <summary>
-    /// Why the form cannot be saved, or null when it can: the date may not precede the opening date of the account (or of the destination of a transfer),
-    /// and a transaction that is not a transfer needs a usable category path.
+    /// Why the form cannot be saved, or null when it can: <see cref="TransactionRules"/> checks the accounts, the date and, for a transaction
+    /// that is not a transfer, the typed category path against <paramref name="categories"/>. <paramref name="existing"/> is the entry being edited.
     /// </summary>
     internal static string? Validate(TransactionKind kind, DateOnly date, Account account, Account? destination, string? categoryText,
-        IReadOnlyList<Category> available, IReadOnlyList<Category> all)
+        IReadOnlyList<Category> categories, TransactionDraft? existing)
     {
-        var selectedDestination = kind == TransactionKind.Transfer ? destination : null;
-        var dateError = AccountRules.CheckTransactionDate(account.OpeningDate, date)
-            ?? (selectedDestination is null ? null : AccountRules.CheckTransactionDate(selectedDestination.OpeningDate, date));
-        if (dateError is not null)
-        {
-            return dateError;
-        }
-
-        return kind == TransactionKind.Transfer ? null : CategoryPathError(ReadCategoryPath(categoryText, available), available, all);
+        var isTransfer = kind == TransactionKind.Transfer;
+        var selectedDestination = isTransfer ? destination : null;
+        Account[] accounts = selectedDestination is null ? [account] : [account, selectedDestination];
+        return TransactionRules.CheckSave(accounts, categories, date, account.Id, selectedDestination?.Id, isTransfer ? null : categoryText,
+            existing is null ? null : SavedTransaction.From(existing));
     }
 
     /// <summary>The draft for the entered values; only a transfer keeps its destination, and the category is saved separately by path.</summary>

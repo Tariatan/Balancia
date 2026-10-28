@@ -16,7 +16,7 @@ public static class CategorySuggestionRanking
         IEnumerable<string> regularCategoryPaths,
         string query)
     {
-        var normalizedQuery = query.Trim();
+        var normalizedQuery = CategoryRules.Prettify(query);
         var matches = categoryPaths
             .Where(path => normalizedQuery.Length == 0 || path.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);

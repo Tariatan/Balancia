@@ -11,7 +11,7 @@ public sealed class TransactionFormRulesTests
         new(id, id.ToUpperInvariant(), opened ?? Opened, Money.Zero, archived, Money.Zero);
 
     private static Category Category(string id, string path, bool archived = false) =>
-        new(id, path.Split('/').Last().Trim(), null, path, archived);
+        new(id, path.Split('/').Last().Trim(), path.Contains('/') ? path.Split('/')[0].Trim().ToLowerInvariant() : null, path, archived);
 
     private static readonly Category Food = Category("food", "Food");
     private static readonly Category Lunch = Category("lunch", "Food / Lunch");
@@ -103,8 +103,11 @@ public sealed class TransactionFormRulesTests
     [InlineData("food / lunch", "Food / Lunch")] // the stored spelling wins
     [InlineData("  FOOD  ", "Food")] // trimmed
     [InlineData("Travel", "Travel")] // unknown paths are kept as typed
-    [InlineData("  Food/Lunch ", "Food/Lunch")] // a different spelling of the separator is not the stored path
-    public void ReadCategoryPath_Typed_IsTrimmedAndMatchedCaseInsensitively(string text, string expected)
+    [InlineData("  Food/Lunch ", "Food / Lunch")] // any spacing around the separator gives the stored spelling
+    [InlineData("food /LUNCH", "Food / Lunch")]
+    [InlineData("travel/ Dinner", "travel / Dinner")] // an unknown path is tidied, its letter case kept
+    [InlineData("Food/", "Food /")]
+    public void ReadCategoryPath_Typed_GivesTheSpellingTheLedgerUses(string text, string expected)
     {
         // Act and Assert
         Assert.Equal(expected, TransactionFormRules.ReadCategoryPath(text, Available));
@@ -119,69 +122,11 @@ public sealed class TransactionFormRulesTests
         Assert.Equal("Food", TransactionFormRules.CategoryPathFor(TransactionKind.Income, "food", Available));
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("Food")]
-    [InlineData("Food / Lunch")]
-    [InlineData("food / lunch")]
-    public void CategoryPathError_NoneOrAnAvailablePath_IsAccepted(string? path)
-    {
-        // Act and Assert
-        Assert.Null(TransactionFormRules.CategoryPathError(path, Available, All));
-    }
-
-    [Theory]
-    [InlineData("A / B / C")]
-    [InlineData("Food /")]
-    [InlineData("/ Lunch")]
-    [InlineData("Food / / Lunch")]
-    public void CategoryPathError_MoreThanTwoLevelsOrAnEmptySide_ExplainsTheFormat(string path)
-    {
-        // Act
-        var error = TransactionFormRules.CategoryPathError(path, Available, All);
-
-        // Assert
-        Assert.Equal("Enter a category or Category / Subcategory with one name on each side of '/'.", error);
-    }
-
-    [Fact]
-    public void CategoryPathError_ArchivedCategory_AsksToRestoreIt()
-    {
-        // Act
-        var error = TransactionFormRules.CategoryPathError("Old", Available, All);
-
-        // Assert
-        Assert.Equal("Restore the archived category before using it for another transaction.", error);
-    }
-
-    [Fact]
-    public void CategoryPathError_ArchivedCategoryThatTheEditedEntryUses_IsAccepted()
-    {
-        // Act
-        var error = TransactionFormRules.CategoryPathError("Old", [Food, Lunch, Old], All);
-
-        // Assert
-        Assert.Null(error);
-    }
-
-    [Theory]
-    [InlineData("Travel")]
-    [InlineData("Food / Dinner")]
-    [InlineData("Food/Lunch")] // the separator must be spelled the way the path is stored
-    public void CategoryPathError_UnknownPath_AsksToChooseAnExistingOne(string path)
-    {
-        // Act
-        var error = TransactionFormRules.CategoryPathError(path, Available, All);
-
-        // Assert
-        Assert.Equal("Choose an existing category path.", error);
-    }
-
     [Fact]
     public void Validate_AllGood_IsAccepted()
     {
         // Act
-        var error = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(5), Account("a"), null, "Food", Available, All);
+        var error = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(5), Account("a"), null, "Food", All, null);
 
         // Assert
         Assert.Null(error);
@@ -191,8 +136,8 @@ public sealed class TransactionFormRulesTests
     public void Validate_DateOnTheOpeningDate_IsAcceptedAndTheDayBeforeIsNot()
     {
         // Act
-        var onTheDay = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, null, Available, All);
-        var before = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(-1), Account("a"), null, null, Available, All);
+        var onTheDay = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, null, All, null);
+        var before = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(-1), Account("a"), null, null, All, null);
 
         // Assert
         Assert.Null(onTheDay);
@@ -207,7 +152,7 @@ public sealed class TransactionFormRulesTests
         var destination = Account("b", opened: new DateOnly(2026, 3, 1));
 
         // Act
-        var error = TransactionFormRules.Validate(TransactionKind.Transfer, new DateOnly(2026, 2, 1), source, destination, null, Available, All);
+        var error = TransactionFormRules.Validate(TransactionKind.Transfer, new DateOnly(2026, 2, 1), source, destination, null, All, null);
 
         // Assert
         Assert.Equal("Transaction date precedes the account's opening date.", error);
@@ -220,7 +165,7 @@ public sealed class TransactionFormRulesTests
         var destination = Account("b", opened: new DateOnly(2026, 3, 1));
 
         // Act
-        var error = TransactionFormRules.Validate(TransactionKind.Expense, new DateOnly(2026, 2, 1), Account("a"), destination, null, Available, All);
+        var error = TransactionFormRules.Validate(TransactionKind.Expense, new DateOnly(2026, 2, 1), Account("a"), destination, null, All, null);
 
         // Assert
         Assert.Null(error);
@@ -230,7 +175,7 @@ public sealed class TransactionFormRulesTests
     public void Validate_Transfer_NeedsNoCategory()
     {
         // Act
-        var error = TransactionFormRules.Validate(TransactionKind.Transfer, Opened, Account("a"), Account("b"), "Nonsense / A / B", Available, All);
+        var error = TransactionFormRules.Validate(TransactionKind.Transfer, Opened, Account("a"), Account("b"), "Nonsense / A / B", All, null);
 
         // Assert
         Assert.Null(error);
@@ -242,21 +187,58 @@ public sealed class TransactionFormRulesTests
     public void Validate_NotATransfer_RejectsAnUnknownCategory(TransactionKind kind)
     {
         // Act
-        var error = TransactionFormRules.Validate(kind, Opened, Account("a"), null, "Travel", Available, All);
+        var error = TransactionFormRules.Validate(kind, Opened, Account("a"), null, "Travel", All, null);
 
         // Assert
-        Assert.Equal("Choose an existing category path.", error);
+        Assert.Equal("Choose an existing category path. No category \"Travel\".", error);
     }
 
     [Fact]
     public void Validate_TheDateIsCheckedBeforeTheCategory()
     {
         // Act
-        var error = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(-1), Account("a"), null, "Travel", Available, All);
+        var error = TransactionFormRules.Validate(TransactionKind.Expense, Opened.AddDays(-1), Account("a"), null, "Travel", All, null);
 
         // Assert
         Assert.Equal("Transaction date precedes the account's opening date.", error);
     }
+
+    [Fact]
+    public void Validate_ArchivedCategoryThatTheEditedEntryUses_IsAcceptedButNotForANewEntry()
+    {
+        // Act
+        var editing = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, "Old", All, Existing("a", categoryId: "old"));
+        var adding = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, "Old", All, null);
+
+        // Assert
+        Assert.Null(editing);
+        Assert.Equal(TransactionRules.PathArchivedMessage, adding);
+    }
+
+    [Fact]
+    public void Validate_ArchivedAccountThatTheEditedEntryUses_IsAcceptedButNotForANewEntry()
+    {
+        // Act
+        var editing = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a", archived: true), null, null, All, Existing("a"));
+        var adding = TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a", archived: true), null, null, All, null);
+
+        // Assert
+        Assert.Null(editing);
+        Assert.Equal(TransactionRules.AccountArchivedMessage, adding);
+    }
+
+    [Theory]
+    [InlineData("Food/Lunch")]
+    [InlineData("Food /Lunch")]
+    [InlineData("Food/ Lunch")]
+    [InlineData("food/lunch")]
+    public void Validate_CategoryPathWithAnotherSeparatorSpelling_IsAccepted(string text) =>
+        Assert.Null(TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, text, All, null));
+
+    [Fact]
+    public void Validate_UnknownCategory_ShowsThePathInTheLedgerSpelling() =>
+        Assert.Equal("Choose an existing category path. No category \"food / Dinner\".",
+            TransactionFormRules.Validate(TransactionKind.Expense, Opened, Account("a"), null, "food/Dinner", All, null));
 
     [Fact]
     public void ToDraft_Transfer_KeepsItsDestination()

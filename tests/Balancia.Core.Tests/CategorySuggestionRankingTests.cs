@@ -23,6 +23,20 @@ public class CategorySuggestionRankingTests
             Project(suggestions));
     }
 
+    [Theory]
+    [InlineData("food/lunch")]
+    [InlineData("Food /Lunch")]
+    [InlineData("food/")]
+    [InlineData("  FOOD  /  LUN")]
+    public void Build_QueryWithAnotherSpacingAroundTheSeparator_StillFindsThePath(string query)
+    {
+        // Act
+        var suggestions = CategorySuggestionRanking.Build(["Food / Lunch", "Groceries"], [], query);
+
+        // Assert
+        Assert.Equal(["Food / Lunch"], suggestions.Select(s => s.Path));
+    }
+
     [Fact]
     public void Build_LowercaseQuery_MatchesCaseInsensitively()
     {

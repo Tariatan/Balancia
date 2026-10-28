@@ -330,7 +330,45 @@ public sealed class TransactionFormTests
         TextBoxOf(form, "Category / subcategory").Text = "Travel";
 
         // Act and Assert
-        Assert.Equal("Choose an existing category path.", form.Validate());
+        Assert.Equal("Choose an existing category path. No category \"Travel\".", form.Validate());
+    }
+
+    [AvaloniaTheory]
+    [InlineData("food/lunch", "Food / Lunch")]
+    [InlineData("Food /Lunch", "Food / Lunch")]
+    [InlineData("  FOOD  /  lunch ", "Food / Lunch")]
+    [InlineData("Food", "Food")]
+    [InlineData("travel/ Dinner", "travel / Dinner")] // an unknown path is tidied too
+    public void LeavingTheCategory_ShowsItInTheSpellingTheLedgerUses(string typed, string expected)
+    {
+        // Arrange
+        var form = new TransactionForm(Inputs());
+        var box = TextBoxOf(form, "Category / subcategory");
+        box.Text = typed;
+
+        // Act
+        box.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+        Dispatcher.UIThread.RunJobs();
+
+        // Assert
+        Assert.Equal(expected, box.Text);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("food/lunch")]
+    [InlineData("Food /Lunch")]
+    public void Read_CategoryTypedWithAnotherSpelling_ReturnsTheLedgerSpelling(string typed)
+    {
+        // Arrange
+        var form = new TransactionForm(Inputs());
+        TextBoxOf(form, "Category / subcategory").Text = typed;
+        TextBoxOf(form, "Amount (positive)").Text = "5";
+
+        // Act
+        var (_, path) = form.Read();
+
+        // Assert
+        Assert.Equal("Food / Lunch", path);
     }
 
     [AvaloniaFact]

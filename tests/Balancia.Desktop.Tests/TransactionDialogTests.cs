@@ -86,7 +86,7 @@ public sealed class TransactionDialogTests
 
     [AvaloniaTheory]
     [InlineData("Amount (positive)", "", "Check the date (YYYY-MM-DD) and amount (for example 12.50).")]
-    [InlineData(CategoryLabel, "Nonexistent", "Choose an existing category path.")]
+    [InlineData(CategoryLabel, "Nonexistent", "Choose an existing category path. No category \"Nonexistent\".")]
     public async Task Add_WithAnInvalidValue_ShowsAnErrorAndSavesNothing(string label, string value, string expectedError)
     {
         // Arrange

@@ -2,6 +2,7 @@ using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.Threading;
 using Balancia.Core;
 
 using static Balancia.Desktop.FormControls;
@@ -32,6 +33,7 @@ internal sealed record TransactionFormInputs(
 internal sealed class TransactionForm
 {
     private readonly IReadOnlyList<Category> allCategories;
+    private readonly TransactionDraft? existing;
     private readonly IReadOnlyList<Category> availableCategories;
     private readonly CalendarDatePicker date;
     private readonly TextBox description;
@@ -48,7 +50,7 @@ internal sealed class TransactionForm
 
     public TransactionForm(TransactionFormInputs inputs)
     {
-        var existing = inputs.Existing;
+        existing = inputs.Existing;
         allCategories = inputs.Categories;
         var accounts = TransactionFormRules.AvailableAccounts(inputs.Accounts, existing)
             .Select(a => new Choice<Account>(a, ArchivedLabel.Of(a.Name, a.Archived)))
@@ -76,6 +78,7 @@ internal sealed class TransactionForm
         };
 
         categoryInput = new CategorySuggestBox(category, [.. availableCategories.Select(c => c.Path)], inputs.RegularCategoryPaths);
+        category.LostFocus += (_, _) => Dispatcher.UIThread.Post(ShowCategoryPath);
         memo = Input(existing?.Memo ?? "");
         destinationField = Field("Destination account", destination);
         categoryField = Field("Category / subcategory", categoryInput);
@@ -122,7 +125,7 @@ internal sealed class TransactionForm
 
     /// <summary>Why the form cannot be saved yet, or null when it can. A missing date throws <see cref="FormatException"/>.</summary>
     public string? Validate() => TransactionFormRules.Validate(SelectedValue<TransactionKind>(kind), ParseDate(date),
-        SelectedValue<Account>(account), (destination.SelectedItem as Choice<Account>)?.Value, category.Text, availableCategories, allCategories);
+        SelectedValue<Account>(account), (destination.SelectedItem as Choice<Account>)?.Value, category.Text, allCategories, existing);
 
     /// <summary>
     /// The entered values: the draft to save and the typed category path (none for a transfer). An amount typed as an expression is evaluated first.
@@ -135,6 +138,15 @@ internal sealed class TransactionForm
         var draft = TransactionFormRules.ToDraft(type, ParseDate(date), description.Text ?? "", ParseMoney(amount),
             SelectedValue<Account>(account).Id, (destination.SelectedItem as Choice<Account>)?.Value.Id, memo.Text ?? "");
         return (draft, TransactionFormRules.CategoryPathFor(type, category.Text, availableCategories));
+    }
+
+    /// <summary>Rewrites the typed category in the one spelling the ledger shows, such as <c>food/lunch</c> as <c>Food / Lunch</c>, whether or not it names a category.</summary>
+    private void ShowCategoryPath()
+    {
+        if (TransactionFormRules.ReadCategoryPath(category.Text, availableCategories) is { } path && path != category.Text)
+        {
+            categoryInput.Settle(path);
+        }
     }
 
     private void UpdateFields()
