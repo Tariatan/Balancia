@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.7.3] - 2026-10-28
+
+#### Changed
+
+- `OverviewView.StartAsync` picks the period the Overview opens on (this month, or the last 30 days when the current month has no transactions); the window no longer reads the month's transactions for that. `DisplayDate` can only be set by the view. No visible change.
+
+#### Added
+
+- `OverviewViewTests`: 13 tests of the view on its own, without a window: the opening period, the totals and scope label, `ShowChange` reaching the period buttons and the filter inputs, and the period, account and page choices changing the state and raising `ReloadRequested`.
+
 ### [3.7.2] - 2026-10-28
 
 #### Changed

@@ -53,7 +53,6 @@ public partial class MainWindow : Window
         FolderPicker = PickFolderFromDialog;
         keys = new SnapshotKeyService(keyStore ?? new WindowsSnapshotKeyStore(), () => SnapshotKeyPath);
         InitializeComponent();
-        OverviewPane.DisplayDate = Today;
         AppVersionText.Text = typeof(MainWindow).Assembly.GetName().Version!.ToString(3);
         InitializeOverview();
         separateDataFolder = separateDataDirectory is not null;
@@ -127,18 +126,7 @@ public partial class MainWindow : Window
             closeExporter.MarkLoaded();
             Serilog.Log.Information("Ledger initialized");
         });
-        var monthStart = new DateOnly(OverviewPane.DisplayDate.Year, OverviewPane.DisplayDate.Month, 1);
-        var monthFilter = new TransactionsFilter
-        {
-            From = monthStart,
-            To = monthStart.AddMonths(1).AddDays(-1),
-        };
-        var monthTransactions = await Task.Run(() => store.ReadTransactions(monthFilter, pageSize: 1));
-        if (monthTransactions.TotalCount == 0)
-        {
-            OverviewPane.State.StartWith(OverviewPeriod.Last30Days);
-        }
-
+        await OverviewPane.StartAsync(store, Today);
         await Refresh();
         await InitializeEncryption();
     }
