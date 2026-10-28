@@ -14,6 +14,19 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.10.0] - 2026-10-28
+
+#### Added
+
+- Color themes. Settings has a **Theme** picker next to the language picker. It lists the built-in `Balancia` theme and the `*.json` files in a `themes` folder beside `settings.json`; choosing one changes the colors at once and is remembered (`Theme` in `settings.json`, absent for the built-in theme).
+- A theme file is `{ "name": "...", "colors": { "<role>": "#RRGGBB" } }`. The name is optional (the file name is used), role names are the `Palette` roles and ignore letter case, and `#AARRGGBB` is accepted. A role the file leaves out keeps its built-in color. An unknown role or an unreadable color is ignored with a log warning; a file that is not a JSON object with a `colors` object, a duplicate name and the name `Balancia` are skipped. A saved theme whose file is gone starts as the built-in theme. A separate data folder offers only the built-in theme.
+- `Palette.Apply` shows a set of colors on the shared brushes, and every open window is redrawn after a change so the hand-drawn charts follow too.
+- `ColorThemeFile` and `ColorThemeCatalog`, with 27 tests of reading, the catalog and its rules; palette tests of `Apply`, and window tests of starting with a saved theme, switching from Settings, the missing-file fallback, the separate data folder and the translated label.
+
+#### Changed
+
+- A new window always starts from the colors of its saved theme, so a theme chosen earlier in the same process does not leak into it.
+
 ### [3.9.2] - 2026-10-28
 
 #### Changed

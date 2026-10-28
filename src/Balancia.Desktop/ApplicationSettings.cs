@@ -5,9 +5,9 @@ namespace Balancia.Desktop;
 
 internal sealed record WindowSettings(double Width, double Height, int X, int Y);
 
-/// <summary>The persisted user preferences. A null path or language means "not chosen".</summary>
+/// <summary>The persisted user preferences. A null path, language or theme means "not chosen".</summary>
 internal sealed record ApplicationSettings(string DatabasePath, string? BackupPath = null, string? SnapshotPath = null,
-    string? DefaultAccountId = null, string? Language = null, WindowSettings? Window = null);
+    string? DefaultAccountId = null, string? Language = null, WindowSettings? Window = null, string? Theme = null);
 
 /// <summary>Reads and atomically replaces the settings file.</summary>
 internal sealed class SettingsStore(string path)

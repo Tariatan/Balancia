@@ -39,6 +39,16 @@ internal sealed class DesktopWorkspace : IDisposable
 
     public string SnapshotDirectory { get; }
 
+    /// <summary>The folder the window reads theme files from: <c>themes</c> beside the settings file.</summary>
+    public string ThemesDirectory => Path.Combine(Path.GetDirectoryName(SettingsFile)!, "themes");
+
+    /// <summary>The theme name saved in the settings file, or null when none was chosen.</summary>
+    public string? ReadSavedTheme()
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(SettingsFile));
+        return document.RootElement.TryGetProperty("Theme", out var theme) && theme.ValueKind == JsonValueKind.String ? theme.GetString() : null;
+    }
+
     /// <summary>The default account id saved in the settings file, or null when there is none.</summary>
     public string? ReadSavedDefaultAccountId()
     {
@@ -73,7 +83,7 @@ internal sealed class DesktopWorkspace : IDisposable
 
     /// <summary>Writes the settings file the window reads at startup, as a regular (non separate-folder) installation.</summary>
     public void WriteSettings(string? backupPath = null, string? snapshotPath = null, string language = "en",
-        (double Width, double Height, int X, int Y)? window = null, string? defaultAccountId = null)
+        (double Width, double Height, int X, int Y)? window = null, string? defaultAccountId = null, string? theme = null)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile)!);
         File.WriteAllText(SettingsFile, JsonSerializer.Serialize(new
@@ -83,6 +93,7 @@ internal sealed class DesktopWorkspace : IDisposable
             SnapshotPath = snapshotPath,
             Language = language,
             DefaultAccountId = defaultAccountId,
+            Theme = theme,
             Window = window is { } geometry ? new { geometry.Width, geometry.Height, geometry.X, geometry.Y } : null,
         }));
     }

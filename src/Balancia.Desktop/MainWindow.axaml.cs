@@ -67,7 +67,8 @@ public partial class MainWindow : Window
         settings = separateDataFolder
             ? new ApplicationSettings(DatabasePath, Language: savedSettings?.Language)
             : new ApplicationSettings(DatabasePath, SettingsStore.ResolveFullPath(savedSettings?.BackupPath),
-                SettingsStore.ResolveFullPath(savedSettings?.SnapshotPath), savedSettings?.DefaultAccountId, savedSettings?.Language);
+                SettingsStore.ResolveFullPath(savedSettings?.SnapshotPath), savedSettings?.DefaultAccountId, savedSettings?.Language, Theme: savedSettings?.Theme);
+        LoadThemes();
         store = new LedgerStore(DatabasePath);
         closeExporter = new CloseTimeExporter(store, this.timeProvider);
         LoadWindowSettings(savedSettings);

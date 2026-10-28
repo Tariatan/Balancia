@@ -27,7 +27,7 @@ Everything lives on one Overview dashboard: a filter row (period presets, custom
 - **Transaction history** — a paged, searchable, double-click-to-edit table combining every filter above, with rows shaded by day.
 - **Reminders** — upcoming and overdue repeating payments, with a total for everything shown and a subtotal for the current month, or for the next month once nothing is left in the current one. Rows are coloured by urgency and shaded by month.
 
-A gear icon opens **Settings** for the database/backup/snapshot folder pickers, CSV import/export, snapshot export/restore, and the English/German/Russian/Ukrainian language picker.
+A gear icon opens **Settings** for the database/backup/snapshot folder pickers, CSV import/export, snapshot export/restore, the English/German/Russian/Ukrainian language picker, and a theme picker. The picker lists the built-in `Balancia` theme and the `*.json` theme files in a `themes` folder beside `settings.json`; a theme file has an optional `name` and a `colors` object that maps color role names (the fields of `src/Balancia.Desktop/Palette.cs`) to `#RRGGBB` or `#AARRGGBB` values, and any role it leaves out keeps its built-in color.
 
 ## Tech stack
 

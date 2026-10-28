@@ -44,6 +44,10 @@ public partial class SettingsWindow : Window
                 });
         LanguagePicker.SelectionChanged += OnLanguageChanged;
 
+        ThemePicker.ItemsSource = owner.Themes;
+        SelectCurrentTheme();
+        ThemePicker.SelectionChanged += OnThemeChanged;
+
         DatabaseButton.Click += async (_, _) => await Perform(owner.ChangeDatabaseLocation);
         BackupButton.Click += async (_, _) => await Perform(() => owner.ChooseBackupLocation(this));
         SnapshotButton.Click += async (_, _) => await Perform(() => owner.ChooseSnapshotLocation(this));
@@ -60,6 +64,9 @@ public partial class SettingsWindow : Window
 
     private void SelectCurrentLanguage() =>
         LanguagePicker.SelectedItem = MainWindow.Languages.Single(option => option.Code == owner.LanguageCode);
+
+    private void SelectCurrentTheme() =>
+        ThemePicker.SelectedItem = owner.Themes.Single(theme => theme.Name == owner.ThemeName);
 
     private async Task Perform(Func<Task> action)
     {
@@ -93,6 +100,7 @@ public partial class SettingsWindow : Window
         Title = settings;
         Heading.Text = settings;
         LanguageLabel.Text = Get("Language");
+        ThemeLabel.Text = Get("Theme");
         DatabaseButton.Content = Get("Database folder");
         BackupButton.Content = Get("Backup folder");
         SnapshotButton.Content = Get("Snapshot folder");
@@ -118,6 +126,25 @@ public partial class SettingsWindow : Window
             ? "Encrypted snapshots and backups. Key remembered on this Windows account. Local databases and CSV stay unencrypted."
             : "Set a passphrase before exporting snapshots or enabling automatic backups.");
         EncryptionButton.Content = Get(encryptionConfigured ? "Change passphrase" : "Set passphrase");
+    }
+
+    private async void OnThemeChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (ThemePicker.SelectedItem is not ColorTheme selected || selected.Name == owner.ThemeName)
+        {
+            return;
+        }
+
+        try
+        {
+            owner.ApplyThemeChange(selected.Name);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Theme change failed, Theme: '{Theme}'", selected.Name);
+            SelectCurrentTheme();
+            await ErrorDialog.Show(owner, "Balancia", FriendlyErrors.For(ex));
+        }
     }
 
     private async void OnLanguageChanged(object? sender, SelectionChangedEventArgs e)
