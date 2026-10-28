@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.7.4] - 2026-10-28
+
+#### Changed
+
+- The CSV import preview lists each category once, in the spelling the ledger uses (`Food / Lunch`), however the file spells its path. Before, `Food/Lunch` and `Food / Lunch` showed as two categories.
+
 ### [3.7.3] - 2026-10-28
 
 #### Changed
@@ -661,6 +667,13 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [3.6.0] - 2026-10-28
+
+#### Added
+
+- `CategoryRules.FindChild`, the one definition of "the category with this name under this parent": letter case is ignored for every character. `TransactionRules.FindByPath` uses it.
+- Tests of `FindChild`.
+
 ### [3.5.0] - 2026-10-28
 
 #### Added
@@ -749,6 +762,13 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [7.5.2] - 2026-10-28
+
+#### Fixed
+
+- CSV import matched category names with SQLite `COLLATE NOCASE`, which folds ASCII only, so a row with `épicerie` created a second category next to an existing `Épicerie` that `SaveCategory` would have refused. Import now reads the categories once and finds them with `CategoryRules.FindChild`, as saving a transaction does; the categories it creates are added to that list so later rows find them. An archived category still stops the import with the same message.
+- The import summary (`ImportSummary.Categories`) lists a path once however its separator is spelled, in the form `Category / Subcategory`.
 
 ### [7.5.1] - 2026-10-28
 

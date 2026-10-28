@@ -333,6 +333,75 @@ public sealed class CsvImportTests : IDisposable
         Assert.Equal(["food / dinner", "Food / Lunch", "Transport"], preview.Summary.Categories);
     }
 
+    private const string OpeningRow = "o1,2026-09-01,OpeningBalance,Opening balance,100.00,A,,,\n";
+
+    [Fact]
+    public void PreviewCsvImport_SpellingVariantsOfOnePath_ListsItOnce()
+    {
+        // Arrange
+        Csv(OpeningRow +
+            "x1,2026-09-02,Expense,X,-1.00,A,,Food/Lunch,\n" +
+            "x2,2026-09-03,Expense,Y,-2.00,A,,Food /Lunch,\n" +
+            "x3,2026-09-04,Expense,Z,-3.00,A,,food / lunch,\n");
+
+        // Act
+        var preview = store.PreviewCsvImport(csv);
+
+        // Assert
+        Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Select(x => x.Message)));
+        Assert.Equal(["Food / Lunch"], preview.Summary.Categories);
+    }
+
+    [Fact]
+    public void ApplyCsvImport_SpellingVariantsOfOnePath_ShareOneCategory()
+    {
+        // Arrange
+        Csv(OpeningRow +
+            "x1,2026-09-02,Expense,X,-1.00,A,,Food/Lunch,\n" +
+            "x2,2026-09-03,Expense,Y,-2.00,A,,Food /Lunch,\n" +
+            "x3,2026-09-04,Expense,Z,-3.00,A,,food / LUNCH,\n");
+
+        // Act
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        Assert.Equal(["Food", "Food / Lunch"], snapshot.Categories.Select(c => c.Path).Order());
+        Assert.Single(snapshot.Entries.Select(e => e.Draft.CategoryId).Distinct());
+    }
+
+    [Fact]
+    public void ApplyCsvImport_CategoryDifferingOnlyByANonAsciiLetterCase_UsesTheExistingCategory()
+    {
+        // Arrange
+        var existingId = store.SaveCategory(null, "Épicerie", null);
+        Csv(OpeningRow + "x1,2026-09-02,Expense,X,-1.00,A,,épicerie,\n");
+
+        // Act
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+
+        // Assert
+        var snapshot = store.ReadSnapshot();
+        Assert.Equal("Épicerie", Assert.Single(snapshot.Categories).Path);
+        Assert.Equal(existingId, Assert.Single(snapshot.Entries).Draft.CategoryId);
+    }
+
+    [Fact]
+    public void ApplyCsvImport_NewSubcategoryUnderAnExistingParent_CreatesOnlyTheSubcategory()
+    {
+        // Arrange
+        var parentId = store.SaveCategory(null, "Food", null);
+        Csv(OpeningRow + "x1,2026-09-02,Expense,X,-1.00,A,,FOOD/Lunch,\n");
+
+        // Act
+        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+
+        // Assert
+        var categories = store.ReadSnapshot().Categories;
+        Assert.Equal(2, categories.Count);
+        Assert.Equal(parentId, categories.Single(c => c.Path == "Food / Lunch").ParentId);
+    }
+
     [Fact]
     public void ApplyCsvImport_ArchivedCategory_ThrowsAndWritesNothing()
     {

@@ -112,8 +112,7 @@ public static class TransactionRules
         Category? found = null;
         foreach (var name in names)
         {
-            var currentParentId = parentId;
-            found = categories.FirstOrDefault(c => c.ParentId == currentParentId && string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+            found = CategoryRules.FindChild(categories, parentId, name);
             if (found is null)
             {
                 return null;

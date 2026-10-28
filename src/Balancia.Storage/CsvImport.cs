@@ -70,6 +70,7 @@ public sealed partial class LedgerStore
 
             var pending = preview.Groups.Where(g => !sources.ContainsKey(g.Id)).ToArray();
             var accounts = LoadAccounts(c, tx);
+            var categories = ReadCategories(c, tx);
             var existingAccounts = new HashSet<string>(accounts.Keys, StringComparer.OrdinalIgnoreCase);
             CreateMissingAccounts(c, tx, pending, accounts);
 
@@ -79,7 +80,7 @@ public sealed partial class LedgerStore
                 {
                     CsvRowType.Reminder => ImportReminder(c, tx, group.Rows[0]),
                     CsvRowType.OpeningBalance => ImportOpeningGroup(c, tx, group, accounts, existingAccounts),
-                    _ => ImportTransactionGroup(c, tx, group, accounts),
+                    _ => ImportTransactionGroup(c, tx, group, accounts, categories),
                 };
                 LedgerSql.Execute(c, tx, "INSERT INTO import_sources(source,external_id,transaction_id,fingerprint,raw_rows_json) VALUES('CSV',$external,$transaction,$fingerprint,$raw)",
                     ("$external", group.Id), ("$transaction", transactionId), ("$fingerprint", group.Fingerprint),
@@ -191,11 +192,12 @@ public sealed partial class LedgerStore
         return transactionId;
     }
 
-    private static string ImportTransactionGroup(SqliteConnection c, SqliteTransaction tx, CsvImportGroup group, Dictionary<string, string> accounts)
+    private static string ImportTransactionGroup(SqliteConnection c, SqliteTransaction tx, CsvImportGroup group, Dictionary<string, string> accounts,
+        List<Category> categories)
     {
         var row = group.Rows[0];
         var transactionId = Guid.NewGuid().ToString("N");
-        var category = group.Kind == CsvRowType.Transfer ? null : FindOrCreateCategory(c, tx, row.Category);
+        var category = group.Kind == CsvRowType.Transfer ? null : FindOrCreateCategory(c, tx, categories, row.Category);
         LedgerSql.Execute(c, tx, "INSERT INTO ledger VALUES($id,$kind,$date,$description,$category,$memo)",
             ("$id", transactionId), ("$kind", group.Kind.ToString()), ("$date", LedgerSql.DateText(row.Date)),
             ("$description", row.Description.Trim()), ("$category", category), ("$memo", row.Memo));
@@ -221,7 +223,11 @@ public sealed partial class LedgerStore
         }
     }
 
-    private static string? FindOrCreateCategory(SqliteConnection c, SqliteTransaction tx, string categoryPath)
+    /// <summary>
+    /// The category a row's path names, created when it does not exist yet. Names are matched with <see cref="CategoryRules.FindChild"/> over
+    /// <paramref name="categories"/>, which holds every category and receives the ones created here so that later rows find them.
+    /// </summary>
+    private static string? FindOrCreateCategory(SqliteConnection c, SqliteTransaction tx, List<Category> categories, string categoryPath)
     {
         if (!CategoryRules.TryParsePath(categoryPath, out var names))
         {
@@ -229,31 +235,25 @@ public sealed partial class LedgerStore
         }
 
         string? parent = null;
-        foreach (var name in names)
+        for (var level = 0; level < names.Length; level++)
         {
-            string? found;
-            bool archived;
-            using (var cmd = LedgerSql.Command(c, tx, "SELECT id,archived FROM categories WHERE name=$name COLLATE NOCASE AND parent_id IS $parent",
-                ("$name", name), ("$parent", parent)))
-            using (var reader = cmd.ExecuteReader())
-            {
-                found = reader.Read() ? reader.GetString(0) : null;
-                archived = found is not null && reader.GetBoolean(1);
-            }
-
-            if (archived)
+            var name = names[level];
+            var found = CategoryRules.FindChild(categories, parent, name);
+            if (found is { Archived: true })
             {
                 throw new CsvImportConflictException($"Category '{name}' is archived; restore it before importing.");
             }
 
             if (found is null)
             {
-                found = Guid.NewGuid().ToString("N");
-                LedgerSql.Execute(c, tx, "INSERT INTO categories VALUES($id,$name,$parent,0)", ("$id", found), ("$name", name), ("$parent", parent));
+                found = new Category(Guid.NewGuid().ToString("N"), name, parent, string.Join(" / ", names.Take(level + 1)), false);
+                LedgerSql.Execute(c, tx, "INSERT INTO categories VALUES($id,$name,$parent,0)", ("$id", found.Id), ("$name", name), ("$parent", parent));
+                categories.Add(found);
             }
 
-            parent = found;
+            parent = found.Id;
         }
+
         return parent;
     }
 
