@@ -71,7 +71,7 @@ internal static class CsvImportRowValidator
             }
 
             return (errors.Count == 0
-                ? new CsvImportRow(line, id, date, description, amount, CsvRowType.Reminder, string.Empty, string.Empty, memo, fields, string.Empty)
+                ? new CsvImportRow(line, id, date, description, amount, CsvRowType.Reminder, string.Empty, string.Empty, memo, string.Empty)
                 : null, errors);
         }
 
@@ -117,7 +117,7 @@ internal static class CsvImportRowValidator
         }
 
         var row = errors.Count == 0
-            ? new CsvImportRow(line, id, date, description, amount, type!.Value, category, account, memo, fields, destination)
+            ? new CsvImportRow(line, id, date, description, amount, type!.Value, category, account, memo, destination)
             : null;
         return (row, errors);
     }

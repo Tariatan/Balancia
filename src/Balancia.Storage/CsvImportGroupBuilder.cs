@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 
 namespace Balancia.Storage;
@@ -29,16 +27,10 @@ internal static class CsvImportGroupBuilder
             CsvImportRow[] movements = first.Type == CsvRowType.Transfer
                 ? [first with { Amount = checked(-first.Amount) }, first with { Account = first.DestinationAccount }]
                 : [first];
-            groups.Add(new CsvImportGroup(grouping.Key, first.Type, movements, Fingerprint(first)));
+            groups.Add(new CsvImportGroup(grouping.Key, first.Type, movements));
         }
 
         return groups;
-    }
-
-    private static string Fingerprint(CsvImportRow row)
-    {
-        string[][] canonical = [row.Fields];
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(canonical))));
     }
 
     private static void ReportDuplicateReminders(IReadOnlyList<CsvImportRow> rows, List<ImportIssue> issues)

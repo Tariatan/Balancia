@@ -37,10 +37,6 @@ public sealed partial class LedgerStore
                 ON CONFLICT(transaction_id,account_id) DO UPDATE SET amount=excluded.amount;
                 """, ("$id", key), ("$name", trimmedName), ("$date", LedgerSql.DateText(openingDate)),
                 ("$archived", archived ? 1 : 0), ("$opening", openingId), ("$amount", opening.Centimes));
-            if (id is not null)
-            {
-                LedgerSql.Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE transaction_id=$id", ("$id", openingId));
-            }
         });
         return key;
     }
@@ -54,7 +50,6 @@ public sealed partial class LedgerStore
             throw new InvalidOperationException(message);
         }
 
-        LedgerSql.Execute(c, tx, "UPDATE import_sources SET locally_modified=1,transaction_id=NULL WHERE transaction_id=$opening", ("$opening", openingId));
         LedgerSql.Execute(c, tx, "DELETE FROM movements WHERE transaction_id=$opening AND account_id=$id; DELETE FROM ledger WHERE id=$opening; DELETE FROM accounts WHERE id=$id", ("$id", id), ("$opening", openingId));
     });
 

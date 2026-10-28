@@ -31,6 +31,8 @@ public sealed partial class LedgerStore
         Serilog.Log.ForContext<LedgerStore>().Information("Ledger schema ready, SchemaVersion: '{SchemaVersion}'", SchemaVersion);
     }
 
+    // import_sources is no longer written or read; it stays in the schema because dropping it needs a new schema version, and with it a
+    // migration of databases, snapshots and backups.
     private static void CreateTables(SqliteConnection c, SqliteTransaction tx) => LedgerSql.Execute(c, tx, $$"""
         CREATE TABLE accounts (
             id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE CHECK(length(trim(name))>0),

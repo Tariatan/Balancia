@@ -76,11 +76,6 @@ public sealed partial class LedgerStore
             {
                 AddMovement(c, tx, key, draft.DestinationId, draft.Amount.Centimes);
             }
-
-            if (id is not null)
-            {
-                LedgerSql.Execute(c, tx, "UPDATE import_sources SET locally_modified=1 WHERE transaction_id=$id", ("$id", id));
-            }
         });
         return key;
     }
@@ -88,7 +83,6 @@ public sealed partial class LedgerStore
     public void DeleteTransaction(string id) => Write((c, tx) =>
     {
         LedgerSql.Require(c, tx, EditableTransactionSql, id, TransactionGoneMessage);
-        LedgerSql.Execute(c, tx, "UPDATE import_sources SET locally_modified=1,transaction_id=NULL WHERE transaction_id=$id", ("$id", id));
         LedgerSql.Execute(c, tx, "DELETE FROM ledger WHERE id=$id", ("$id", id));
     });
 

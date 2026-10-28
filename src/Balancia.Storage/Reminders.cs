@@ -6,8 +6,6 @@ namespace Balancia.Storage;
 
 public sealed partial class LedgerStore
 {
-    private const string MarkReminderModifiedSql = "UPDATE import_sources SET locally_modified=1 WHERE external_id=$external";
-
     /// <summary>Returns each active reminder at its first occurrence not yet matched by a ledger entry, soonest first.</summary>
     public IReadOnlyList<Reminder> ReadReminders(DateOnly? asOf = null)
     {
@@ -80,7 +78,6 @@ public sealed partial class LedgerStore
                 throw new ArgumentException(message);
             }
 
-            LedgerSql.Execute(c, tx, MarkReminderModifiedSql, ("$external", ReminderSourceId(key)));
             LedgerSql.Execute(c, tx, "INSERT INTO reminder_templates VALUES($id,$description,$date,$amount,$interval,$archived) ON CONFLICT(id) DO UPDATE SET description=excluded.description,expected_date=excluded.expected_date,indicative_amount=excluded.indicative_amount,interval_months=excluded.interval_months,archived=excluded.archived", ("$id", key), ("$description", description), ("$date", LedgerSql.DateText(expectedDate)), ("$amount", indicativeAmount.Centimes), ("$interval", intervalMonths), ("$archived", archived ? 1 : 0));
         });
         return key;
@@ -88,7 +85,6 @@ public sealed partial class LedgerStore
 
     public void DeleteReminder(string id) => Write((c, tx) =>
     {
-        LedgerSql.Execute(c, tx, MarkReminderModifiedSql, ("$external", ReminderSourceId(id)));
         LedgerSql.Execute(c, tx, "DELETE FROM reminder_templates WHERE id=$id", ("$id", id));
     });
 }
