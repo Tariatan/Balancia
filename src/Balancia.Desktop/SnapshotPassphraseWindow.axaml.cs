@@ -28,8 +28,17 @@ public partial class SnapshotPassphraseWindow : Window
         Cancel.Content = Get("Cancel");
     }
 
-    internal static Task<string?> Ask(Window owner, bool setup) =>
-        new SnapshotPassphraseWindow(setup).ShowDialog<string?>(owner);
+    /// <summary>Asks for the passphrase; null when canceled. <paramref name="error"/> is shown when the previous passphrase did not unlock the snapshot.</summary>
+    internal static Task<string?> Ask(Window owner, bool setup, string? error = null)
+    {
+        var window = new SnapshotPassphraseWindow(setup);
+        if (error is not null)
+        {
+            window.Error.Text = Get(error);
+        }
+
+        return window.ShowDialog<string?>(owner);
+    }
 
     private void OnAccept(object? sender, RoutedEventArgs e)
     {

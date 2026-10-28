@@ -14,6 +14,13 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.9.0] - 2026-10-28
+
+#### Changed
+
+- Restoring a snapshot asks for the passphrase again after a wrong one, inside the same restore, and shows "The snapshot passphrase is incorrect or the file is damaged." in the passphrase dialog. Cancel ends the restore and leaves the ledger untouched. Before, a wrong passphrase ended the restore with an error dialog and the snapshot had to be picked again.
+- The restore uses `SnapshotUnlock`, the unlock sequence the Android import also uses. A passphrase typed during a restore is still not remembered, and the remembered key is still the one that encrypts exports and backups.
+
 ### [3.8.0] - 2026-10-28
 
 #### Changed
@@ -771,6 +778,17 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [8.1.0] - 2026-10-28
+
+#### Added
+
+- `SnapshotUnlock.RunAsync` and `ISnapshotUnlockHost`: the sequence that finds the key for a snapshot file. It uses the remembered key when it matches the file, otherwise asks for the passphrase, asks again when the operation reports a `SnapshotAuthenticationException`, and returns `UnlockResult.Canceled` when the user declines. It disposes every key it holds. `PassphraseReason` moved to this file.
+- 11 tests of the unlock sequence on its own.
+
+#### Changed
+
+- `ViewerSnapshotImport` is built on `SnapshotUnlock`; `IViewerSnapshotHost` now extends `ISnapshotUnlockHost` and keeps its members, so the Android host needs no change. Behavior and the 13 `ViewerSnapshotImportTests` are unchanged.
 
 ### [8.0.0] - 2026-10-28
 
