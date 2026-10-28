@@ -22,36 +22,36 @@ public partial class MainWindow
 
     private void InitializeTransactionsPanel()
     {
-        TransactionsCard.AddRequested += async () => await EditTransaction(null);
-        TransactionsCard.EditRequested += async entry => await EditTransaction(entry);
-        TransactionsCard.RemoveRequested += async () =>
+        OverviewPane.TransactionsCard.AddRequested += async () => await EditTransaction(null);
+        OverviewPane.TransactionsCard.EditRequested += async entry => await EditTransaction(entry);
+        OverviewPane.TransactionsCard.RemoveRequested += async () =>
         {
-            if (TransactionsCard.SelectedEntry is { } entry)
+            if (OverviewPane.TransactionsCard.SelectedEntry is { } entry)
             {
                 await RemoveTransaction(entry);
             }
         };
-        TransactionsCard.PreviousPageRequested += async () => await ChangeTransactionsPage(-TransactionsPageSize);
-        TransactionsCard.NextPageRequested += async () => await ChangeTransactionsPage(TransactionsPageSize);
+        OverviewPane.TransactionsCard.PreviousPageRequested += async () => await ChangeTransactionsPage(-TransactionsPageSize);
+        OverviewPane.TransactionsCard.NextPageRequested += async () => await ChangeTransactionsPage(TransactionsPageSize);
     }
 
     private async Task ChangeTransactionsPage(int delta)
     {
-        overviewState.ChangePage(delta);
+        OverviewPane.State.ChangePage(delta);
         await operations.RequestRefreshAsync();
-        TransactionsCard.ScrollToTop();
+        OverviewPane.TransactionsCard.ScrollToTop();
     }
 
     private async Task EditTransaction(LedgerEntry? entry)
     {
         var existing = entry?.Draft;
-        if (TransactionFormRules.AvailableAccounts(overview!.Snapshot.Accounts, existing).Count == 0)
+        if (TransactionFormRules.AvailableAccounts(OverviewPane.Data!.Snapshot.Accounts, existing).Count == 0)
         {
             SetStatus("Add an active account before entering transactions.");
             return;
         }
 
-        var form = new TransactionForm(new TransactionFormInputs(existing, Today, overview.Snapshot.Accounts, overview.Snapshot.Categories,
+        var form = new TransactionForm(new TransactionFormInputs(existing, Today, OverviewPane.Data.Snapshot.Accounts, OverviewPane.Data.Snapshot.Categories,
             settings.DefaultAccountId, lastAccountId, await Task.Run(() => store.ReadRecentDescriptions()),
             await Task.Run(() => store.ReadRegularCategoryPaths()), () => Task.Run(() => store.ReadRegularCategoryPaths())));
 

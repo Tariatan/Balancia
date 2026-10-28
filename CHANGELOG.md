@@ -14,6 +14,16 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.7.1] - 2026-10-28
+
+#### Changed
+
+- The Overview is an `OverviewView` user control that owns its cards, the `OverviewState` and the loaded `OverviewData`; `MainWindow.axaml` hosts it. The window loads through `LoadAsync`, draws with `Render` and `RenderInPlace`, reads `Data` and `DisplayDate` for its dialogs, and shows status text through `ShowStatus`. No visible change.
+
+#### Removed
+
+- The `Overview.cs`, `Analytics.cs` and `FilterState.cs` parts of `MainWindow`, now inside `OverviewView`.
+
 ### [3.7.0] - 2026-10-28
 
 #### Changed

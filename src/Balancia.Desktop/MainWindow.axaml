@@ -73,52 +73,7 @@
       </Grid>
     </Border>
     <ContentControl x:Name="Overview" Grid.Row="1" Margin="24,0,24,14" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-      <Grid x:Name="OverviewRoot" RowDefinitions="Auto,Auto,*" RowSpacing="11">
-
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
-          <TextBlock x:Name="SummaryLabel" Grid.Column="0" FontSize="12" Foreground="#FFB95D4D" VerticalAlignment="Center" />
-          <TextBlock x:Name="OverviewStatus" Grid.Column="1" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" />
-          <Button x:Name="SettingsButton" Classes="icon" Grid.Column="2" Content="⚙" VerticalAlignment="Center" />
-        </Grid>
-
-        <local:FilterRow x:Name="FilterRow" Grid.Row="1" />
-
-        <Grid Grid.Row="2" ColumnDefinitions="0.65*,0.44*,0.46*,1.4*,1.5*" RowDefinitions="Auto,*" RowSpacing="11" ColumnSpacing="11">
-
-          <local:AccountsCard x:Name="AccountsCard" Grid.Column="0" />
-
-          <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="*,*" RowSpacing="6">
-            <local:StatCard x:Name="IncomeCard" Grid.Row="0" Foreground="#2C8B6D" />
-            <local:StatCard x:Name="ExpensesCard" Grid.Row="1" Foreground="#B95D4D" />
-          </Grid>
-
-          <Grid Grid.Row="0" Grid.Column="2" RowDefinitions="*,*" RowSpacing="6">
-            <local:StatCard x:Name="AverageIncomeCard" Grid.Row="0" Foreground="#2C8B6D" />
-            <local:StatCard x:Name="AverageExpensesCard" Grid.Row="1" Foreground="#B95D4D" />
-          </Grid>
-
-          <local:TrendCard x:Name="TrendCard" Grid.Row="0" Grid.Column="3" />
-
-          <local:TimelineCard x:Name="TimelineCard" Grid.Row="0" Grid.Column="4" />
-
-          <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" ColumnDefinitions="0.6*,3.58*" ColumnSpacing="11">
-
-            <local:CategoriesCard x:Name="CategoriesCard" Grid.Column="0" />
-
-            <Grid Grid.Column="1" ColumnDefinitions="2.4*,1*" ColumnSpacing="11">
-
-              <local:TransactionsCard x:Name="TransactionsCard" Grid.Column="0" />
-
-              <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="11">
-
-                <local:TopExpendituresCard x:Name="TopExpendituresCard" Grid.Row="0" />
-
-                <local:RemindersCard x:Name="RemindersCard" Grid.Row="1" />
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-      </Grid>
+      <local:OverviewView x:Name="OverviewPane" />
     </ContentControl>
   </Grid>
 </Window>

@@ -19,3 +19,9 @@ _Avoid_: Child category, nested category
 **Category path**:
 How a category is written and typed: `Name` for a top-level category, `Parent / Child` for a subcategory. At most two levels, and a name never contains `/`.
 _Avoid_: Full name, breadcrumb
+
+## Overview
+
+**Overview**:
+The main screen for one period and filter: the totals and averages, the trend and timeline charts, the top categories, the reminders and a page of transactions.
+_Avoid_: Dashboard, Summary

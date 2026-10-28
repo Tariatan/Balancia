@@ -13,26 +13,23 @@ public partial class MainWindow
 {
     private void InitializeCategoryPanel()
     {
-        CategoriesCard.AddRequested += async () => await EditCategory(null);
-        CategoriesCard.EditRequested += async category => await EditCategory(category);
-        CategoriesCard.SelectAllRequested += async () => await ToggleAllCategoryFilters();
-        CategoriesCard.ArchiveRequested += async () => await ArchiveSelectedCategory();
-        CategoriesCard.RemoveRequested += async () => await DeleteSelectedCategory();
-        CategoriesCard.FilterToggled += async (id, selected) => await ToggleCategoryFilter(id, selected);
+        OverviewPane.CategoriesCard.AddRequested += async () => await EditCategory(null);
+        OverviewPane.CategoriesCard.EditRequested += async category => await EditCategory(category);
+        OverviewPane.CategoriesCard.SelectAllRequested += async () => await ToggleAllCategoryFilters();
+        OverviewPane.CategoriesCard.ArchiveRequested += async () => await ArchiveSelectedCategory();
+        OverviewPane.CategoriesCard.RemoveRequested += async () => await DeleteSelectedCategory();
+        OverviewPane.CategoriesCard.FilterToggled += async (id, selected) => await ToggleCategoryFilter(id, selected);
     }
 
-    private void RenderCategoryPanel(LedgerSnapshot ledgerSnapshot) =>
-        CategoriesCard.Render(ledgerSnapshot.Categories, overviewState.IsCategorySelected);
-
     private Task ToggleCategoryFilter(string id, bool selected) =>
-        ApplyOverviewChange(overviewState.ToggleCategory(id, selected, overview!.Snapshot.Categories));
+        ApplyOverviewChange(OverviewPane.State.ToggleCategory(id, selected, OverviewPane.Data!.Snapshot.Categories));
 
     private Task ToggleAllCategoryFilters() =>
-        overview is null ? Task.CompletedTask : ApplyOverviewChange(overviewState.ToggleAllCategories(overview.Snapshot.Categories));
+        OverviewPane.Data is null ? Task.CompletedTask : ApplyOverviewChange(OverviewPane.State.ToggleAllCategories(OverviewPane.Data.Snapshot.Categories));
 
     private async Task ArchiveSelectedCategory()
     {
-        if (CategoriesCard.Selected is not { } category)
+        if (OverviewPane.CategoriesCard.Selected is not { } category)
         {
             return;
         }
@@ -48,7 +45,7 @@ public partial class MainWindow
 
     private async Task DeleteSelectedCategory()
     {
-        if (CategoriesCard.Selected is not { } category)
+        if (OverviewPane.CategoriesCard.Selected is not { } category)
         {
             return;
         }
@@ -59,7 +56,7 @@ public partial class MainWindow
                 Text("Categories used by transactions or with subcategories must be archived instead.")
             ],
             () => () => store.DeleteCategory(category.Id),
-            DialogOptions.Confirmation("Delete", () => CategoryRules.CheckDelete(overview!.Snapshot.Categories, category.Id)));
+            DialogOptions.Confirmation("Delete", () => CategoryRules.CheckDelete(OverviewPane.Data!.Snapshot.Categories, category.Id)));
     }
 
     private async Task EditCategory(Category? category)
@@ -67,13 +64,13 @@ public partial class MainWindow
         var categoryArchived = category?.Archived ?? false;
         var name = Input(category?.Name ?? string.Empty);
         var options = new List<Choice<string?>> { new(null, Get("No parent (top-level)")) };
-        options.AddRange(overview!.Snapshot.Categories
+        options.AddRange(OverviewPane.Data!.Snapshot.Categories
             .Where(c => c.ParentId is null && !c.Archived && c.Id != category?.Id)
             .Select(c => new Choice<string?>(c.Id, c.Path)));
 
         if (category?.ParentId is { } current && options.All(c => c.Value != current))
         {
-            var archivedParent = overview!.Snapshot.Categories.Single(c => c.Id == current);
+            var archivedParent = OverviewPane.Data!.Snapshot.Categories.Single(c => c.Id == current);
             options.Add(new Choice<string?>(current, ArchivedLabel.Of(archivedParent.Path, archivedParent.Archived)));
         }
 
@@ -95,6 +92,6 @@ public partial class MainWindow
                 return () => store.SaveCategory(category?.Id, newName, newParentId, categoryArchived);
             },
             new DialogOptions(Validate: () => CategoryRules.CheckSave(
-                overview!.Snapshot.Categories, category?.Id, name.Text ?? string.Empty, ((Choice<string?>)parent.SelectedItem!).Value, categoryArchived)));
+                OverviewPane.Data!.Snapshot.Categories, category?.Id, name.Text ?? string.Empty, ((Choice<string?>)parent.SelectedItem!).Value, categoryArchived)));
     }
 }
