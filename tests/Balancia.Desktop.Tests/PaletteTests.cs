@@ -95,6 +95,67 @@ public sealed partial class PaletteTests
         Assert.Empty(offenders);
     }
 
+    private static readonly IReadOnlyDictionary<string, Avalonia.Media.Color> NoOverrides = new Dictionary<string, Avalonia.Media.Color>();
+
+    [AvaloniaFact]
+    public void Apply_Overrides_ChangeTheSharedBrushesAndTheRestKeepTheirBuiltInColor()
+    {
+        // Arrange
+        var builtIn = Palette.Tokens.ToDictionary(token => token.Key, token => token.Value.Color);
+        var sameBrushes = Palette.Tokens.ToDictionary(token => token.Key, token => token.Value);
+        try
+        {
+            // Act
+            Palette.Apply(new Dictionary<string, Avalonia.Media.Color>
+            {
+                ["Text"] = Avalonia.Media.Color.Parse("#E0E0E0"),
+                ["Positive"] = Avalonia.Media.Color.Parse("#00FF00"),
+            });
+
+            // Assert
+            Assert.Equal(Avalonia.Media.Color.Parse("#E0E0E0"), Palette.Text.Color);
+            Assert.Equal(Avalonia.Media.Color.Parse("#00FF00"), Palette.Positive.Color);
+            Assert.Equal(builtIn["Negative"], Palette.Negative.Color);
+            Assert.All(Palette.Tokens, token => Assert.Same(sameBrushes[token.Key], token.Value));
+        }
+        finally
+        {
+            Palette.Apply(NoOverrides);
+        }
+    }
+
+    [AvaloniaFact]
+    public void Apply_NoOverridesAfterATheme_RestoresEveryBuiltInColor()
+    {
+        // Arrange
+        var builtIn = Palette.Tokens.ToDictionary(token => token.Key, token => token.Value.Color);
+        Palette.Apply(new Dictionary<string, Avalonia.Media.Color> { ["Text"] = Avalonia.Media.Color.Parse("#E0E0E0"), ["Border"] = Avalonia.Media.Color.Parse("#010203") });
+
+        // Act
+        Palette.Apply(NoOverrides);
+
+        // Assert
+        Assert.Equal(builtIn, Palette.Tokens.ToDictionary(token => token.Key, token => token.Value.Color));
+    }
+
+    [AvaloniaFact]
+    public void Apply_Overrides_AlsoChangeWhatTheXamlResourcesHold()
+    {
+        try
+        {
+            // Act
+            Palette.Apply(new Dictionary<string, Avalonia.Media.Color> { ["WindowBackground"] = Avalonia.Media.Color.Parse("#102030") });
+
+            // Assert
+            Assert.True(Application.Current!.Resources.TryGetResource(Palette.ResourceKey("WindowBackground"), null, out var resource));
+            Assert.Equal(Avalonia.Media.Color.Parse("#102030"), ((Avalonia.Media.SolidColorBrush)resource!).Color);
+        }
+        finally
+        {
+            Palette.Apply(NoOverrides);
+        }
+    }
+
     [AvaloniaFact]
     public async Task Controls_DeclaredInXaml_UseTheSharedPaletteBrushes()
     {

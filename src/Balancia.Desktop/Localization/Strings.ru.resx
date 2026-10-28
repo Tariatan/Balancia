@@ -6,6 +6,7 @@
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
   <data name="Settings" xml:space="preserve"><value>Настройки</value></data>
   <data name="Language" xml:space="preserve"><value>Язык</value></data>
+  <data name="Theme" xml:space="preserve"><value>Тема</value></data>
   <data name="Overview" xml:space="preserve"><value>Обзор</value></data>
   <data name="Close" xml:space="preserve"><value>Закрыть</value></data>
   <data name="Cancel" xml:space="preserve"><value>Отмена</value></data>

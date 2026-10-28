@@ -11,6 +11,7 @@ namespace Balancia.Desktop;
 internal static class Palette
 {
     private static readonly Dictionary<string, SolidColorBrush> tokens = [];
+    private static readonly Dictionary<string, Color> builtInColors = [];
 
     // Text
     internal static readonly SolidColorBrush Text = Define(nameof(Text), "#263C48");
@@ -71,13 +72,31 @@ internal static class Palette
         }
     }
 
+    /// <summary>
+    /// Shows <paramref name="overrides"/> (role name to color) and the built-in color of every role it does not mention. The shared brushes keep
+    /// their identity and change color, so every control that holds one follows. Call it on the UI thread.
+    /// </summary>
+    internal static void Apply(IReadOnlyDictionary<string, Color> overrides)
+    {
+        foreach (var (name, brush) in tokens)
+        {
+            var color = overrides.TryGetValue(name, out var chosen) ? chosen : builtInColors[name];
+            if (brush.Color != color)
+            {
+                brush.Color = color;
+            }
+        }
+    }
+
     /// <summary>Positive above zero, negative at zero or below.</summary>
     internal static IBrush ForBalance(Money amount) => amount > Money.Zero ? Positive : Negative;
 
     private static SolidColorBrush Define(string name, string hex)
     {
-        var brush = new SolidColorBrush(Color.Parse(hex));
+        var color = Color.Parse(hex);
+        var brush = new SolidColorBrush(color);
         tokens.Add(name, brush);
+        builtInColors.Add(name, color);
         return brush;
     }
 }
