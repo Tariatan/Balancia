@@ -2,7 +2,7 @@ namespace Balancia.Core;
 
 /// <summary>
 /// The rules for reminder templates, so that the ledger store, the dialog and the CSV import enforce one definition.
-/// Two active reminders may not share a description; the comparison is exact and case-sensitive, as reminder matching is.
+/// Two active reminders may not share a description; the comparison ignores letter case, while payment matching remains case-sensitive.
 /// </summary>
 public static class ReminderRules
 {
@@ -23,7 +23,7 @@ public static class ReminderRules
 
     /// <summary>Whether an active template other than <paramref name="id"/> already has <paramref name="description"/>.</summary>
     public static bool IsDuplicateDescription(IReadOnlyList<ReminderTemplate> activeTemplates, string? id, string description) =>
-        activeTemplates.Any(t => t.Id != id && !t.Archived && t.Description == description.Trim());
+        activeTemplates.Any(t => t.Id != id && !t.Archived && string.Equals(t.Description, description.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Why saving the reminder cannot go ahead, or null when it can. <paramref name="activeTemplates"/> holds the existing active templates,

@@ -3,7 +3,7 @@
         x:Class="Balancia.Desktop.SettingsWindow"
         Icon="avares://Balancia.Desktop/Balancia.ico"
         ShowInTaskbar="False"
-        Width="600" Height="620"
+        Width="600" Height="670"
         CanResize="False"
         WindowStartupLocation="CenterOwner">
   <Grid x:Name="ContentRoot" RowDefinitions="*,Auto">

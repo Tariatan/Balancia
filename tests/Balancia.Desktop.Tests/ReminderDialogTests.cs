@@ -79,7 +79,7 @@ public sealed class ReminderDialogTests
     }
 
     [AvaloniaFact]
-    public async Task Add_WithTheDescriptionOfAnActiveReminderInAnotherLetterCase_IsAccepted()
+    public async Task Add_WithTheDescriptionOfAnActiveReminderInAnotherLetterCase_ShowsAnError()
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
@@ -89,10 +89,11 @@ public sealed class ReminderDialogTests
         var dialog = await OpenAddDialogAsync(window);
 
         // Act
-        await dialog.SaveAndCloseAsync(window);
+        var error = await dialog.SaveExpectingErrorAsync();
 
         // Assert
-        Assert.Equal(2, store.ReadReminders().Count);
+        Assert.Equal(ReminderRules.DuplicateDescriptionMessage, error);
+        Assert.Single(store.ReadReminders());
     }
 
     [AvaloniaFact]

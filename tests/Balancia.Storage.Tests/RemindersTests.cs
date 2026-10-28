@@ -133,16 +133,17 @@ public sealed class RemindersTests : IDisposable
     }
 
     [Fact]
-    public void SaveReminder_DescriptionOnlyDiffersInCase_IsAllowed()
+    public void SaveReminder_DescriptionOnlyDiffersInCase_IsRejected()
     {
         // Arrange
         store.SaveReminder(null, "Rent", new DateOnly(2026, 1, 1), new Money(10), 1);
 
         // Act
-        store.SaveReminder(null, "rent", new DateOnly(2026, 2, 1), new Money(10), 1);
+        var error = Assert.Throws<ArgumentException>(() => store.SaveReminder(null, "rent", new DateOnly(2026, 2, 1), new Money(10), 1));
 
         // Assert
-        Assert.Equal(2, store.ReadReminders().Count);
+        Assert.Equal(ReminderRules.DuplicateDescriptionMessage, error.Message);
+        Assert.Single(store.ReadReminders());
     }
 
     [Theory]

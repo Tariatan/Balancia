@@ -324,7 +324,7 @@ An occurrence is satisfied when a posted transaction has exactly the template's 
 | Repeated matches       | Multiple matching payments in one month satisfy that occurrence only once; later months still need their own match.                                                                                           |
 | Re-anchoring           | Editing a template's date replaces its schedule anchor. The next occurrence is the first month from the new anchor without a matching payment, so earlier occurrences are not regenerated. No separate boundary is stored. |
 | Day clamping           | The desired day is preserved across months and clamped at month end when absent (e.g. Jan 31 → Feb 28/29 → Mar 31), rather than drifting permanently to the clamped day.                                      |
-| Duplicate descriptions | Two active templates with the same exact description are ambiguous and must be made distinct; descriptions that differ only in letter case are different. There is no fuzzy or amount-based disambiguation. |
+| Duplicate descriptions | Two active templates cannot share a description after trimming and ignoring letter case (ordinal comparison); this duplicate check applies to saves and CSV import. Payment matching remains case-sensitive. There is no fuzzy or amount-based disambiguation. |
 
 ### Snapshot Export, Validation, and Restore
 

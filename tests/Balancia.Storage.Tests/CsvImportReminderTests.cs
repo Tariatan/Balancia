@@ -50,17 +50,19 @@ public sealed class CsvImportReminderTests : IDisposable
     }
 
     [Fact]
-    public void ApplyCsvImport_ActiveRemindersDifferingOnlyInLetterCase_ImportsBoth()
+    public void ApplyCsvImport_ActiveRemindersDifferingOnlyInLetterCase_RejectsBoth()
     {
         // Arrange
         Csv(Opening + RentRow +
             "reminder:r2,2026-01-06,Reminder,rent,10.00,,,,\"{\"\"IntervalMonths\"\":1,\"\"Archived\"\":false}\"\n");
 
         // Act
-        store.ApplyCsvImport(store.PreviewCsvImport(csv));
+        var preview = store.PreviewCsvImport(csv);
 
         // Assert
-        Assert.Equal(["Rent", "rent"], store.ReadReminders().Select(reminder => reminder.Template.Description).Order(StringComparer.Ordinal));
+        Assert.False(preview.CanApply);
+        Assert.Throws<CsvImportConflictException>(() => store.ApplyCsvImport(preview));
+        Assert.Empty(store.ReadReminders());
     }
 
     [Fact]

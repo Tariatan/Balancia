@@ -985,7 +985,7 @@ public sealed class LedgerStoreTests : IDisposable
         store.SaveReminder(null, "Rent", Start, Money.FromFrancs(5m), 1);
 
         // Act
-        var error = Assert.Throws<ArgumentException>(() => store.SaveReminder(null, " Rent ", Start, Money.FromFrancs(5m), 1));
+        var error = Assert.Throws<ArgumentException>(() => store.SaveReminder(null, " rENT ", Start, Money.FromFrancs(5m), 1));
 
         // Assert
         Assert.Equal(ReminderRules.DuplicateDescriptionMessage, error.Message);

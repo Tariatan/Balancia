@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.10.2] - 2026-10-28
+
+#### Fixed
+
+- Reminder duplicate validation ignores letter case in the dialog, ledger saves, and CSV imports (Core 3.6.1).
+
 ### [3.10.1] - 2026-10-28
 
 #### Changed
@@ -725,6 +731,12 @@ Versioning rule:
 
 ## Balancia.Core
 
+### [3.6.1] - 2026-10-28
+
+#### Fixed
+
+- Reject active reminder descriptions that differ only in letter case, preserving trimming, self-edit and archived-template exceptions. Payment matching remains case-sensitive.
+
 ### [3.6.0] - 2026-10-28
 
 #### Added
@@ -820,6 +832,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Storage
+
+### [8.1.2] - 2026-10-28
+
+#### Fixed
+
+- CSV preview rejects active reminder descriptions that differ only in letter case, consistent with save validation.
 
 ### [8.1.1] - 2026-10-28
 

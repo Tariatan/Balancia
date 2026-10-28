@@ -37,7 +37,7 @@ internal static class CsvImportGroupBuilder
     {
         var duplicates = rows
             .Where(row => row.Type == CsvRowType.Reminder && !JsonSerializer.Deserialize<CsvReminderOptions>(row.Memo)!.Archived)
-            .GroupBy(row => row.Description.Trim(), StringComparer.Ordinal)
+            .GroupBy(row => row.Description.Trim(), StringComparer.OrdinalIgnoreCase)
             .Where(group => group.Skip(1).Any());
 
         issues.AddRange(duplicates.Select(duplicate

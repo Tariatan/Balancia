@@ -66,21 +66,39 @@ public class ReminderRulesTests
         Assert.Equal(ReminderRules.DuplicateDescriptionMessage, message);
     }
 
-    [Fact]
-    public void CheckSave_DescriptionDifferingOnlyInLetterCase_IsAccepted()
+    [Theory]
+    [InlineData("rent")]
+    [InlineData(" RENT ")]
+    public void CheckSave_DescriptionDifferingOnlyInLetterCase_IsRejected(string description)
     {
         // Act
-        var message = ReminderRules.CheckSave(Active, null, "rent", Amount, 1, false);
+        var message = ReminderRules.CheckSave(Active, null, description, Amount, 1, false);
 
         // Assert
-        Assert.Null(message);
+        Assert.Equal(ReminderRules.DuplicateDescriptionMessage, message);
+    }
+
+    [Theory]
+    [InlineData("Miete", "MIETE")]
+    [InlineData("Électricité", "éLECTRICITÉ")]
+    [InlineData("Оренда", "оренда")]
+    public void IsDuplicateDescription_DescriptionsDifferingOnlyInLetterCase_ReturnsTrue(string existing, string candidate)
+    {
+        // Arrange
+        ReminderTemplate[] templates = [Rent with { Description = existing }];
+
+        // Act
+        var duplicate = ReminderRules.IsDuplicateDescription(templates, null, candidate);
+
+        // Assert
+        Assert.True(duplicate);
     }
 
     [Fact]
     public void CheckSave_KeepingItsOwnDescription_IsAccepted()
     {
         // Act
-        var message = ReminderRules.CheckSave(Active, "rent", "Rent", Amount, 3, false);
+        var message = ReminderRules.CheckSave(Active, "rent", "RENT", Amount, 3, false);
 
         // Assert
         Assert.Null(message);
