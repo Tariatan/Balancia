@@ -25,5 +25,13 @@ public sealed class LedgerReader
     public TransactionsPage ReadTransactions(TransactionsFilter filter, int offset = 0, int pageSize = 100) =>
         store.ReadTransactions(filter, offset, pageSize);
 
+    public LedgerSnapshot ReadDashboard(TransactionsFilter filter) => store.ReadDesktopSnapshotForFilter(filter);
+
+    public FlowAnalytics ReadFlowAnalytics(TransactionsFilter filter) => store.ReadFlowAnalytics(filter);
+
+    public FlowAverages ReadFlowAverages(TransactionsFilter filter) => store.ReadFlowAverages(filter, AverageInterval.Month);
+
+    public IReadOnlyList<Reminder> ReadReminders() => store.ReadReminders();
+
     public (string DatasetId, long Revision) ReadIdentity() => store.ReadLiveMetadata();
 }

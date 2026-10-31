@@ -4,3 +4,4 @@ Last updated: 2026-10-03.
 
 ## ToDO list
 - consider multiple currency
+- entry icons

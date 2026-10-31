@@ -7,9 +7,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.triatan.balancia.android</ApplicationId>
-    <Version>0.5.2</Version>
-    <ApplicationVersion>9</ApplicationVersion>
-    <ApplicationDisplayVersion>0.5.2</ApplicationDisplayVersion>
+    <Version>0.6.0</Version>
+    <ApplicationVersion>10</ApplicationVersion>
+    <ApplicationDisplayVersion>0.6.0</ApplicationDisplayVersion>
     <!--
       Enables trim analyzers and full trimming during Release mode.
       To learn more, see: https://learn.microsoft.com/dotnet/core/deploying/trimming/trimming-options#trimming-granularity

@@ -1,4 +1,3 @@
-using _Microsoft.Android.Resource.Designer;
 using Android.Content;
 using Balancia.Storage;
 using Serilog;
@@ -12,30 +11,13 @@ public partial class MainActivity : Activity
     private const int PickSnapshot = 1001;
     private TextView? status;
     private EditText? search;
-    private TextView? results;
-    private const int SearchResultLimit = 50;
     private LedgerReader? viewerReader;
     private bool importing;
 
     protected override async void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        SetContentView(ResourceConstant.Layout.activity_main);
-        status = FindViewById<TextView>(ResourceConstant.Id.Status);
-        search = FindViewById<EditText>(ResourceConstant.Id.Search);
-        results = FindViewById<TextView>(ResourceConstant.Id.Results);
-        FindViewById<Button>(ResourceConstant.Id.SelectSnapshot)!.Click += (_, _) =>
-        {
-            Log.Information("Android snapshot picker opened");
-            // Custom .balancia extensions have no standard Android MIME type. Let
-            // the provider show documents, then enforce the Balancia archive
-            // format after selection.
-            var picker = new Intent(Intent.ActionOpenDocument)
-                .SetType("*/*")
-                .AddCategory(Intent.CategoryOpenable);
-            StartActivityForResult(picker, PickSnapshot);
-        };
-        FindViewById<Button>(ResourceConstant.Id.SearchButton)!.Click += (_, _) => SearchTransactions();
+        BuildDashboard();
         status!.Text = "No snapshot loaded. Windows is the only writer.";
         var dbPath = Path.Combine(FilesDir!.AbsolutePath, "viewer.db");
         if (File.Exists(dbPath))
@@ -96,7 +78,6 @@ public partial class MainActivity : Activity
             Log.Information("Android snapshot copied from document provider");
 
             await ImportSnapshot(archivePath);
-            results!.Text = "";
             Log.Information("Android snapshot import interaction finished, ElapsedMs: '{ElapsedMs}'", elapsed.ElapsedMilliseconds);
         }
         catch (Exception ex)
@@ -123,6 +104,7 @@ public partial class MainActivity : Activity
         finally
         {
             importing = false;
+            RefreshDashboard();
             try
             {
                 File.Delete(archivePath);
@@ -134,34 +116,5 @@ public partial class MainActivity : Activity
         }
     }
 
-    private void SearchTransactions()
-    {
-        if (importing)
-        {
-            return;
-        }
-
-        if (viewerReader is null)
-        {
-            Log.Information("Android search skipped; no snapshot loaded");
-            results!.Text = "Load a snapshot first.";
-            return;
-        }
-        try
-        {
-            Log.Information("Starting Android transaction search");
-            var page = viewerReader.ReadTransactions(new TransactionsFilter(search?.Text), 0, SearchResultLimit);
-            var lines = page.Hits.Select(h => $"{h.Entry.Draft.Date:yyyy-MM-dd} · {h.Entry.Draft.Kind} · {h.Entry.Draft.Amount.Francs:N2} · {h.Entry.Draft.Description}");
-            results!.Text = page.Hits.Count == 0 ? "No matching transactions." :
-                string.Join("\n", lines) + (page.TotalCount > page.Hits.Count
-                    ? $"\nShowing the newest {page.Hits.Count} of {page.TotalCount} matches. Refine the search to narrow them."
-                    : string.Empty);
-            Log.Information("Android transaction search completed, ResultCount: '{ResultCount}'", page.Hits.Count);
-        }
-        catch (Exception ex)
-        {
-            Log.Error("Android transaction search failed, FailureType: '{FailureType}', HResult: '{HResult}'", ex.GetType().Name, ex.HResult);
-            results!.Text = "Search failed: " + ex.Message;
-        }
-    }
+    private void SearchTransactions() => RefreshDashboard();
 }

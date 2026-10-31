@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.12.0] - 2026-10-30
+
+#### Changed
+
+- Application version follows the Android dashboard and Storage read-only API additions.
+
 ### [3.11.2] - 2026-10-28
 
 #### Fixed
@@ -858,6 +864,12 @@ Versioning rule:
 
 ## Balancia.Storage
 
+### [8.2.0] - 2026-10-30
+
+#### Added
+
+- Expose filtered dashboards, flow analytics, monthly averages and reminders through the read-only LedgerReader.
+
 ### [8.1.2] - 2026-10-28
 
 #### Fixed
@@ -1133,6 +1145,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.6.0] - 2026-10-30
+
+#### Added
+
+- Replace the basic viewer with the supplied dark four-tab design: Overview balances, account/category filters, expenditure bars, searchable paged transactions, Reminders, Trend intervals and selectable cumulative Timeline comparisons. Retain encrypted snapshot import and Keystore pairing.
 
 ### [0.5.2] - 2026-10-26
 

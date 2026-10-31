@@ -81,13 +81,10 @@ public partial class MainActivity
 
     private async Task DisplaySnapshot(string label)
     {
-        var summary = await Task.Run(() => viewerReader!.ReadSummary());
+        await Task.Run(() => viewerReader!.ReadIdentity());
         var imported = File.GetLastWriteTime(Path.Combine(FilesDir!.AbsolutePath, "viewer.db"));
         Log.Information("Android snapshot summary refreshed");
-        var accounts = string.Join("\n", summary.Accounts.Select(account => $"{account.Name}: {account.Balance.Francs:N2}"));
-        status!.Text = $"{label} · Net worth {summary.NetWorth.Francs:N2}\n" +
-            (accounts.Length == 0 ? string.Empty : accounts + "\n") +
-            $"Income {summary.MonthlyIncome.Francs:N2} · Expenses {summary.MonthlyExpenses.Francs:N2}\n" +
-            $"{summary.TransactionCount} transactions · imported {imported:yyyy-MM-dd HH:mm} · read-only viewer";
+        status!.Text = $"Imported {imported:dd MMM yyyy HH:mm} · {label} · Read only";
+        RefreshDashboard();
     }
 }
