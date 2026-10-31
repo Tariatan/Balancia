@@ -49,13 +49,13 @@ public sealed class TransactionDialogTests
     }
 
     [AvaloniaFact]
-    public async Task Add_WithAnAmountExpression_SavesTheEvaluatedAmount()
+    public async Task Add_WithADecimalSeparator_SavesTheAmount()
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
         var window = await OpenWithAccountAsync(workspace);
         var dialog = await window.OpenDialogAsync("TransactionsAddButton", "Add transaction");
-        dialog.Fill("Amount (positive)", "10+2.5");
+        dialog.Fill("Amount (positive)", "12.50");
         dialog.Fill("Description", "Split bill");
         dialog.Fill(CategoryLabel, "Food / Lunch");
 

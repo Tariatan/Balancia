@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.12.1] - 2026-10-31
+
+#### Fixed
+
+- Add/Edit transaction Amount rejects letters, signs, arithmetic expressions and additional decimal separators before typed or pasted text is inserted. Dot and comma decimal separators and selection replacement are supported; saved amounts still require exact centime precision.
+
 ### [3.12.0] - 2026-10-30
 
 #### Changed

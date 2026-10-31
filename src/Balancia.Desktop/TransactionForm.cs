@@ -60,8 +60,11 @@ internal sealed class TransactionForm
         description = Input(existing?.Description ?? "");
         descriptionInput = new DescriptionSuggestBox(description, inputs.RecentDescriptions);
 
-        amount = Input(existing?.Amount.Francs.ToString("0.00", CultureInfo.InvariantCulture) ?? "");
-        amount.LostFocus += (_, _) => NormalizeAmount(amount);
+        amount = new AmountTextBox
+        {
+            Text = existing?.Amount.Francs.ToString("0.00", Culture) ?? string.Empty,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
 
         var startAccount = TransactionFormRules.DefaultAccount([.. accounts.Select(c => c.Value)], existing?.AccountId, inputs.DefaultAccountId, inputs.LastAccountId);
         account = ChoiceBox(accounts, accounts.First(c => c.Value == startAccount));
@@ -107,7 +110,7 @@ internal sealed class TransactionForm
                 descriptionInput.Remember(description.Text ?? "");
                 var regularCategoryPaths = await inputs.ReadRegularCategoryPaths();
                 description.Text = "";
-                amount.Text = "";
+                amount.Text = string.Empty;
                 memo.Text = "";
                 categoryInput.Reset(regularCategoryPaths);
             };
@@ -128,14 +131,14 @@ internal sealed class TransactionForm
         SelectedValue<Account>(account), (destination.SelectedItem as Choice<Account>)?.Value, category.Text, allCategories, existing);
 
     /// <summary>
-    /// The entered values: the draft to save and the typed category path (none for a transfer). An amount typed as an expression is evaluated first.
+    /// The entered values: the draft to save and the typed category path (none for a transfer).
     /// An unreadable date or amount throws <see cref="FormatException"/>.
     /// </summary>
     public (TransactionDraft Draft, string? CategoryPath) Read()
     {
-        NormalizeAmount(amount);
         var type = SelectedValue<TransactionKind>(kind);
-        var draft = TransactionFormRules.ToDraft(type, ParseDate(date), description.Text ?? "", ParseMoney(amount),
+        var enteredAmount = decimal.Parse(amount.Text?.Replace(',', '.') ?? string.Empty, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+        var draft = TransactionFormRules.ToDraft(type, ParseDate(date), description.Text ?? "", Money.FromFrancs(enteredAmount),
             SelectedValue<Account>(account).Id, (destination.SelectedItem as Choice<Account>)?.Value.Id, memo.Text ?? "");
         return (draft, TransactionFormRules.CategoryPathFor(type, category.Text, availableCategories));
     }

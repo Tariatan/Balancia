@@ -18,14 +18,6 @@ internal static class InputParsing
 
     internal static Money? OptionalMoney(TextBox input) => string.IsNullOrWhiteSpace(input.Text) ? null : ParseMoney(input);
 
-    internal static void NormalizeAmount(TextBox input)
-    {
-        if (AmountExpressionParser.TryEvaluate(input.Text, out var value))
-        {
-            input.Text = value.ToString("0.##", CultureInfo.InvariantCulture);
-        }
-    }
-
     internal static DateOnly ParseDate(CalendarDatePicker input) => input.SelectedDate is { } date
         ? DateOnly.FromDateTime(date)
         : throw new FormatException("Select a date.");

@@ -131,7 +131,7 @@ public sealed class TransactionFormTests
         // Assert
         Assert.Equal(Get("Income"), Selected(form, "Type"));
         Assert.Equal("Savings", Selected(form, "Account"));
-        Assert.Equal("99.50", TextOf(form, "Amount (positive)"));
+        Assert.Equal(99.5m.ToString("0.00", Culture), TextOf(form, "Amount (positive)"));
         Assert.Equal("Refund", TextOf(form, "Description"));
         Assert.Equal("from Anna", TextOf(form, "Notes"));
         Assert.Equal("Food / Lunch", TextOf(form, "Category / subcategory"));
@@ -214,7 +214,7 @@ public sealed class TransactionFormTests
     {
         // Arrange
         var form = new TransactionForm(Inputs());
-        TextBoxOf(form, "Amount (positive)").Text = "12.50";
+        TextBoxOf(form, "Amount (positive)").Text = 12.5m.ToString("0.00", Culture);
         TextBoxOf(form, "Description").Text = "Lunch";
         TextBoxOf(form, "Notes").Text = "with Anna";
         TextBoxOf(form, "Category / subcategory").Text = " food / lunch ";
@@ -227,44 +227,57 @@ public sealed class TransactionFormTests
         Assert.Equal("Food / Lunch", categoryPath);
     }
 
-    [AvaloniaFact]
-    public void Read_AmountTypedAsAnExpression_IsEvaluatedAndWrittenBack()
+    [AvaloniaTheory]
+    [InlineData("en", "5.50")]
+    [InlineData("de", "5,50")]
+    public void Read_DecimalAmount_UsesSelectedLanguage(string language, string text)
     {
         // Arrange
-        var form = new TransactionForm(Inputs());
-        TextBoxOf(form, "Amount (positive)").Text = "2+3.5";
+        var previousLanguage = Culture.TwoLetterISOLanguageName;
+        SetLanguage(language);
+        try
+        {
+            var form = new TransactionForm(Inputs());
+            TextBoxOf(form, "Amount (positive)").Text = text;
 
-        // Act
-        var (draft, _) = form.Read();
+            // Act
+            var (draft, _) = form.Read();
 
-        // Assert
-        Assert.Equal(Money.FromFrancs(5.5m), draft.Amount);
-        Assert.Equal("5.5", TextOf(form, "Amount (positive)"));
+            // Assert
+            Assert.Equal(Money.FromFrancs(5.5m), draft.Amount);
+            Assert.Equal(text, TextOf(form, "Amount (positive)"));
+        }
+        finally
+        {
+            SetLanguage(previousLanguage);
+        }
+    }
+
+    [AvaloniaTheory]
+    [InlineData("abc")]
+    [InlineData("2+3")]
+    [InlineData("1.2.3")]
+    [InlineData("-12")]
+    [InlineData("")]
+    public void Read_InvalidAmountWhileEditing_RejectsInsteadOfSavingPreviousValue(string text)
+    {
+        // Arrange
+        var form = new TransactionForm(Inputs(Draft()));
+        TextBoxOf(form, "Amount (positive)").Text = text;
+
+        // Act and Assert
+        Assert.Throws<FormatException>(() => form.Read());
     }
 
     [AvaloniaFact]
-    public void Amount_LosingFocus_EvaluatesAnExpression()
+    public void Read_FractionalCentime_RejectsWithoutRounding()
     {
         // Arrange
         var form = new TransactionForm(Inputs());
-        var amount = TextBoxOf(form, "Amount (positive)");
-        var elsewhere = new TextBox();
-        var panel = new StackPanel();
-        foreach (var field in form.Fields)
-        {
-            panel.Children.Add(field);
-        }
+        TextBoxOf(form, "Amount (positive)").Text = 1.234m.ToString(Culture);
 
-        panel.Children.Add(elsewhere);
-        new Window { Width = 600, Height = 900, Content = panel }.Show();
-        amount.Focus();
-        amount.Text = "10-2.5";
-
-        // Act
-        elsewhere.Focus();
-
-        // Assert
-        Assert.Equal("7.5", amount.Text);
+        // Act and Assert
+        Assert.Throws<ArgumentException>(() => form.Read());
     }
 
     [AvaloniaFact]
