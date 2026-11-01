@@ -1,4 +1,3 @@
-using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -65,6 +64,8 @@ internal sealed class TransactionForm
             Text = existing?.Amount.Francs.ToString("0.00", Culture) ?? string.Empty,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
+
+        amount.LostFocus += (_, _) => NormalizeAmountExpression(amount);
 
         var startAccount = TransactionFormRules.DefaultAccount([.. accounts.Select(c => c.Value)], existing?.AccountId, inputs.DefaultAccountId, inputs.LastAccountId);
         account = ChoiceBox(accounts, accounts.First(c => c.Value == startAccount));
@@ -137,8 +138,8 @@ internal sealed class TransactionForm
     public (TransactionDraft Draft, string? CategoryPath) Read()
     {
         var type = SelectedValue<TransactionKind>(kind);
-        var enteredAmount = decimal.Parse(amount.Text?.Replace(',', '.') ?? string.Empty, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
-        var draft = TransactionFormRules.ToDraft(type, ParseDate(date), description.Text ?? "", Money.FromFrancs(enteredAmount),
+        var enteredAmount = ParseAmountExpression(amount);
+        var draft = TransactionFormRules.ToDraft(type, ParseDate(date), description.Text ?? "", enteredAmount,
             SelectedValue<Account>(account).Id, (destination.SelectedItem as Choice<Account>)?.Value.Id, memo.Text ?? "");
         return (draft, TransactionFormRules.CategoryPathFor(type, category.Text, availableCategories));
     }

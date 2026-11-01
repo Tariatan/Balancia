@@ -14,7 +14,7 @@ public sealed class AmountTextBoxTests
     [InlineData("a")]
     [InlineData("asdfa2323")]
     [InlineData("-1")]
-    [InlineData("1+2")]
+    [InlineData("1-2")]
     [InlineData(".")]
     [InlineData(",")]
     public void KeyTextInput_InvalidInsertion_PreservesTextAndSelection(string input)
@@ -50,6 +50,13 @@ public sealed class AmountTextBoxTests
     [InlineData("12.50", 3, 2, ",", "12,50")]
     [InlineData("12", 2, 2, ".50", "12.50")]
     [InlineData("", 0, 0, ",", ",")]
+    [InlineData("12.50", 5, 5, "+3,25", "12.50+3,25")]
+    [InlineData("12.50+3,25", 6, 10, "4.75", "12.50+4.75")]
+    [InlineData("12", 2, 2, "+", "12+")]
+    [InlineData("12.50", 5, 5, "*2,5", "12.50*2,5")]
+    [InlineData("12.50", 5, 5, "/2", "12.50/2")]
+    [InlineData("12", 2, 2, "*", "12*")]
+    [InlineData("12", 2, 2, "/", "12/")]
     public void KeyTextInput_ValidInsertion_ReplacesSelection(string text, int start, int end, string input, string expected)
     {
         // Arrange
@@ -80,6 +87,11 @@ public sealed class AmountTextBoxTests
     [InlineData("-5", "12.50")]
     [InlineData(" 3,25 ", "3,25")]
     [InlineData("3.25", "3.25")]
+    [InlineData("2*3+12/4", "2*3+12/4")]
+    [InlineData("1.2*3,4.5", "12.50")]
+    [InlineData("1.2/3,4.5", "12.50")]
+    [InlineData("12.50+3,25", "12.50+3,25")]
+    [InlineData("1.2+3,4.5", "12.50")]
     public async Task Paste_ValidatesBeforeReplacingSelection(string pasted, string expected)
     {
         // Arrange

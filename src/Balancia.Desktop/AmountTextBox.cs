@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Balancia.Desktop;
 
-/// <summary>Rejects nonnumeric typing and paste before either changes the amount.</summary>
+/// <summary>Accepts decimal expressions using +, * and /; rejects other typing and paste before insertion.</summary>
 internal sealed class AmountTextBox : TextBox
 {
     public AmountTextBox()
@@ -40,6 +40,12 @@ internal sealed class AmountTextBox : TextBox
         {
             if (char.IsAsciiDigit(character))
             {
+                continue;
+            }
+
+            if (character is '+' or '*' or '/')
+            {
+                hasSeparator = false;
                 continue;
             }
 

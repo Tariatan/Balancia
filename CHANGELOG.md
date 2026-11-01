@@ -14,6 +14,15 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.13.0] - 2026-11-01
+
+#### Added
+- Transaction Amount supports multiplication (`*`) and division (`/`) alongside addition, with standard operator precedence. Leaving the field displays the total; incomplete expressions, division by zero, fractional centimes and overflow cannot be saved.
+
+#### Fixed
+
+- Restored addition in the transaction Amount field: type or paste decimal amounts joined by `+`, and leaving the field displays their total. Saving evaluates sums directly and rejects unfinished sums, fractional centimes, and overflow without saving a previous value.
+
 ### [3.12.2] - 2026-11-01
 
 #### Fixed

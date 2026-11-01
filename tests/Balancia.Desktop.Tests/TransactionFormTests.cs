@@ -255,7 +255,14 @@ public sealed class TransactionFormTests
 
     [AvaloniaTheory]
     [InlineData("abc")]
-    [InlineData("2+3")]
+    [InlineData("2+")]
+    [InlineData("+2")]
+    [InlineData("2++3")]
+    [InlineData("2*")]
+    [InlineData("2/")]
+    [InlineData("2**3")]
+    [InlineData("2/+3")]
+    [InlineData("2*-3")]
     [InlineData("1.2.3")]
     [InlineData("-12")]
     [InlineData("")]
@@ -267,6 +274,76 @@ public sealed class TransactionFormTests
 
         // Act and Assert
         Assert.Throws<FormatException>(() => form.Read());
+    }
+
+    [AvaloniaTheory]
+    [InlineData("12.50+3,25", 15.75)]
+    [InlineData("0.10+0.20+0.30", 0.60)]
+    [InlineData("2+3*4", 14)]
+    [InlineData("12/2*3+1", 19)]
+    [InlineData("12,50*2/5", 5)]
+    [InlineData("0.125*8", 1)]
+    public void Read_Expression_SavesExactTotal(string text, decimal expected)
+    {
+        // Arrange
+        var form = new TransactionForm(Inputs());
+        TextBoxOf(form, "Amount (positive)").Text = text;
+
+        // Act
+        var (draft, _) = form.Read();
+
+        // Assert
+        Assert.Equal(Money.FromFrancs(expected), draft.Amount);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en", "15.75")]
+    [InlineData("de", "15,75")]
+    public void LostFocus_Expression_DisplaysLocalizedTotal(string language, string expected)
+    {
+        // Arrange
+        var previousLanguage = Culture.TwoLetterISOLanguageName;
+        SetLanguage(language);
+        try
+        {
+            var form = new TransactionForm(Inputs());
+            var box = TextBoxOf(form, "Amount (positive)");
+            box.Text = "12.50+6,50/2";
+
+            // Act
+            box.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+
+            // Assert
+            Assert.Equal(expected, box.Text);
+            Assert.Equal(Money.FromFrancs(15.75m), form.Read().Draft.Amount);
+        }
+        finally
+        {
+            SetLanguage(previousLanguage);
+        }
+    }
+
+    [AvaloniaTheory]
+    [InlineData("2+")]
+    [InlineData("1/0")]
+    [InlineData("1/3")]
+    [InlineData("0.01/2")]
+    [InlineData("79228162514264337593543950335*2")]
+    [InlineData("0.001+0.009")]
+    [InlineData("92233720368547758.07+0.01")]
+    public void LostFocus_InvalidSum_PreservesTextAndRejectsSave(string text)
+    {
+        // Arrange
+        var form = new TransactionForm(Inputs(Draft()));
+        var box = TextBoxOf(form, "Amount (positive)");
+        box.Text = text;
+
+        // Act
+        box.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+
+        // Assert
+        Assert.Equal(text, box.Text);
+        Assert.ThrowsAny<Exception>(() => form.Read());
     }
 
     [AvaloniaFact]
