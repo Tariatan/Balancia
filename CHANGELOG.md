@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.12.2] - 2026-11-01
+
+#### Fixed
+
+- Headless dialog save tests wait for the overview refresh after the dialog closes, preventing cleanup from racing database reads and intermittently failing to delete the temporary ledger.
+
 ### [3.12.1] - 2026-10-31
 
 #### Fixed

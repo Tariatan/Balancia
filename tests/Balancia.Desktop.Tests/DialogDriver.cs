@@ -6,6 +6,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace Balancia.Desktop.Tests;
 
@@ -67,6 +68,9 @@ internal static class DialogDriver
     {
         dialog.ClickDialogButton(saveLabel);
         await owner.WaitUntilClosedAsync();
+        // Closing resumes the dialog's caller, which refreshes the overview before the window can close.
+        Dispatcher.UIThread.RunJobs();
+        await DesktopWorkspace.WaitForOverviewAsync((MainWindow)owner);
     }
 
     /// <summary>Clicks the dialog's save button and waits for its error message, leaving the dialog open.</summary>

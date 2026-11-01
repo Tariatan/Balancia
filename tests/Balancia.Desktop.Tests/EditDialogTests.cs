@@ -303,7 +303,7 @@ public sealed class EditDialogTests
     [InlineData("Compact", 240, 430)]
     [InlineData("Wide", 240, 900)]
     [InlineData("Standard", 480, 430)]
-    [InlineData("Tall", 730, 430)]
+    [InlineData("Tall", 660, 430)]
     public async Task Dialog_SizeFollowsTheRequestedKind(string size, double height, double minWidth)
     {
         // Arrange
