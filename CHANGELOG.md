@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.14.0] - 2026-11-01
+
+#### Changed
+
+- Application version follows the Android dashboard layout and shared filter additions.
+
 ### [3.13.0] - 2026-11-01
 
 #### Added
@@ -1166,6 +1172,24 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.7.0] - 2026-11-01
+
+#### Added
+
+- Shared collapsible reporting filters with Month/All presets, Today, Week, Year, Last 30 days, custom dates, type, description and exact amount bounds.
+- Inline category checkboxes and collapsible accounts and top expenditures. Accounts starts with All selected.
+- Reminder summary follows Desktop: upcoming this month while current-month reminders remain, otherwise upcoming next month.
+- Timeline uses a compact chart with labeled scale ticks, subtle area shading, a continuous dashed comparison line, selection cursor and point markers. Date details appear in a separate card and initially show today or the nearest period date. Income/Expenses uses equally sized selected-state buttons.
+- Trend and Timeline detail amounts align in a table. Dates and numbers follow the Android system locale.
+- Disabled LLVM marshal methods in favor of runtime JNI registration.
+- Balancia icon is set for application.
+- Pull down at the top of any dashboard tab to choose an updated snapshot after the first import, with an indicator showing when to release.
+
+#### Changed
+
+- Compact single-line title/import date, split income/expense summary and compact dated transaction rows without icons. Removed the header Import button; first-time selection remains available in the empty state.
+- Reminders is the final tab, omits reporting filters and shows total, next-month subtotal and one list using desktop urgency colors.
 
 ### [0.6.0] - 2026-10-30
 

@@ -13,12 +13,15 @@ public partial class MainActivity : Activity
     private EditText? search;
     private LedgerReader? viewerReader;
     private bool importing;
+    private string? snapshotSource;
+    private const string SnapshotSourcePreference = "snapshot-source";
 
     protected override async void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
+        snapshotSource = GetSharedPreferences("viewer", FileCreationMode.Private)!.GetString(SnapshotSourcePreference, null);
         BuildDashboard();
-        status!.Text = "No snapshot loaded. Windows is the only writer.";
+        status!.Text = "No snapshot loaded";
         var dbPath = Path.Combine(FilesDir!.AbsolutePath, "viewer.db");
         if (File.Exists(dbPath))
         {
@@ -26,7 +29,7 @@ public partial class MainActivity : Activity
             try
             {
                 viewerReader = LedgerReader.Open(dbPath);
-                await DisplaySnapshot("Saved snapshot");
+                await DisplaySnapshot();
                 Log.Information("Saved Android viewer database opened");
             }
             catch (Exception ex)
@@ -62,6 +65,23 @@ public partial class MainActivity : Activity
             return;
         }
 
+        await LoadSnapshot(data.Data, rememberSource: true);
+    }
+
+    private async void RefreshSnapshot()
+    {
+        if (importing) { return; }
+        if (snapshotSource is null)
+        {
+            PickDocument();
+            return;
+        }
+        await LoadSnapshot(global::Android.Net.Uri.Parse(snapshotSource)!, rememberSource: false);
+    }
+
+    private async Task LoadSnapshot(global::Android.Net.Uri source, bool rememberSource)
+    {
+        if (importing) { return; }
         importing = true;
         using var context = LogContext.PushProperty("ImportId", Guid.NewGuid().ToString("N"));
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
@@ -70,14 +90,35 @@ public partial class MainActivity : Activity
         try
         {
             status!.Text = "Validating snapshot…";
-            await using (var input = ContentResolver!.OpenInputStream(data.Data))
+            await using (var input = ContentResolver!.OpenInputStream(source))
             await using (var output = File.Create(archivePath))
             {
                 await input!.CopyToAsync(output);
             }
             Log.Information("Android snapshot copied from document provider");
 
-            await ImportSnapshot(archivePath);
+            var outcome = await ImportSnapshot(archivePath);
+            if (rememberSource && outcome != ViewerImportOutcome.Canceled)
+            {
+                snapshotSource = source.ToString();
+                try
+                {
+                    ContentResolver!.TakePersistableUriPermission(source, ActivityFlags.GrantReadUriPermission);
+                    using var preferences = GetSharedPreferences("viewer", FileCreationMode.Private)!;
+                    using var editor = preferences.Edit()!;
+                    editor.PutString(SnapshotSourcePreference, snapshotSource);
+                    if (!editor.Commit())
+                    {
+                        Log.Warning("Snapshot source preference could not be saved");
+                        Toast.MakeText(this, "Snapshot loaded. Choose the source again after restarting the app.", ToastLength.Long)!.Show();
+                    }
+                }
+                catch (Java.Lang.SecurityException ex)
+                {
+                    Log.Warning("Snapshot source access could not be remembered, FailureType: '{FailureType}'", ex.GetType().Name);
+                    Toast.MakeText(this, "Snapshot loaded. This provider requires choosing the source again after restarting the app.", ToastLength.Long)!.Show();
+                }
+            }
             Log.Information("Android snapshot import interaction finished, ElapsedMs: '{ElapsedMs}'", elapsed.ElapsedMilliseconds);
         }
         catch (Exception ex)
@@ -99,6 +140,7 @@ public partial class MainActivity : Activity
                 .SetTitle("Snapshot rejected")!
                 .SetMessage(ex.Message)!
                 .SetPositiveButton("OK", (_, _) => { })!
+                .SetNeutralButton("Choose snapshot", (_, _) => PickDocument())!
                 .Show();
         }
         finally
@@ -115,6 +157,4 @@ public partial class MainActivity : Activity
             }
         }
     }
-
-    private void SearchTransactions() => RefreshDashboard();
 }

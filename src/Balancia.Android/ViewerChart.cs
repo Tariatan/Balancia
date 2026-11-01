@@ -13,24 +13,30 @@ internal sealed class ViewerChart : View
     private readonly IReadOnlyList<FlowBucket> buckets;
     private readonly bool timeline;
     private readonly bool expenses;
-    private readonly TextView detail;
+    private readonly CultureInfo displayCulture;
+    private readonly Action<string, Money, Money, Money> showDetail;
     private readonly Paint paint = new(PaintFlags.AntiAlias);
     private readonly List<Money> current = [];
     private readonly List<Money> previous = [];
     private int selected = -1;
+    private float plotLeft;
+    private float plotRight;
     private float Density => Resources!.DisplayMetrics!.Density;
 
-    internal ViewerChart(Context context, FlowAnalytics analytics, FlowInterval interval, bool timeline, bool expenses, TextView detail) : base(context)
+    internal ViewerChart(Context context, FlowAnalytics analytics, FlowInterval interval, bool timeline, bool expenses, CultureInfo displayCulture, Action<string, Money, Money, Money> showDetail) : base(context)
     {
         this.analytics = analytics;
         this.timeline = timeline;
         this.expenses = expenses;
-        this.detail = detail;
+        this.displayCulture = displayCulture;
+        this.showDetail = showDetail;
         buckets = analytics.Trend(interval);
         if (timeline)
         {
             Fill(analytics.Current, analytics.From, current);
             if (analytics.PreviousFrom is { } start) { Fill(analytics.Previous, start, previous); }
+            selected = Math.Clamp(DateOnly.FromDateTime(DateTime.Today).DayNumber - analytics.From.DayNumber, 0, current.Count - 1);
+            ShowSelection();
         }
         ContentDescription = timeline ? "Cumulative current and previous period chart. Tap to inspect a day." : "Income, expenses and savings chart. Tap to inspect an interval.";
         Clickable = true;
@@ -55,6 +61,11 @@ internal sealed class ViewerChart : View
     protected override void OnDraw(Canvas canvas)
     {
         base.OnDraw(canvas);
+        if (timeline)
+        {
+            DrawTimeline(canvas);
+            return;
+        }
         var left = 48 * Density;
         var top = 20 * Density;
         var right = Width - 10 * Density;
@@ -108,7 +119,7 @@ internal sealed class ViewerChart : View
         foreach (var index in new[] { 0, count / 2, count - 1 }.Distinct())
         {
             var date = timeline ? analytics.From.AddDays(index) : buckets[index].From;
-            canvas.DrawText(date.ToString("dd MMM", CultureInfo.InvariantCulture), Math.Clamp(X(index) - 16 * Density, left, right - 34 * Density), bottom + 24 * Density, paint);
+            canvas.DrawText(date.ToString("dd MMM", displayCulture), Math.Clamp(X(index) - 16 * Density, left, right - 34 * Density), bottom + 24 * Density, paint);
         }
 
         void DrawLine(IReadOnlyList<Money> values, Color color, bool dashed)
@@ -123,26 +134,136 @@ internal sealed class ViewerChart : View
         }
     }
 
+    private void DrawTimeline(Canvas canvas)
+    {
+        if (current.Count == 0) { return; }
+        var highest = Math.Max(100m, current.Concat(previous).Max(value => (decimal)value.Centimes));
+        var roughStep = highest / 4m;
+        var magnitude = 1m;
+        while (magnitude * 10m <= roughStep) { magnitude *= 10m; }
+        var normalized = roughStep / magnitude;
+        var step = (normalized <= 1m ? 1m : normalized <= 2m ? 2m : normalized <= 5m ? 5m : 10m) * magnitude;
+        var maximum = decimal.Ceiling(highest / step) * step;
+        if (maximum == highest) { maximum += step; }
+        var divisions = (int)(maximum / step);
+        paint.TextSize = global::Android.Util.TypedValue.ApplyDimension(global::Android.Util.ComplexUnitType.Sp, 10, Resources!.DisplayMetrics);
+        string Tick(decimal centimes) => (centimes / 100m).ToString(step < 100m ? "0.##" : "N0", displayCulture);
+        plotLeft = paint.MeasureText(Tick(maximum)) + 12 * Density;
+        plotRight = Width - 10 * Density;
+        var top = 16 * Density;
+        var bottom = Height - 32 * Density;
+        if (plotRight <= plotLeft || bottom <= top) { return; }
+        float X(int index) => current.Count == 1 ? (plotLeft + plotRight) / 2 : plotLeft + (plotRight - plotLeft) * index / (current.Count - 1);
+        float Y(Money amount) => bottom - (float)(amount.Centimes / maximum) * (bottom - top);
+
+        for (var line = 0; line <= divisions; line++)
+        {
+            var value = step * line;
+            var y = bottom - (float)(value / maximum) * (bottom - top);
+            paint.Color = ViewerPalette.Border;
+            paint.Alpha = 110;
+            paint.StrokeWidth = Density;
+            canvas.DrawLine(plotLeft, y, plotRight, y, paint);
+            paint.Color = ViewerPalette.Muted;
+            paint.Alpha = 255;
+            var label = Tick(value);
+            canvas.DrawText(label, plotLeft - paint.MeasureText(label) - 8 * Density, y + 3 * Density, paint);
+        }
+        foreach (var index in new[] { 0, (current.Count - 1) / 3, (current.Count - 1) * 2 / 3, current.Count - 1 }.Distinct())
+        {
+            var x = X(index);
+            paint.Color = ViewerPalette.Border;
+            paint.Alpha = 65;
+            canvas.DrawLine(x, top, x, bottom, paint);
+            paint.Color = ViewerPalette.Muted;
+            paint.Alpha = 255;
+            var label = analytics.From.AddDays(index).ToString("dd MMM", displayCulture);
+            var width = paint.MeasureText(label);
+            canvas.DrawText(label, Math.Clamp(x - width / 2, plotLeft, Math.Max(plotLeft, Width - width)), bottom + 22 * Density, paint);
+        }
+        var color = expenses ? ViewerPalette.Negative : ViewerPalette.Positive;
+        using var linePath = BuildPath(current);
+        using var fillPath = new global::Android.Graphics.Path(linePath);
+        fillPath.LineTo(X(current.Count - 1), bottom);
+        fillPath.LineTo(X(0), bottom);
+        fillPath.Close();
+        paint.Color = color;
+        paint.Alpha = 22;
+        paint.SetStyle(Paint.Style.Fill);
+        canvas.DrawPath(fillPath, paint);
+        paint.Alpha = 255;
+        paint.SetStyle(Paint.Style.Stroke);
+        paint.StrokeWidth = 2.5f * Density;
+        paint.StrokeJoin = Paint.Join.Round;
+        canvas.DrawPath(linePath, paint);
+        using var previousPath = BuildPath(previous);
+        using var dash = new DashPathEffect([6 * Density, 4 * Density], 0);
+        paint.SetPathEffect(dash);
+        paint.Color = ViewerPalette.Accent;
+        paint.StrokeWidth = 2 * Density;
+        canvas.DrawPath(previousPath, paint);
+        paint.SetPathEffect(null);
+        paint.SetStyle(Paint.Style.Fill);
+        if (selected >= 0)
+        {
+            var x = X(selected);
+            paint.Color = ViewerPalette.Muted;
+            paint.Alpha = 150;
+            paint.StrokeWidth = Density;
+            paint.SetPathEffect(dash);
+            canvas.DrawLine(x, top, x, bottom, paint);
+            paint.SetPathEffect(null);
+            paint.Alpha = 255;
+            DrawPoint(current[selected], color);
+            if (selected < previous.Count) { DrawPoint(previous[selected], ViewerPalette.Accent); }
+
+            void DrawPoint(Money value, Color pointColor)
+            {
+                paint.Color = ViewerPalette.Card;
+                canvas.DrawCircle(x, Y(value), 5 * Density, paint);
+                paint.Color = pointColor;
+                canvas.DrawCircle(x, Y(value), 3.5f * Density, paint);
+            }
+        }
+
+        global::Android.Graphics.Path BuildPath(IReadOnlyList<Money> values)
+        {
+            var path = new global::Android.Graphics.Path();
+            if (values.Count == 0) { return path; }
+            path.MoveTo(X(0), Y(values[0]));
+            for (var index = 1; index < values.Count; index++) { path.LineTo(X(index), Y(values[index])); }
+            return path;
+        }
+    }
+
     public override bool OnTouchEvent(MotionEvent? e)
     {
         if (e?.Action != MotionEventActions.Up) { return true; }
         var count = timeline ? current.Count : buckets.Count;
         if (count == 0) { return true; }
-        selected = Math.Clamp((int)((e.GetX() - 48 * Density) / Math.Max(1, Width - 58 * Density) * count), 0, count - 1);
-        string Format(Money amount) => $"CHF {amount.Francs.ToString("N2", CultureInfo.GetCultureInfo("de-CH"))}";
+        selected = timeline
+            ? Math.Clamp((int)Math.Round((e.GetX() - plotLeft) / Math.Max(1, plotRight - plotLeft) * (count - 1)), 0, count - 1)
+            : Math.Clamp((int)((e.GetX() - 48 * Density) / Math.Max(1, Width - 58 * Density) * count), 0, count - 1);
+        ShowSelection();
+        PerformClick();
+        Invalidate();
+        return true;
+    }
+
+    private void ShowSelection()
+    {
         if (timeline)
         {
             var comparison = selected < previous.Count ? previous[selected] : Money.Zero;
-            detail.Text = $"{analytics.From.AddDays(selected):dddd, dd MMM yyyy}\nCurrent   {Format(current[selected])}\nPrevious   {Format(comparison)}\nDifference   {Format(current[selected] - comparison)}";
+            showDetail(analytics.From.AddDays(selected).ToString("dddd, dd MMM yyyy", displayCulture),
+                current[selected], comparison, current[selected] - comparison);
         }
         else
         {
             var bucket = buckets[selected];
-            detail.Text = $"{bucket.From:dd MMM} – {bucket.To:dd MMM yyyy}\nIncome   {Format(bucket.Income)}\nExpenses   {Format(bucket.Expenses)}\nSavings   {Format(bucket.Savings)}";
+            showDetail($"{bucket.From.ToString("dd MMM", displayCulture)} – {bucket.To.ToString("dd MMM yyyy", displayCulture)}",
+                bucket.Income, bucket.Expenses, bucket.Savings);
         }
-        PerformClick();
-        Invalidate();
-        return true;
     }
 
     public override bool PerformClick() => base.PerformClick();

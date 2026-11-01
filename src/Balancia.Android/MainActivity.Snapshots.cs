@@ -8,7 +8,7 @@ public partial class MainActivity
 {
     private string KeyPath => Path.Combine(NoBackupFilesDir!.AbsolutePath, "snapshot-key.keystore");
 
-    private async Task ImportSnapshot(string archivePath)
+    private async Task<ViewerImportOutcome> ImportSnapshot(string archivePath)
     {
         var dbPath = Path.Combine(FilesDir!.AbsolutePath, "viewer.db");
         var outcome = await ViewerSnapshotImport.RunAsync(archivePath, dbPath, new ImportHost(this));
@@ -21,6 +21,7 @@ public partial class MainActivity
                 status!.Text += "\nSnapshot loaded, but the key could not be remembered. Next import will ask again.";
                 break;
         }
+        return outcome;
     }
 
     /// <summary>The Android parts of the import: the Keystore-protected key cache, the passphrase dialog and the status screen.</summary>
@@ -47,7 +48,7 @@ public partial class MainActivity
         public async Task ImportedAsync(LedgerReader reader, SnapshotManifest manifest)
         {
             activity.viewerReader = reader;
-            await activity.DisplaySnapshot($"Revision {manifest.Revision}");
+            await activity.DisplaySnapshot();
         }
     }
 
@@ -79,12 +80,12 @@ public partial class MainActivity
         return completion.Task;
     }
 
-    private async Task DisplaySnapshot(string label)
+    private async Task DisplaySnapshot()
     {
         await Task.Run(() => viewerReader!.ReadIdentity());
         var imported = File.GetLastWriteTime(Path.Combine(FilesDir!.AbsolutePath, "viewer.db"));
         Log.Information("Android snapshot summary refreshed");
-        status!.Text = $"Imported {imported:dd MMM yyyy HH:mm} · {label} · Read only";
+        status!.Text = $"● Imported {imported.ToString("dd MMM yyyy", DisplayCulture)}";
         RefreshDashboard();
     }
 }

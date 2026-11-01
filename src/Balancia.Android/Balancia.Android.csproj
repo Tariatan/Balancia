@@ -7,14 +7,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.triatan.balancia.android</ApplicationId>
-    <Version>0.6.0</Version>
-    <ApplicationVersion>10</ApplicationVersion>
-    <ApplicationDisplayVersion>0.6.0</ApplicationDisplayVersion>
+    <Version>0.7.0</Version>
+    <ApplicationVersion>20</ApplicationVersion>
+    <ApplicationDisplayVersion>0.7.0</ApplicationDisplayVersion>
     <!--
       Enables trim analyzers and full trimming during Release mode.
       To learn more, see: https://learn.microsoft.com/dotnet/core/deploying/trimming/trimming-options#trimming-granularity
     -->
     <TrimMode>partial</TrimMode>
+    <!-- Runtime JNI registration avoids missing lifecycle callbacks in incremental LLVM marshal-method builds. -->
+    <AndroidEnableMarshalMethods>false</AndroidEnableMarshalMethods>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Serilog" Version="4.4.0" />
