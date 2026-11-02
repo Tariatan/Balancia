@@ -26,6 +26,32 @@ Before changing code, identify the affected workflow in the Technical Design Des
 
 Use README.md for the verified restore/build/test/run commands for Balancia.slnx. Restore in locked mode. Keep global.json, package versions, and lock files aligned; review lock changes when intentionally updating dependencies. Close the running app before rebuilding. Never present planned commands as verified ones.
 
+## Android APK builds
+
+Publish installable Android APKs to `artifacts/android/<ApplicationDisplayVersion>/` inside this repository. Give the user the signed APK from that directory. Files under `bin/Release/` are build outputs and may be stale; they are not the delivery location.
+
+Run from the repository root with the SDK pinned by `global.json` and its Android workload installed. Set `ANDROID_HOME` and `JAVA_HOME` to the installed Android SDK and Java SDK directories. The verified packaging configuration is Release, `android-arm64`, APK format, with `AndroidEnableMarshalMethods=false` retained in the project to avoid the startup callback packaging defect. Java 27 produces tooling warnings in the current environment but publishing succeeds.
+
+```powershell
+$androidProject = 'src/Balancia.Android/Balancia.Android.csproj'
+$androidVersion = ([xml](Get-Content $androidProject -Raw)).Project.PropertyGroup.ApplicationDisplayVersion |
+    Where-Object { $_ } | Select-Object -First 1
+$androidOutput = "artifacts/android/$androidVersion"
+
+dotnet restore Balancia.slnx --locked-mode
+if ($LASTEXITCODE -ne 0) { throw 'Locked restore failed.' }
+dotnet publish $androidProject -c Release --no-restore `
+    -p:RuntimeIdentifier=android-arm64 `
+    -p:AndroidPackageFormats=apk `
+    "-p:AndroidSdkDirectory=$env:ANDROID_HOME" `
+    "-p:JavaSdkDirectory=$env:JAVA_HOME" `
+    -o $androidOutput
+if ($LASTEXITCODE -ne 0) { throw 'Android publish failed.' }
+Get-Item "$androidOutput/com.triatan.balancia.android-Signed.apk"
+```
+
+For a clean rebuild, run `dotnet clean $androidProject -c Release -r android-arm64` before restore. Preserve the existing signing identity so the APK can update an installed copy; current local builds use the default Android debug keystore. Verify the packaged version, display name and signature before delivery. A successful publish does not verify launch or gestures on a device. See [Android verification](docs/ANDROID.md) for interaction checks.
+
 ## Versioning
 
 Always bump Balancia.Desktop's application version whenever any project changes, even when Desktop's own implementation is unchanged. For other projects, bump versions only when their own implementation changed. Record notable implementation changes in [CHANGELOG.md](CHANGELOG.md) under the affected project's version, newest first, with a date and the appropriate Keep a Changelog category. Use Major for breaking behavior, Minor for compatible features, and Patch for compatible bug fixes. Keep version metadata and changelog entries aligned; planned rework belongs in PLAN.md until implemented.

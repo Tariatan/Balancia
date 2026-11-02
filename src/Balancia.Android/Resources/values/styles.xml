@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="ViewerDark" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:colorAccent">#52A5FF</item>
+        <item name="android:windowBackground">#101C24</item>
+        <item name="android:colorBackground">#101C24</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+    <style name="ViewerLight" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">#3989A7</item>
+        <item name="android:windowBackground">#F6F8FA</item>
+        <item name="android:colorBackground">#F6F8FA</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

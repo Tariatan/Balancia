@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.15.0] - 2026-11-02
+
+#### Changed
+
+- Application version follows the Android light theme and theme toggle addition.
+
 ### [3.14.0] - 2026-11-01
 
 #### Changed
@@ -1172,6 +1178,13 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.8.0] - 2026-11-02
+
+#### Added
+
+- Built-in light theme based on the desktop Balancia palette, alongside the existing default dark theme.
+- Top-right half-sun/half-moon button switches themes and remembers the selection across restarts. Dashboard cards, charts and native dialogs follow the selected theme.
 
 ### [0.7.0] - 2026-11-01
 

@@ -18,6 +18,9 @@ public partial class MainActivity : Activity
 
     protected override async void OnCreate(Bundle? savedInstanceState)
     {
+        using var preferences = GetSharedPreferences("viewer", FileCreationMode.Private)!;
+        lightTheme = preferences.GetBoolean("light-theme", false);
+        ApplyTheme();
         base.OnCreate(savedInstanceState);
         snapshotSource = GetSharedPreferences("viewer", FileCreationMode.Private)!.GetString(SnapshotSourcePreference, null);
         BuildDashboard();

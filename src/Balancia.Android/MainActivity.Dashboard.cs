@@ -55,6 +55,16 @@ public partial class MainActivity
         status.SetSingleLine(true);
         status.Ellipsize = global::Android.Text.TextUtils.TruncateAt.End;
         header.AddView(status, new LinearLayout.LayoutParams(0, -2, 1));
+        var themeButton = new ImageButton(this)
+        {
+            ContentDescription = lightTheme ? "Switch to dark theme" : "Switch to light theme",
+            Background = Surface(ViewerPalette.Card),
+            ImageTintList = global::Android.Content.Res.ColorStateList.ValueOf(ViewerPalette.Text),
+        };
+        themeButton.SetImageResource(Resource.Drawable.theme_toggle);
+        themeButton.SetPadding(Dp(12), Dp(12), Dp(12), Dp(12));
+        themeButton.Click += (_, _) => ToggleTheme();
+        header.AddView(themeButton, new LinearLayout.LayoutParams(Dp(48), Dp(48)));
         root.AddView(header);
         var scroll = new ScrollView(this) { FillViewport = true };
         content = Column();
