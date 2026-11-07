@@ -4,14 +4,19 @@ using Serilog;
 
 namespace Balancia.Desktop;
 
-/// <summary>A named set of colors for <see cref="Palette"/> roles. A role it does not mention keeps its built-in color.</summary>
+/// <summary>A named set of colors for <see cref="Palette"/> roles. A role it does not mention keeps its Glacier color.</summary>
 internal sealed record ColorTheme(string Name, IReadOnlyDictionary<string, Color> Colors)
 {
-    /// <summary>The name of the theme that is built in; a theme file cannot take it.</summary>
-    internal const string BuiltInName = "Balancia";
+    internal const string GlacierName = "Glacier";
+    internal const string GraphiteName = "Graphite";
 
-    /// <summary>The built-in theme: no overrides, so every role has its built-in color.</summary>
-    internal static ColorTheme BuiltIn { get; } = new(BuiltInName, new Dictionary<string, Color>());
+    internal static ColorTheme Glacier { get; } = new(GlacierName, new Dictionary<string, Color>());
+    internal static ColorTheme Graphite { get; } = new(GraphiteName, Palette.GraphiteColors);
+
+    internal static bool IsReservedName(string name) =>
+        string.Equals(name, GlacierName, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, GraphiteName, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "Balancia", StringComparison.OrdinalIgnoreCase);
 
     public override string ToString() => Name;
 }
@@ -56,7 +61,7 @@ internal static class ColorThemeFile
                 }
                 else if (property.Value.ValueKind != JsonValueKind.String || !Color.TryParse(property.Value.GetString(), out var color))
                 {
-                    warnings.Add($"The color of '{role}' is not #RRGGBB or #AARRGGBB; the built-in color is kept.");
+                    warnings.Add($"The color of '{role}' is not #RRGGBB or #AARRGGBB; the Glacier color is kept.");
                 }
                 else
                 {
@@ -119,7 +124,7 @@ internal static class ColorThemeCatalog
             {
                 Log.Warning("Theme file '{File}' ignored", fileName);
             }
-            else if (string.Equals(theme.Name, ColorTheme.BuiltInName, StringComparison.OrdinalIgnoreCase)
+            else if (ColorTheme.IsReservedName(theme.Name)
                 || themes.Any(other => string.Equals(other.Name, theme.Name, StringComparison.OrdinalIgnoreCase)))
             {
                 Log.Warning("Theme file '{File}' ignored: the name '{Name}' is already taken", fileName, theme.Name);

@@ -11,51 +11,55 @@ namespace Balancia.Desktop;
 internal static class Palette
 {
     private static readonly Dictionary<string, SolidColorBrush> tokens = [];
-    private static readonly Dictionary<string, Color> builtInColors = [];
+    private static readonly Dictionary<string, Color> glacierColors = [];
+
+    private static readonly Dictionary<string, Color> graphiteColors = [];
 
     // Text
-    internal static readonly SolidColorBrush Text = Define(nameof(Text), "#263C48");
-    internal static readonly SolidColorBrush TextMuted = Define(nameof(TextMuted), "#71838D");
-    internal static readonly SolidColorBrush TextBody = Define(nameof(TextBody), "#344D44");
-    internal static readonly SolidColorBrush Error = Define(nameof(Error), "#8B0000");
+    internal static readonly SolidColorBrush Text = Define(nameof(Text), "#263D4C", "#E6EAF0");
+    internal static readonly SolidColorBrush TextMuted = Define(nameof(TextMuted), "#607889", "#A0ADBD");
+    internal static readonly SolidColorBrush TextBody = Define(nameof(TextBody), "#263D4C", "#E6EAF0");
+    internal static readonly SolidColorBrush Error = Define(nameof(Error), "#BB4B3D", "#FF9A8D");
 
     // Accent and what sits on it
-    internal static readonly SolidColorBrush Accent = Define(nameof(Accent), "#3989A7");
-    internal static readonly SolidColorBrush AccentSurface = Define(nameof(AccentSurface), "#E7F2F6");
-    internal static readonly SolidColorBrush AccentTintStrong = Define(nameof(AccentTintStrong), "#403989A7");
-    internal static readonly SolidColorBrush AccentSurfaceHover = Define(nameof(AccentSurfaceHover), "#D5EAF1");
-    internal static readonly SolidColorBrush AccentSurfacePressed = Define(nameof(AccentSurfacePressed), "#BDDDE9");
-    internal static readonly SolidColorBrush AccentTintLight = Define(nameof(AccentTintLight), "#263989A7");
-    internal static readonly SolidColorBrush AccentTintMedium = Define(nameof(AccentTintMedium), "#303989A7");
-    internal static readonly SolidColorBrush OnAccent = Define(nameof(OnAccent), "#FFFFFF");
+    internal static readonly SolidColorBrush Accent = Define(nameof(Accent), "#277FA5", "#8AB8FF");
+    internal static readonly SolidColorBrush AccentSurface = Define(nameof(AccentSurface), "#DCEEF5", "#2C405C");
+    internal static readonly SolidColorBrush AccentTintStrong = Define(nameof(AccentTintStrong), "#40277FA5", "#408AB8FF");
+    internal static readonly SolidColorBrush AccentSurfaceHover = Define(nameof(AccentSurfaceHover), "#DCEEF5", "#2C405C");
+    internal static readonly SolidColorBrush AccentSurfacePressed = Define(nameof(AccentSurfacePressed), "#D6E3EC", "#343E4A");
+    internal static readonly SolidColorBrush AccentTintLight = Define(nameof(AccentTintLight), "#26277FA5", "#268AB8FF");
+    internal static readonly SolidColorBrush AccentTintMedium = Define(nameof(AccentTintMedium), "#30277FA5", "#308AB8FF");
+    internal static readonly SolidColorBrush OnAccent = Define(nameof(OnAccent), "#FFFFFF", "#172130");
 
     // Meaning of an amount or a date
-    internal static readonly SolidColorBrush Positive = Define(nameof(Positive), "#2C8B6D");
-    internal static readonly SolidColorBrush Negative = Define(nameof(Negative), "#B95D4D");
-    internal static readonly SolidColorBrush Warning = Define(nameof(Warning), "#B58B00");
-    internal static readonly SolidColorBrush Transfer = Define(nameof(Transfer), "#1B4F72");
+    internal static readonly SolidColorBrush Positive = Define(nameof(Positive), "#187B67", "#79D7B0");
+    internal static readonly SolidColorBrush Negative = Define(nameof(Negative), "#BB4B3D", "#FF9A8D");
+    internal static readonly SolidColorBrush Warning = Define(nameof(Warning), "#946900", "#E7B75A");
+    internal static readonly SolidColorBrush Transfer = Define(nameof(Transfer), "#277FA5", "#8AB8FF");
 
     // Surfaces
-    internal static readonly SolidColorBrush WindowBackground = Define(nameof(WindowBackground), "#F6F8FA");
-    internal static readonly SolidColorBrush Surface = Define(nameof(Surface), "#FFFFFF");
-    internal static readonly SolidColorBrush Border = Define(nameof(Border), "#DCE6EB");
-    internal static readonly SolidColorBrush HeaderBar = Define(nameof(HeaderBar), "#1B303D");
-    internal static readonly SolidColorBrush OnHeaderBar = Define(nameof(OnHeaderBar), "#FFFFFF");
-    internal static readonly SolidColorBrush RowBlue = Define(nameof(RowBlue), "#F3F8FA");
-    internal static readonly SolidColorBrush RowIvory = Define(nameof(RowIvory), "#FCF8F0");
-    internal static readonly SolidColorBrush SelectionBackground = Define(nameof(SelectionBackground), "#D8ECF3");
-    internal static readonly SolidColorBrush SelectionForeground = Define(nameof(SelectionForeground), "#1C627E");
-    internal static readonly SolidColorBrush PopupBackground = Define(nameof(PopupBackground), "#E5E5E5");
-    internal static readonly SolidColorBrush PopupBorder = Define(nameof(PopupBorder), "#BFC7CB");
-    internal static readonly SolidColorBrush SuggestionTopMatch = Define(nameof(SuggestionTopMatch), "#52636C");
+    internal static readonly SolidColorBrush WindowBackground = Define(nameof(WindowBackground), "#F0F5F9", "#15191F");
+    internal static readonly SolidColorBrush Surface = Define(nameof(Surface), "#FFFFFF", "#20262E");
+    internal static readonly SolidColorBrush Border = Define(nameof(Border), "#D6E3EC", "#343E4A");
+    internal static readonly SolidColorBrush HeaderBar = Define(nameof(HeaderBar), "#1D3543", "#15191F");
+    internal static readonly SolidColorBrush OnHeaderBar = Define(nameof(OnHeaderBar), "#FFFFFF", "#E6EAF0");
+    internal static readonly SolidColorBrush RowBlue = Define(nameof(RowBlue), "#F3F8FB", "#252D37");
+    internal static readonly SolidColorBrush RowIvory = Define(nameof(RowIvory), "#FFFFFF", "#20262E");
+    internal static readonly SolidColorBrush SelectionBackground = Define(nameof(SelectionBackground), "#DCEEF5", "#2C405C");
+    internal static readonly SolidColorBrush SelectionForeground = Define(nameof(SelectionForeground), "#263D4C", "#E6EAF0");
+    internal static readonly SolidColorBrush PopupBackground = Define(nameof(PopupBackground), "#FFFFFF", "#20262E");
+    internal static readonly SolidColorBrush PopupBorder = Define(nameof(PopupBorder), "#D6E3EC", "#343E4A");
+    internal static readonly SolidColorBrush SuggestionTopMatch = Define(nameof(SuggestionTopMatch), "#607889", "#A0ADBD");
 
     // Charts
-    internal static readonly SolidColorBrush ChartIncome = Define(nameof(ChartIncome), "#2C8B6D");
-    internal static readonly SolidColorBrush ChartExpense = Define(nameof(ChartExpense), "#EF8072");
-    internal static readonly SolidColorBrush ChartSavings = Define(nameof(ChartSavings), "#289FCC");
-    internal static readonly SolidColorBrush ChartPrevious = Define(nameof(ChartPrevious), "#B8C2CC");
-    internal static readonly SolidColorBrush ChartAxis = Define(nameof(ChartAxis), "#CBD5DC");
-    internal static readonly SolidColorBrush ChartLabel = Define(nameof(ChartLabel), "#71838D");
+    internal static readonly SolidColorBrush ChartIncome = Define(nameof(ChartIncome), "#187B67", "#79D7B0");
+    internal static readonly SolidColorBrush ChartExpense = Define(nameof(ChartExpense), "#BB4B3D", "#FF9A8D");
+    internal static readonly SolidColorBrush ChartSavings = Define(nameof(ChartSavings), "#277FA5", "#8AB8FF");
+    internal static readonly SolidColorBrush ChartPrevious = Define(nameof(ChartPrevious), "#607889", "#A0ADBD");
+    internal static readonly SolidColorBrush ChartAxis = Define(nameof(ChartAxis), "#D6E3EC", "#343E4A");
+    internal static readonly SolidColorBrush ChartLabel = Define(nameof(ChartLabel), "#607889", "#A0ADBD");
+
+    internal static IReadOnlyDictionary<string, Color> GraphiteColors => graphiteColors;
 
     /// <summary>Every role by name, in the order declared.</summary>
     internal static IReadOnlyDictionary<string, SolidColorBrush> Tokens => tokens;
@@ -74,14 +78,14 @@ internal static class Palette
     }
 
     /// <summary>
-    /// Shows <paramref name="overrides"/> (role name to color) and the built-in color of every role it does not mention. The shared brushes keep
+    /// Shows <paramref name="overrides"/> (role name to color) and the Glacier color of every role it does not mention. The shared brushes keep
     /// their identity and change color, so every control that holds one follows. Call it on the UI thread.
     /// </summary>
     internal static void Apply(IReadOnlyDictionary<string, Color> overrides)
     {
         foreach (var (name, brush) in tokens)
         {
-            var color = overrides.TryGetValue(name, out var chosen) ? chosen : builtInColors[name];
+            var color = overrides.TryGetValue(name, out var chosen) ? chosen : glacierColors[name];
             if (brush.Color != color)
             {
                 brush.Color = color;
@@ -92,12 +96,13 @@ internal static class Palette
     /// <summary>Positive above zero, negative at zero or below.</summary>
     internal static IBrush ForBalance(Money amount) => amount > Money.Zero ? Positive : Negative;
 
-    private static SolidColorBrush Define(string name, string hex)
+    private static SolidColorBrush Define(string name, string glacier, string graphite)
     {
-        var color = Color.Parse(hex);
+        var color = Color.Parse(glacier);
         var brush = new SolidColorBrush(color);
         tokens.Add(name, brush);
-        builtInColors.Add(name, color);
+        glacierColors.Add(name, color);
+        graphiteColors.Add(name, Color.Parse(graphite));
         return brush;
     }
 }

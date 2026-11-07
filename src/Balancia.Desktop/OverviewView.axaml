@@ -4,10 +4,21 @@
              x:Class="Balancia.Desktop.OverviewView">
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="11">
 
-    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto">
       <TextBlock x:Name="SummaryLabel" Grid.Column="0" FontSize="12" Foreground="{DynamicResource Palette.Negative}" VerticalAlignment="Center" />
       <TextBlock x:Name="OverviewStatus" Grid.Column="1" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" />
-      <Button x:Name="SettingsButton" Classes="icon" Grid.Column="2" Content="⚙" VerticalAlignment="Center" />
+      <Button x:Name="ThemeToggleButton" Classes="icon" Grid.Column="2" Margin="0,0,4,0"
+              VerticalAlignment="Stretch" VerticalContentAlignment="Center">
+        <Viewbox Width="16" Height="16">
+          <Canvas Width="24" Height="24">
+            <Path Stroke="{DynamicResource Palette.Text}" StrokeThickness="1.6" StrokeLineCap="Round"
+                  Data="M12,5 A7,7 0 1 0 12,19 M12,2 L12,3 M5,5 L3.8,3.8 M3,12 L1,12 M5,19 L3.8,20.2 M12,21 L12,22 M12,5 L12,19" />
+            <Path Fill="{DynamicResource Palette.Text}"
+                  Data="M14,5 C22,6 24,15 17,19 C15,20 14,20 12,19 C19,18 21,10 14,5 Z" />
+          </Canvas>
+        </Viewbox>
+      </Button>
+      <Button x:Name="SettingsButton" Classes="icon" Grid.Column="3" Content="⚙" VerticalAlignment="Center" />
     </Grid>
 
     <local:FilterRow x:Name="FilterRow" x:FieldModifier="internal" Grid.Row="1" />

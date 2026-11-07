@@ -14,6 +14,20 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.16.0] - 2026-11-07
+
+#### Added
+
+- Built-in Glacier and Graphite themes and a sun/moon button beside the Settings gear to switch between them.
+
+#### Changed
+
+- Glacier is the default theme and supplies the colors for roles omitted by custom themes.
+
+#### Removed
+
+- The former Balancia theme.
+
 ### [3.15.0] - 2026-11-02
 
 #### Changed

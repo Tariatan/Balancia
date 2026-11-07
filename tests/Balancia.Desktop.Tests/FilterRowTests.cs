@@ -101,8 +101,8 @@ public sealed class FilterRowTests
         // Assert
         Assert.Equal(["FilterButtonYear"], first);
         Assert.Equal(["FilterButtonToday"], Highlighted(row));
-        Assert.Equal(Brush.Parse("#D8ECF3").ToString(), Find<Button>(row, "FilterButtonToday").Background!.ToString());
-        Assert.Equal(Brush.Parse("#1C627E").ToString(), Find<Button>(row, "FilterButtonToday").Foreground!.ToString());
+        Assert.Same(Palette.SelectionBackground, Find<Button>(row, "FilterButtonToday").Background);
+        Assert.Same(Palette.SelectionForeground, Find<Button>(row, "FilterButtonToday").Foreground);
     }
 
     [AvaloniaFact]
@@ -432,8 +432,8 @@ public sealed class FilterRowTests
         Dispatcher.UIThread.RunJobs();
 
         // Assert
-        Assert.Equal(Brush.Parse("#71838D").ToString(), empty);
-        Assert.Equal(Brush.Parse("#263C48").ToString(), filled);
+        Assert.Equal(Brush.Parse("#607889").ToString(), empty);
+        Assert.Equal(Brush.Parse("#263D4C").ToString(), filled);
         Assert.All(Inputs, name => Assert.Equal(empty, ColorOf(Find<Control>(row, name))));
     }
 
@@ -448,6 +448,6 @@ public sealed class FilterRowTests
         Dispatcher.UIThread.RunJobs();
 
         // Assert
-        Assert.Equal(Brush.Parse("#71838D").ToString(), ColorOf(Find<TextBox>(row, "FilterSearch")));
+        Assert.Equal(Brush.Parse("#607889").ToString(), ColorOf(Find<TextBox>(row, "FilterSearch")));
     }
 }

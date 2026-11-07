@@ -1,6 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Xunit;
 
 namespace Balancia.Desktop.Tests;
@@ -11,7 +13,11 @@ public sealed class ThemeSwitchTests : IDisposable
     private const string Dusk = """{ "name": "Dusk", "colors": { "Text": "#E0E0E0", "WindowBackground": "#102030" } }""";
 
     // The palette is shared by every test, so each one ends by showing the built-in colors again.
-    public void Dispose() => Palette.Apply(new Dictionary<string, Color>());
+    public void Dispose()
+    {
+        Palette.Apply(ColorTheme.Glacier.Colors);
+        Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
+    }
 
     private static void WriteTheme(DesktopWorkspace workspace, string fileName, string json)
     {
@@ -45,20 +51,22 @@ public sealed class ThemeSwitchTests : IDisposable
         Assert.Same(Palette.WindowBackground, window.Background);
     }
 
-    [AvaloniaFact]
-    public async Task Open_WithASavedThemeWhoseFileIsGone_StartsBuiltIn()
+    [AvaloniaTheory]
+    [InlineData("Dusk")]
+    [InlineData("Balancia")]
+    public async Task Open_WithAnUnavailableTheme_StartsInGlacier(string savedTheme)
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
         workspace.SeedStore();
-        workspace.WriteSettings(theme: "Dusk");
+        workspace.WriteSettings(theme: savedTheme);
 
         // Act
         var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: false);
 
         // Assert
-        Assert.Equal(ColorTheme.BuiltInName, window.ThemeName);
-        Assert.Equal(Color.Parse("#263C48"), Palette.Text.Color);
+        Assert.Equal(ColorTheme.GlacierName, window.ThemeName);
+        Assert.Equal(Color.Parse("#263D4C"), Palette.Text.Color);
     }
 
     [AvaloniaFact]
@@ -74,7 +82,7 @@ public sealed class ThemeSwitchTests : IDisposable
         await workspace.OpenConfiguredWindowAsync(withSnapshotKey: false);
 
         // Assert
-        Assert.Equal(Color.Parse("#263C48"), Palette.Text.Color);
+        Assert.Equal(Color.Parse("#263D4C"), Palette.Text.Color);
     }
 
     [AvaloniaFact]
@@ -107,10 +115,10 @@ public sealed class ThemeSwitchTests : IDisposable
         var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: false);
 
         // Act
-        window.ApplyThemeChange(ColorTheme.BuiltInName);
+        window.ApplyThemeChange(ColorTheme.GlacierName);
 
         // Assert
-        Assert.Equal(Color.Parse("#F6F8FA"), ((ISolidColorBrush)window.Background!).Color);
+        Assert.Equal(Color.Parse("#F0F5F9"), ((ISolidColorBrush)window.Background!).Color);
         Assert.Null(workspace.ReadSavedTheme());
     }
 
@@ -128,11 +136,11 @@ public sealed class ThemeSwitchTests : IDisposable
         var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: false);
 
         // Assert
-        Assert.Equal([ColorTheme.BuiltInName, "Dusk"], window.Themes.Select(theme => theme.Name));
+        Assert.Equal([ColorTheme.GlacierName, ColorTheme.GraphiteName, "Dusk"], window.Themes.Select(theme => theme.Name));
     }
 
     [AvaloniaFact]
-    public async Task SeparateDataFolder_OffersOnlyTheBuiltInTheme()
+    public async Task SeparateDataFolder_OffersOnlyTheBuiltInThemes()
     {
         // Arrange
         using var workspace = new DesktopWorkspace();
@@ -142,7 +150,7 @@ public sealed class ThemeSwitchTests : IDisposable
         var window = await workspace.OpenWindowAsync();
 
         // Assert
-        Assert.Equal([ColorTheme.BuiltInName], window.Themes.Select(theme => theme.Name));
+        Assert.Equal([ColorTheme.GlacierName, ColorTheme.GraphiteName], window.Themes.Select(theme => theme.Name));
     }
 
     [AvaloniaFact]
@@ -162,8 +170,8 @@ public sealed class ThemeSwitchTests : IDisposable
         picker.SelectedItem = picker.ItemsSource!.Cast<ColorTheme>().Single(theme => theme.Name == "Dusk");
 
         // Assert
-        Assert.Equal([ColorTheme.BuiltInName, "Dusk"], offered);
-        Assert.Equal(ColorTheme.BuiltInName, selectedAtFirst);
+        Assert.Equal([ColorTheme.GlacierName, ColorTheme.GraphiteName, "Dusk"], offered);
+        Assert.Equal(ColorTheme.GlacierName, selectedAtFirst);
         Assert.Equal("Dusk", window.ThemeName);
         Assert.Equal("Dusk", workspace.ReadSavedTheme());
         Assert.Equal(Color.Parse("#E0E0E0"), Palette.Text.Color);
@@ -183,6 +191,51 @@ public sealed class ThemeSwitchTests : IDisposable
 
         // Assert
         Assert.Equal("Dusk", ((ColorTheme)settings.Find<ComboBox>("ThemePicker").SelectedItem!).Name);
+    }
+
+    [AvaloniaFact]
+    public async Task ThemeToggle_FromGlacier_SwitchesToGraphiteAndBackAndPersistsTheChoice()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        workspace.SeedStore();
+        workspace.WriteSettings();
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: false);
+
+        // Act
+        window.Click("ThemeToggleButton");
+
+        // Assert
+        Assert.Equal(ColorTheme.GraphiteName, window.ThemeName);
+        Assert.Equal(ColorTheme.GraphiteName, workspace.ReadSavedTheme());
+        Assert.Equal(Color.Parse("#15191F"), ((ISolidColorBrush)window.Background!).Color);
+        Assert.Equal(ThemeVariant.Dark, window.ActualThemeVariant);
+
+        // Act
+        window.Click("ThemeToggleButton");
+
+        // Assert
+        Assert.Equal(ColorTheme.GlacierName, window.ThemeName);
+        Assert.Null(workspace.ReadSavedTheme());
+        Assert.Equal(Color.Parse("#F0F5F9"), ((ISolidColorBrush)window.Background!).Color);
+        Assert.Equal(ThemeVariant.Light, window.ActualThemeVariant);
+    }
+
+    [AvaloniaFact]
+    public async Task Open_WithGraphiteSaved_RestoresDarkThemeWithoutAThemeFile()
+    {
+        // Arrange
+        using var workspace = new DesktopWorkspace();
+        workspace.SeedStore();
+        workspace.WriteSettings(theme: ColorTheme.GraphiteName);
+
+        // Act
+        var window = await workspace.OpenConfiguredWindowAsync(withSnapshotKey: false);
+
+        // Assert
+        Assert.Equal(ColorTheme.GraphiteName, window.ThemeName);
+        Assert.Equal(Color.Parse("#E6EAF0"), Palette.Text.Color);
+        Assert.Equal(ThemeVariant.Dark, window.ActualThemeVariant);
     }
 
     [AvaloniaFact]

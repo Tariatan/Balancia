@@ -7,6 +7,7 @@
   <data name="Settings" xml:space="preserve"><value>Einstellungen</value></data>
   <data name="Language" xml:space="preserve"><value>Sprache</value></data>
   <data name="Theme" xml:space="preserve"><value>Design</value></data>
+  <data name="Toggle light and dark theme" xml:space="preserve"><value>Zwischen hellem und dunklem Design wechseln</value></data>
   <data name="Overview" xml:space="preserve"><value>Übersicht</value></data>
   <data name="Close" xml:space="preserve"><value>Schließen</value></data>
   <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>

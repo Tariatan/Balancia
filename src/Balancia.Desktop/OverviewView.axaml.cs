@@ -1,3 +1,4 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Balancia.Core;
 using Balancia.Storage;
@@ -43,11 +44,19 @@ public partial class OverviewView : UserControl
                 UpdateAnalyticsCharts();
             }
         };
+        ThemeToggleButton.Click += async (_, _) =>
+        {
+            if (ThemeToggleRequested is { } toggle)
+            {
+                await toggle();
+            }
+        };
         SettingsButton.Click += (_, _) => SettingsRequested?.Invoke();
     }
 
     /// <summary>Asks for the settings dialog.</summary>
     internal event Action? SettingsRequested;
+    internal event Func<Task>? ThemeToggleRequested;
 
     /// <summary>Asks the window to load again, because what the user chose needs other data. The task ends when the new data is shown.</summary>
     internal event Func<Task>? ReloadRequested;
@@ -185,6 +194,9 @@ public partial class OverviewView : UserControl
 
     private void Localize()
     {
+        var toggleTheme = Get("Toggle light and dark theme");
+        ToolTip.SetTip(ThemeToggleButton, toggleTheme);
+        AutomationProperties.SetName(ThemeToggleButton, toggleTheme);
         ToolTip.SetTip(SettingsButton, Get("Open settings"));
         IncomeCard.Title = Get("Income");
         ExpensesCard.Title = Get("Expenses");

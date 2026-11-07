@@ -78,7 +78,7 @@ public sealed class ColorThemeFileTests
 
         // Assert
         Assert.Equal(["Accent"], result.Theme!.Colors.Keys);
-        Assert.Equal(["The color of 'Text' is not #RRGGBB or #AARRGGBB; the built-in color is kept."], result.Warnings);
+        Assert.Equal(["The color of 'Text' is not #RRGGBB or #AARRGGBB; the Glacier color is kept."], result.Warnings);
     }
 
     [AvaloniaTheory]
@@ -185,11 +185,14 @@ public sealed class ColorThemeCatalogTests : IDisposable
         Assert.Equal(["Good"], themes.Select(theme => theme.Name));
     }
 
-    [AvaloniaFact]
-    public void Load_TheBuiltInName_IsRefusedWhateverItsLetterCase()
+    [AvaloniaTheory]
+    [InlineData("glacier")]
+    [InlineData("GRAPHITE")]
+    [InlineData("balancia")]
+    public void Load_ReservedName_RefusesItRegardlessOfCase(string name)
     {
         // Arrange
-        Write("a.json", """{ "name": "balancia", "colors": { "Text": "#111111" } }""");
+        Write("a.json", $$""" { "name": "{{name}}", "colors": { "Text": "#111111" } } """);
 
         // Act and Assert
         Assert.Empty(ColorThemeCatalog.Load(directory));

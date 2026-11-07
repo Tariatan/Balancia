@@ -2,7 +2,6 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
-using Avalonia.Media;
 using Xunit;
 using static Balancia.Desktop.Localization.UiText;
 
@@ -11,12 +10,10 @@ namespace Balancia.Desktop.Tests;
 /// <summary>The controls that show the overview state stay in line with it after each filter action, through the real window.</summary>
 public sealed class OverviewFilterSyncTests
 {
-    private static readonly Color SelectedPeriodColor = Color.Parse("#D8ECF3");
-
     private static string IntervalLabel(MainWindow window) => window.Find<TextBlock>("TrendIntervalLabel").Text ?? "";
 
     private static bool IsHighlighted(MainWindow window, string buttonName) =>
-        window.Find<Button>(buttonName).Background is ISolidColorBrush { Color: var color } && color == SelectedPeriodColor;
+        ReferenceEquals(window.Find<Button>(buttonName).Background, Palette.SelectionBackground);
 
     private static DateTime? Picked(MainWindow window, string pickerName) => window.Find<CalendarDatePicker>(pickerName).SelectedDate;
 
