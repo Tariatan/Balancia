@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.17.0] - 2026-11-07
+
+#### Added
+
+- Transaction Amount supports subtraction (`-`) in typed and pasted expressions. Multiplication and division still run before addition and subtraction. Saved amounts must remain positive.
+
 ### [3.16.0] - 2026-11-07
 
 #### Added

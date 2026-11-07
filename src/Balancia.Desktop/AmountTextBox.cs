@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Balancia.Desktop;
 
-/// <summary>Accepts decimal expressions using +, * and /; rejects other typing and paste before insertion.</summary>
+/// <summary>Accepts decimal expressions using +, -, * and / and rejects other typing and paste before insertion.</summary>
 internal sealed class AmountTextBox : TextBox
 {
     public AmountTextBox()
@@ -43,7 +43,7 @@ internal sealed class AmountTextBox : TextBox
                 continue;
             }
 
-            if (character is '+' or '*' or '/')
+            if (character is '+' or '-' or '*' or '/')
             {
                 hasSeparator = false;
                 continue;

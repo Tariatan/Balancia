@@ -263,6 +263,8 @@ public sealed class TransactionFormTests
     [InlineData("2**3")]
     [InlineData("2/+3")]
     [InlineData("2*-3")]
+    [InlineData("2-")]
+    [InlineData("2--3")]
     [InlineData("1.2.3")]
     [InlineData("-12")]
     [InlineData("")]
@@ -280,6 +282,8 @@ public sealed class TransactionFormTests
     [InlineData("12.50+3,25", 15.75)]
     [InlineData("0.10+0.20+0.30", 0.60)]
     [InlineData("2+3*4", 14)]
+    [InlineData("20-3*4-2", 6)]
+    [InlineData("5-8+4", 1)]
     [InlineData("12/2*3+1", 19)]
     [InlineData("12,50*2/5", 5)]
     [InlineData("0.125*8", 1)]
@@ -308,7 +312,7 @@ public sealed class TransactionFormTests
         {
             var form = new TransactionForm(Inputs());
             var box = TextBoxOf(form, "Amount (positive)");
-            box.Text = "12.50+6,50/2";
+            box.Text = "19-6,50/2";
 
             // Act
             box.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));

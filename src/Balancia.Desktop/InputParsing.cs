@@ -20,17 +20,20 @@ internal static class InputParsing
 
     internal static Money ParseAmountExpression(TextBox input)
     {
+        var expression = (input.Text ?? string.Empty).Replace(',', '.');
         var total = Money.Zero;
-        foreach (var term in (input.Text ?? string.Empty).Split('+'))
+        foreach (var term in expression.AsSpan().SplitAny("+-"))
         {
-            var normalized = term.Replace(',', '.');
+            var normalized = expression[term];
             // Validate every operand independently: no unary signs, parentheses or other syntax.
             foreach (var operand in normalized.Split('*', '/'))
             {
                 _ = decimal.Parse(operand, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
             }
 
-            total += Money.FromFrancs(new AmountExpressionParser(normalized).Parse());
+            var amount = Money.FromFrancs(new AmountExpressionParser(normalized).Parse());
+            var start = term.Start.Value;
+            total = start > 0 && expression[start - 1] == '-' ? total - amount : total + amount;
         }
 
         return total;
@@ -38,14 +41,18 @@ internal static class InputParsing
 
     internal static void NormalizeAmountExpression(TextBox input)
     {
-        if (input.Text is not { } text || text.IndexOfAny(['+', '*', '/']) < 0)
+        if (input.Text is not { } text || text.IndexOfAny(['+', '-', '*', '/']) < 0)
         {
             return;
         }
 
         try
         {
-            input.Text = ParseAmountExpression(input).Francs.ToString("0.00", Localization.UiText.Culture);
+            var amount = ParseAmountExpression(input);
+            if (amount >= Money.Zero)
+            {
+                input.Text = amount.Francs.ToString("0.00", Localization.UiText.Culture);
+            }
         }
         catch (Exception exception) when (exception is FormatException or ArgumentException or OverflowException)
         {
