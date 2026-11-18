@@ -107,6 +107,24 @@ public sealed class SnapshotImporterTests : IDisposable
         Assert.Equal(500, reader.ReadSummary().Accounts.Single().Balance.Centimes);
     }
 
+    [Fact]
+    public void Import_CurrentRevisionPreserved_LeavesImportTimeUnchanged()
+    {
+        // Arrange
+        var archivePath = Path.Combine(dir, "current.balancia");
+        source.ExportSnapshot(archivePath, key);
+        SnapshotImporter.Import(archivePath, targetPath, key);
+        File.SetLastWriteTimeUtc(targetPath, DateTime.UnixEpoch.AddDays(1));
+        var importedAt = File.GetLastWriteTimeUtc(targetPath);
+
+        // Act
+        var (reader, manifest) = SnapshotImporter.Import(archivePath, targetPath, key, keepCurrentRevision: true);
+
+        // Assert
+        Assert.Equal(manifest.Revision, reader.ReadIdentity().Revision);
+        Assert.Equal(importedAt, File.GetLastWriteTimeUtc(targetPath));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

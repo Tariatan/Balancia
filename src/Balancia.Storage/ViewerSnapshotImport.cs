@@ -18,7 +18,7 @@ public interface IViewerSnapshotHost : ISnapshotUnlockHost
 {
     void RememberKey(SnapshotKey key);
 
-    /// <summary>Called once the snapshot replaced the viewer copy, before the key is remembered. Runs on the caller's context.</summary>
+    /// <summary>Called when the validated snapshot is available locally, before the key is remembered. Runs on the caller's context.</summary>
     Task ImportedAsync(LedgerReader reader, SnapshotManifest manifest);
 }
 
@@ -29,12 +29,13 @@ public interface IViewerSnapshotHost : ISnapshotUnlockHost
 /// </summary>
 public static class ViewerSnapshotImport
 {
-    public static async Task<ViewerImportOutcome> RunAsync(string archivePath, string dbPath, IViewerSnapshotHost host)
+    public static async Task<ViewerImportOutcome> RunAsync(
+        string archivePath, string dbPath, IViewerSnapshotHost host, bool keepCurrentRevision = false)
     {
         var logger = Log.ForContext(typeof(ViewerSnapshotImport));
         var result = await SnapshotUnlock.RunAsync(archivePath, host, async key =>
         {
-            var (reader, manifest) = await Task.Run(() => SnapshotImporter.Import(archivePath, dbPath, key));
+            var (reader, manifest) = await Task.Run(() => SnapshotImporter.Import(archivePath, dbPath, key, keepCurrentRevision));
             await host.ImportedAsync(reader, manifest);
             try
             {

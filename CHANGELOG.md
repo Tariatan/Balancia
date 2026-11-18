@@ -14,6 +14,12 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.17.1] - 2026-11-18
+
+#### Changed
+
+- Application version follows the Android snapshot refresh fix.
+
 ### [3.17.0] - 2026-11-07
 
 #### Added
@@ -917,6 +923,12 @@ Versioning rule:
 
 ## Balancia.Storage
 
+### [8.2.1] - 2026-11-18
+
+#### Fixed
+
+- Viewer refresh can preserve the saved copy and its import timestamp when the validated snapshot has the same ledger revision.
+
 ### [8.2.0] - 2026-10-30
 
 #### Added
@@ -1198,6 +1210,12 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.8.1] - 2026-11-18
+
+#### Fixed
+
+- Pull-to-refresh reopens the selected document once when the provider returns the current revision and keeps the import date if the ledger is unchanged.
 
 ### [0.8.0] - 2026-11-02
 

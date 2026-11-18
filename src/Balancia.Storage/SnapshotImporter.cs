@@ -8,7 +8,8 @@ namespace Balancia.Storage;
 /// <summary>Validates and applies a snapshot archive as a fresh local database, for read-only viewers (e.g. Android).</summary>
 public static class SnapshotImporter
 {
-    public static (LedgerReader Reader, SnapshotManifest Manifest) Import(string archivePath, string dbPath, SnapshotKey key)
+    public static (LedgerReader Reader, SnapshotManifest Manifest) Import(
+        string archivePath, string dbPath, SnapshotKey key, bool keepCurrentRevision = false)
     {
         var operationId = Guid.NewGuid().ToString("N");
         using var context = LogContext.PushProperty("OperationId", operationId);
@@ -21,7 +22,12 @@ public static class SnapshotImporter
         {
             var manifest = LedgerStore.ExtractValidatedSnapshot(archivePath, staged, key);
             logger.Information("Viewer snapshot validated before replacement, OperationId: '{OperationId}'", operationId);
-            RejectForeignOrOlder(dbPath, manifest, logger, operationId);
+            var currentRevision = ReadAcceptedCurrentRevision(dbPath, manifest, logger, operationId);
+            if (keepCurrentRevision && currentRevision == manifest.Revision)
+            {
+                logger.Information("Viewer snapshot already current, Revision: '{Revision}'", manifest.Revision);
+                return (LedgerReader.Open(dbPath), manifest);
+            }
             File.Move(staged, dbPath, true);
             databaseReplaced = true;
             var importedStore = LedgerReader.Open(dbPath);
@@ -48,11 +54,11 @@ public static class SnapshotImporter
     }
 
     /// <summary>Like a Windows restore, refuses a snapshot of another dataset or an earlier revision; an unreadable copy is replaced.</summary>
-    private static void RejectForeignOrOlder(string dbPath, SnapshotManifest manifest, ILogger logger, string operationId)
+    private static long? ReadAcceptedCurrentRevision(string dbPath, SnapshotManifest manifest, ILogger logger, string operationId)
     {
         if (!File.Exists(dbPath))
         {
-            return;
+            return null;
         }
 
         (string DatasetId, long Revision) current;
@@ -63,10 +69,11 @@ public static class SnapshotImporter
         catch (Exception ex) when (ex is SqliteException or InvalidOperationException)
         {
             logger.Warning("Viewer copy unreadable; replacing it, OperationId: '{OperationId}', FailureType: '{FailureType}'", operationId, ex.GetType().Name);
-            return;
+            return null;
         }
 
         SnapshotAcceptance.Require(manifest, current, "viewer copy");
+        return current.Revision;
     }
 
     /// <summary>Removes the staging file; a cleanup failure is logged and never masks the import outcome.</summary>

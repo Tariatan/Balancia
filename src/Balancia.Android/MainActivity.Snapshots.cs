@@ -8,10 +8,10 @@ public partial class MainActivity
 {
     private string KeyPath => Path.Combine(NoBackupFilesDir!.AbsolutePath, "snapshot-key.keystore");
 
-    private async Task<ViewerImportOutcome> ImportSnapshot(string archivePath)
+    private async Task<ViewerImportOutcome> ImportSnapshot(string archivePath, bool keepCurrentRevision)
     {
         var dbPath = Path.Combine(FilesDir!.AbsolutePath, "viewer.db");
-        var outcome = await ViewerSnapshotImport.RunAsync(archivePath, dbPath, new ImportHost(this));
+        var outcome = await ViewerSnapshotImport.RunAsync(archivePath, dbPath, new ImportHost(this), keepCurrentRevision);
         switch (outcome)
         {
             case ViewerImportOutcome.Canceled:
@@ -45,10 +45,12 @@ public partial class MainActivity
             return activity.AskPassphrase(error);
         }
 
-        public async Task ImportedAsync(LedgerReader reader, SnapshotManifest manifest)
+        public Task ImportedAsync(LedgerReader reader, SnapshotManifest manifest)
         {
             activity.viewerReader = reader;
-            await activity.DisplaySnapshot();
+            activity.snapshotRevision = manifest.Revision;
+            activity.DisplaySnapshot();
+            return Task.CompletedTask;
         }
     }
 
@@ -80,9 +82,8 @@ public partial class MainActivity
         return completion.Task;
     }
 
-    private async Task DisplaySnapshot()
+    private void DisplaySnapshot()
     {
-        await Task.Run(() => viewerReader!.ReadIdentity());
         var imported = File.GetLastWriteTime(Path.Combine(FilesDir!.AbsolutePath, "viewer.db"));
         Log.Information("Android snapshot summary refreshed");
         status!.Text = $"● Imported {imported.ToString("dd MMM yyyy", DisplayCulture)}";

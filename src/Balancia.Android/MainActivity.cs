@@ -12,6 +12,7 @@ public partial class MainActivity : Activity
     private TextView? status;
     private EditText? search;
     private LedgerReader? viewerReader;
+    private long? snapshotRevision;
     private bool importing;
     private string? snapshotSource;
     private const string SnapshotSourcePreference = "snapshot-source";
@@ -32,7 +33,9 @@ public partial class MainActivity : Activity
             try
             {
                 viewerReader = LedgerReader.Open(dbPath);
-                await DisplaySnapshot();
+                var identity = await Task.Run(viewerReader.ReadIdentity);
+                snapshotRevision = identity.Revision;
+                DisplaySnapshot();
                 Log.Information("Saved Android viewer database opened");
             }
             catch (Exception ex)
@@ -93,14 +96,16 @@ public partial class MainActivity : Activity
         try
         {
             status!.Text = "Validating snapshot…";
-            await using (var input = ContentResolver!.OpenInputStream(source))
-            await using (var output = File.Create(archivePath))
+            var previousRevision = snapshotRevision;
+            var outcome = await ReadSnapshot(CancellationToken.None);
+            if (!rememberSource && outcome == ViewerImportOutcome.Imported &&
+                previousRevision.HasValue && snapshotRevision == previousRevision)
             {
-                await input!.CopyToAsync(output);
+                Log.Information("Snapshot source returned the current revision; reopening the document once");
+                await Task.Delay(TimeSpan.FromSeconds(1));
+                outcome = await ReadSnapshot(CancellationToken.None);
             }
-            Log.Information("Android snapshot copied from document provider");
 
-            var outcome = await ImportSnapshot(archivePath);
             if (rememberSource && outcome != ViewerImportOutcome.Canceled)
             {
                 snapshotSource = source.ToString();
@@ -158,6 +163,18 @@ public partial class MainActivity : Activity
             {
                 Log.Warning("Incoming snapshot cleanup failed, FailureType: '{FailureType}'", ex.GetType().Name);
             }
+        }
+
+        async Task<ViewerImportOutcome> ReadSnapshot(CancellationToken cancellationToken)
+        {
+            await using (var input = ContentResolver!.OpenInputStream(source)
+                ?? throw new IOException("The snapshot document could not be opened."))
+            await using (var output = File.Create(archivePath))
+            {
+                await input.CopyToAsync(output, cancellationToken);
+            }
+            Log.Information("Android snapshot copied from document provider");
+            return await ImportSnapshot(archivePath, keepCurrentRevision: !rememberSource);
         }
     }
 }
