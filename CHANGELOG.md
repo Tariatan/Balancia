@@ -14,6 +14,90 @@ Versioning rule:
 
 ## Balancia.Desktop
 
+### [3.24.1] - 2026-11-19
+
+#### Changed
+
+- Application version follows the Android refresh cleanup.
+
+### [3.24.0] - 2026-11-19
+
+#### Changed
+
+- Application version follows the Android Google Drive download update.
+
+### [3.23.1] - 2026-11-19
+
+#### Changed
+
+- Application version follows the Android Google Drive source fix.
+
+### [3.23.0] - 2026-11-19
+
+#### Changed
+
+- Application version follows the Android local snapshot refresh update.
+
+### [3.22.0] - 2026-11-19
+
+#### Changed
+
+- Application version follows the Android direct snapshot import update.
+
+### [3.21.0] - 2026-11-19
+
+#### Changed
+
+- Application version follows Android support for numbered snapshot files.
+
+### [3.20.1] - 2026-11-19
+
+#### Changed
+
+- Application version follows the Android diagnostic build.
+
+### [3.20.0] - 2026-11-19
+
+#### Changed
+
+- Application version follows the Android snapshot folder selection update.
+
+### [3.19.3] - 2026-11-18
+
+#### Changed
+
+- Application version follows the Android pull-to-refresh update.
+
+### [3.19.2] - 2026-11-18
+
+#### Changed
+
+- Application version follows the Android document provider diagnostics update.
+
+### [3.19.1] - 2026-11-18
+
+#### Changed
+
+- Application version follows the Android snapshot diagnostics update.
+
+### [3.19.0] - 2026-11-18
+
+#### Changed
+
+- Application version follows the Android log export feature.
+
+### [3.18.1] - 2026-11-18
+
+#### Changed
+
+- Application version follows the Android document provider refresh update.
+
+### [3.18.0] - 2026-11-18
+
+#### Changed
+
+- Application version follows the addition of the Android dashboard version label.
+
 ### [3.17.1] - 2026-11-18
 
 #### Changed
@@ -923,6 +1007,18 @@ Versioning rule:
 
 ## Balancia.Storage
 
+### [8.2.3] - 2026-11-18
+
+#### Fixed
+
+- A viewer refresh can recognize a validated snapshot with the saved revision and preserve the current database and import date.
+
+### [8.2.2] - 2026-11-18
+
+#### Removed
+
+- The same-revision preservation option introduced for the Android refresh retry. Viewer imports apply validated snapshots using the original revision acceptance rules.
+
 ### [8.2.1] - 2026-11-18
 
 #### Fixed
@@ -1210,6 +1306,98 @@ Versioning rule:
 - Changelog introduced, tracking the current released version.
 
 ## Balancia.Android
+
+### [0.15.1] - 2026-11-19
+
+#### Removed
+
+- Temporary database dumps, per-row and per-view refresh traces, and the all-files access workaround. Non-Drive folders use Android's folder grant.
+
+### [0.15.0] - 2026-11-19
+
+#### Added
+
+- Swipe can download an authorized snapshot from the Google Drive API with file-specific Google authorization.
+
+### [0.14.1] - 2026-11-19
+
+#### Fixed
+
+- Swipe accepts Google Drive folders again through Android's document provider. Local folders on Android 11 and later still use direct reads.
+
+### [0.14.0] - 2026-11-19
+
+#### Changed
+
+- On Android 11 and later, pull-to-refresh reads `Snapshot.balancia` directly from the selected local folder after all-files access is granted.
+
+#### Removed
+
+- The temporary snapshot import and folder buttons, and numbered snapshot selection.
+
+### [0.13.0] - 2026-11-19
+
+#### Added
+
+- Import snapshot opens a file selected directly in the Android picker and validates it before applying it.
+
+### [0.12.0] - 2026-11-19
+
+#### Added
+
+- The selected snapshot folder can contain numbered files such as `Snapshot-1.balancia`. Pull-to-refresh opens the file with the highest number, and the log records its filename and archive hash.
+
+### [0.11.1] - 2026-11-19
+
+#### Added
+
+- Opt-in build diagnostics for complete viewer database dumps and Overview query results.
+
+### [0.11.0] - 2026-11-19
+
+#### Added
+
+- A dashboard action for choosing or changing the folder containing `Snapshot.balancia`.
+
+#### Changed
+
+- Each pull looks up the current file in the selected folder and reads it once. Diagnostics record the encrypted archive's SHA-256 for comparison with the exported file.
+
+### [0.10.3] - 2026-11-18
+
+#### Fixed
+
+- One pull can repeat the provider refresh and read up to three times when it receives the saved ledger revision. The app preserves the import date until a newer revision is applied.
+
+### [0.10.2] - 2026-11-18
+
+#### Added
+
+- Pull diagnostics record provider metadata before refresh and before opening the stream, and time the stream open and copy separately.
+
+### [0.10.1] - 2026-11-18
+
+#### Added
+
+- Snapshot diagnostics correlate the refresh request, copied archive, provider metadata, validated revision, and dashboard redraw.
+
+### [0.10.0] - 2026-11-18
+
+#### Added
+
+- Press and hold the Balancia title to export all retained application logs as a timestamped ZIP in the main storage Download folder.
+
+### [0.9.1] - 2026-11-18
+
+#### Changed
+
+- Pull-to-refresh asks the Android document provider to refresh the selected snapshot before opening it on Android 8.0 and later. This replaces the delayed second read introduced in 0.8.1.
+
+### [0.9.0] - 2026-11-18
+
+#### Added
+
+- The dashboard displays the installed app version below the Balancia title.
 
 ### [0.8.1] - 2026-11-18
 

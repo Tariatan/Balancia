@@ -11,6 +11,9 @@ public enum ViewerImportOutcome
 
     /// <summary>The user declined to enter the passphrase; the previous copy is unchanged.</summary>
     Canceled,
+
+    /// <summary>The validated archive matches the saved revision, so the saved database was kept.</summary>
+    AlreadyCurrent,
 }
 
 /// <summary>What a viewer platform supplies to <see cref="ViewerSnapshotImport"/>: protected key storage, the passphrase prompt, and the display of an imported copy.</summary>
@@ -18,7 +21,7 @@ public interface IViewerSnapshotHost : ISnapshotUnlockHost
 {
     void RememberKey(SnapshotKey key);
 
-    /// <summary>Called when the validated snapshot is available locally, before the key is remembered. Runs on the caller's context.</summary>
+    /// <summary>Called once the snapshot replaced the viewer copy, before the key is remembered. Runs on the caller's context.</summary>
     Task ImportedAsync(LedgerReader reader, SnapshotManifest manifest);
 }
 
@@ -35,18 +38,22 @@ public static class ViewerSnapshotImport
         var logger = Log.ForContext(typeof(ViewerSnapshotImport));
         var result = await SnapshotUnlock.RunAsync(archivePath, host, async key =>
         {
-            var (reader, manifest) = await Task.Run(() => SnapshotImporter.Import(archivePath, dbPath, key, keepCurrentRevision));
-            await host.ImportedAsync(reader, manifest);
+            var (reader, manifest, replaced) = await Task.Run(() =>
+                SnapshotImporter.ImportForViewer(archivePath, dbPath, key, keepCurrentRevision));
+            if (replaced)
+            {
+                await host.ImportedAsync(reader, manifest);
+            }
             try
             {
                 await Task.Run(() => host.RememberKey(key));
                 logger.Information("Viewer snapshot key remembered");
-                return ViewerImportOutcome.Imported;
+                return replaced ? ViewerImportOutcome.Imported : ViewerImportOutcome.AlreadyCurrent;
             }
             catch (Exception ex)
             {
                 logger.Warning("Viewer snapshot loaded but key could not be remembered, FailureType: '{FailureType}', HResult: '{HResult}'", ex.GetType().Name, ex.HResult);
-                return ViewerImportOutcome.ImportedKeyNotRemembered;
+                return replaced ? ViewerImportOutcome.ImportedKeyNotRemembered : ViewerImportOutcome.AlreadyCurrent;
             }
         });
         return result.Canceled ? ViewerImportOutcome.Canceled : result.Value;

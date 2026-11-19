@@ -7,9 +7,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.triatan.balancia.android</ApplicationId>
-    <Version>0.8.1</Version>
-    <ApplicationVersion>22</ApplicationVersion>
-    <ApplicationDisplayVersion>0.8.1</ApplicationDisplayVersion>
+    <Version>0.15.1</Version>
+    <ApplicationVersion>36</ApplicationVersion>
+    <ApplicationDisplayVersion>0.15.1</ApplicationDisplayVersion>
     <!--
       Enables trim analyzers and full trimming during Release mode.
       To learn more, see: https://learn.microsoft.com/dotnet/core/deploying/trimming/trimming-options#trimming-granularity
@@ -21,6 +21,7 @@
   <ItemGroup>
     <PackageReference Include="Serilog" Version="4.4.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="Xamarin.GooglePlayServices.Auth" Version="122.0.0" />
     <ProjectReference Include="..\Balancia.Core\Balancia.Core.csproj" />
     <ProjectReference Include="..\Balancia.Storage\Balancia.Storage.csproj" />
   </ItemGroup>

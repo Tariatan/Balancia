@@ -1,4 +1,5 @@
 using Android.Content;
+using Android.Provider;
 using Balancia.Storage;
 using Serilog;
 using Serilog.Context;
@@ -8,14 +9,13 @@ namespace Balancia.Android;
 [Activity(Label = "@string/app_name", MainLauncher = true, Exported = true)]
 public partial class MainActivity : Activity
 {
-    private const int PickSnapshot = 1001;
+    private const int PickSnapshotFolderRequest = 1001;
     private TextView? status;
     private EditText? search;
     private LedgerReader? viewerReader;
-    private long? snapshotRevision;
     private bool importing;
-    private string? snapshotSource;
-    private const string SnapshotSourcePreference = "snapshot-source";
+    private string? snapshotFolder;
+    private const string SnapshotFolderPreference = "snapshot-folder";
 
     protected override async void OnCreate(Bundle? savedInstanceState)
     {
@@ -23,19 +23,17 @@ public partial class MainActivity : Activity
         lightTheme = preferences.GetBoolean("light-theme", false);
         ApplyTheme();
         base.OnCreate(savedInstanceState);
-        snapshotSource = GetSharedPreferences("viewer", FileCreationMode.Private)!.GetString(SnapshotSourcePreference, null);
+        snapshotFolder = preferences.GetString(SnapshotFolderPreference, null);
+        driveSnapshotId = preferences.GetString(DriveSnapshotPreference, null);
         BuildDashboard();
         status!.Text = "No snapshot loaded";
         var dbPath = Path.Combine(FilesDir!.AbsolutePath, "viewer.db");
         if (File.Exists(dbPath))
         {
-            Log.Information("Opening saved Android viewer database");
             try
             {
                 viewerReader = LedgerReader.Open(dbPath);
-                var identity = await Task.Run(viewerReader.ReadIdentity);
-                snapshotRevision = identity.Revision;
-                DisplaySnapshot();
+                await DisplaySnapshot();
                 Log.Information("Saved Android viewer database opened");
             }
             catch (Exception ex)
@@ -54,7 +52,13 @@ public partial class MainActivity : Activity
     protected override async void OnActivityResult(int requestCode, Result resultCode, Intent? data)
     {
         base.OnActivityResult(requestCode, resultCode, data);
-        if (requestCode != PickSnapshot)
+        if (requestCode == DriveAuthorizationRequest)
+        {
+            CompleteDriveAuthorization(resultCode, data);
+            return;
+        }
+
+        if (requestCode != PickSnapshotFolderRequest)
         {
             return;
         }
@@ -77,44 +81,66 @@ public partial class MainActivity : Activity
     private async void RefreshSnapshot()
     {
         if (importing) { return; }
-        if (snapshotSource is null)
+        if (driveSnapshotId is not null)
         {
-            PickDocument();
+            await LoadSnapshot(null, rememberSource: false);
             return;
         }
-        await LoadSnapshot(global::Android.Net.Uri.Parse(snapshotSource)!, rememberSource: false);
+        if (snapshotFolder is null)
+        {
+            PickSnapshotFolder();
+            return;
+        }
+        using var folder = global::Android.Net.Uri.Parse(snapshotFolder)!;
+        await LoadSnapshot(folder, rememberSource: false);
     }
 
-    private async Task LoadSnapshot(global::Android.Net.Uri source, bool rememberSource)
+    private async Task LoadSnapshot(global::Android.Net.Uri? source, bool rememberSource)
     {
         if (importing) { return; }
+        var useDrive = source is null || source.Authority is "com.google.android.apps.docs.storage" or "com.google.android.apps.docs.storage.legacy";
         importing = true;
         using var context = LogContext.PushProperty("ImportId", Guid.NewGuid().ToString("N"));
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
-        Log.Information("Starting Android snapshot import");
         var archivePath = Path.Combine(FilesDir!.AbsolutePath, "incoming.balancia");
+        var previousStatus = status!.Text;
         try
         {
-            status!.Text = "Validating snapshot…";
-            var previousRevision = snapshotRevision;
-            var outcome = await ReadSnapshot(CancellationToken.None);
-            if (!rememberSource && outcome == ViewerImportOutcome.Imported &&
-                previousRevision.HasValue && snapshotRevision == previousRevision)
+            status!.Text = "Loading snapshot…";
+            string? importedDriveId = null;
+            if (useDrive)
             {
-                Log.Information("Snapshot source returned the current revision; reopening the document once");
-                await Task.Delay(TimeSpan.FromSeconds(1));
-                outcome = await ReadSnapshot(CancellationToken.None);
+                importedDriveId = await DownloadDriveSnapshotAsync(rememberSource ? null : driveSnapshotId, archivePath, CancellationToken.None);
+            }
+            else if (source is not null)
+            {
+                await Task.Run(() => CopyProviderSnapshotAsync(source, archivePath, CancellationToken.None));
+            }
+            status.Text = "Validating snapshot…";
+            var outcome = await ImportSnapshot(archivePath, keepCurrentRevision: true);
+
+            if (outcome == ViewerImportOutcome.AlreadyCurrent)
+            {
+                status!.Text = previousStatus;
+                Toast.MakeText(this, "No newer snapshot available.", ToastLength.Short)?.Show();
             }
 
-            if (rememberSource && outcome != ViewerImportOutcome.Canceled)
+            if (importedDriveId is not null && outcome != ViewerImportOutcome.Canceled)
             {
-                snapshotSource = source.ToString();
+                driveSnapshotId = importedDriveId;
+                SaveDriveSnapshotSelection(importedDriveId);
+            }
+            else if (source is not null && rememberSource && outcome != ViewerImportOutcome.Canceled)
+            {
+                snapshotFolder = source.ToString();
                 try
                 {
                     ContentResolver!.TakePersistableUriPermission(source, ActivityFlags.GrantReadUriPermission);
                     using var preferences = GetSharedPreferences("viewer", FileCreationMode.Private)!;
                     using var editor = preferences.Edit()!;
-                    editor.PutString(SnapshotSourcePreference, snapshotSource);
+                    editor.PutString(SnapshotFolderPreference, snapshotFolder);
+                    editor.Remove(DriveSnapshotPreference);
+                    driveSnapshotId = null;
                     if (!editor.Commit())
                     {
                         Log.Warning("Snapshot source preference could not be saved");
@@ -127,7 +153,13 @@ public partial class MainActivity : Activity
                     Toast.MakeText(this, "Snapshot loaded. This provider requires choosing the source again after restarting the app.", ToastLength.Long)!.Show();
                 }
             }
-            Log.Information("Android snapshot import interaction finished, ElapsedMs: '{ElapsedMs}'", elapsed.ElapsedMilliseconds);
+            Log.Information("Android snapshot import finished, Source: '{Source}', Outcome: '{Outcome}', ElapsedMs: '{ElapsedMs}'",
+                useDrive ? "GoogleDriveApi" : "DocumentProvider", outcome, elapsed.ElapsedMilliseconds);
+        }
+        catch (OperationCanceledException)
+        {
+            status!.Text = previousStatus;
+            Log.Information("Android snapshot authorization or download canceled");
         }
         catch (Exception ex)
         {
@@ -148,7 +180,17 @@ public partial class MainActivity : Activity
                 .SetTitle("Snapshot rejected")!
                 .SetMessage(ex.Message)!
                 .SetPositiveButton("OK", (_, _) => { })!
-                .SetNeutralButton("Choose snapshot", (_, _) => PickDocument())!
+                .SetNeutralButton(useDrive ? "Choose Drive snapshot" : "Choose snapshot folder", (_, _) =>
+                {
+                    if (useDrive)
+                    {
+                        ChooseDriveSnapshot();
+                    }
+                    else
+                    {
+                        PickSnapshotFolder();
+                    }
+                })!
                 .Show();
         }
         finally
@@ -165,16 +207,50 @@ public partial class MainActivity : Activity
             }
         }
 
-        async Task<ViewerImportOutcome> ReadSnapshot(CancellationToken cancellationToken)
+    }
+
+    private async Task CopyProviderSnapshotAsync(global::Android.Net.Uri folder, string archivePath, CancellationToken cancellationToken)
+    {
+        var resolver = ContentResolver!;
+        var folderId = DocumentsContract.GetTreeDocumentId(folder);
+        using var children = DocumentsContract.BuildChildDocumentsUriUsingTree(folder, folderId)
+            ?? throw new IOException("The snapshot folder could not be opened.");
+        using var rows = resolver.Query(children,
+            [DocumentsContract.Document.ColumnDocumentId, DocumentsContract.Document.ColumnDisplayName,
+             DocumentsContract.Document.ColumnMimeType], null, null, null)
+            ?? throw new IOException("The snapshot folder could not be listed.");
+
+        string? documentId = null;
+        while (rows.MoveToNext())
         {
-            await using (var input = ContentResolver!.OpenInputStream(source)
-                ?? throw new IOException("The snapshot document could not be opened."))
-            await using (var output = File.Create(archivePath))
+            if (rows.GetString(1) != CloseTimeExporter.SnapshotFileName ||
+                rows.GetString(2) == DocumentsContract.Document.MimeTypeDir)
             {
-                await input.CopyToAsync(output, cancellationToken);
+                continue;
             }
-            Log.Information("Android snapshot copied from document provider");
-            return await ImportSnapshot(archivePath, keepCurrentRevision: !rememberSource);
+            if (documentId is not null)
+            {
+                throw new IOException("More than one Snapshot.balancia was found in the selected folder.");
+            }
+
+            documentId = rows.GetString(0);
         }
+
+        if (documentId is null)
+        {
+            throw new FileNotFoundException("Snapshot.balancia was not found in the selected folder.");
+        }
+
+        using var document = DocumentsContract.BuildDocumentUriUsingTree(folder, documentId)
+            ?? throw new IOException("The snapshot document could not be identified.");
+        await using var input = resolver.OpenInputStream(document)
+            ?? throw new IOException("The snapshot document could not be opened.");
+        await StageSnapshotAsync(input, archivePath, cancellationToken);
+    }
+
+    private static async Task StageSnapshotAsync(Stream input, string archivePath, CancellationToken cancellationToken)
+    {
+        await using var output = File.Create(archivePath);
+        await input.CopyToAsync(output, cancellationToken);
     }
 }

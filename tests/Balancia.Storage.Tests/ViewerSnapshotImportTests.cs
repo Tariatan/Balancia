@@ -72,6 +72,24 @@ public sealed class ViewerSnapshotImportTests : IDisposable
     private byte[] ExpectedSecret() => SnapshotKey.Derive(Passphrase, key.Info).ExportSecret();
 
     [Fact]
+    public async Task RunAsync_RefreshMatchesSavedRevision_KeepsDatabaseAndImportTime()
+    {
+        // Arrange
+        SnapshotImporter.Import(archive, viewerPath, key);
+        File.SetLastWriteTimeUtc(viewerPath, DateTime.UnixEpoch.AddDays(1));
+        var importedAt = File.GetLastWriteTimeUtc(viewerPath);
+        var host = new FakeHost { Remembered = SnapshotKey.Derive(Passphrase, key.Info) };
+
+        // Act
+        var outcome = await ViewerSnapshotImport.RunAsync(archive, viewerPath, host, keepCurrentRevision: true);
+
+        // Assert
+        Assert.Equal(ViewerImportOutcome.AlreadyCurrent, outcome);
+        Assert.Null(host.Imported);
+        Assert.Equal(importedAt, File.GetLastWriteTimeUtc(viewerPath));
+    }
+
+    [Fact]
     public async Task RunAsync_FirstImportWithTheCorrectPassphrase_PromptsOnceImportsAndRemembersTheKey()
     {
         // Arrange

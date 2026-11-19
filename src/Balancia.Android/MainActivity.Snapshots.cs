@@ -1,6 +1,5 @@
 using Android.Text;
 using Balancia.Storage;
-using Serilog;
 
 namespace Balancia.Android;
 
@@ -45,12 +44,10 @@ public partial class MainActivity
             return activity.AskPassphrase(error);
         }
 
-        public Task ImportedAsync(LedgerReader reader, SnapshotManifest manifest)
+        public async Task ImportedAsync(LedgerReader reader, SnapshotManifest manifest)
         {
             activity.viewerReader = reader;
-            activity.snapshotRevision = manifest.Revision;
-            activity.DisplaySnapshot();
-            return Task.CompletedTask;
+            await activity.DisplaySnapshot();
         }
     }
 
@@ -82,10 +79,10 @@ public partial class MainActivity
         return completion.Task;
     }
 
-    private void DisplaySnapshot()
+    private async Task DisplaySnapshot()
     {
+        await Task.Run(() => viewerReader!.ReadIdentity());
         var imported = File.GetLastWriteTime(Path.Combine(FilesDir!.AbsolutePath, "viewer.db"));
-        Log.Information("Android snapshot summary refreshed");
         status!.Text = $"● Imported {imported.ToString("dd MMM yyyy", DisplayCulture)}";
         RefreshDashboard();
     }

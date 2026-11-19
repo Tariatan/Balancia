@@ -8,8 +8,14 @@ namespace Balancia.Storage;
 /// <summary>Validates and applies a snapshot archive as a fresh local database, for read-only viewers (e.g. Android).</summary>
 public static class SnapshotImporter
 {
-    public static (LedgerReader Reader, SnapshotManifest Manifest) Import(
-        string archivePath, string dbPath, SnapshotKey key, bool keepCurrentRevision = false)
+    public static (LedgerReader Reader, SnapshotManifest Manifest) Import(string archivePath, string dbPath, SnapshotKey key)
+    {
+        var (reader, manifest, _) = ImportForViewer(archivePath, dbPath, key, keepCurrentRevision: false);
+        return (reader, manifest);
+    }
+
+    internal static (LedgerReader Reader, SnapshotManifest Manifest, bool Replaced) ImportForViewer(
+        string archivePath, string dbPath, SnapshotKey key, bool keepCurrentRevision)
     {
         var operationId = Guid.NewGuid().ToString("N");
         using var context = LogContext.PushProperty("OperationId", operationId);
@@ -22,18 +28,19 @@ public static class SnapshotImporter
         {
             var manifest = LedgerStore.ExtractValidatedSnapshot(archivePath, staged, key);
             logger.Information("Viewer snapshot validated before replacement, OperationId: '{OperationId}'", operationId);
-            var currentRevision = ReadAcceptedCurrentRevision(dbPath, manifest, logger, operationId);
+            var currentRevision = ReadAcceptedRevision(dbPath, manifest, logger, operationId);
             if (keepCurrentRevision && currentRevision == manifest.Revision)
             {
-                logger.Information("Viewer snapshot already current, Revision: '{Revision}'", manifest.Revision);
-                return (LedgerReader.Open(dbPath), manifest);
+                logger.Information("Viewer snapshot matches saved revision, Revision: '{Revision}', ExportedAtUtc: '{ExportedAtUtc:O}'",
+                    manifest.Revision, manifest.ExportedAtUtc);
+                return (LedgerReader.Open(dbPath), manifest, false);
             }
             File.Move(staged, dbPath, true);
             databaseReplaced = true;
             var importedStore = LedgerReader.Open(dbPath);
             logger.Information("Viewer snapshot import completed, OperationId: '{OperationId}', Revision: '{Revision}', ElapsedMs: '{ElapsedMs}'",
                 operationId, manifest.Revision, elapsed.ElapsedMilliseconds);
-            return (importedStore, manifest);
+            return (importedStore, manifest, true);
         }
         catch (Exception ex) when (LedgerStore.IsSnapshotRejection(ex))
         {
@@ -54,7 +61,7 @@ public static class SnapshotImporter
     }
 
     /// <summary>Like a Windows restore, refuses a snapshot of another dataset or an earlier revision; an unreadable copy is replaced.</summary>
-    private static long? ReadAcceptedCurrentRevision(string dbPath, SnapshotManifest manifest, ILogger logger, string operationId)
+    private static long? ReadAcceptedRevision(string dbPath, SnapshotManifest manifest, ILogger logger, string operationId)
     {
         if (!File.Exists(dbPath))
         {

@@ -1,4 +1,5 @@
 using Android.Content;
+using Android.Content.PM;
 using Android.Graphics;
 using Android.Graphics.Drawables;
 using Android.Views;
@@ -6,6 +7,7 @@ using Balancia.Core;
 using Balancia.Storage;
 using Serilog;
 using System.Globalization;
+using AndroidPackageManager = Android.Content.PM.PackageManager;
 
 namespace Balancia.Android;
 
@@ -49,7 +51,23 @@ public partial class MainActivity
         root.SetPadding(Dp(16), Dp(12), Dp(16), Dp(8));
         root.SetBackgroundColor(ViewerPalette.Background);
         var header = Row();
-        header.AddView(Label("Balancia", 24, ViewerPalette.Text, true), new LinearLayout.LayoutParams(0, -2, 1));
+        var titleBlock = Column();
+        var title = Label("Balancia", 24, ViewerPalette.Text, true);
+        title.SetPadding(Dp(3), 0, Dp(3), 0);
+        title.LongClick += OnTitleLongClick;
+        titleBlock.AddView(title);
+        using var packageManager = PackageManager;
+        using var packageInfo = OperatingSystem.IsAndroidVersionAtLeast(33)
+            ? packageManager?.GetPackageInfo(PackageName!, AndroidPackageManager.PackageInfoFlags.Of(0L))
+            : packageManager?.GetPackageInfo(PackageName!, (PackageInfoFlags)0);
+        var versionName = packageInfo?.VersionName;
+        if (!string.IsNullOrEmpty(versionName))
+        {
+            var version = Label($"v{versionName}", 11, ViewerPalette.Muted);
+            version.SetPadding(Dp(3), 0, Dp(3), 0);
+            titleBlock.AddView(version);
+        }
+        header.AddView(titleBlock, new LinearLayout.LayoutParams(0, -2, 1));
         status = Label("No snapshot loaded", 11, ViewerPalette.Muted);
         status.Gravity = GravityFlags.Right | GravityFlags.CenterVertical;
         status.SetSingleLine(true);
@@ -78,12 +96,13 @@ public partial class MainActivity
         RefreshDashboard();
     }
 
-    private void PickDocument()
+    private void PickSnapshotFolder()
     {
         if (importing) { return; }
-        Log.Information("Android snapshot picker opened");
-        StartActivityForResult(new Intent(Intent.ActionOpenDocument).SetType("*/*").AddCategory(Intent.CategoryOpenable)
-            .AddFlags(ActivityFlags.GrantReadUriPermission | ActivityFlags.GrantPersistableUriPermission), PickSnapshot);
+        Log.Information("Android snapshot folder picker opened");
+        using var intent = new Intent(Intent.ActionOpenDocumentTree)
+            .AddFlags(ActivityFlags.GrantReadUriPermission | ActivityFlags.GrantPersistableUriPermission);
+        StartActivityForResult(intent, PickSnapshotFolderRequest);
     }
 
     private void MoveMonth(int direction)
@@ -259,8 +278,7 @@ public partial class MainActivity
         if (viewerReader is null)
         {
             content.AddView(Label("Your finances, on hand", 24, bold: true));
-            content.AddView(Action("Choose snapshot", PickDocument));
-            content.AddView(Label("Import a snapshot to see balances, transactions, reminders and charts. Windows remains the only writer.", 16, ViewerPalette.Muted));
+            content.AddView(Label("Swipe down to choose the folder containing Snapshot.balancia.", 16, ViewerPalette.Muted));
             return;
         }
         try
@@ -419,7 +437,6 @@ public partial class MainActivity
         if (pageOffset > 0) { paging.AddView(Action("Previous", () => { pageOffset = Math.Max(0, pageOffset - PageSize); RefreshDashboard(); })); }
         if (pageOffset + page.Hits.Count < page.TotalCount) { paging.AddView(Action("Next 50", () => { pageOffset += PageSize; RefreshDashboard(); })); }
         transactions.AddView(paging);
-        Log.Information("Android transaction search completed, ResultCount: '{ResultCount}'", page.Hits.Count);
     }
 
     private TableRow AccountRow(string name, Money balance, string marker, bool selected, System.Action click)

@@ -6,13 +6,15 @@ namespace Balancia.Android;
 
 internal static class ApplicationLogging
 {
+    internal static string GetLogDirectory(Context context) => Path.Combine(context.NoBackupFilesDir!.AbsolutePath, "log");
+
     internal static void Configure(Context context)
     {
         // App-private, excluded from OS backup, and independent of the snapshot picker.
         SelfLog.Enable(_ => global::Android.Util.Log.Warn("Balancia", "Logging sink failure"));
         try
         {
-            var directory = Path.Combine(context.NoBackupFilesDir!.AbsolutePath, "log");
+            var directory = GetLogDirectory(context);
             Directory.CreateDirectory(directory);
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()

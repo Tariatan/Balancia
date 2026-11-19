@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>8.2.1</Version>
+    <Version>8.2.3</Version>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Balancia.Storage.Tests" />
